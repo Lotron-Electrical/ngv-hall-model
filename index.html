@@ -19,6 +19,7 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 .ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
 .ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
 .ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
+#hud{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#e8e8e8;font:12px/1.6 ui-monospace,Consolas,monospace;padding:8px 10px;white-space:pre;pointer-events:none;border-radius:4px}
 .hint{color:var(--dim);font-size:13px;padding:8px 16px 0}
 .hint a{color:var(--accent)}
 .bar{position:absolute;left:16px;bottom:16px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
@@ -86,7 +87,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 <div id="stage"><canvas id="cv"></canvas>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
- <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button><button id="remote" type="button">Phone remote</button></div>
+ <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
+ <div id="hud" hidden></div>
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
 </div>
@@ -100,7 +102,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div class="row"><label>Animation layers (blended bottom to top; the controls below edit the selected one)</label>
   <div id="layers" class="layers"></div><button type="button" id="addlayer" class="sw" style="margin-top:6px">+ Add layer</button></div>
  <div class="row"><label>Fixture</label>
-  <div class="seg" id="diff"><button type="button" data-d="1" aria-pressed="true">Black acrylic diffuser<br><small>satin, one continuous line</small></button><button type="button" data-d="0" aria-pressed="false">No diffuser<br><small>raw pixels in the open channel</small></button></div></div>
+  <div class="seg" id="diff"><button type="button" data-c="black" aria-pressed="true">Black acrylic<br><small>satin, passes 25%</small></button><button type="button" data-c="opal" aria-pressed="false">Opal<br><small>milky white, passes 65%</small></button><button type="button" data-c="none" aria-pressed="false">No diffuser<br><small>raw pixels, open channel</small></button></div></div>
  <div class="row"><label>RGBW drive</label>
   <div class="seg" id="drive"><button type="button" data-d="rgbw" aria-pressed="true">RGBW<br><small>white rides the W die alone</small></button><button type="button" data-d="rgbwmax" aria-pressed="false">RGBW max<br><small>the RGB dies boost the W</small></button></div></div>
  <div class="row"><label>Colour</label>
@@ -272,10 +274,12 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, diffuser:true, drive:'rgbw'};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false};
+// a control change means the next frame must repaint the LEDs even if every layer is static
+let sceneDirty=true;
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
-let RUNS=null, pix=null, ribbon=null, glow=null, pcb=null, pkg=null;
+let RUNS=null, pix=null, ribbon=null, glow=null, pcb=null, pkg=null, cvr=null;
 // soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
 // from across the hall even at 10 px/m
 const GLOWTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(0.25,'rgba(255,255,255,.55)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.NoColorSpace; return t;})();
@@ -355,14 +359,22 @@ const LEDS_PER_M=60;
 // sheet passes NOTHING; the cover must be a day/night grade, and its own datasheet replaces this
 // figure the day Lloyd has it.
 const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.25, WALL=0.002;
+// The opal option (Lloyd, 2026-08-28): milky white PMMA instead of black. Verified figures:
+// Topmet C2 Click opal cover (PMMA, the actual product class) 70%, PLEXIGLAS Satinice WH10 ~70%,
+// Perspex Opal 030 70% / 040 51%, Lumines milky PMMA cover 50%; KLUS's satin PC siblings run
+// 59-70%. Real opal covers span 0.50-0.70: 0.65 is the light-opal middle, and the real cover's
+// datasheet replaces it, same as the black figure.
+const OPAL_T=0.65;
+const COVER_T={black:DIFFUSER_T, opal:OPAL_T, none:1};
 // DIFFUSER_T is what reaches the room and it is applied to the light the strips throw. It is not
 // what the eye sees on the face: a quarter of 1,088 lm/m through a 16 mm face is still a hundred
 // times brighter than the hall, so a lit diffuser reads as the LED colour, not as 25% grey paint
 // (which is what multiplying a display colour by 0.25 drew, and why the tile looked like a dark
 // cover sitting beside the light instead of over it). EMIT_EXPOSURE is the display exposure for
-// anything looked at directly: the diffused face at full output is exactly the LED colour; a bare
-// LED package is brighter still, about forty times, since the same light leaves a far smaller
-// area, and it simply clips; both dim with the strip dimmer below that.
+// anything looked at directly. Through the black cover the face at full output is exactly the
+// LED colour; the opal cover passes 2.6x that and clips toward white, which is what a brighter
+// face does on a fixed exposure; a bare LED package is brighter still, about forty times, since
+// the same light leaves a far smaller area, and it clips the same. All dim with the strip dimmer.
 const EMIT_EXPOSURE=1/DIFFUSER_T;
 // The halo is one soft disc per LED, added up: at 60/m every point on the strip line sits under
 // size/pitch of them, and unclipped that sum ran to 4 for a bare strip, a hard-edged white bar
@@ -380,8 +392,8 @@ const GAPS=8;
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
  if(!RUNS)return;
- for(const m of [pix,ribbon,glow,pcb,pkg]) if(m){scene.remove(m); m.geometry.dispose(); for(const mm of [].concat(m.material))mm.dispose();}
- pix=ribbon=glow=pcb=pkg=null;
+ for(const m of [pix,ribbon,glow,pcb,pkg,cvr]) if(m){scene.remove(m); m.geometry.dispose(); for(const mm of [].concat(m.material))mm.dispose();}
+ pix=ribbon=glow=pcb=pkg=cvr=null;
  const gaps=chosenGaps(state.count), pitch=1/LEDS_PER_M, group=Math.round(LEDS_PER_M/state.density);
  // the client's option: no LEDs on the bottom SKIP metres of a shaft. The run is cut there, so every
  // count, address and export downstream sees a shorter strip rather than a masked one.
@@ -396,11 +408,14 @@ function rebuild(){
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
  P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), w4:new Float32Array(total), runs:[]};
  let pixels=0;
- const diff=state.diffuser;
- // with the cover off the lit thing is the LED's round cavity: a thin additive overlay on the
- // package top, shaped by DIETEX, so an off pixel shows the yellow phosphor printed below it
- const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,TILE_T):new THREE.BoxGeometry(0.0042,0.0042,0.0002);
- const emitOff=diff?EXT_BACK+EXT_D+0.0006:EXT_BACK+WALL+PCB_T+LED_H+0.0001;
+ const cover=state.cover, diff=cover!=='none', coverT=COVER_T[cover];
+ // the lit thing is always an ADDITIVE overlay on a material: the cover modes draw a satin
+ // acrylic tile (black or opal) with a face-wide emitter quad on it, so an unlit cover is a
+ // material and not a black hole; the open channel draws the LED's round cavity the same way,
+ // shaped by DIETEX, so an off pixel shows the yellow phosphor printed below it
+ const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,0.0005):new THREE.BoxGeometry(0.0042,0.0042,0.0002);
+ const baseOff=EXT_BACK+EXT_D+0.0006;
+ const emitOff=diff?baseOff+TILE_T/2+0.0004:EXT_BACK+WALL+PCB_T+LED_H+0.0001;
  // The halo sprite is a screen-facing disc drawn at ONE depth, its anchor's, and it is depth-tested
  // like anything else. Anchored at the LED centre it sat inside its own tile, so the tile's front
  // face hid the core of the halo and only the margins showed, either side of a dull tile: the light
@@ -409,18 +424,25 @@ function rebuild(){
  // 15 mm down a 16 mm wide channel, so a halo anchored on them would be clipped by the near wall at
  // any angle over about 20 degrees and read lopsided). The LED positions themselves are unchanged:
  // that is what the pixel map exports and what lights the room.
- const haloOff=diff?emitOff+TILE_T/2+0.001:EXT_BACK+EXT_D+0.001;
- const pm=diff?new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false})
+ const haloOff=diff?emitOff+0.00025+0.001:EXT_BACK+EXT_D+0.001;
+ const pm=diff?new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})
              :new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,map:DIETEX,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
- if(!diff){ // the strip itself: one PCB tile and one 5050 package per LED, artwork from the photo
+ // Phong and Lambert, not Standard: 73k instances of full PBR halved the frame rate on their
+ // own (measured 144 -> 37 fps with the channel open, 2026-08-28); at 5 mm scale the cheap
+ // models are indistinguishable and the budget goes back to the room
+ if(diff){ // the cover is continuous, so it is one box per polyline segment, not one per LED
+  cvr=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),
+   new THREE.MeshPhongMaterial(cover==='black'?{color:0x141414,specular:0x2a2a2a,shininess:24}
+                                              :{color:0xe7e4db,specular:0x555555,shininess:40}),runs.length*(RUNS.runs[0].points.length-1));
+ } else { // the strip itself: one PCB tile and one 5050 package per LED, artwork from the photo
   pcb=new THREE.InstancedMesh(new THREE.BoxGeometry(PCB_W,pitch,PCB_T),
-   (()=>{const side=new THREE.MeshStandardMaterial({color:0x0a0a0b,roughness:0.8,metalness:0.1});
-     const art=new THREE.MeshStandardMaterial({map:STRIPTEX,roughness:0.7,metalness:0.15});
+   (()=>{const side=new THREE.MeshLambertMaterial({color:0x0a0a0b});
+     const art=new THREE.MeshLambertMaterial({map:STRIPTEX});
      return [side,side,side,side,art,side];})(),total);
   pkg=new THREE.InstancedMesh(new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H),
-   (()=>{const body=new THREE.MeshStandardMaterial({color:0xe8e8e4,roughness:0.55});
-     const top=new THREE.MeshStandardMaterial({map:LEDTEX,roughness:0.5});
+   (()=>{const body=new THREE.MeshLambertMaterial({color:0xe8e8e4});
+     const top=new THREE.MeshLambertMaterial({map:LEDTEX});
      return [body,body,body,body,top,body];})(),total);
  }
  const rg=new THREE.BoxGeometry(1,1,1);
@@ -431,7 +453,7 @@ function rebuild(){
  ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1)*PARTS);
  const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
  const gpos=new Float32Array(total*3), hpos=new Float32Array(total*3);
- let k=0, rk=0;
+ let k=0, rk=0, ck=0;
  // light samples: one per column per height band, placed on the column axis at the band centre.
  // The column's active strips all face outward, so together they act as a line source.
  const bandSum=new Float64Array(cols.length*BANDS*4), bandPos=new Float32Array(cols.length*BANDS*3);
@@ -448,6 +470,7 @@ function rebuild(){
    part(EXT_BACK+WALL/2,0,EXT_W,WALL);                       // back plate on the valley
    part(EXT_BACK+EXT_D/2,(EXT_W-WALL)/2,WALL,EXT_D);          // walls
    part(EXT_BACK+EXT_D/2,-(EXT_W-WALL)/2,WALL,EXT_D);
+   if(cvr){M.makeBasis(b,t,nn); pos.copy(mid).addScaledVector(nn,baseOff); sc.set(FACE_W,len,TILE_T); M.setPosition(pos); M.scale(sc); cvr.setMatrixAt(ck++,M);}
    // the PCB is no longer a plain ribbon part: it is its own textured mesh, one tile per LED
   }
   let seg=1;
@@ -482,10 +505,12 @@ function rebuild(){
  // (HALO_PEAK) and only its radius follows the flux. The sprite colours carry DIFFUSER_T and the
  // dimmer; the material gain takes the overlap and the transmission back out of the peak. The
  // light on the room keeps the full DIFFUSER_T.
- const gsize=diff?0.08:0.14, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*(diff?DIFFUSER_T:1));
+ // bloom radius follows the flux out of the aperture, roughly its square root
+ const gsize=cover==='none'?0.14:cover==='opal'?0.11:0.08, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*coverT);
  glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,color:new THREE.Color().setScalar(ggain),size:gsize,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
- scene.add(ribbon); scene.add(pix); scene.add(glow); if(pcb){scene.add(pcb); scene.add(pkg);}
+ scene.add(ribbon); scene.add(pix); scene.add(glow); if(pcb){scene.add(pcb); scene.add(pkg);} if(cvr)scene.add(cvr);
  const metres=segs.reduce((a,s)=>a+s.L,0); P.metres=metres;
+ sceneDirty=true;
  document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_WHITE_PER_M/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*W_PER_M/1000).toFixed(1)} kW all-on`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
@@ -498,9 +523,23 @@ const cA=[0,0,0], cB=[0,0,0], tmp=[0,0,0];
 function hash(i){i=Math.imul(i^(i>>>16),2246822507); i=Math.imul(i^(i>>>13),3266489909); return ((i^(i>>>16))>>>0)/4294967296;}
 function animate(time){
  if(!pix)return;
- const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc; acc.fill(0); a.fill(0);
+ const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc;
  const lv=state.level;
  const liveActive=live.on&&live.ws&&live.ws.readyState===1;
+ {const dt=time-(animate.pt===undefined?time:animate.pt); animate.pt=time;
+  if(dt>0&&dt<0.5)animate.fps=animate.fps?animate.fps*0.9+0.1/dt:1/dt;}
+ // A stack of solid layers paints the same colours every frame, and the RGBW pass below is what
+ // pushed the frame over the 144 Hz budget (measured 144 -> 69 fps, 2026-08-28). So a static
+ // scene is painted once and left alone: any control change sets sceneDirty, any animated layer
+ // or live input disqualifies the skip, and every 30th frame repaints anyway as a safety valve.
+ // dT and maxMode feed the stats readout below, which runs even on skipped frames
+ const dT=COVER_T[state.cover], maxMode=state.drive==='rgbwmax';
+ const allSolid=!liveActive&&state.layers.every(L=>!L.on||L.opacity<=0||L.anim==='solid');
+ animate.fc=(animate.fc||0)+1;
+ const skipStatic=allSolid&&!sceneDirty&&animate.wasStatic&&(animate.fc%30)!==0;
+ if(!skipStatic){
+ animate.wasStatic=allSolid; sceneDirty=false;
+ acc.fill(0); a.fill(0);
  if(liveActive){
   // LIVE INPUT: the LEDs show what the mapper sent, read through this page's own pixel map.
   // A universe the bridge has not heard stays dark, which is what a real strip would do.
@@ -546,7 +585,8 @@ function animate(time){
  // pixel-map highlight: everything outside the chosen universe or output drops to 3%, so the
  // addressing can be checked by eye in the hall rather than in a table
  const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
- const dT=state.diffuser?DIFFUSER_T:1.0, maxMode=state.drive==='rgbwmax', w4=P.w4;
+ const w4=P.w4;
+ const W0=WCOL[0], W1=WCOL[1], W2=WCOL[2], RS=RGB_SCALE, band=P.band;
  let lmStrip=0, wattsM=0;
  for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv;
   let r,g,b,w;
@@ -556,18 +596,27 @@ function animate(time){
   const mixL=0.2126*r+0.7152*g+0.0722*b, mixD=(r+g+b)/3;
   lmStrip+=RGB_LM*mixL+W_LM*w+LM_MIX_M*mixL*w;
   wattsM+=W_RGB_M*mixD+W_W_M*w+W_MIX_M*mixD*w;
-  a[o]=(r*RGB_SCALE+w*WCOL[0])*dT; a[o+1]=(g*RGB_SCALE+w*WCOL[1])*dT; a[o+2]=(b*RGB_SCALE+w*WCOL[2])*dT;
-  const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+  a[o]=(r*RS+w*W0)*dT; a[o+1]=(g*RS+w*W1)*dT; a[o+2]=(b*RS+w*W2)*dT;
+  const q=band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
  // the readout: constants above are per metre of strip at 60 LED/m, so a per-LED duty carries
  // 1/60 of them; the diffuser then passes DIFFUSER_T of the strip lumens on into the hall
  lit.lmStrip=lmStrip/60; lit.watts=wattsM/60;
+ }
  if(!animate.rs||performance.now()-animate.rs>250){animate.rs=performance.now();
-  const lm=lit.lmStrip, wt=lit.watts, mets=P.metres||1, room=lm*dT;
+  const lm=lit.lmStrip, wt=lit.watts, mets=P.metres||1, room=lm*COVER_T[state.cover];
   const f=x=>x>=10000?Math.round(x).toLocaleString():x>=100?x.toFixed(0):x.toFixed(1);
-  const txt=`Running: ${f(lm)} lm at the strips -> ${f(room)} lm into the hall `+
-   (state.diffuser?`(black acrylic passes ${Math.round(DIFFUSER_T*100)}%)`:`(open channel)`)+
-   ` · ${wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W'} (${(wt/mets).toFixed(1)} W/m) · ${maxMode?'RGBW max':'RGBW'}`;
-  const el=document.getElementById('runstat'); if(el.textContent!==txt){el.textContent=txt; if(rc.conn&&rc.conn.open)rc.conn.send({t:'stats',v:txt});}}
+  const passTxt=state.cover==='black'?`black acrylic passes ${Math.round(DIFFUSER_T*100)}%`
+              :state.cover==='opal'?`opal passes ${Math.round(OPAL_T*100)}%`:'open channel';
+  const modeTxt=maxMode?'RGBW max':'RGBW', wTxt=wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W';
+  const txt=`Running: ${f(lm)} lm at the strips -> ${f(room)} lm into the hall (${passTxt})`+
+   ` · ${wTxt} (${(wt/mets).toFixed(1)} W/m) · ${modeTxt}`;
+  const el=document.getElementById('runstat'); if(el.textContent!==txt){el.textContent=txt; if(rc.conn&&rc.conn.open)rc.conn.send({t:'stats',v:txt});}
+  if(state.hud){const h=document.getElementById('hud');
+   const ht=`${Math.round(animate.fps||0)} fps · ${n.toLocaleString()} LEDs · ${modeTxt} · dimmer ${Math.round(lv*100)}%
+`+
+    `${f(lm)} lm at the strips · ${wTxt} (${(wt/mets).toFixed(1)} W/m)
+${f(room)} lm into the hall (${passTxt})`;
+   if(h.textContent!==ht)h.textContent=ht;}}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -577,7 +626,7 @@ function animate(time){
  lit.nLights=nl;
  for(const m of photoMats){m.uniforms.house.value=lit.house; m.uniforms.nLights.value=nl; m.uniformsNeedUpdate=true;}
  hemi.intensity=0.9*(lit.house+AMBIENT); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT;
- pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;
+ if(!skipStatic){pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;}
 }
 // ---- pixel map. Strips become controller outputs in a chosen order; each output starts on a
 // fresh universe and its pixels run on through universes of PPU pixels (128 RGBW pixels fill
@@ -616,7 +665,7 @@ function pixelMap(){
  show.value=Array.from(show.options).some(o=>o.value===cur)?cur:''; pmShow();
  pixelMap.rows=rows;
 }
-function pmShow(){const v=document.getElementById('pm_show').value; pmHi.kind=v?v[0]:''; pmHi.v=v?+v.slice(1):0;}
+function pmShow(){const v=document.getElementById('pm_show').value; pmHi.kind=v?v[0]:''; pmHi.v=v?+v.slice(1):0; sceneDirty=true;}
 for(const id of ['pm_ppu','pm_u0','pm_maxout','pm_opc','pm_order','pm_dir'])document.getElementById(id).addEventListener('input',pixelMap);
 document.getElementById('pm_show').onchange=pmShow;
 document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
@@ -650,7 +699,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit};
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+state.density+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
@@ -676,14 +725,15 @@ document.getElementById('lv_btn').onclick=()=>{
 const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
-document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.diffuser=btn.dataset.d==='1'; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
-document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rcSync();});
+document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.cover=btn.dataset.c; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
+document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); sceneDirty=true; rcSync();});
+document.getElementById('hudb').onclick=()=>{state.hud=!state.hud; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); rcSync();};
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
 document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
 document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
 document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayers();};
 document.getElementById('spd').oninput=e=>L().speed=e.target.value/100;
-document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%';};
+document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%'; sceneDirty=true;};
 document.getElementById('house').oninput=e=>{lit.house=e.target.value/100; document.getElementById('houseval').textContent=e.target.value+'%'; rcSync();};
 // colour wheel: hue round the ring, saturation from the centre, brightness on the slider
 const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=document.getElementById('mark'), val=document.getElementById('val');
@@ -692,7 +742,7 @@ const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=
   const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; hsv(h,Math.min(1,rr),1,o); d[i]=o[0]*255;d[i+1]=o[1]*255;d[i+2]=o[2]*255;d[i+3]=rr>0.97?Math.round(255*(1-rr)/0.03):255;}
  wctx.putImageData(img,0,0);})();
 function swatchCss(c){hsv(c.h,c.s,c.v,tmp); return `rgb(${tmp.map(v=>Math.round(v*255)).join(',')})`;}
-function paintUI(){rcSync(); const Ly=L(); document.getElementById('swAi').style.background=swatchCss(Ly.A); document.getElementById('swBi').style.background=swatchCss(Ly.B);
+function paintUI(){sceneDirty=true; rcSync(); const Ly=L(); document.getElementById('swAi').style.background=swatchCss(Ly.A); document.getElementById('swBi').style.background=swatchCss(Ly.B);
  document.getElementById('anim').value=Ly.anim; document.getElementById('spd').value=Math.round(Ly.speed*100); paintLayers();
  const c=Ly[state.active]; const ang=c.h*Math.PI/180, r=c.s*80; mark.style.left=(80+Math.cos(ang)*r)+'px'; mark.style.top=(80+Math.sin(ang)*r)+'px'; mark.style.background=swatchCss({h:c.h,s:c.s,v:1}); val.value=Math.round(c.v*255); document.getElementById('valn').textContent=val.value;
  document.getElementById('swA').setAttribute('aria-pressed',state.active==='A'); document.getElementById('swB').setAttribute('aria-pressed',state.active==='B');}
@@ -792,9 +842,10 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, diffuser:state.diffuser, drive:state.drive, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, cover:state.cover, diffuser:state.cover==='black', drive:state.drive, hud:state.hud, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
+ sceneDirty=true;
  switch(m.t){
   case 'move': rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
   case 'look': yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
@@ -805,7 +856,10 @@ function rcApply(m){
   case 'fov': {const f=document.getElementById('fov'); f.value=Math.max(40,Math.min(110,+m.v)); f.dispatchEvent(new Event('input'));} break;
   case 'noclip': noclip=!!m.v; document.getElementById('noclip').checked=noclip; break;
   case 'count': state.count=Math.max(0,Math.min(GAPS,+m.v|0)); cn.value=state.count; rebuild(); break;
-  case 'diffuser': state.diffuser=!!m.v; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',(x.dataset.d==='1')===state.diffuser)); rebuild(); break;
+  case 'cover': case 'diffuser': { // 'diffuser' is the old phone build's boolean
+   state.cover=m.t==='cover'?(['black','opal','none'].includes(m.v)?m.v:'black'):(m.v?'black':'none');
+   document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===state.cover)); rebuild(); } break;
+  case 'hud': state.hud=!!m.v; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); break;
   case 'drive': state.drive=m.v==='rgbwmax'?'rgbwmax':'rgbw'; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===state.drive)); break;
   case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
@@ -857,7 +911,7 @@ requestAnimationFrame(frame);
 <h2>What is in the model</h2>
 <table>
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
-<tr><td>Strips</td><td>ENTTEC 8PXA60-RGBW-12V-B pixel strip (60 RGBW LED/m, 4,000 K white die, black PCB, 10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser, one per fin gap, floor to glass</td></tr>
+<tr><td>Strips</td><td>ENTTEC 8PXA60-RGBW-12V-B pixel strip (60 RGBW LED/m, 4,000 K white die, black PCB, 10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser (options: opal cover passing ~65%, or open channel), one per fin gap, floor to glass</td></tr>
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
