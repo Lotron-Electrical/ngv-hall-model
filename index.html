@@ -104,6 +104,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
    <button type="button" id="colhr" style="height:40px;padding:0 12px">Scanned</button>
   </div>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="evenruns"> Cut every run to that length (the twelve shafts really differ by 143 mm; a drum does not)</label>
+  <p class="note" style="margin:6px 0 0">A column taller than the scan says means the scan is under-scaled in height, so the walls, the glass canopy and the ceiling void stretch with it about the floor. The plan does not move.</p>
   <div class="stat" id="colhstat" style="margin-top:8px"></div></div>
  <div class="row"><label>Pixel density (every strip is 60 LEDs/m)</label>
   <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
@@ -343,11 +344,15 @@ new GLTFLoader().load('model.glb',g=>{
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
   const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnMats.push(m); return m;} return photoMaterial(m); });
   o.material=Array.isArray(o.material)?out:out[0];
-  // every column is its own primitive (flat-column-N1 .. flat-column-S6), so the height lever can
-  // move the twelve shafts without touching the floor, the walls or the canopy
-  if(ms.some(m=>/column/i.test(m.name||''))){o.geometry.computeBoundingBox(); columnMeshes.push({mesh:o, baseY:o.geometry.boundingBox.min.y});} });
+  o.geometry.computeBoundingBox();
+  // the floor primitive is the datum the height lever stretches about: it is the one surface
+  // that does not move when the hall turns out to be taller than the scan said
+  if(ms.some(m=>/^floor$/i.test(m.name||'')))FLOOR_Y=o.geometry.boundingBox.min.y;
+  if(ms.some(m=>/column/i.test(m.name||'')))columnMeshes.push({mesh:o, baseY:o.geometry.boundingBox.min.y}); });
  g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
- scene.add(g.scene); applyColumnHeight(); bar.remove();},
+ // the canopy underside, reported next to the height so a set value can be sanity-checked
+ CEIL_Y=Math.min(...solids.filter(o=>/ceiling/i.test(([].concat(o.material))[0].name||'')).map(o=>o.geometry.boundingBox.min.y));
+ hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); bar.remove();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -364,20 +369,25 @@ new GLTFLoader().load('model.glb',g=>{
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
 const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip', colH:0, evenRuns:false};
 // ---- column height. The scan measures its own columns (H0 below, 12.772 m floor to shaft top);
-// the 13 m in the quote is an estimate nobody has put a tape on yet. Setting a height here
-// stretches every column mesh AND every run about its own foot by the same factor, so the strip
-// stays on the shaft and the pixel count, the addresses, the metres and the watts are all
-// recomputed FROM the new geometry rather than adjusted after the fact. The footprint does not
-// move: this is a taller column, not a bigger hall.
+// the 13 m in the quote is an estimate nobody has put a tape on yet, and a column that measures
+// taller than the scan says means the scan is under-scaled VERTICALLY -- so the hall is under-
+// scaled with it. Setting a height here stretches the whole model in y about the floor: the
+// shafts, the walls, the glass canopy and the ceiling void all move together, and the runs move
+// with them, so the strip stays on the shaft and the pixel count, the addresses, the metres, the
+// universes and the watts are recomputed FROM the new geometry rather than adjusted after it.
+// The footprint does not move; only the height does.
 let H0=0;                    // the model's own mean column height, measured from runs.json
-const columnMeshes=[];       // {mesh, baseY} per column primitive, collected as the GLB loads
+let FLOOR_Y=0;               // the datum everything is stretched about: the floor of the model
+let hallGroup=null;          // the loaded glb, scaled as one object
+const columnMeshes=[];       // {mesh, baseY} per shaft: the measured feet, and a keyhole for checks
 const heightFactor=()=>state.colH&&H0?state.colH/H0:1;
-function applyColumnHeight(){const f=heightFactor();
- // scaling a mesh scales it about the world origin, so the base is put back where it was
- for(const c of columnMeshes){c.mesh.scale.y=f; c.mesh.position.y=c.baseY*(1-f); c.mesh.updateMatrixWorld(true);}
+function applyColumnHeight(){const f=heightFactor(); if(!hallGroup)return;
+ // scaling scales about the object's own origin, so the floor is put back where it was
+ hallGroup.scale.y=f; hallGroup.position.y=FLOOR_Y*(1-f); hallGroup.updateMatrixWorld(true);
  sceneDirty=true;}
 // a control change means the next frame must repaint the LEDs even if every layer is static
 let sceneDirty=true;
+let CEIL_Y=0;                // the canopy underside in the unscaled model
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
 let RUNS=null, pix=null, ribbon=null, glow=null, pcb=null, pkg=null, cvr=null;
@@ -503,14 +513,17 @@ function rebuild(){
  const trim=r=>{const sk=state.skip; if(sk<=0)return r; const pts=r.points; let L=0; const cum=[0]; for(let i=1;i<pts.length;i++){L+=Math.hypot(...[0,1,2].map(k=>pts[i][k]-pts[i-1][k])); cum.push(L);}
   if(sk>=L-0.05)return null; let i=1; while(cum[i]<sk)i++; const f=(sk-cum[i-1])/(cum[i]-cum[i-1]); const p0=[0,1,2].map(k=>pts[i-1][k]+(pts[i][k]-pts[i-1][k])*f);
   return Object.assign({},r,{points:[p0,...pts.slice(i)]});};
- // the same stretch the columns get, about each run's own foot, so the strip stays on the shaft.
- // Evenly cut, every run is brought to the set length instead, which is what comes off a drum:
- // the shafts keep their measured 143 mm spread and the strips no longer inherit it, so a run
- // length can actually be landed on a universe boundary.
+ // the runs ride the same stretch as the hall, about the same floor datum, so a strip stays on
+ // its shaft at the same fraction of the way up. Evenly cut, each run is THEN brought to the set
+ // length about its own foot, which is what comes off a drum: the shafts keep their measured
+ // 143 mm spread, the strips stop inheriting it, and a run length can be landed on a universe
+ // boundary.
  const hf=heightFactor(), uni=state.evenRuns&&state.colH>0;
- const stretch=r=>{const y0=r.points[0][1], rise=r.points[r.points.length-1][1]-y0;
-  const f=uni?state.colH/rise:hf; if(f===1)return r;
-  return Object.assign({},r,{points:r.points.map(p=>[p[0],y0+(p[1]-y0)*f,p[2]])});};
+ const stretch=r=>{let pts=r.points;
+  if(hf!==1)pts=pts.map(p=>[p[0],FLOOR_Y+(p[1]-FLOOR_Y)*hf,p[2]]);
+  if(uni){const y0=pts[0][1], f=state.colH/(pts[pts.length-1][1]-y0);
+   if(Math.abs(f-1)>1e-9)pts=pts.map(p=>[p[0],y0+(p[1]-y0)*f,p[2]]);}
+  return pts===r.points?r:Object.assign({},r,{points:pts});};
  const runs=RUNS.runs.filter(r=>gaps.has(r.gap)).map(stretch).map(trim).filter(Boolean);
  const cols=RUNS.columns; const colX={}; for(const r of RUNS.runs){colX[r.column]=r.points[0][0];}
  const xs=Object.values(colX); const x0=Math.min(...xs), x1=Math.max(...xs);
@@ -645,7 +658,7 @@ function rebuild(){
   :`${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel)`;
  const hs=document.getElementById('colhstat');
  if(hs&&H0){const set=state.colH||H0, d=100*(set/H0-1);
-  hs.textContent=`Set ${set.toFixed(2)} m ${state.evenRuns?'on every run':'on the mean'} · scanned ${H0.toFixed(3)} m (${d>=0?'+':''}${d.toFixed(2)}%) · mean run ${(metres/Math.max(1,runs.length)).toFixed(3)} m${state.skip>0?' after the '+state.skip+' m skip':''} · ${metres.toFixed(1)} m in total`;}
+  hs.textContent=`Set ${set.toFixed(2)} m ${state.evenRuns?'on every run':'on the mean'} · scanned ${H0.toFixed(3)} m (${d>=0?'+':''}${d.toFixed(2)}%) · mean run ${(metres/Math.max(1,runs.length)).toFixed(3)} m${state.skip>0?' after the '+state.skip+' m skip':''} · ${metres.toFixed(1)} m in total · canopy underside ${((CEIL_Y-FLOOR_Y)*heightFactor()).toFixed(2)} m above the floor`;}
  document.getElementById('stat').textContent=`${runs.length} runs (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of ${neon?'neon':'strip'} · ${emitTxt} · ${(metres*(neon?SYSTEMS.neon.KB:W_WHITE_PER_M)/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*sys.wAll/1000).toFixed(1)} kW all-on`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j;
@@ -859,7 +872,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam};
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+(state.system==='neon'?'neon-10':state.density)+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
