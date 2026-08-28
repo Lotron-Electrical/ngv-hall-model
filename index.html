@@ -180,8 +180,12 @@ const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // glass the house term IS the backlight, the photograph is the transmitted colour, and LED light
 // arriving from below mostly passes on up into the void: it gets LED_GAIN_GLASS of a wall's share.
 const HOUSE_LUX=150;        // assumed floor illuminance in the photographs (typical hall house lighting)
-// ENTTEC 12 V RGBW 60 LED/m pixel strip (SK6805, GRBW): 1,088 lm/m at 21.8 W/m, 10 mm wide, 120 deg
-// (enttec.com.au/product/led-pixel-strip/12v-rgbw-60-leds-m-pixel-strip). Per LED at full output:
+// ENTTEC 8PXA60-RGBW-12V pixel strip (SK6805-class, GRBW): 1,088 lm/m at 21.8 W/m, 10 mm wide,
+// 120 deg (enttec.com.au/product/led-pixel-strip/12v-rgbw-60-leds-m-pixel-strip). The datasheet
+// splits that as RGB 432.8 + W 700 lm/m with all four channels on, and the pixel map here still
+// addresses RGB only, so a white scene on the real strip as currently patched would be 432.8 lm/m,
+// forty percent of what this constant assumes. RGBW addressing (4 ch per pixel, 128 px per
+// universe) is the pending change that closes that gap. Per LED at full output:
 const LM_PER_LED=1088/60;   // 18.1 lm
 const W_PER_M=21.8;         // at full white, for the stats line; the supply is sized on this
 const AMBIENT=0.03;         // fraction of house level that remains with everything off
@@ -263,14 +267,31 @@ const LEDS_PER_M=60;
 // the strip line 12 mm proud of the shaft valley, so the extrusion runs from the valley (-12 mm) to
 // its face (+8 mm). A diffuser turns the LED dots into one continuous line, so each LED is drawn as
 // a face-width tile the length of its pitch, and the tiles abut; off, the tile is the black acrylic.
-// Black acrylic passes only part of the light. Manufacturer figures for black covers on 20-22 mm
-// profiles: KLUS G-22S 15%, G-22R 20%, LIGER-22 22%; Lumines BASIC 31%, HIGH 22%, DOUBLE 23%;
-// Topmet Click 40% (their satin/opal siblings 60-80%). 0.25 is the middle of that; the cover's own
-// datasheet replaces it when Lloyd has one.
+// Black acrylic passes only part of the light. Measured black TRANSLUCENT acrylic covers:
+// PLEXIGLAS LED Black & White 17%, Lumines DOUBLE 22%, ACRYLITE LED black/white 25%, Lumines
+// BASIC 31%, Topmet C9 Click 40%. (KLUS's 15-22% black covers are polycarbonate, comparison
+// only.) 0.25 sits on the ACRYLITE figure, near the middle of the range. Ordinary black acrylic
+// sheet passes NOTHING; the cover must be a day/night grade, and its own datasheet replaces this
+// figure the day Lloyd has it.
 const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.25, WALL=0.002;
+// DIFFUSER_T is what reaches the room and it is applied to the light the strips throw. It is not
+// what the eye sees on the face: a quarter of 1,088 lm/m through a 16 mm face is still a hundred
+// times brighter than the hall, so a lit diffuser reads as the LED colour, not as 25% grey paint
+// (which is what multiplying a display colour by 0.25 drew, and why the tile looked like a dark
+// cover sitting beside the light instead of over it). EMIT_EXPOSURE is the display exposure for
+// anything looked at directly: the diffused face at full output is exactly the LED colour; a bare
+// LED package is brighter still, about forty times, since the same light leaves a far smaller
+// area, and it simply clips; both dim with the strip dimmer below that.
+const EMIT_EXPOSURE=1/DIFFUSER_T;
+// The halo is one soft disc per LED, added up: at 60/m every point on the strip line sits under
+// size/pitch of them, and unclipped that sum ran to 4 for a bare strip, a hard-edged white bar
+// 100 mm wide with the pixels lost inside it. HALO_PEAK is what the sum reaches on the strip
+// line at full output, the same in both modes: under white it leaves the LED packages legible as
+// the bright dots of an open channel, and the diffuser's white face carries its own line.
+const HALO_PEAK=0.7, HALO_MEAN=0.4;  // HALO_MEAN: the glow disc's mean alpha along a diameter
 // without the diffuser the channel is open and the strip shows: a 10 mm PCB on the back of the
 // extrusion carrying 5 mm LED packages (SK6805 in a 5050-style body) at the pitch, nothing in front
-const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015;
+const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015, TILE_T=0.001;
 // the columns are gloss black steel; the bake carries roughness 0.35 and Lloyd wants it a bit
 // rougher (2026-08-28), so the viewer sets this on every column material as it loads
 const COLUMN_ROUGHNESS=0.5;
@@ -295,9 +316,18 @@ function rebuild(){
  P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), runs:[]};
  let pixels=0;
  const diff=state.diffuser;
- const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,0.001):new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H);
+ const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,TILE_T):new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H);
  const emitOff=diff?EXT_BACK+EXT_D+0.0006:EXT_BACK+WALL+PCB_T+LED_H/2;
- const pm=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+ // The halo sprite is a screen-facing disc drawn at ONE depth, its anchor's, and it is depth-tested
+ // like anything else. Anchored at the LED centre it sat inside its own tile, so the tile's front
+ // face hid the core of the halo and only the margins showed, either side of a dull tile: the light
+ // appeared beside the fixture. The halo is glare leaving the fixture's aperture, so it is anchored
+ // 1 mm proud of that aperture: the diffuser face, or the mouth of the open channel (the LEDs sit
+ // 15 mm down a 16 mm wide channel, so a halo anchored on them would be clipped by the near wall at
+ // any angle over about 20 degrees and read lopsided). The LED positions themselves are unchanged:
+ // that is what the pixel map exports and what lights the room.
+ const haloOff=diff?emitOff+TILE_T/2+0.001:EXT_BACK+EXT_D+0.001;
+ const pm=new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
  const rg=new THREE.BoxGeometry(1,1,1);
  // the diffuser: matte black when off, so an unlit strip reads as a black line on a black shaft
@@ -306,7 +336,7 @@ function rebuild(){
  const PARTS=diff?3:4;  // back, two walls, and the PCB when the channel is open
  ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1)*PARTS);
  const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
- const gpos=new Float32Array(total*3);
+ const gpos=new Float32Array(total*3), hpos=new Float32Array(total*3);
  let k=0, rk=0;
  // light samples: one per column per height band, placed on the column axis at the band centre.
  // The column's active strips all face outward, so together they act as a line source.
@@ -334,6 +364,7 @@ function rebuild(){
    t.subVectors(c,a).normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
    pos.lerpVectors(a,c,f).addScaledVector(nn,emitOff);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
+   { const h=haloOff-emitOff; hpos[k*3]=pos.x+nn.x*h; hpos[k*3+1]=pos.y+nn.y*h; hpos[k*3+2]=pos.z+nn.z*h; }
    // the LED takes its pixel's centre, so every LED in a group animates as one
    const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
    { const ci=cols.indexOf(r.column), bi=Math.min(BANDS-1,Math.floor(d/L*BANDS)), q=(ci*BANDS+bi); P.band[k]=q;
@@ -347,10 +378,15 @@ function rebuild(){
  P.bandPos=bandPos; P.nBands=cols.length*BANDS; P.bandAcc=new Float32Array(P.nBands*3); P.pos=gpos;
  pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
  pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
- const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gpos,3));
+ const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(hpos,3));
  gg.setAttribute('color',new THREE.BufferAttribute(pix.instanceColor.array,3)); gg.attributes.color.setUsage(THREE.DynamicDrawUsage);
- // a bare LED is a point source and glares where a diffused line glows, so its halo is wider
- glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:diff?0.08:0.14,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
+ // a bare LED is a point source and glares where a diffused line glows, so its halo is wider.
+ // Glare from either is brighter than the eye resolves, so the halo's peak is the same for both
+ // (HALO_PEAK) and only its radius follows the flux. The sprite colours carry DIFFUSER_T and the
+ // dimmer; the material gain takes the overlap and the transmission back out of the peak. The
+ // light on the room keeps the full DIFFUSER_T.
+ const gsize=diff?0.08:0.14, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*(diff?DIFFUSER_T:1));
+ glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,color:new THREE.Color().setScalar(ggain),size:gsize,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
  scene.add(ribbon); scene.add(pix); scene.add(glow);
  const metres=segs.reduce((a,s)=>a+s.L,0);
  document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_PER_M/1000).toFixed(1)} kW at full white`;
