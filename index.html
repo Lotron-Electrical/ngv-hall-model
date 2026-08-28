@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
-:root{--bg:#0e0f11;--rule:#2a2d33;--ink:#e9e6df;--dim:#9a978f;--accent:#b9a887;--ok:#6fbf8a}
+:root{--bg:#0e0f11;--rule:#2a2d33;--ink:#e9e6df;--dim:#9a978f;--accent:#b9a887;--ok:#6fbf8a;--panel:#16181c}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5;margin:0}
 main{max-width:960px;margin:0 auto;padding:0 0 48px}
@@ -17,8 +17,8 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #pad{display:none;position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none}
 #knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
 .ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
-.ctl button{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.ctl button:focus-visible{outline:2px solid var(--accent)}
+.ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
 .hint{color:var(--dim);font-size:13px;padding:8px 16px 0}
 .hint a{color:var(--accent)}
 .bar{position:absolute;left:16px;bottom:16px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
@@ -30,14 +30,63 @@ table{border-collapse:collapse;margin:0 16px;font-variant-numeric:tabular-nums;w
 td{padding:7px 0;border-bottom:1px solid var(--rule);vertical-align:top}
 td:first-child{color:var(--dim);width:42%;padding-right:12px}
 .ok{color:var(--ok);font-weight:500}
+/* ---- lighting panel */
+.panel{margin:12px 16px 0;background:var(--panel);border:1px solid var(--rule);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+@media (max-width:640px){.panel{grid-template-columns:1fr}}
+.row{display:flex;flex-direction:column;gap:6px}
+.row>label{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.stepper{display:flex;align-items:center;gap:0}
+.stepper button{width:44px;height:40px;font-size:20px;line-height:1;padding:0}
+.stepper output{min-width:56px;text-align:center;font-size:22px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+.seg{display:flex}
+.seg button{flex:1;height:40px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:500}
+.wheelwrap{display:flex;gap:14px;align-items:flex-start}
+#wheel{width:160px;height:160px;border-radius:50%;touch-action:none;cursor:crosshair;flex:none}
+.wheelbox{position:relative;width:160px;height:160px;flex:none}
+#mark{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000;margin:-7px 0 0 -7px;pointer-events:none;left:80px;top:80px}
+.swatches{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.sw{display:flex;align-items:center;gap:8px;height:40px;padding:0 8px;width:100%;justify-content:flex-start}
+.sw i{display:inline-block;width:22px;height:22px;border:1px solid #000;flex:none}
+.sw[aria-pressed="true"]{border-color:var(--accent);outline:1px solid var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.panel select{height:40px;width:100%}
+.stat{grid-column:1/-1;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
 </style></head><body><main>
 <header><span class="sub">Sitecapture, 28 Aug 2026</span><h1>NGV Hall, clean model v16</h1></header>
 <div id="stage"><canvas id="cv"></canvas>
- <div class="bar" id="bar">Loading model, 8.5 MB</div>
+ <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button></div>
 </div>
 <p class="hint" id="hint"></p>
+<div class="panel" id="panel">
+ <div class="row"><label for="cn">Lights per column</label>
+  <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div></div>
+ <div class="row"><label>Pixels per metre</label>
+  <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60</button><button type="button" data-d="20" aria-pressed="false">20</button><button type="button" data-d="10" aria-pressed="false">10</button></div></div>
+ <div class="row"><label>Colour</label>
+  <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="160" height="160"></canvas><div id="mark"></div></div>
+   <div class="swatches">
+    <button type="button" class="sw" id="swA" aria-pressed="true"><i id="swAi"></i>Colour A</button>
+    <button type="button" class="sw" id="swB" aria-pressed="false"><i id="swBi"></i>Colour B</button>
+    <label style="color:var(--dim);font-size:12px">Brightness <input type="range" id="val" min="5" max="100" value="100"></label>
+   </div></div></div>
+ <div class="row"><label for="anim">Animation</label>
+  <select id="anim">
+   <option value="solid">Solid (A)</option>
+   <option value="breathe">Breathe (A)</option>
+   <option value="chaseup">Chase up (A on B)</option>
+   <option value="chasedown">Chase down (A on B)</option>
+   <option value="wave">Wave (A to B)</option>
+   <option value="rainbow">Rainbow</option>
+   <option value="sparkle">Sparkle (A on B)</option>
+   <option value="sweep">Sweep along the hall (A on B)</option>
+   <option value="alternate">Alternate strips (A, B)</option>
+  </select>
+  <label style="color:var(--dim);font-size:12px">Speed <input type="range" id="spd" min="1" max="100" value="35"></label></div>
+ <div class="stat" id="stat"></div>
+</div>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -62,9 +111,131 @@ addEventListener('resize',resize); resize();
 new GLTFLoader().load('model.glb',g=>{scene.add(g.scene); bar.remove();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
+
+// ============ LED strips, built live from runs.json ============
+// Each run is a polyline up the shaft in one fin gap (already at its standoff). The strip is a
+// dark ribbon along the polyline plus one instanced pixel every 1/density metres, coloured every
+// frame by the chosen animation. Nothing here is baked into the GLB.
+const state={count:8, density:60, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, active:'A', anim:'solid', speed:0.35};
+let RUNS=null, pix=null, ribbon=null, glow=null;
+// soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
+// from across the hall even at 10 px/m
+const GLOWTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(0.25,'rgba(255,255,255,.55)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.NoColorSpace; return t;})();
+// per-pixel attributes for the animations
+let P={n:0, s:null, run:null, col:null, gap:null, colx:null};
+const GAPS=8;
+function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
+function rebuild(){
+ if(!RUNS)return;
+ for(const m of [pix,ribbon,glow]) if(m){scene.remove(m); m.geometry.dispose(); m.material.dispose();}
+ pix=ribbon=glow=null;
+ const gaps=chosenGaps(state.count), pitch=1/state.density;
+ const runs=RUNS.runs.filter(r=>gaps.has(r.gap));
+ const cols=RUNS.columns; const colX={}; for(const r of RUNS.runs){colX[r.column]=r.points[0][0];}
+ const xs=Object.values(colX); const x0=Math.min(...xs), x1=Math.max(...xs);
+ // count pixels
+ const segs=[]; let total=0;
+ for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
+ P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total)};
+ const dot=Math.min(0.012, pitch*0.6);
+ const pg=new THREE.BoxGeometry(0.012,dot,0.004);
+ const pm=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+ pix=new THREE.InstancedMesh(pg,pm,total);
+ const rg=new THREE.BoxGeometry(1,1,1);
+ ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x101010,roughness:0.8}),runs.length*11);
+ const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
+ const gpos=new Float32Array(total*3);
+ let k=0, rk=0;
+ segs.forEach(({r,cum,L,n},ri)=>{
+  const N=new THREE.Vector3(...r.normal).normalize();
+  const cx=(r.points[0][0]-x0)/Math.max(1e-6,(x1-x0));
+  // ribbon: one box per polyline segment
+  for(let i=1;i<r.points.length;i++){
+   const a=new THREE.Vector3(...r.points[i-1]), c=new THREE.Vector3(...r.points[i]);
+   t.subVectors(c,a); const len=t.length(); t.normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
+   M.makeBasis(b,t,nn); pos.addVectors(a,c).multiplyScalar(0.5).addScaledVector(nn,0.001); sc.set(0.016,len,0.002);
+   M.setPosition(pos); M.scale(sc); ribbon.setMatrixAt(rk++,M);
+  }
+  let seg=1;
+  for(let j=0;j<n;j++){
+   const d=(j+0.5)*pitch; while(seg<cum.length-1&&cum[seg]<d)seg++;
+   const a=new THREE.Vector3(...r.points[seg-1]), c=new THREE.Vector3(...r.points[seg]);
+   const f=(d-cum[seg-1])/Math.max(1e-6,cum[seg]-cum[seg-1]);
+   t.subVectors(c,a).normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
+   pos.lerpVectors(a,c,f).addScaledVector(nn,0.004);
+   M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
+   P.s[k]=d/L; P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
+  }
+ });
+ pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
+ pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
+ const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gpos,3));
+ gg.setAttribute('color',new THREE.BufferAttribute(pix.instanceColor.array,3)); gg.attributes.color.setUsage(THREE.DynamicDrawUsage);
+ // halo size follows the pitch: merges into a bar at 60/m, separates into dots at 10/m
+ glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:Math.min(0.16,Math.max(0.08,pitch*1.5)),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
+ scene.add(ribbon); scene.add(pix); scene.add(glow);
+ document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${state.density} px/m · ${total.toLocaleString()} pixels · ${segs.reduce((a,s)=>a+s.L,0).toFixed(0)} m of strip`;
+}
+fetch('runs.json').then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
+// ---- colour helpers (sRGB in, linear out for the instance buffer)
+function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
+ if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+ out[0]=r+m; out[1]=g+m; out[2]=b+m; return out;}
+const lin=x=>x*x; // cheap sRGB->linear, close enough for LEDs
+const cA=[0,0,0], cB=[0,0,0], tmp=[0,0,0];
+function hash(i){i=Math.imul(i^(i>>>16),2246822507); i=Math.imul(i^(i>>>13),3266489909); return ((i^(i>>>16))>>>0)/4294967296;}
+function animate(time){
+ if(!pix)return;
+ const T=time*(0.2+state.speed*3), a=pix.instanceColor.array, n=P.n;
+ hsv(state.A.h,state.A.s,state.A.v,cA); hsv(state.B.h,state.B.s,state.B.v,cB);
+ const A=cA.map(lin), B=cB.map(lin), kind=state.anim;
+ const dimB=[B[0]*0.15,B[1]*0.15,B[2]*0.15];
+ for(let i=0;i<n;i++){
+  let r,g,b;
+  if(kind==='solid'){r=A[0];g=A[1];b=A[2];}
+  else if(kind==='breathe'){const k=0.15+0.85*(0.5+0.5*Math.sin(T*1.5)); r=A[0]*k;g=A[1]*k;b=A[2]*k;}
+  else if(kind==='chaseup'||kind==='chasedown'){const dir=kind==='chaseup'?1:-1; const ph=((P.s[i]*3-dir*T*0.5)%1+1)%1; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+  else if(kind==='wave'){const k=0.5+0.5*Math.sin(P.s[i]*Math.PI*4-T*2); r=B[0]+(A[0]-B[0])*k; g=B[1]+(A[1]-B[1])*k; b=B[2]+(A[2]-B[2])*k;}
+  else if(kind==='rainbow'){hsv(((P.s[i]*360+P.col[i]*30+T*40)%360+360)%360,1,state.A.v,tmp); r=lin(tmp[0]);g=lin(tmp[1]);b=lin(tmp[2]);}
+  else if(kind==='sparkle'){const fr=Math.floor(T*6); const k=hash(i*7919+fr)<0.02?1:(hash(i*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+  else if(kind==='sweep'){const ph=((P.colx[i]*1.2-T*0.3)%1.2+1.2)%1.2; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+  else if(kind==='alternate'){const on=((P.gap[i]+Math.floor(T*0.8))%2)===0; const C=on?A:B; r=C[0];g=C[1];b=C[2];}
+  else {r=A[0];g=A[1];b=A[2];}
+  a[i*3]=r; a[i*3+1]=g; a[i*3+2]=b;
+ }
+ pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;
+}
+// ---- panel wiring
+const cn=document.getElementById('cn');
+document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
+document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
+document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
+document.getElementById('anim').onchange=e=>state.anim=e.target.value;
+document.getElementById('spd').oninput=e=>state.speed=e.target.value/100;
+// colour wheel: hue round the ring, saturation from the centre, brightness on the slider
+const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=document.getElementById('mark'), val=document.getElementById('val');
+(function drawWheel(){const W=160,c=W/2,img=wctx.createImageData(W,W),d=img.data,o=[0,0,0];
+ for(let y=0;y<W;y++)for(let x=0;x<W;x++){const dx=x-c+0.5,dy=y-c+0.5,rr=Math.hypot(dx,dy)/c; const i=(y*W+x)*4; if(rr>1){d[i+3]=0;continue;}
+  const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; hsv(h,Math.min(1,rr),1,o); d[i]=o[0]*255;d[i+1]=o[1]*255;d[i+2]=o[2]*255;d[i+3]=rr>0.97?Math.round(255*(1-rr)/0.03):255;}
+ wctx.putImageData(img,0,0);})();
+function swatchCss(c){hsv(c.h,c.s,c.v,tmp); return `rgb(${tmp.map(v=>Math.round(v*255)).join(',')})`;}
+function paintUI(){document.getElementById('swAi').style.background=swatchCss(state.A); document.getElementById('swBi').style.background=swatchCss(state.B);
+ const c=state[state.active]; const ang=c.h*Math.PI/180, r=c.s*80; mark.style.left=(80+Math.cos(ang)*r)+'px'; mark.style.top=(80+Math.sin(ang)*r)+'px'; mark.style.background=swatchCss({h:c.h,s:c.s,v:1}); val.value=Math.round(c.v*100);
+ document.getElementById('swA').setAttribute('aria-pressed',state.active==='A'); document.getElementById('swB').setAttribute('aria-pressed',state.active==='B');}
+let wdrag=false;
+function pickWheel(e){const rc=wheel.getBoundingClientRect(); const dx=e.clientX-rc.left-rc.width/2, dy=e.clientY-rc.top-rc.height/2; const c=state[state.active];
+ c.h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; c.s=Math.min(1,Math.hypot(dx,dy)/(rc.width/2)); paintUI();}
+wheel.addEventListener('pointerdown',e=>{wdrag=true; wheel.setPointerCapture(e.pointerId); pickWheel(e);});
+wheel.addEventListener('pointermove',e=>{if(wdrag)pickWheel(e);});
+wheel.addEventListener('pointerup',()=>wdrag=false); wheel.addEventListener('pointercancel',()=>wdrag=false);
+val.oninput=()=>{state[state.active].v=val.value/100; paintUI();};
+document.getElementById('swA').onclick=()=>{state.active='A'; paintUI();};
+document.getElementById('swB').onclick=()=>{state.active='B'; paintUI();};
+paintUI();
+
 // ---- desktop: keys + hold-left-mouse look (live_viewer.py convention)
 const keys={};
-addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return; keys[e.code]=true; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; keys[e.code]=true; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>{keys[e.code]=false;});
 let looking=false,lx=0,ly=0;
 cv.addEventListener('mousedown',e=>{if(e.button===0){looking=true;lx=e.clientX;ly=e.clientY;}});
@@ -105,18 +276,20 @@ function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
  if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
  if(stick){const g=speed*dt*2; eye.addScaledVector(f,-stick.dy/60*g); eye.addScaledVector(r,stick.dx/60*g);}
+ animate(now/1000);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
 <h2>Rendered views</h2>
-<div class="grid"><figure><img src="corner.jpg" alt="Corner, looking down the hall" loading="lazy"><figcaption>Corner, looking down the hall</figcaption></figure><figure><img src="aisle.jpg" alt="Aisle between the columns" loading="lazy"><figcaption>Aisle between the columns</figcaption></figure><figure><img src="oblique-eye.jpg" alt="Eye height, oblique" loading="lazy"><figcaption>Eye height, oblique</figcaption></figure><figure><img src="oblique-east.jpg" alt="Oblique from the east" loading="lazy"><figcaption>Oblique from the east</figcaption></figure><figure><img src="oblique-west.jpg" alt="Oblique from the west" loading="lazy"><figcaption>Oblique from the west</figcaption></figure><figure><img src="balcony.jpg" alt="From the balcony deck, 9.6 m" loading="lazy"><figcaption>From the balcony deck, 9.6 m</figcaption></figure><figure><img src="up.jpg" alt="Looking up at the canopy" loading="lazy"><figcaption>Looking up at the canopy</figcaption></figure></div>
+<div class="grid"><figure><img src="corner.jpg" alt="Corner, looking down the hall" loading="lazy"><figcaption>Corner, looking down the hall (8 strips per column, warm white)</figcaption></figure><figure><img src="aisle.jpg" alt="Aisle between the columns" loading="lazy"><figcaption>Aisle between the columns</figcaption></figure><figure><img src="oblique-eye.jpg" alt="Eye height, oblique" loading="lazy"><figcaption>Eye height, oblique</figcaption></figure><figure><img src="oblique-east.jpg" alt="Oblique from the east" loading="lazy"><figcaption>Oblique from the east</figcaption></figure><figure><img src="oblique-west.jpg" alt="Oblique from the west" loading="lazy"><figcaption>Oblique from the west</figcaption></figure><figure><img src="balcony.jpg" alt="From the balcony deck, 9.6 m" loading="lazy"><figcaption>From the balcony deck, 9.6 m</figcaption></figure><figure><img src="up.jpg" alt="Looking up at the canopy" loading="lazy"><figcaption>Looking up at the canopy</figcaption></figure></div>
 <h2>What is in the model</h2>
 <table>
-<tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling); one LED strip in every gap, on the shaft, facing outward</td></tr>
+<tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
+<tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward; count, pixel pitch (60 / 20 / 10 per metre), colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
 <tr><td>Ceiling</td><td>Faceted glass canopy, textured</td></tr>
 <tr><td>Removed</td><td>People, couches, stage lights</td></tr>
-<tr><td>File</td><td>model.glb, 8.5 MB</td></tr>
+<tr><td>File</td><td>model.glb, 8.4 MB (hall only; the strips come from runs.json)</td></tr>
 </table>
 </main></body></html>
