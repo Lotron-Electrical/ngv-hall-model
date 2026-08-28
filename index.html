@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NGV Hall v16</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
 :root{--bg:#0e0f11;--rule:#2a2d33;--ink:#e9e6df;--dim:#9a978f;--accent:#b9a887;--ok:#6fbf8a}
 *{box-sizing:border-box}
@@ -11,7 +11,14 @@ main{max-width:960px;margin:0 auto;padding:0 0 48px}
 header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
-model-viewer{width:100%;height:62vh;min-height:360px;background:#000;display:block;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+#stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+#stage:fullscreen{height:100vh}
+#cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#pad{display:none;position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none}
+#knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
+.ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
+.ctl button{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.ctl button:focus-visible{outline:2px solid var(--accent)}
 .hint{color:var(--dim);font-size:13px;padding:8px 16px 0}
 .hint a{color:var(--accent)}
 .bar{position:absolute;left:16px;bottom:16px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
@@ -25,18 +32,81 @@ td:first-child{color:var(--dim);width:42%;padding-right:12px}
 .ok{color:var(--ok);font-weight:500}
 </style></head><body><main>
 <header><span class="sub">Sitecapture, 28 Aug 2026</span><h1>NGV Hall, clean model v16</h1></header>
-<model-viewer id="mv" src="model.glb" camera-controls touch-action="pan-y" exposure="1.1" shadow-intensity="0"
- camera-target="-32m 1.6m 0.3m" camera-orbit="90deg 85deg 22m" field-of-view="65deg"
- min-camera-orbit="auto auto 0.5m" max-camera-orbit="auto 175deg 120m" interaction-prompt="none"
- alt="NGV hall: twelve finned columns, walls, floor and canopy, with the LED runs at 5x">
- <div class="bar" slot="progress-bar" id="bar">Loading model, 8.5 MB</div>
-</model-viewer>
-<p class="hint">Drag to orbit, pinch to zoom, two-finger drag to pan. LED strips drawn at 2x their 12 mm width so they read at hall scale. <a href="model.glb" download>Download the GLB</a> to open in any 3D viewer.</p>
-<script>
-const mv=document.getElementById('mv'),bar=document.getElementById('bar');
-mv.addEventListener('progress',e=>{bar.textContent='Loading model, '+Math.round(e.detail.totalProgress*100)+'%';});
-mv.addEventListener('load',()=>{bar.remove();});
-mv.addEventListener('error',e=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
+<div id="stage"><canvas id="cv"></canvas>
+ <div class="bar" id="bar">Loading model, 8.5 MB</div>
+ <div id="pad"><div id="knob"></div></div>
+ <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button></div>
+</div>
+<p class="hint" id="hint"></p>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const cv=document.getElementById('cv'), stage=document.getElementById('stage'), bar=document.getElementById('bar'), hint=document.getElementById('hint');
+const COARSE=matchMedia('(pointer: coarse)').matches;
+hint.innerHTML = COARSE
+ ? 'FLY &middot; left thumb = move &middot; right thumb = look &middot; two fingers = up/down and slide &middot; <a href="model.glb" download>Download the GLB</a>'
+ : 'FLY &middot; WASD move &middot; <b>hold left mouse to look</b> &middot; Space/C up-down &middot; Shift fast &middot; Alt slow &middot; wheel = speed &middot; <a href="model.glb" download>Download the GLB</a>';
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:true}); R.setPixelRatio(Math.min(devicePixelRatio,2)); R.outputColorSpace=THREE.SRGBColorSpace; R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.1;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+scene.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.04).texture;
+scene.add(new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9));
+const cam=new THREE.PerspectiveCamera(65,1,0.05,400);
+// start: eye height inside the hall, looking down its length (the hall runs along -x)
+const HOME={eye:[-10,1.6,0.3],yaw:Math.PI/2,pitch:0};
+let eye=new THREE.Vector3(), yaw=0, pitch=0, speed=2.0;
+function home(){eye.set(...HOME.eye); yaw=HOME.yaw; pitch=HOME.pitch;}
+home();
+function resize(){const w=stage.clientWidth,h=stage.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
+addEventListener('resize',resize); resize();
+new GLTFLoader().load('model.glb',g=>{scene.add(g.scene); bar.remove();},
+ e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
+ ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
+// ---- desktop: keys + hold-left-mouse look (live_viewer.py convention)
+const keys={};
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return; keys[e.code]=true; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
+addEventListener('keyup',e=>{keys[e.code]=false;});
+let looking=false,lx=0,ly=0;
+cv.addEventListener('mousedown',e=>{if(e.button===0){looking=true;lx=e.clientX;ly=e.clientY;}});
+addEventListener('mouseup',()=>looking=false);
+addEventListener('mousemove',e=>{if(!looking)return; yaw-=(e.clientX-lx)*0.003; pitch-=(e.clientY-ly)*0.003; pitch=Math.max(-1.5,Math.min(1.5,pitch)); lx=e.clientX; ly=e.clientY;});
+cv.addEventListener('wheel',e=>{e.preventDefault(); speed*=Math.exp(-e.deltaY*0.0012); speed=Math.max(0.05,Math.min(30,speed));},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+// ---- phone: two thumbs. Left half of the view is a move stick (push forward/back/strafe), right
+// half is look. Two fingers together: drag up/down to rise/sink, sideways to slide. The stick's
+// throw is speed, so a small push creeps and a full push runs.
+let stick=null, look=null, two=null;
+function touchList(e){return [...e.changedTouches];}
+cv.addEventListener('touchstart',e=>{e.preventDefault(); const rect=cv.getBoundingClientRect();
+ if(e.touches.length>=2){const a=e.touches[0],b=e.touches[1]; two={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}; stick=null; look=null; return;}
+ for(const t of touchList(e)){ if(t.clientX-rect.left<rect.width/2){ if(!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; }
+  else if(!look)look={id:t.identifier,x:t.clientX,y:t.clientY}; }},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();
+ if(e.touches.length>=2&&two){const a=e.touches[0],b=e.touches[1]; const m={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
+  eye.addScaledVector(right(),(m.x-two.x)*0.01); eye.y-=(m.y-two.y)*0.01; two=m; return;}
+ for(const t of touchList(e)){
+  if(stick&&t.identifier===stick.id){stick.dx=Math.max(-60,Math.min(60,t.clientX-stick.x0)); stick.dy=Math.max(-60,Math.min(60,t.clientY-stick.y0)); moveStick(stick);}
+  if(look&&t.identifier===look.id){yaw-=(t.clientX-look.x)*0.005; pitch-=(t.clientY-look.y)*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;}}},{passive:false});
+function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null;} if(look&&t.identifier===look.id)look=null;} if(e.touches.length<2)two=null;}
+cv.addEventListener('touchend',endTouch); cv.addEventListener('touchcancel',endTouch);
+const pad=document.getElementById('pad'), knob=document.getElementById('knob');
+function showStick(x,y){pad.style.display='block'; pad.style.left=(x-50)+'px'; pad.style.top=(y-50)+'px'; knob.style.transform='translate(0,0)'; return pad;}
+function moveStick(st){knob.style.transform=`translate(${st.dx*0.6}px,${st.dy*0.6}px)`;}
+function hideStick(){pad.style.display='none';}
+function fwd(){return new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));}
+function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
+document.getElementById('rst').onclick=home;
+document.getElementById('full').onclick=()=>{(document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen()).catch(()=>{});};
+document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
+let last=performance.now();
+function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
+ const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
+ if(keys.KeyW||keys.ArrowUp)eye.addScaledVector(f,s); if(keys.KeyS||keys.ArrowDown)eye.addScaledVector(f,-s);
+ if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
+ if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
+ if(stick){const g=speed*dt*2; eye.addScaledVector(f,-stick.dy/60*g); eye.addScaledVector(r,stick.dx/60*g);}
+ cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
 </script>
 <h2>Rendered views</h2>
 <div class="grid"><figure><img src="corner.jpg" alt="Corner, looking down the hall" loading="lazy"><figcaption>Corner, looking down the hall</figcaption></figure><figure><img src="aisle.jpg" alt="Aisle between the columns" loading="lazy"><figcaption>Aisle between the columns</figcaption></figure><figure><img src="oblique-eye.jpg" alt="Eye height, oblique" loading="lazy"><figcaption>Eye height, oblique</figcaption></figure><figure><img src="oblique-east.jpg" alt="Oblique from the east" loading="lazy"><figcaption>Oblique from the east</figcaption></figure><figure><img src="oblique-west.jpg" alt="Oblique from the west" loading="lazy"><figcaption>Oblique from the west</figcaption></figure><figure><img src="balcony.jpg" alt="From the balcony deck, 9.6 m" loading="lazy"><figcaption>From the balcony deck, 9.6 m</figcaption></figure><figure><img src="up.jpg" alt="Looking up at the canopy" loading="lazy"><figcaption>Looking up at the canopy</figcaption></figure></div>
