@@ -565,8 +565,6 @@ function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
-<h2>Rendered views</h2>
-<div class="grid"><figure><img src="corner.jpg" alt="Corner, looking down the hall" loading="lazy"><figcaption>Corner, looking down the hall (8 strips per column, warm white)</figcaption></figure><figure><img src="aisle.jpg" alt="Aisle between the columns" loading="lazy"><figcaption>Aisle between the columns</figcaption></figure><figure><img src="oblique-eye.jpg" alt="Eye height, oblique" loading="lazy"><figcaption>Eye height, oblique</figcaption></figure><figure><img src="oblique-east.jpg" alt="Oblique from the east" loading="lazy"><figcaption>Oblique from the east</figcaption></figure><figure><img src="oblique-west.jpg" alt="Oblique from the west" loading="lazy"><figcaption>Oblique from the west</figcaption></figure><figure><img src="balcony.jpg" alt="From the balcony deck, 9.6 m" loading="lazy"><figcaption>From the balcony deck, 9.6 m</figcaption></figure><figure><img src="up.jpg" alt="Looking up at the canopy" loading="lazy"><figcaption>Looking up at the canopy</figcaption></figure></div>
 <h2>What is in the model</h2>
 <table>
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
