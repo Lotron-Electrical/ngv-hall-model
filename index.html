@@ -138,7 +138,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
    <label>Show in 3D <select id="pm_show"><option value="">Everything</option></select></label>
    <button type="button" id="pm_csv" class="sw">Download patch CSV (one row per strip)</button>
    <label>ELM up axis <select id="pm_up"><option value="y">Y up (as modelled)</option><option value="z">Z up (swap Y and Z)</option></select></label>
-   <label>ELM protocol <select id="pm_proto"><option>Art-Net</option><option>sACN</option></select></label>
+   <label>ELM protocol <select id="pm_proto"><option value="ArtNet">Art-Net (ELM shows universes from 0)</option><option value="sACN">sACN</option></select></label>
+   <label>ELM columns <select id="pm_cols"><option value="manual">x,y,z,protocol,universe,address,type,bits,strip,order,name</option><option value="howto">x,y,z,pixel_type,bit_depth,protocol,universe,start_channel</option></select></label>
    <button type="button" id="pm_elm" class="sw">Download ELM CSV (one row per pixel)</button>
   </div>
   <div class="stat" id="pm_tot"></div>
@@ -177,7 +178,10 @@ const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // glass the house term IS the backlight, the photograph is the transmitted colour, and LED light
 // arriving from below mostly passes on up into the void: it gets LED_GAIN_GLASS of a wall's share.
 const HOUSE_LUX=150;        // assumed floor illuminance in the photographs (typical hall house lighting)
-const LM_PER_LED=13;        // 60 LED/m RGB strip ~ 800 lm/m at full white
+// ENTTEC 12 V RGBW 60 LED/m pixel strip (SK6805, GRBW): 1,088 lm/m at 21.8 W/m, 10 mm wide, 120 deg
+// (enttec.com.au/product/led-pixel-strip/12v-rgbw-60-leds-m-pixel-strip). Per LED at full output:
+const LM_PER_LED=1088/60;   // 18.1 lm
+const W_PER_M=21.8;         // at full white, for the stats line; the supply is sized on this
 const AMBIENT=0.03;         // fraction of house level that remains with everything off
 const LED_GAIN_GLASS=0.25;  // translucent glass scatters back only a fraction of the LED light from below
 const BANDS=8, MAX_LIGHTS=96;
@@ -252,6 +256,13 @@ const GLOWTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=6
 // per-pixel attributes for the animations
 let P={n:0, s:null, run:null, col:null, gap:null, colx:null, pid:null};
 const LEDS_PER_M=60;
+// THE FIXTURE (Lloyd, 2026-08-28): the pixel strip is 10 mm wide and sits inside a 20 x 20 mm
+// aluminium extrusion with a BLACK acrylic diffuser on the face. The run polyline from the design is
+// the strip line 12 mm proud of the shaft valley, so the extrusion runs from the valley (-12 mm) to
+// its face (+8 mm). A diffuser turns the LED dots into one continuous line, so each LED is drawn as
+// a face-width tile the length of its pitch, and the tiles abut; off, the tile is the black acrylic.
+// Black acrylic passes only part of the light: DIFFUSER_T is an assumption, not a datasheet figure.
+const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.55;
 const GAPS=8;
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
@@ -272,13 +283,14 @@ function rebuild(){
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
  P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), runs:[]};
  let pixels=0;
- const dot=Math.min(0.012, pitch*0.6);
- const pg=new THREE.BoxGeometry(0.012,dot,0.004);
+ const pg=new THREE.BoxGeometry(FACE_W,pitch,0.001);
  const pm=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
  const rg=new THREE.BoxGeometry(1,1,1);
  // the diffuser: matte black when off, so an unlit strip reads as a black line on a black shaft
- ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x000000,roughness:0.9}),runs.length*(RUNS.runs[0].points.length-1));
+ // the extrusion body. Black anodised is assumed for a black column; raw silver would read as a
+ // bright edge either side of the strip and is one constant away if that is what goes in.
+ ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1));
  const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
  const gpos=new Float32Array(total*3);
  let k=0, rk=0;
@@ -293,7 +305,7 @@ function rebuild(){
   for(let i=1;i<r.points.length;i++){
    const a=new THREE.Vector3(...r.points[i-1]), c=new THREE.Vector3(...r.points[i]);
    t.subVectors(c,a); const len=t.length(); t.normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
-   M.makeBasis(b,t,nn); pos.addVectors(a,c).multiplyScalar(0.5).addScaledVector(nn,0.001); sc.set(0.016,len,0.002);
+   M.makeBasis(b,t,nn); pos.addVectors(a,c).multiplyScalar(0.5).addScaledVector(nn,EXT_BACK+EXT_D/2); sc.set(EXT_W,len,EXT_D);
    M.setPosition(pos); M.scale(sc); ribbon.setMatrixAt(rk++,M);
   }
   let seg=1;
@@ -302,7 +314,7 @@ function rebuild(){
    const a=new THREE.Vector3(...r.points[seg-1]), c=new THREE.Vector3(...r.points[seg]);
    const f=(d-cum[seg-1])/Math.max(1e-6,cum[seg]-cum[seg-1]);
    t.subVectors(c,a).normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
-   pos.lerpVectors(a,c,f).addScaledVector(nn,0.004);
+   pos.lerpVectors(a,c,f).addScaledVector(nn,EXT_BACK+EXT_D+0.0006);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
    // the LED takes its pixel's centre, so every LED in a group animates as one
    const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
@@ -321,7 +333,8 @@ function rebuild(){
  gg.setAttribute('color',new THREE.BufferAttribute(pix.instanceColor.array,3)); gg.attributes.color.setUsage(THREE.DynamicDrawUsage);
  glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:0.08,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
  scene.add(ribbon); scene.add(pix); scene.add(glow);
- document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${segs.reduce((a,s)=>a+s.L,0).toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel)`;
+ const metres=segs.reduce((a,s)=>a+s.L,0);
+ document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_PER_M/1000).toFixed(1)} kW at full white`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
@@ -370,7 +383,7 @@ function animate(time){
  // pixel-map highlight: everything outside the chosen universe or output drops to 3%, so the
  // addressing can be checked by eye in the hall rather than in a table
  const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
- for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+ for(let i=0;i<n;i++){const o=i*3; const m=((hk&&hi[i]!==hv)?0.03*lv:lv)*DIFFUSER_T; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -431,17 +444,21 @@ document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
 // the table above, so what ELM drives is what the live input here shows.
 function elmCsv(){
  if(!P.runs.length||!P.pos)return '';
- const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value;
+ const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value, manual=document.getElementById('pm_cols').value==='manual';
+ // ELM shows Art-Net universes from 0 and sACN from 1 (user manual, Import a 3D stage from CSV), and
+ // the file carries the number as ELM shows it; the bridge maps Art-Net wire universe 0 to page 1
+ const uOff=proto==='ArtNet'?-1:0;
  // pixel centre = mean of its LEDs (one LED per pixel at 60 px/m, three or six at the lower densities)
  const acc=new Map();
- for(let k=0;k<P.n;k++){const id=P.run[k]*4096+P.pi[k]; let e=acc.get(id); if(!e){e={x:0,y:0,z:0,n:0,u:P.univ[k],c:P.dmxC[k]+1}; acc.set(id,e);}
+ for(let k=0;k<P.n;k++){const id=P.run[k]*4096+P.pi[k]; let e=acc.get(id); if(!e){const r=P.runs[P.run[k]]; e={x:0,y:0,z:0,n:0,u:P.univ[k],c:P.dmxC[k]+1,strip:r.map?r.map.strip:P.run[k]+1,order:(r.map&&r.map.dir==='down')?r.pixels-P.pi[k]:P.pi[k]+1,name:r.column+' gap '+r.gap}; acc.set(id,e);}
   e.x+=P.pos[k*3]; e.y+=P.pos[k*3+1]; e.z+=P.pos[k*3+2]; e.n++;}
  const rows=Array.from(acc.values()).sort((a,b)=>a.u-b.u||a.c-b.c);
  // centred on the hall in plan, floor at zero, so the stage in ELM sits at its origin
  let cx=0,cz=0,y0=Infinity; for(const e of rows){cx+=e.x/e.n; cz+=e.z/e.n; y0=Math.min(y0,e.y/e.n);} cx/=rows.length; cz/=rows.length;
- const lines=['x,y,z,pixel_type,bit_depth,protocol,universe,start_channel'];
- for(const e of rows){const x=(e.x/e.n-cx)*1000, y=(e.y/e.n-y0)*1000, z=(e.z/e.n-cz)*1000;
-  lines.push(x.toFixed(1)+','+(zup?z:y).toFixed(1)+','+(zup?y:z).toFixed(1)+',RGB,8,'+proto+','+e.u+','+e.c);}
+ const lines=[manual?'x,y,z,protocol,universe,address,type,bits,strip,order,name':'x,y,z,pixel_type,bit_depth,protocol,universe,start_channel'];
+ for(const e of rows){const x=(e.x/e.n-cx)*1000, y=(e.y/e.n-y0)*1000, z=(e.z/e.n-cz)*1000; const xyz=x.toFixed(1)+','+(zup?z:y).toFixed(1)+','+(zup?y:z).toFixed(1);
+  lines.push(manual?xyz+','+proto+','+(e.u+uOff)+','+e.c+',RGB,8,'+e.strip+','+e.order+','+e.name
+                   :xyz+',RGB,8,'+(proto==='ArtNet'?'Art-Net':proto)+','+(e.u+uOff)+','+e.c);}
  return lines.join('\n');
 }
 window.elmCsv=elmCsv;
@@ -647,6 +664,7 @@ requestAnimationFrame(frame);
 <h2>What is in the model</h2>
 <table>
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
+<tr><td>Strips</td><td>ENTTEC 12 V RGBW 60 LED/m pixel strip (10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser, one per fin gap, floor to glass</td></tr>
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
