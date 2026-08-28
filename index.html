@@ -106,6 +106,8 @@ const HOME={eye:[-8,1.6,0.3],yaw:Math.PI,pitch:0};
 let eye=new THREE.Vector3(), yaw=0, pitch=0, speed=2.0;
 function home(){eye.set(...HOME.eye); yaw=HOME.yaw; pitch=HOME.pitch;}
 home();
+// #x,y,z,yaw,pitch in the URL puts the camera there (for sharing a view and for checks)
+{const h=location.hash.slice(1).split(',').map(Number); if(h.length===5&&h.every(Number.isFinite)){eye.set(h[0],h[1],h[2]); yaw=h[3]; pitch=h[4];}}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
 addEventListener('resize',resize); resize();
 new GLTFLoader().load('model.glb',g=>{scene.add(g.scene); bar.remove();},
@@ -176,7 +178,7 @@ function rebuild(){
  scene.add(ribbon); scene.add(pix); scene.add(glow);
  document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${state.density} px/m · ${total.toLocaleString()} pixels · ${segs.reduce((a,s)=>a+s.L,0).toFixed(0)} m of strip`;
 }
-fetch('runs.json').then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
+fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
 function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
