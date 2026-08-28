@@ -93,7 +93,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 <p class="hint" id="hint"></p>
 <div class="panel" id="panel">
  <div class="row"><label for="cn">Lights per column</label>
-  <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div></div>
+  <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom <input type="number" id="skipm" value="2" min="0" max="6" step="0.5" style="width:56px"> m (client option: strips start above reach)</label></div>
  <div class="row"><label>Pixel density (every strip is 60 LEDs/m)</label>
   <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
  <div class="row"><label>Animation layers (blended bottom to top; the controls below edit the selected one)</label>
@@ -241,7 +242,7 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0};
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
 let RUNS=null, pix=null, ribbon=null, glow=null;
@@ -258,7 +259,12 @@ function rebuild(){
  for(const m of [pix,ribbon,glow]) if(m){scene.remove(m); m.geometry.dispose(); m.material.dispose();}
  pix=ribbon=glow=null;
  const gaps=chosenGaps(state.count), pitch=1/LEDS_PER_M, group=Math.round(LEDS_PER_M/state.density);
- const runs=RUNS.runs.filter(r=>gaps.has(r.gap));
+ // the client's option: no LEDs on the bottom SKIP metres of a shaft. The run is cut there, so every
+ // count, address and export downstream sees a shorter strip rather than a masked one.
+ const trim=r=>{const sk=state.skip; if(sk<=0)return r; const pts=r.points; let L=0; const cum=[0]; for(let i=1;i<pts.length;i++){L+=Math.hypot(...[0,1,2].map(k=>pts[i][k]-pts[i-1][k])); cum.push(L);}
+  if(sk>=L-0.05)return null; let i=1; while(cum[i]<sk)i++; const f=(sk-cum[i-1])/(cum[i]-cum[i-1]); const p0=[0,1,2].map(k=>pts[i-1][k]+(pts[i][k]-pts[i-1][k])*f);
+  return Object.assign({},r,{points:[p0,...pts.slice(i)]});};
+ const runs=RUNS.runs.filter(r=>gaps.has(r.gap)).map(trim).filter(Boolean);
  const cols=RUNS.columns; const colX={}; for(const r of RUNS.runs){colX[r.column]=r.points[0][0];}
  const xs=Object.values(colX); const x0=Math.min(...xs), x1=Math.max(...xs);
  // count pixels
@@ -465,6 +471,8 @@ const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
+document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
+document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
 document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayers();};
 document.getElementById('spd').oninput=e=>L().speed=e.target.value/100;
 document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%';};
@@ -576,7 +584,7 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
  switch(m.t){
@@ -589,6 +597,7 @@ function rcApply(m){
   case 'fov': {const f=document.getElementById('fov'); f.value=Math.max(40,Math.min(110,+m.v)); f.dispatchEvent(new Event('input'));} break;
   case 'noclip': noclip=!!m.v; document.getElementById('noclip').checked=noclip; break;
   case 'count': state.count=Math.max(0,Math.min(GAPS,+m.v|0)); cn.value=state.count; rebuild(); break;
+  case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
   case 'sel': state.sel=Math.max(0,Math.min(state.layers.length-1,+m.i|0)); paintUI(); break;
   case 'active': state.active=m.v==='B'?'B':'A'; paintUI(); break;

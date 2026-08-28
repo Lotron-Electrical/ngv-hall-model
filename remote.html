@@ -55,7 +55,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
    </div></div></div>
  <div class="row"><label class="h">Strip brightness <span id="levelv"></span></label><input type="range" id="level" min="0" max="100"></div>
  <div class="row"><label class="h">House lights <span id="housev"></span></label><input type="range" id="house" min="0" max="100"></div>
- <div class="row"><label class="h">Lights per column</label><div class="stepper"><button id="cm">&minus;</button><output id="cn"></output><button id="cp">+</button></div></div>
+ <div class="row"><label class="h">Lights per column</label><div class="stepper"><button id="cm">&minus;</button><output id="cn"></output><button id="cp">+</button></div>
+  <label style="display:flex;gap:10px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom 2 m</label></div>
  <div class="row"><label class="h">Pixel density</label><div class="seg" id="dens"><button data-d="60">60 px/m</button><button data-d="20">20 px/m</button><button data-d="10">10 px/m</button></div></div>
  <div class="row"><label class="h">Field of view <span id="fovv"></span></label><input type="range" id="fov" min="40" max="110"></div>
  <div class="row"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="noclip"> Walk through walls (no-clip)</label></div>
@@ -107,6 +108,7 @@ $('level').oninput=e=>{$('levelv').textContent=e.target.value+'%'; send({t:'leve
 $('house').oninput=e=>{$('housev').textContent=e.target.value+'%'; send({t:'house',v:e.target.value/100});};
 $('fov').oninput=e=>{$('fovv').textContent=e.target.value+'°'; send({t:'fov',v:+e.target.value});};
 $('noclip').onchange=e=>send({t:'noclip',v:e.target.checked});
+$('skip').onchange=e=>send({t:'skip',v:e.target.checked?2:0});
 $('cm').onclick=()=>send({t:'count',v:S.count-1}); $('cp').onclick=()=>send({t:'count',v:S.count+1});
 document.querySelectorAll('#dens button').forEach(b=>b.onclick=()=>send({t:'density',v:+b.dataset.d}));
 $('swA').onclick=()=>send({t:'active',v:'A'}); $('swB').onclick=()=>send({t:'active',v:'B'});
@@ -135,7 +137,7 @@ function paint(){if(!S)return;
  const Ly=S.layers[S.sel]; an.value=Ly.anim; $('spd').value=Math.round(Ly.speed*100); $('spdv').textContent=$('spd').value;
  $('level').value=Math.round(S.level*100); $('levelv').textContent=$('level').value+'%';
  $('house').value=Math.round(S.house*100); $('housev').textContent=$('house').value+'%';
- $('fov').value=Math.round(S.fov); $('fovv').textContent=$('fov').value+'°'; $('noclip').checked=!!S.noclip; $('cn').value=S.count;
+ $('skip').checked=S.skip>0; $('fov').value=Math.round(S.fov); $('fovv').textContent=$('fov').value+'°'; $('noclip').checked=!!S.noclip; $('cn').value=S.count;
  document.querySelectorAll('#dens button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.d===S.density));
  const el=$('layers'); el.innerHTML=''; S.layers.forEach((L,k)=>{const row=document.createElement('div'); row.className='layer'+(k===S.sel?' sel':'');
   row.innerHTML=`<input type="checkbox" ${L.on?'checked':''}><span class="n">${L.name}: ${L.anim}</span><select><option value="add">Add</option><option value="over">Over</option><option value="mul">Multiply</option></select><input type="range" min="0" max="100" value="${Math.round(L.opacity*100)}"><button>&times;</button>`;
