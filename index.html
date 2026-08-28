@@ -39,7 +39,8 @@ td:first-child{color:var(--dim);width:42%;padding-right:12px}
 .stepper button{width:44px;height:40px;font-size:20px;line-height:1;padding:0}
 .stepper output{min-width:56px;text-align:center;font-size:22px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
 .seg{display:flex}
-.seg button{flex:1;height:40px}
+.seg button{flex:1;min-height:40px;line-height:1.2;padding:5px 4px}
+.seg small{font-size:11px;opacity:.75}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:500}
 .wheelwrap{display:flex;gap:14px;align-items:flex-start}
 #wheel{width:160px;height:160px;border-radius:50%;touch-action:none;cursor:crosshair;flex:none}
@@ -63,8 +64,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <div class="panel" id="panel">
  <div class="row"><label for="cn">Lights per column</label>
   <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div></div>
- <div class="row"><label>Pixels per metre</label>
-  <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60</button><button type="button" data-d="20" aria-pressed="false">20</button><button type="button" data-d="10" aria-pressed="false">10</button></div></div>
+ <div class="row"><label>Pixel density (every strip is 60 LEDs/m)</label>
+  <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
  <div class="row"><label>Colour</label>
   <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="160" height="160"></canvas><div id="mark"></div></div>
    <div class="swatches">
@@ -123,29 +124,33 @@ new GLTFLoader().load('model.glb',g=>{
 
 // ============ LED strips, built live from runs.json ============
 // Each run is a polyline up the shaft in one fin gap (already at its standoff). The strip is a
-// dark ribbon along the polyline plus one instanced pixel every 1/density metres, coloured every
-// frame by the chosen animation. Nothing here is baked into the GLB.
+// dark ribbon along the polyline plus one instanced LED every 1/60 m, coloured every frame by the
+// chosen animation. Every strip is 60 LEDs/m; the pixel density option only sets how many
+// consecutive LEDs share one colour (1, 3 or 6), which is what 60/20/10 px/m means on the product.
+// Nothing here is baked into the GLB.
 const state={count:8, density:60, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, active:'A', anim:'solid', speed:0.35};
 let RUNS=null, pix=null, ribbon=null, glow=null;
 // soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
 // from across the hall even at 10 px/m
 const GLOWTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(0.25,'rgba(255,255,255,.55)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.NoColorSpace; return t;})();
 // per-pixel attributes for the animations
-let P={n:0, s:null, run:null, col:null, gap:null, colx:null};
+let P={n:0, s:null, run:null, col:null, gap:null, colx:null, pid:null};
+const LEDS_PER_M=60;
 const GAPS=8;
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
  if(!RUNS)return;
  for(const m of [pix,ribbon,glow]) if(m){scene.remove(m); m.geometry.dispose(); m.material.dispose();}
  pix=ribbon=glow=null;
- const gaps=chosenGaps(state.count), pitch=1/state.density;
+ const gaps=chosenGaps(state.count), pitch=1/LEDS_PER_M, group=Math.round(LEDS_PER_M/state.density);
  const runs=RUNS.runs.filter(r=>gaps.has(r.gap));
  const cols=RUNS.columns; const colX={}; for(const r of RUNS.runs){colX[r.column]=r.points[0][0];}
  const xs=Object.values(colX); const x0=Math.min(...xs), x1=Math.max(...xs);
  // count pixels
  const segs=[]; let total=0;
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
- P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total)};
+ P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total)};
+ let pixels=0;
  const dot=Math.min(0.012, pitch*0.6);
  const pg=new THREE.BoxGeometry(0.012,dot,0.004);
  const pm=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
@@ -173,17 +178,19 @@ function rebuild(){
    t.subVectors(c,a).normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
    pos.lerpVectors(a,c,f).addScaledVector(nn,0.004);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
-   P.s[k]=d/L; P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
+   // the LED takes its pixel's centre, so every LED in a group animates as one
+   const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj;
+   P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
   }
+  pixels+=Math.ceil(n/group);
  });
  pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
  pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gpos,3));
  gg.setAttribute('color',new THREE.BufferAttribute(pix.instanceColor.array,3)); gg.attributes.color.setUsage(THREE.DynamicDrawUsage);
- // halo size follows the pitch: merges into a bar at 60/m, separates into dots at 10/m
- glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:Math.min(0.16,Math.max(0.08,pitch*1.5)),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
+ glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:0.08,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
  scene.add(ribbon); scene.add(pix); scene.add(glow);
- document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${state.density} px/m · ${total.toLocaleString()} pixels · ${segs.reduce((a,s)=>a+s.L,0).toFixed(0)} m of strip`;
+ document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${segs.reduce((a,s)=>a+s.L,0).toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel)`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
@@ -206,7 +213,7 @@ function animate(time){
   else if(kind==='chaseup'||kind==='chasedown'){const dir=kind==='chaseup'?1:-1; const ph=((P.s[i]*3-dir*T*0.5)%1+1)%1; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
   else if(kind==='wave'){const k=0.5+0.5*Math.sin(P.s[i]*Math.PI*4-T*2); r=B[0]+(A[0]-B[0])*k; g=B[1]+(A[1]-B[1])*k; b=B[2]+(A[2]-B[2])*k;}
   else if(kind==='rainbow'){hsv(((P.s[i]*360+P.col[i]*30+T*40)%360+360)%360,1,state.A.v,tmp); r=lin(tmp[0]);g=lin(tmp[1]);b=lin(tmp[2]);}
-  else if(kind==='sparkle'){const fr=Math.floor(T*6); const k=hash(i*7919+fr)<0.02?1:(hash(i*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+  else if(kind==='sparkle'){const fr=Math.floor(T*6); const q=P.pid[i]; const k=hash(q*7919+fr)<0.02?1:(hash(q*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
   else if(kind==='sweep'){const ph=((P.colx[i]*1.2-T*0.3)%1.2+1.2)%1.2; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
   else if(kind==='alternate'){const on=((P.gap[i]+Math.floor(T*0.8))%2)===0; const C=on?A:B; r=C[0];g=C[1];b=C[2];}
   else {r=A[0];g=A[1];b=A[2];}
@@ -297,7 +304,7 @@ requestAnimationFrame(frame);
 <h2>What is in the model</h2>
 <table>
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
-<tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward; count, pixel pitch (60 / 20 / 10 per metre), colours and animation are set in the panel above and drawn live</td></tr>
+<tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
 <tr><td>Ceiling</td><td>Faceted glass canopy, textured</td></tr>
