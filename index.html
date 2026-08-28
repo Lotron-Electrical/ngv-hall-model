@@ -263,8 +263,11 @@ const LEDS_PER_M=60;
 // the strip line 12 mm proud of the shaft valley, so the extrusion runs from the valley (-12 mm) to
 // its face (+8 mm). A diffuser turns the LED dots into one continuous line, so each LED is drawn as
 // a face-width tile the length of its pitch, and the tiles abut; off, the tile is the black acrylic.
-// Black acrylic passes only part of the light: DIFFUSER_T is an assumption, not a datasheet figure.
-const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.55, WALL=0.002;
+// Black acrylic passes only part of the light. Manufacturer figures for black covers on 20-22 mm
+// profiles: KLUS G-22S 15%, G-22R 20%, LIGER-22 22%; Lumines BASIC 31%, HIGH 22%, DOUBLE 23%;
+// Topmet Click 40% (their satin/opal siblings 60-80%). 0.25 is the middle of that; the cover's own
+// datasheet replaces it when Lloyd has one.
+const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.25, WALL=0.002;
 // without the diffuser the channel is open and the strip shows: a 10 mm PCB on the back of the
 // extrusion carrying 5 mm LED packages (SK6805 in a 5050-style body) at the pitch, nothing in front
 const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015;
