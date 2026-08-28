@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NGV Hall v15</title>
+<title>NGV Hall v16</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
@@ -24,14 +24,14 @@ td{padding:7px 0;border-bottom:1px solid var(--rule);vertical-align:top}
 td:first-child{color:var(--dim);width:42%;padding-right:12px}
 .ok{color:var(--ok);font-weight:500}
 </style></head><body><main>
-<header><span class="sub">Sitecapture, 28 Aug 2026</span><h1>NGV Hall, clean model v15</h1></header>
+<header><span class="sub">Sitecapture, 28 Aug 2026</span><h1>NGV Hall, clean model v16</h1></header>
 <model-viewer id="mv" src="model.glb" camera-controls touch-action="pan-y" exposure="1.1" shadow-intensity="0"
  camera-target="-32m 1.6m 0.3m" camera-orbit="90deg 85deg 22m" field-of-view="65deg"
  min-camera-orbit="auto auto 0.5m" max-camera-orbit="auto 175deg 120m" interaction-prompt="none"
  alt="NGV hall: twelve finned columns, walls, floor and canopy, with the LED runs at 5x">
  <div class="bar" slot="progress-bar" id="bar">Loading model, 8.5 MB</div>
 </model-viewer>
-<p class="hint">Drag to orbit, pinch to zoom, two-finger drag to pan. LED runs shown at 5x brightness. <a href="model.glb" download>Download the GLB</a> to open in any 3D viewer.</p>
+<p class="hint">Drag to orbit, pinch to zoom, two-finger drag to pan. LED strips drawn at 2x their 12 mm width so they read at hall scale. <a href="model.glb" download>Download the GLB</a> to open in any 3D viewer.</p>
 <script>
 const mv=document.getElementById('mv'),bar=document.getElementById('bar');
 mv.addEventListener('progress',e=>{bar.textContent='Loading model, '+Math.round(e.detail.totalProgress*100)+'%';});
@@ -42,7 +42,7 @@ mv.addEventListener('error',e=>{bar.textContent='The 3D view could not start on 
 <div class="grid"><figure><img src="corner.jpg" alt="Corner, looking down the hall" loading="lazy"><figcaption>Corner, looking down the hall</figcaption></figure><figure><img src="aisle.jpg" alt="Aisle between the columns" loading="lazy"><figcaption>Aisle between the columns</figcaption></figure><figure><img src="oblique-eye.jpg" alt="Eye height, oblique" loading="lazy"><figcaption>Eye height, oblique</figcaption></figure><figure><img src="oblique-east.jpg" alt="Oblique from the east" loading="lazy"><figcaption>Oblique from the east</figcaption></figure><figure><img src="oblique-west.jpg" alt="Oblique from the west" loading="lazy"><figcaption>Oblique from the west</figcaption></figure><figure><img src="balcony.jpg" alt="From the balcony deck, 9.6 m" loading="lazy"><figcaption>From the balcony deck, 9.6 m</figcaption></figure><figure><img src="up.jpg" alt="Looking up at the canopy" loading="lazy"><figcaption>Looking up at the canopy</figcaption></figure></div>
 <h2>What is in the model</h2>
 <table>
-<tr><td>Columns</td><td>12, satin charcoal steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling), LED runs on the shaft between the fins</td></tr>
+<tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling); one LED strip in every gap, on the shaft, facing outward</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
 <tr><td>Ceiling</td><td>Faceted glass canopy, textured</td></tr>
