@@ -94,8 +94,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const cv=document.getElementById('cv'), stage=document.getElementById('stage'), bar=document.getElementById('bar'), hint=document.getElementById('hint');
 const COARSE=matchMedia('(pointer: coarse)').matches;
 hint.innerHTML = COARSE
- ? 'FLY &middot; left thumb = move &middot; right thumb = look &middot; two fingers = up/down and slide &middot; <a href="model.glb" download>Download the GLB</a>'
- : 'FLY &middot; WASD move &middot; <b>hold left mouse to look</b> &middot; Space/C up-down &middot; Shift fast &middot; Alt slow &middot; wheel = speed &middot; <a href="model.glb" download>Download the GLB</a>';
+ ? 'FLY &middot; left thumb = move &middot; right thumb = look, both at once &middot; a second finger on either side = up/down &middot; <a href="model.glb" download>Download the GLB</a>'
+ : 'FLY &middot; WASD move while you <b>hold the left mouse to look</b> &middot; Space/C up-down &middot; Shift fast &middot; Alt slow &middot; wheel = speed &middot; <a href="model.glb" download>Download the GLB</a>';
 const R=new THREE.WebGLRenderer({canvas:cv,antialias:true}); R.setPixelRatio(Math.min(devicePixelRatio,2)); R.outputColorSpace=THREE.SRGBColorSpace; R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.1;
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
 scene.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.04).texture;
@@ -110,7 +110,14 @@ home();
 {const h=location.hash.slice(1).split(',').map(Number); if(h.length===5&&h.every(Number.isFinite)){eye.set(h[0],h[1],h[2]); yaw=h[3]; pitch=h[4];}}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
 addEventListener('resize',resize); resize();
-new GLTFLoader().load('model.glb',g=>{scene.add(g.scene); bar.remove();},
+new GLTFLoader().load('model.glb',g=>{
+ // The floor, walls and canopy are photographs projected onto flat surfaces: the light is already
+ // in them. Lighting them again darkens every face that does not happen to face the sky, which
+ // turned the canopy black. They render unlit; only the columns keep a lit gloss material.
+ g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
+  const out=ms.map(m=>{ if(/column/i.test(m.name||''))return m; const b=new THREE.MeshBasicMaterial({map:m.map||null,color:m.map?0xffffff:m.color,side:THREE.DoubleSide,toneMapped:false}); b.name=m.name; return b; });
+  o.material=Array.isArray(o.material)?out:out[0]; });
+ scene.add(g.scene); bar.remove();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -248,19 +255,22 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 // ---- phone: two thumbs. Left half of the view is a move stick (push forward/back/strafe), right
 // half is look. Two fingers together: drag up/down to rise/sink, sideways to slide. The stick's
 // throw is speed, so a small push creeps and a full push runs.
-let stick=null, look=null, two=null;
+let stick=null, look=null, rise=null;
 function touchList(e){return [...e.changedTouches];}
+// Each half of the view belongs to one thumb, so moving and looking happen together. A second
+// finger landing on a half that is already taken becomes the rise finger: drag up to climb,
+// down to sink.
 cv.addEventListener('touchstart',e=>{e.preventDefault(); const rect=cv.getBoundingClientRect();
- if(e.touches.length>=2){const a=e.touches[0],b=e.touches[1]; two={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}; stick=null; look=null; return;}
- for(const t of touchList(e)){ if(t.clientX-rect.left<rect.width/2){ if(!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; }
-  else if(!look)look={id:t.identifier,x:t.clientX,y:t.clientY}; }},{passive:false});
+ for(const t of touchList(e)){ const leftHalf=t.clientX-rect.left<rect.width/2;
+  if(leftHalf&&!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)};
+  else if(!leftHalf&&!look)look={id:t.identifier,x:t.clientX,y:t.clientY};
+  else if(!rise)rise={id:t.identifier,y:t.clientY}; }},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
- if(e.touches.length>=2&&two){const a=e.touches[0],b=e.touches[1]; const m={x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
-  eye.addScaledVector(right(),(m.x-two.x)*0.01); eye.y-=(m.y-two.y)*0.01; two=m; return;}
  for(const t of touchList(e)){
   if(stick&&t.identifier===stick.id){stick.dx=Math.max(-60,Math.min(60,t.clientX-stick.x0)); stick.dy=Math.max(-60,Math.min(60,t.clientY-stick.y0)); moveStick(stick);}
-  if(look&&t.identifier===look.id){yaw-=(t.clientX-look.x)*0.005; pitch-=(t.clientY-look.y)*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;}}},{passive:false});
-function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null;} if(look&&t.identifier===look.id)look=null;} if(e.touches.length<2)two=null;}
+  else if(look&&t.identifier===look.id){yaw-=(t.clientX-look.x)*0.005; pitch-=(t.clientY-look.y)*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;}
+  else if(rise&&t.identifier===rise.id){eye.y-=(t.clientY-rise.y)*0.01; rise.y=t.clientY;}}},{passive:false});
+function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null;} if(look&&t.identifier===look.id)look=null; if(rise&&t.identifier===rise.id)rise=null;}}
 cv.addEventListener('touchend',endTouch); cv.addEventListener('touchcancel',endTouch);
 const pad=document.getElementById('pad'), knob=document.getElementById('knob');
 function showStick(x,y){pad.style.display='block'; pad.style.left=(x-50)+'px'; pad.style.top=(y-50)+'px'; knob.style.transform='translate(0,0)'; return pad;}
