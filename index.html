@@ -54,6 +54,15 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .panel select{height:40px;width:100%}
 .row input[type=range]+span{margin-top:-2px}
 .stat{grid-column:1/-1;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
+.pmgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:8px 0}
+.pmgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
+.pmgrid input,.pmgrid select{font:inherit;padding:4px 6px;background:#111;color:inherit;border:1px solid #333;border-radius:4px}
+.pmtable{max-height:320px;overflow:auto;margin-top:8px}
+.pmtable table{border-collapse:collapse;font-size:12px;width:100%}
+.pmtable th,.pmtable td{border-bottom:1px solid #222;padding:3px 8px;text-align:left;white-space:nowrap}
+.pmtable th{position:sticky;top:0;background:#151515}
+#pmap{grid-column:1/-1}
+details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 .layers{display:flex;flex-direction:column;gap:4px}
 .layer{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #333;border-radius:6px;cursor:pointer;font-size:13px;color:var(--dim)}
 .layer.sel{border-color:#c9b27c;color:inherit}
@@ -103,6 +112,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
  <div class="row"><label for="house">House lights</label>
   <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
  <div class="stat" id="stat"></div>
+ <details class="row" id="pmap"><summary>Pixel map: controller outputs, universes and DMX addresses</summary>
+  <div class="pmgrid">
+   <label>Pixels per universe <input type="number" id="pm_ppu" value="170" min="1" max="170"></label>
+   <label>First universe <input type="number" id="pm_u0" value="1" min="0"></label>
+   <label>Max pixels per output <input type="number" id="pm_maxout" value="1024" min="1"></label>
+   <label>Outputs per controller <input type="number" id="pm_opc" value="16" min="1"></label>
+   <label>Strip order <select id="pm_order"><option value="ns">N1..N6 then S1..S6, gap 1..8</option><option value="sn">S1..S6 then N1..N6, gap 1..8</option><option value="alt">N1, S1, N2, S2 ... gap 1..8</option><option value="gap">Gap 1 on every column, then gap 2 ...</option></select></label>
+   <label>Data direction <select id="pm_dir"><option value="up">All strips bottom to top</option><option value="down">All strips top to bottom</option><option value="serp">Serpentine: alternate up / down</option></select></label>
+   <label>Show in 3D <select id="pm_show"><option value="">Everything</option></select></label>
+   <button type="button" id="pm_csv" class="sw">Download CSV</button>
+  </div>
+  <div class="stat" id="pm_tot"></div>
+  <div class="pmtable"><table id="pm_table"></table></div>
+ </details>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -214,7 +237,7 @@ function rebuild(){
  // count pixels
  const segs=[]; let total=0;
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
- P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total)};
+ P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), runs:[]};
  let pixels=0;
  const dot=Math.min(0.012, pitch*0.6);
  const pg=new THREE.BoxGeometry(0.012,dot,0.004);
@@ -249,13 +272,14 @@ function rebuild(){
    pos.lerpVectors(a,c,f).addScaledVector(nn,0.004);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
    // the LED takes its pixel's centre, so every LED in a group animates as one
-   const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj;
+   const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
    { const ci=cols.indexOf(r.column), bi=Math.min(BANDS-1,Math.floor(d/L*BANDS)), q=(ci*BANDS+bi); P.band[k]=q;
      bandSum[q*4]+=pos.x; bandSum[q*4+1]+=pos.y; bandSum[q*4+2]+=pos.z; bandSum[q*4+3]+=1; }
    P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
   }
-  pixels+=Math.ceil(n/group);
+  pixels+=Math.ceil(n/group); P.runs.push({column:r.column, gap:r.gap, pixels:Math.ceil(n/group), leds:n, length:L});
  });
+ pixelMap();
  for(let q=0;q<cols.length*BANDS;q++){const c=bandSum[q*4+3]||1; bandPos[q*3]=bandSum[q*4]/c; bandPos[q*3+1]=bandSum[q*4+1]/c; bandPos[q*3+2]=bandSum[q*4+2]/c;}
  P.bandPos=bandPos; P.nBands=cols.length*BANDS; P.bandAcc=new Float32Array(P.nBands*3);
  pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
@@ -302,7 +326,10 @@ function animate(time){
  }
  // the strip dimmer: one output level for every LED, on top of the whole stack, so it scales the
  // pixels, the halo and the light they throw on the room together; then the band sums
- for(let i=0;i<n;i++){const o=i*3; a[o]*=lv; a[o+1]*=lv; a[o+2]*=lv; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+ // pixel-map highlight: everything outside the chosen universe or output drops to 3%, so the
+ // addressing can be checked by eye in the hall rather than in a table
+ const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
+ for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -314,6 +341,48 @@ function animate(time){
  hemi.intensity=0.9*(lit.house+AMBIENT); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT;
  pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;
 }
+// ---- pixel map. Strips become controller outputs in a chosen order; each output starts on a
+// fresh universe and its pixels run on through universes of PPU pixels (170 = 510 of 512 DMX
+// channels); a strip that would overflow the output's pixel limit starts the next output.
+// Addresses are 1-based DMX channels, RGB, three per pixel.
+const pmHi={kind:'',v:0};
+function pmVal(id){return +document.getElementById(id).value;}
+function pixelMap(){
+ if(!P.runs.length)return;
+ const ppu=Math.max(1,pmVal('pm_ppu')), u0=pmVal('pm_u0'), maxout=Math.max(1,pmVal('pm_maxout')), opc=Math.max(1,pmVal('pm_opc'));
+ const order=document.getElementById('pm_order').value, dir=document.getElementById('pm_dir').value;
+ const rowOf=c=>c[0], numOf=c=>+c.slice(1);
+ const key={ns:r=>[rowOf(r.column)==='N'?0:1,numOf(r.column),r.gap], sn:r=>[rowOf(r.column)==='S'?0:1,numOf(r.column),r.gap],
+            alt:r=>[numOf(r.column),rowOf(r.column)==='N'?0:1,r.gap], gap:r=>[r.gap,rowOf(r.column)==='N'?0:1,numOf(r.column)]}[order];
+ const idx=P.runs.map((r,i)=>i).sort((a,b)=>{const ka=key(P.runs[a]),kb=key(P.runs[b]); for(let i=0;i<3;i++){if(ka[i]!==kb[i])return ka[i]-kb[i];} return 0;});
+ let out=0, outPix=0, outU=u0, nextU=u0; const rows=[];
+ idx.forEach((ri,si)=>{const r=P.runs[ri];
+  if(outPix>0&&outPix+r.pixels>maxout){out++; outU=nextU; outPix=0;}
+  const off=outPix, last=off+r.pixels-1;
+  const entry={strip:si+1, column:r.column, gap:r.gap, pixels:r.pixels, leds:r.leds, length:r.length,
+   controller:Math.floor(out/opc)+1, output:out%opc+1, dir:dir==='up'?'up':dir==='down'?'down':(si%2?'down':'up'),
+   u0:outU+Math.floor(off/ppu), ch0:(off%ppu)*3+1, u1:outU+Math.floor(last/ppu), ch1:(last%ppu)*3+3, outU, off};
+  r.map=entry; rows.push(entry); outPix+=r.pixels; nextU=outU+Math.ceil(outPix/ppu);});
+ for(let k=0;k<P.n;k++){const r=P.runs[P.run[k]], m=r.map; const pj=m.dir==='down'?r.pixels-1-P.pi[k]:P.pi[k];
+  P.univ[k]=m.outU+Math.floor((m.off+pj)/ppu); P.out[k]=(m.controller-1)*opc+m.output;}
+ const nOut=out+1, nU=nextU-u0, nCtl=Math.ceil(nOut/opc);
+ document.getElementById('pm_tot').textContent=`${rows.length} strips -> ${nOut} outputs on ${nCtl} controller${nCtl>1?'s':''} (${opc} outputs each) -> ${nU} universes (${u0} to ${nextU-1}) at ${ppu} px per universe`;
+ const T=document.getElementById('pm_table');
+ T.innerHTML='<tr><th>#</th><th>Column</th><th>Gap</th><th>Pixels</th><th>Dir</th><th>Ctrl</th><th>Out</th><th>Start</th><th>End</th></tr>'+
+  rows.map(e=>`<tr><td>${e.strip}</td><td>${e.column}</td><td>${e.gap}</td><td>${e.pixels}</td><td>${e.dir}</td><td>${e.controller}</td><td>${e.output}</td><td>U${e.u0} ch ${e.ch0}</td><td>U${e.u1} ch ${e.ch1}</td></tr>`).join('');
+ const show=document.getElementById('pm_show'); const cur=show.value; show.innerHTML='<option value="">Everything</option>'+
+  Array.from({length:nOut},(_,i)=>`<option value="o${i+1}">Output ${Math.floor(i/opc)+1}.${i%opc+1}</option>`).join('')+
+  Array.from({length:nU},(_,i)=>`<option value="u${u0+i}">Universe ${u0+i}</option>`).join('');
+ show.value=Array.from(show.options).some(o=>o.value===cur)?cur:''; pmShow();
+ pixelMap.rows=rows;
+}
+function pmShow(){const v=document.getElementById('pm_show').value; pmHi.kind=v?v[0]:''; pmHi.v=v?+v.slice(1):0;}
+for(const id of ['pm_ppu','pm_u0','pm_maxout','pm_opc','pm_order','pm_dir'])document.getElementById(id).addEventListener('input',pixelMap);
+document.getElementById('pm_show').onchange=pmShow;
+document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
+ const csv=['strip,column,gap,pixels,leds,length_m,direction,controller,output,start_universe,start_channel,end_universe,end_channel']
+  .concat(rows.map(e=>[e.strip,e.column,e.gap,e.pixels,e.leds,e.length.toFixed(2),e.dir,e.controller,e.output,e.u0,e.ch0,e.u1,e.ch1].join(','))).join('\n');
+ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-pixel-map.csv'; a.click();};
 // ---- panel wiring
 const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
@@ -423,7 +492,7 @@ function resolveMove(){
  }
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,get P(){return P;},get solids(){return solids.length;}};
 let last=performance.now();
 function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
