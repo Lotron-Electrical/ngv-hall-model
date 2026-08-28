@@ -99,6 +99,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
   <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
  <div class="row"><label>Animation layers (blended bottom to top; the controls below edit the selected one)</label>
   <div id="layers" class="layers"></div><button type="button" id="addlayer" class="sw" style="margin-top:6px">+ Add layer</button></div>
+ <div class="row"><label>Fixture</label>
+  <div class="seg" id="diff"><button type="button" data-d="1" aria-pressed="true">Black acrylic diffuser<br><small>satin, one continuous line</small></button><button type="button" data-d="0" aria-pressed="false">No diffuser<br><small>raw pixels in the open channel</small></button></div></div>
  <div class="row"><label>Colour</label>
   <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="160" height="160"></canvas><div id="mark"></div></div>
    <div class="swatches">
@@ -228,7 +230,7 @@ new GLTFLoader().load('model.glb',g=>{
  // in them. Lighting them again darkens every face that does not happen to face the sky, which
  // turned the canopy black. They render unlit; only the columns keep a lit gloss material.
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
-  const out=ms.map(m=>{ if(/column/i.test(m.name||'')){columnMats.push(m); return m;} return photoMaterial(m); });
+  const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnMats.push(m); return m;} return photoMaterial(m); });
   o.material=Array.isArray(o.material)?out:out[0]; });
  g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
  scene.add(g.scene); bar.remove();},
@@ -246,7 +248,7 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, diffuser:true};
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
 let RUNS=null, pix=null, ribbon=null, glow=null;
@@ -262,7 +264,13 @@ const LEDS_PER_M=60;
 // its face (+8 mm). A diffuser turns the LED dots into one continuous line, so each LED is drawn as
 // a face-width tile the length of its pitch, and the tiles abut; off, the tile is the black acrylic.
 // Black acrylic passes only part of the light: DIFFUSER_T is an assumption, not a datasheet figure.
-const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.55;
+const EXT_W=0.020, EXT_D=0.020, EXT_BACK=-0.012, FACE_W=0.016, DIFFUSER_T=0.55, WALL=0.002;
+// without the diffuser the channel is open and the strip shows: a 10 mm PCB on the back of the
+// extrusion carrying 5 mm LED packages (SK6805 in a 5050-style body) at the pitch, nothing in front
+const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015;
+// the columns are gloss black steel; the bake carries roughness 0.35 and Lloyd wants it a bit
+// rougher (2026-08-28), so the viewer sets this on every column material as it loads
+const COLUMN_ROUGHNESS=0.5;
 const GAPS=8;
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
@@ -283,14 +291,17 @@ function rebuild(){
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
  P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), runs:[]};
  let pixels=0;
- const pg=new THREE.BoxGeometry(FACE_W,pitch,0.001);
+ const diff=state.diffuser;
+ const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,0.001):new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H);
+ const emitOff=diff?EXT_BACK+EXT_D+0.0006:EXT_BACK+WALL+PCB_T+LED_H/2;
  const pm=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
  const rg=new THREE.BoxGeometry(1,1,1);
  // the diffuser: matte black when off, so an unlit strip reads as a black line on a black shaft
  // the extrusion body. Black anodised is assumed for a black column; raw silver would read as a
  // bright edge either side of the strip and is one constant away if that is what goes in.
- ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1));
+ const PARTS=diff?3:4;  // back, two walls, and the PCB when the channel is open
+ ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1)*PARTS);
  const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
  const gpos=new Float32Array(total*3);
  let k=0, rk=0;
@@ -305,8 +316,12 @@ function rebuild(){
   for(let i=1;i<r.points.length;i++){
    const a=new THREE.Vector3(...r.points[i-1]), c=new THREE.Vector3(...r.points[i]);
    t.subVectors(c,a); const len=t.length(); t.normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
-   M.makeBasis(b,t,nn); pos.addVectors(a,c).multiplyScalar(0.5).addScaledVector(nn,EXT_BACK+EXT_D/2); sc.set(EXT_W,len,EXT_D);
-   M.setPosition(pos); M.scale(sc); ribbon.setMatrixAt(rk++,M);
+   const mid=pos.addVectors(a,c).multiplyScalar(0.5).clone();
+   const part=(off,side,w,d)=>{M.makeBasis(b,t,nn); pos.copy(mid).addScaledVector(nn,off).addScaledVector(b,side); sc.set(w,len,d); M.setPosition(pos); M.scale(sc); ribbon.setMatrixAt(rk++,M);};
+   part(EXT_BACK+WALL/2,0,EXT_W,WALL);                       // back plate on the valley
+   part(EXT_BACK+EXT_D/2,(EXT_W-WALL)/2,WALL,EXT_D);          // walls
+   part(EXT_BACK+EXT_D/2,-(EXT_W-WALL)/2,WALL,EXT_D);
+   if(!diff)part(EXT_BACK+WALL+PCB_T/2,0,PCB_W,PCB_T);        // the strip's PCB, seen through the open face
   }
   let seg=1;
   for(let j=0;j<n;j++){
@@ -314,7 +329,7 @@ function rebuild(){
    const a=new THREE.Vector3(...r.points[seg-1]), c=new THREE.Vector3(...r.points[seg]);
    const f=(d-cum[seg-1])/Math.max(1e-6,cum[seg]-cum[seg-1]);
    t.subVectors(c,a).normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
-   pos.lerpVectors(a,c,f).addScaledVector(nn,EXT_BACK+EXT_D+0.0006);
+   pos.lerpVectors(a,c,f).addScaledVector(nn,emitOff);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
    // the LED takes its pixel's centre, so every LED in a group animates as one
    const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
@@ -331,7 +346,8 @@ function rebuild(){
  pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gpos,3));
  gg.setAttribute('color',new THREE.BufferAttribute(pix.instanceColor.array,3)); gg.attributes.color.setUsage(THREE.DynamicDrawUsage);
- glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:0.08,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
+ // a bare LED is a point source and glares where a diffused line glows, so its halo is wider
+ glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,size:diff?0.08:0.14,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
  scene.add(ribbon); scene.add(pix); scene.add(glow);
  const metres=segs.reduce((a,s)=>a+s.L,0);
  document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_PER_M/1000).toFixed(1)} kW at full white`;
@@ -383,7 +399,8 @@ function animate(time){
  // pixel-map highlight: everything outside the chosen universe or output drops to 3%, so the
  // addressing can be checked by eye in the hall rather than in a table
  const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
- for(let i=0;i<n;i++){const o=i*3; const m=((hk&&hi[i]!==hv)?0.03*lv:lv)*DIFFUSER_T; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+ const dT=state.diffuser?DIFFUSER_T:1.0;
+ for(let i=0;i<n;i++){const o=i*3; const m=((hk&&hi[i]!==hv)?0.03*lv:lv)*dT; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -487,6 +504,7 @@ document.getElementById('lv_btn').onclick=()=>{
 const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
+document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.diffuser=btn.dataset.d==='1'; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
 document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
 document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
@@ -601,7 +619,7 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, diffuser:state.diffuser, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
  switch(m.t){
@@ -614,6 +632,7 @@ function rcApply(m){
   case 'fov': {const f=document.getElementById('fov'); f.value=Math.max(40,Math.min(110,+m.v)); f.dispatchEvent(new Event('input'));} break;
   case 'noclip': noclip=!!m.v; document.getElementById('noclip').checked=noclip; break;
   case 'count': state.count=Math.max(0,Math.min(GAPS,+m.v|0)); cn.value=state.count; rebuild(); break;
+  case 'diffuser': state.diffuser=!!m.v; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',(x.dataset.d==='1')===state.diffuser)); rebuild(); break;
   case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
   case 'sel': state.sel=Math.max(0,Math.min(state.layers.length-1,+m.i|0)); paintUI(); break;
