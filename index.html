@@ -53,7 +53,7 @@ scene.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.
 scene.add(new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9));
 const cam=new THREE.PerspectiveCamera(65,1,0.05,400);
 // start: eye height inside the hall, looking down its length (the hall runs along -x)
-const HOME={eye:[-10,1.6,0.3],yaw:Math.PI/2,pitch:0};
+const HOME={eye:[-8,1.6,0.3],yaw:Math.PI,pitch:0};
 let eye=new THREE.Vector3(), yaw=0, pitch=0, speed=2.0;
 function home(){eye.set(...HOME.eye); yaw=HOME.yaw; pitch=HOME.pitch;}
 home();
