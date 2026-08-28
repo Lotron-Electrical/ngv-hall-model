@@ -89,6 +89,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <label style="color:var(--dim);font-size:12px">Speed <input type="range" id="spd" min="1" max="100" value="35"></label></div>
  <div class="row"><label for="level">Strip brightness</label>
   <input type="range" id="level" min="0" max="100" value="100"><span id="levelval" style="color:var(--dim);font-size:13px">100%</span></div>
+ <div class="row"><label>Camera</label>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="noclip"> Walk through walls (no-clip). Off: the floor, walls, glass and columns are solid</label>
+  <label style="color:var(--dim);font-size:12px">Field of view <input type="range" id="fov" min="40" max="110" value="65"> <span id="fovval">65</span>&deg;</label></div>
  <div class="row"><label for="house">House lights</label>
   <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
  <div class="stat" id="stat"></div>
@@ -165,6 +168,7 @@ new GLTFLoader().load('model.glb',g=>{
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
   const out=ms.map(m=>{ if(/column/i.test(m.name||'')){columnMats.push(m); return m;} return photoMaterial(m); });
   o.material=Array.isArray(o.material)?out:out[0]; });
+ g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
  scene.add(g.scene); bar.remove();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
@@ -360,6 +364,29 @@ function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
 document.getElementById('rst').onclick=home;
 document.getElementById('full').onclick=()=>{(document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen()).catch(()=>{});};
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
+// ---- solid walls. Every mesh of the hall is a collider: one ray from where the eye WAS to
+// where the frame wants it, and if it meets a surface inside SKIN of the eye the move stops
+// SKIN short of it and the leftover slides along the surface, so a wall is a wall you can walk
+// beside, not a wall you get stuck on. The ribbons and LEDs are not colliders. No-clip skips it.
+const solids=[], SKIN=0.35, rayc=new THREE.Raycaster(); let safeEye=null, noclip=false;
+document.getElementById('noclip').onchange=e=>{noclip=e.target.checked;};
+document.getElementById('fov').oninput=e=>{cam.fov=+e.target.value; cam.updateProjectionMatrix(); document.getElementById('fovval').textContent=e.target.value;};
+function resolveMove(){
+ if(noclip||!solids.length||!safeEye){safeEye=eye.clone(); return;}
+ let from=safeEye, want=eye.clone();
+ for(let pass=0;pass<2;pass++){
+  const d=want.clone().sub(from); const len=d.length(); if(len<1e-6)break;
+  const dir=d.clone().divideScalar(len); rayc.set(from,dir); rayc.far=len+SKIN;
+  const hit=rayc.intersectObjects(solids,false)[0];
+  if(!hit){from=want; break;}
+  const stop=Math.max(0,hit.distance-SKIN); const at=from.clone().addScaledVector(dir,stop);
+  const n=hit.face.normal.clone().transformDirection(hit.object.matrixWorld); if(n.dot(dir)>0)n.negate();
+  const rest=d.clone().sub(dir.clone().multiplyScalar(stop)); rest.sub(n.multiplyScalar(rest.dot(n)));
+  from=at; want=at.clone().add(rest);
+ }
+ eye.copy(from); safeEye=eye.clone();
+}
+window.dbg={eye,state,lit,get solids(){return solids.length;}};
 let last=performance.now();
 function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
@@ -367,6 +394,7 @@ function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
  if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
  if(stick){const g=speed*dt*2; eye.addScaledVector(f,-stick.dy/60*g); eye.addScaledVector(r,stick.dx/60*g);}
+ resolveMove();
  animate(now/1000);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
