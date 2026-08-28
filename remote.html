@@ -58,7 +58,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
  <div class="row"><label class="h">Lights per column</label><div class="stepper"><button id="cm">&minus;</button><output id="cn"></output><button id="cp">+</button></div>
   <label style="display:flex;gap:10px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom 2 m</label></div>
  <div class="row"><label class="h">Pixel density</label><div class="seg" id="dens"><button data-d="60">60 px/m</button><button data-d="20">20 px/m</button><button data-d="10">10 px/m</button></div></div>
- <div class="row"><label class="h">Fixture</label><div class="seg" id="diff"><button data-c="black">Black</button><button data-c="opal">Opal</button><button data-c="none">None</button></div></div>
+ <div class="row"><label class="h">System</label><div class="seg" id="sysseg"><button data-s="strip">8PXA60 strip</button><button data-s="neon">Neon Flex S9</button></div></div>
+ <div class="row" id="fixrow"><label class="h">Fixture</label><div class="seg" id="diff"><button data-c="black">Black</button><button data-c="opal">Opal</button><button data-c="none">None</button></div></div>
  <div class="row"><label class="h">RGBW drive</label><div class="seg" id="drive"><button data-d="rgbw">RGBW</button><button data-d="rgbwmax">RGBW max</button></div></div>
  <div class="row"><label class="h">Stats on the viewport</label><div class="seg" id="hudseg"><button id="hudb">Overlay</button></div></div>
  <div class="row"><div id="runstat" style="font-size:12px;color:#9a9a9a;line-height:1.5"></div></div>
@@ -116,6 +117,7 @@ $('skip').onchange=e=>send({t:'skip',v:e.target.checked?2:0});
 $('cm').onclick=()=>send({t:'count',v:S.count-1}); $('cp').onclick=()=>send({t:'count',v:S.count+1});
 document.querySelectorAll('#dens button').forEach(b=>b.onclick=()=>send({t:'density',v:+b.dataset.d}));
 document.querySelectorAll('#diff button').forEach(b=>b.onclick=()=>send({t:'cover',v:b.dataset.c}));
+document.querySelectorAll('#sysseg button').forEach(b=>b.onclick=()=>send({t:'system',v:b.dataset.s}));
 $('hudb').onclick=()=>send({t:'hud',v:$('hudb').getAttribute('aria-pressed')!=='true'});
 document.querySelectorAll('#drive button').forEach(b=>b.onclick=()=>send({t:'drive',v:b.dataset.d}));
 $('swA').onclick=()=>send({t:'active',v:'A'}); $('swB').onclick=()=>send({t:'active',v:'B'});
@@ -147,6 +149,9 @@ function paint(){if(!S)return;
  $('skip').checked=S.skip>0; $('fov').value=Math.round(S.fov); $('fovv').textContent=$('fov').value+'°'; $('noclip').checked=!!S.noclip; $('cn').value=S.count;
  document.querySelectorAll('#dens button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.d===S.density));
  document.querySelectorAll('#diff button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===(S.cover||'black')));
+ document.querySelectorAll('#sysseg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===(S.system||'strip')));
+ const neon=S.system==='neon'; $('fixrow').style.display=neon?'none':'';
+ const dr=document.querySelector('#dens').closest('.row'); if(dr)dr.style.display=neon?'none':'';
  $('hudb').setAttribute('aria-pressed',!!S.hud);
  document.querySelectorAll('#drive button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.d===(S.drive||'rgbw')));
  const el=$('layers'); el.innerHTML=''; S.layers.forEach((L,k)=>{const row=document.createElement('div'); row.className='layer'+(k===S.sel?' sel':'');

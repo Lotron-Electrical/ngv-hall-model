@@ -103,6 +103,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
   <div id="layers" class="layers"></div><button type="button" id="addlayer" class="sw" style="margin-top:6px">+ Add layer</button></div>
  <div class="row"><label>Fixture</label>
   <div class="seg" id="diff"><button type="button" data-c="black" aria-pressed="true">Black acrylic<br><small>satin, passes 25%</small></button><button type="button" data-c="opal" aria-pressed="false">Opal<br><small>milky white, passes 65%</small></button><button type="button" data-c="none" aria-pressed="false">No diffuser<br><small>raw pixels, open channel</small></button></div></div>
+ <div class="row"><label>System</label>
+  <div class="seg" id="sysseg"><button type="button" data-s="strip" aria-pressed="true">8PXA60 strip<br><small>12 V, 60 px/m, 1,088 lm/m</small></button><button type="button" data-s="neon" aria-pressed="false">Neon Flex S9<br><small>24 V, 10 px/m, 426 lm/m</small></button></div></div>
  <div class="row"><label>RGBW drive</label>
   <div class="seg" id="drive"><button type="button" data-d="rgbw" aria-pressed="true">RGBW<br><small>white rides the W die alone</small></button><button type="button" data-d="rgbwmax" aria-pressed="false">RGBW max<br><small>the RGB dies boost the W</small></button></div></div>
  <div class="row"><label>Colour</label>
@@ -210,20 +212,77 @@ const W_TINT=[1.0,0.6535,0.3770];
 const WY=0.2126*W_TINT[0]+0.7152*W_TINT[1]+0.0722*W_TINT[2];
 const WCOL=W_TINT.map(c=>c*(W_LM/1088)/WY);
 const W_PER_M=21.8;         // at full white, for the stats line; the supply is sized on this
+// TWO CANDIDATE SYSTEMS (Lloyd, 2026-08-28; source stats passed over from the quote engine):
+// the quoted 8PXA60 strip, and the ENTTEC Neon Flex S9 DMX 24 V RGBW40-70 (datasheet 5954311,
+// June 2026): 70 SMD5050 LED/m inside a 16 x 16 mm silicone body, cut unit 7 LEDs = one 100 mm
+// pixel (10 px/m), auto-addressing DMX at 4 ch/pixel, double-feed to 13 m. The 4000 K variant
+// publishes PER-CHANNEL lumens: R 82, G 171, B 36, W 137 = 426 lm/m all on (other CCTs:
+// 2700 K 431, 3000 K 408, 5000 K 483, 6500 K 451 lm/m; 5000 K is 13% brighter); wattage is a single
+// 18 W/m total with no per-channel split, so the neon's watt readout divides the 18 W evenly by
+// duty and the comment says so out loud. Each die is a linear-sRGB vector whose luminance is
+// that die's measured share of the system's all-on lumens, so the neon renders its real colour
+// cast (its green is weak against an sRGB white, its blue strong). The neon's silicone body IS
+// its diffuser: no cover options, lumens are already measured out of the front, and its light
+// leaves wide and soft. KA/KB/KC feed the watt readout: W = KA(r+g+b) + KBw + KC(r+g+b)w per m.
+const SYSTEMS={
+ strip:{label:'8PXA60 strip 12 V', pxPerM:60,
+  die:{R:[RGB_SCALE,0,0], G:[0,RGB_SCALE,0], B:[0,0,RGB_SCALE], W:WCOL},
+  lmR:0.2126*RGB_LM, lmG:0.7152*RGB_LM, lmB:0.0722*RGB_LM, lmW:W_LM, lmMix:LM_MIX_M,
+  lmAll:1088, wAll:W_PER_M, KA:W_RGB_M/3, KB:W_W_M, KC:W_MIX_M/3, wattNote:'datasheet split'},
+ neon:{label:'Neon Flex S9 24 V', pxPerM:10,
+  die:{R:[(82/426)/0.2126,0,0], G:[0,(171/426)/0.7152,0], B:[0,0,(36/426)/0.0722],
+       W:W_TINT.map(c=>c*(137/426)/WY)},
+  lmR:82, lmG:171, lmB:36, lmW:137, lmMix:0,
+  lmAll:426, wAll:18, KA:18/4, KB:18/4, KC:0, wattNote:'even split assumed'},
+};
 const AMBIENT=0.03;         // fraction of house level that remains with everything off
 const LED_GAIN_GLASS=0.25;  // translucent glass scatters back only a fraction of the LED light from below
 const BANDS=8, MAX_LIGHTS=96;
-const lightPos=new Float32Array(MAX_LIGHTS*3), lightCol=new Float32Array(MAX_LIGHTS*3);
+// HARD LIGHT vs DIFFUSED LIGHT (Lloyd, 2026-08-28: "no diffuser should be casting hard light").
+// The channel is the optic: a bare LED sits 15 mm down a 16 mm slot, so its light leaves as a
+// blade, full within about +/-20 deg of the gap normal, penumbra to +/-35 (arctan((8-/+2.5)/15)),
+// nothing past it. A cover emits from the mouth instead: satin black as a raised cosine, opal
+// wider still with spill past 90 deg. Per frame each column's per-gap output builds an azimuthal
+// profile (256 bins, mean-normalised so the lumens stay exactly the verified totals and the
+// blades only REDISTRIBUTE them), and the room shader multiplies each light sample by the
+// profile at the fragment's azimuth. So four bare strips throw four hard radial blades on the
+// floor, and the same strips behind opal throw one smooth pool.
+const AZ_BINS=256, MAXCOLS=16, BLADE_SCALE=8; // texel = profile/BLADE_SCALE
+// the tightest legal profile is one gap lit, whose peak is 2pi/INT(shape): 6.55 for the bare
+// slot, 3.59 black, 2.11 opal, all inside BLADE_SCALE. A narrower shape added later would clip
+// its peak, quietly losing the flux the normalisation promises to keep, so it is asserted here.
+const bladeTex=(()=>{const d=new Uint8Array(AZ_BINS*MAXCOLS*4); d.fill(255);
+ for(let i=0;i<AZ_BINS*MAXCOLS;i++)d[i*4]=Math.round(255/BLADE_SCALE); // flat profile = 1.0
+ const t=new THREE.DataTexture(d,AZ_BINS,MAXCOLS,THREE.RGBAFormat); t.needsUpdate=true;
+ t.wrapS=THREE.RepeatWrapping; t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearFilter; return t;})();
+// blade shapes per cover, as functions of the angle off the gap normal, in radians
+const BLADE={
+ none:d=>{const a=Math.abs(d); return a<0.35?1:a<0.61?(0.61-a)/0.26:0;},          // hard slot blade
+ black:d=>{const a=Math.abs(d); return a<1.75?0.5+0.5*Math.cos(a*Math.PI/1.75):0;}, // satin raised cosine
+ opal:d=>{const a=Math.abs(d); return a<2.0?0.3+0.7*Math.cos(a*Math.PI/2/2.0):0;}   // milky, widest
+};
+for(const k in BLADE){let m=0; for(let i=0;i<AZ_BINS;i++)m+=BLADE[k]((i+0.5)/AZ_BINS*2*Math.PI-Math.PI);
+ const peak=AZ_BINS/Math.max(m,1e-9); if(peak>BLADE_SCALE)console.error('blade shape '+k+' peaks at '+peak.toFixed(2)+', over BLADE_SCALE '+BLADE_SCALE+': its flux would clip');}
+const lightPos=new Float32Array(MAX_LIGHTS*4), lightCol=new Float32Array(MAX_LIGHTS*4);
+// Every LED is a point source, and 73k point lights is not a thing a forward renderer draws.
+// But a vertical run of point sources at 16.7 mm pitch IS its line integral to within (pitch/d)^2
+// (0.1% at half a metre), and that integral has a closed form. So each band light is a vertical
+// SEGMENT: what reaches a surface is the analytic sum of the individual LEDs in that band, not
+// a lump at the band's centre, and the vertical wash up a wall is continuous the way 73k real
+// point sources make it.
+// lightCol.w carries the segment height: see the uniform-budget note by the shader below
 const lit={house:1, nLights:0};
 const photoMats=[], columnMats=[];
 function photoMaterial(src){
  const m=new THREE.ShaderMaterial({
   uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},house:{value:1},ambient:{value:AMBIENT},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
-   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol}},
+   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex}},
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
    void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain; uniform int nLights;
-   uniform vec3 lightPos[${MAX_LIGHTS}]; uniform vec3 lightCol[${MAX_LIGHTS}];
+   // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
+   // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
+   uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
    varying vec2 vUv; varying vec3 vPos;
    void main(){
     vec3 albedo=texture2D(map,vUv).rgb*tint;
@@ -232,8 +291,26 @@ function photoMaterial(src){
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
     vec3 E=vec3(house+ambient);
     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
-     vec3 L=lightPos[i]-vPos; float d2=max(dot(L,L),0.25); float ndl=max(dot(N,L*inversesqrt(d2)),0.0);
-     E+=lightCol[i]*(ledGain*ndl/d2); }
+     // closed-form diffuse integral of a vertical line of point sources: lightPos.xyz is the
+     // segment's foot, lightCol.w its height. F(t) integrates N.(v+t*up)/|v+t*up|^3; the light's
+     // total flux is divided by the height, so a band's lumens land exactly once.
+     vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
+     float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float c=dot(v,v); float e=v.y;
+     float aN=dot(N,v); float bN=N.y;
+     // the LEDs above the fragment's own horizon are the only ones it can see, and the integrand
+     // aN+bN*t crosses zero once: clip the span there rather than clamping the whole integral,
+     // which used to darken any surface the segment straddles (a deck, the canopy soffit)
+     float t0=0.0, t1=h;
+     if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
+     else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
+     else if(aN<=0.0) t1=t0;
+     float k=(aN-bN*e)/hd2;
+     float g0=(k*(t0+e)-bN)*inversesqrt(max(c+2.0*e*t0+t0*t0,1e-6));
+     float g1=(k*(t1+e)-bN)*inversesqrt(max(c+2.0*e*t1+t1*t1,1e-6));
+     float I=max(g1-g0,0.0)/h;
+     float az=atan(-v.z,-v.x);
+     float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
+     E+=lightCol[i].rgb*(ledGain*I*blade); }
     gl_FragColor=vec4(albedo*E,1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -274,7 +351,7 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip'};
 // a control change means the next frame must repaint the LEDs even if every layer is static
 let sceneDirty=true;
 const L=()=>state.layers[state.sel];
@@ -394,7 +471,9 @@ function rebuild(){
  if(!RUNS)return;
  for(const m of [pix,ribbon,glow,pcb,pkg,cvr]) if(m){scene.remove(m); m.geometry.dispose(); for(const mm of [].concat(m.material))mm.dispose();}
  pix=ribbon=glow=pcb=pkg=cvr=null;
- const gaps=chosenGaps(state.count), pitch=1/LEDS_PER_M, group=Math.round(LEDS_PER_M/state.density);
+ const sys=SYSTEMS[state.system], neon=state.system==='neon';
+ // the neon's emitter is its 100 mm cut unit; density grouping is a strip concept
+ const gaps=chosenGaps(state.count), pitch=neon?0.1:1/LEDS_PER_M, group=neon?1:Math.round(LEDS_PER_M/state.density);
  // the client's option: no LEDs on the bottom SKIP metres of a shaft. The run is cut there, so every
  // count, address and export downstream sees a shorter strip rather than a masked one.
  const trim=r=>{const sk=state.skip; if(sk<=0)return r; const pts=r.points; let L=0; const cum=[0]; for(let i=1;i<pts.length;i++){L+=Math.hypot(...[0,1,2].map(k=>pts[i][k]-pts[i-1][k])); cum.push(L);}
@@ -408,14 +487,17 @@ function rebuild(){
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
  P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), w4:new Float32Array(total), runs:[]};
  let pixels=0;
- const cover=state.cover, diff=cover!=='none', coverT=COVER_T[cover];
+ const cover=neon?'none':state.cover, diff=!neon&&cover!=='none', coverT=neon?1:COVER_T[cover];
  // the lit thing is always an ADDITIVE overlay on a material: the cover modes draw a satin
  // acrylic tile (black or opal) with a face-wide emitter quad on it, so an unlit cover is a
  // material and not a black hole; the open channel draws the LED's round cavity the same way,
  // shaped by DIETEX, so an off pixel shows the yellow phosphor printed below it
- const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,0.0005):new THREE.BoxGeometry(0.0042,0.0042,0.0002);
+ // the neon draws as its own body: a 16 x 16 silicone section whose face is one lit 100 mm
+ // pixel after another; the back sits on the valley line like the extrusion did
+ const pg=neon?new THREE.BoxGeometry(0.012,pitch,0.0005)
+          :diff?new THREE.BoxGeometry(FACE_W,pitch,0.0005):new THREE.BoxGeometry(0.0042,0.0042,0.0002);
  const baseOff=EXT_BACK+EXT_D+0.0006;
- const emitOff=diff?baseOff+TILE_T/2+0.0004:EXT_BACK+WALL+PCB_T+LED_H+0.0001;
+ const emitOff=neon?EXT_BACK+0.016+0.0004:diff?baseOff+TILE_T/2+0.0004:EXT_BACK+WALL+PCB_T+LED_H+0.0001;
  // The halo sprite is a screen-facing disc drawn at ONE depth, its anchor's, and it is depth-tested
  // like anything else. Anchored at the LED centre it sat inside its own tile, so the tile's front
  // face hid the core of the halo and only the margins showed, either side of a dull tile: the light
@@ -424,14 +506,20 @@ function rebuild(){
  // 15 mm down a 16 mm wide channel, so a halo anchored on them would be clipped by the near wall at
  // any angle over about 20 degrees and read lopsided). The LED positions themselves are unchanged:
  // that is what the pixel map exports and what lights the room.
- const haloOff=diff?emitOff+0.00025+0.001:EXT_BACK+EXT_D+0.001;
- const pm=diff?new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})
+ const haloOff=neon?emitOff+0.00025+0.001:diff?emitOff+0.00025+0.001:EXT_BACK+EXT_D+0.001;
+ // exposure: the neon's lumens are measured out of the silicone, so its face at full is the
+ // LED colour with no cover arithmetic (gain 1); the strip keeps the cover exposure
+ const pm=neon?new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})
+          :diff?new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})
              :new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,map:DIETEX,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
  // Phong and Lambert, not Standard: 73k instances of full PBR halved the frame rate on their
  // own (measured 144 -> 37 fps with the channel open, 2026-08-28); at 5 mm scale the cheap
  // models are indistinguishable and the budget goes back to the room
- if(diff){ // the cover is continuous, so it is one box per polyline segment, not one per LED
+ if(neon){ // the silicone body, one box per polyline segment, pale and satin like the product
+  cvr=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),
+   new THREE.MeshPhongMaterial({color:0xdad7d0,specular:0x444444,shininess:30}),runs.length*(RUNS.runs[0].points.length-1));
+ } else if(diff){ // the cover is continuous, so it is one box per polyline segment, not one per LED
   cvr=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),
    new THREE.MeshPhongMaterial(cover==='black'?{color:0x141414,specular:0x2a2a2a,shininess:24}
                                               :{color:0xe7e4db,specular:0x555555,shininess:40}),runs.length*(RUNS.runs[0].points.length-1));
@@ -457,6 +545,7 @@ function rebuild(){
  // light samples: one per column per height band, placed on the column axis at the band centre.
  // The column's active strips all face outward, so together they act as a line source.
  const bandSum=new Float64Array(cols.length*BANDS*4), bandPos=new Float32Array(cols.length*BANDS*3);
+ const bandY0=new Float32Array(cols.length*BANDS).fill(1e9), bandY1=new Float32Array(cols.length*BANDS).fill(-1e9);
  P.band=new Uint16Array(total);
  segs.forEach(({r,cum,L,n},ri)=>{
   const N=new THREE.Vector3(...r.normal).normalize();
@@ -467,10 +556,11 @@ function rebuild(){
    t.subVectors(c,a); const len=t.length(); t.normalize(); b.crossVectors(t,N).normalize(); nn.crossVectors(b,t).normalize();
    const mid=pos.addVectors(a,c).multiplyScalar(0.5).clone();
    const part=(off,side,w,d)=>{M.makeBasis(b,t,nn); pos.copy(mid).addScaledVector(nn,off).addScaledVector(b,side); sc.set(w,len,d); M.setPosition(pos); M.scale(sc); ribbon.setMatrixAt(rk++,M);};
+   if(!neon){ // the neon has no extrusion: the silicone body above is the whole fixture
    part(EXT_BACK+WALL/2,0,EXT_W,WALL);                       // back plate on the valley
    part(EXT_BACK+EXT_D/2,(EXT_W-WALL)/2,WALL,EXT_D);          // walls
-   part(EXT_BACK+EXT_D/2,-(EXT_W-WALL)/2,WALL,EXT_D);
-   if(cvr){M.makeBasis(b,t,nn); pos.copy(mid).addScaledVector(nn,baseOff); sc.set(FACE_W,len,TILE_T); M.setPosition(pos); M.scale(sc); cvr.setMatrixAt(ck++,M);}
+   part(EXT_BACK+EXT_D/2,-(EXT_W-WALL)/2,WALL,EXT_D); }
+   if(cvr){M.makeBasis(b,t,nn); pos.copy(mid).addScaledVector(nn,neon?EXT_BACK+0.008:baseOff); sc.set(neon?0.016:FACE_W,len,neon?0.016:TILE_T); M.setPosition(pos); M.scale(sc); cvr.setMatrixAt(ck++,M);}
    // the PCB is no longer a plain ribbon part: it is its own textured mesh, one tile per LED
   }
   let seg=1;
@@ -488,7 +578,8 @@ function rebuild(){
    const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
    { const ci=cols.indexOf(r.column), bi=Math.min(BANDS-1,Math.floor(d/L*BANDS)), q=(ci*BANDS+bi); P.band[k]=q;
      // gpos, not pos: the pcb/pkg placement above reuses pos, and a light sample belongs on the die
-     bandSum[q*4]+=gpos[k*3]; bandSum[q*4+1]+=gpos[k*3+1]; bandSum[q*4+2]+=gpos[k*3+2]; bandSum[q*4+3]+=1; }
+     bandSum[q*4]+=gpos[k*3]; bandSum[q*4+1]+=gpos[k*3+1]; bandSum[q*4+2]+=gpos[k*3+2]; bandSum[q*4+3]+=1;
+     if(gpos[k*3+1]<bandY0[q])bandY0[q]=gpos[k*3+1]; if(gpos[k*3+1]>bandY1[q])bandY1[q]=gpos[k*3+1]; }
    P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
   }
   pixels+=Math.ceil(n/group); P.runs.push({column:r.column, gap:r.gap, pixels:Math.ceil(n/group), leds:n, length:L});
@@ -496,6 +587,13 @@ function rebuild(){
  pixelMap();
  for(let q=0;q<cols.length*BANDS;q++){const c=bandSum[q*4+3]||1; bandPos[q*3]=bandSum[q*4]/c; bandPos[q*3+1]=bandSum[q*4+1]/c; bandPos[q*3+2]=bandSum[q*4+2]/c;}
  P.bandPos=bandPos; P.nBands=cols.length*BANDS; P.bandAcc=new Float32Array(P.nBands*3); P.pos=gpos;
+ P.bandY0=bandY0; P.bandY1=bandY1;
+ // every gap's outward azimuth, for the blade profiles; from the full roster so an unchosen
+ // gap still has its angle when the count comes back up. These live AFTER the P reassignment
+ // above, which builds the object fresh and would wipe them.
+ P.gapAz=new Float32Array(RUNS.columns.length*GAPS);
+ for(const r of RUNS.runs)P.gapAz[RUNS.columns.indexOf(r.column)*GAPS+(r.gap-1)]=Math.atan2(r.normal[2],r.normal[0]);
+ P.cg=new Float32Array(RUNS.columns.length*GAPS);
  pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
  pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(hpos,3));
@@ -506,12 +604,14 @@ function rebuild(){
  // dimmer; the material gain takes the overlap and the transmission back out of the peak. The
  // light on the room keeps the full DIFFUSER_T.
  // bloom radius follows the flux out of the aperture, roughly its square root
- const gsize=cover==='none'?0.14:cover==='opal'?0.11:0.08, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*coverT);
+ const gsize=neon?0.26:cover==='none'?0.14:cover==='opal'?0.11:0.08, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*coverT);
  glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,color:new THREE.Color().setScalar(ggain),size:gsize,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
  scene.add(ribbon); scene.add(pix); scene.add(glow); if(pcb){scene.add(pcb); scene.add(pkg);} if(cvr)scene.add(cvr);
  const metres=segs.reduce((a,s)=>a+s.L,0); P.metres=metres;
  sceneDirty=true;
- document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_WHITE_PER_M/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*W_PER_M/1000).toFixed(1)} kW all-on`;
+ const emitTxt=neon?`${total.toLocaleString()} pixels at 10 px/m (70 LED/m in 100 mm cut units)`
+  :`${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel)`;
+ document.getElementById('stat').textContent=`${runs.length} runs (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of ${neon?'neon':'strip'} · ${emitTxt} · ${(metres*(neon?SYSTEMS.neon.KB:W_WHITE_PER_M)/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*sys.wAll/1000).toFixed(1)} kW all-on`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
@@ -533,13 +633,14 @@ function animate(time){
  // scene is painted once and left alone: any control change sets sceneDirty, any animated layer
  // or live input disqualifies the skip, and every 30th frame repaints anyway as a safety valve.
  // dT and maxMode feed the stats readout below, which runs even on skipped frames
- const dT=COVER_T[state.cover], maxMode=state.drive==='rgbwmax';
+ const sys=SYSTEMS[state.system], neon=state.system==='neon';
+ const dT=neon?1:COVER_T[state.cover], maxMode=state.drive==='rgbwmax';
  const allSolid=!liveActive&&state.layers.every(L=>!L.on||L.opacity<=0||L.anim==='solid');
  animate.fc=(animate.fc||0)+1;
  const skipStatic=allSolid&&!sceneDirty&&animate.wasStatic&&(animate.fc%30)!==0;
  if(!skipStatic){
  animate.wasStatic=allSolid; sceneDirty=false;
- acc.fill(0); a.fill(0);
+ acc.fill(0); a.fill(0); P.cg.fill(0);
  if(liveActive){
   // LIVE INPUT: the LEDs show what the mapper sent, read through this page's own pixel map.
   // A universe the bridge has not heard stays dark, which is what a real strip would do.
@@ -586,43 +687,65 @@ function animate(time){
  // addressing can be checked by eye in the hall rather than in a table
  const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
  const w4=P.w4;
- const W0=WCOL[0], W1=WCOL[1], W2=WCOL[2], RS=RGB_SCALE, band=P.band;
+ // the die vectors are axis-aligned for R, G, B in both systems, so three scalars carry them
+ const RD=sys.die.R[0], GD=sys.die.G[1], BD=sys.die.B[2];
+ const W0=sys.die.W[0], W1=sys.die.W[1], W2=sys.die.W[2], band=P.band;
+ const LR=sys.lmR, LG=sys.lmG, LB=sys.lmB, LW=sys.lmW, LMIX=sys.lmMix/Math.max(sys.lmR+sys.lmG+sys.lmB,1);
+ const KA=sys.KA, KB=sys.KB, KC=sys.KC, PXM=sys.pxPerM;
  let lmStrip=0, wattsM=0;
  for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv;
   let r,g,b,w;
   if(liveActive){ r=a[o]*m; g=a[o+1]*m; b=a[o+2]*m; w=w4[i]*m; }
   else { const R=a[o],G=a[o+1],B=a[o+2]; w=Math.min(R,G,B)*m;
    if(maxMode){ r=R*m; g=G*m; b=B*m; } else { r=R*m-w; g=G*m-w; b=B*m-w; } }
-  const mixL=0.2126*r+0.7152*g+0.0722*b, mixD=(r+g+b)/3;
-  lmStrip+=RGB_LM*mixL+W_LM*w+LM_MIX_M*mixL*w;
-  wattsM+=W_RGB_M*mixD+W_W_M*w+W_MIX_M*mixD*w;
-  a[o]=(r*RS+w*W0)*dT; a[o+1]=(g*RS+w*W1)*dT; a[o+2]=(b*RS+w*W2)*dT;
+  const rgbLm=LR*r+LG*g+LB*b;
+  lmStrip+=rgbLm+LW*w+LMIX*rgbLm*w;
+  wattsM+=KA*(r+g+b)+KB*w+KC*(r+g+b)*w;
+  a[o]=(r*RD+w*W0)*dT; a[o+1]=(g*GD+w*W1)*dT; a[o+2]=(b*BD+w*W2)*dT;
+  P.cg[P.col[i]*GAPS+P.gap[i]-1]+=rgbLm+LW*w;  // the gap's real emitted lumens weight its blade
   const q=band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
- // the readout: constants above are per metre of strip at 60 LED/m, so a per-LED duty carries
- // 1/60 of them; the diffuser then passes DIFFUSER_T of the strip lumens on into the hall
- lit.lmStrip=lmStrip/60; lit.watts=wattsM/60;
+ // the readout: the system's constants are per METRE, so a per-pixel duty carries 1/pxPerM of
+ // them; the cover then passes its transmittance of the strip lumens on into the hall
+ lit.lmStrip=lmStrip/PXM; lit.watts=wattsM/PXM;
+ { // the blade texture: one row per column, mean-normalised so lumens are only redistributed
+  const shape=neon?BLADE.opal:BLADE[state.cover], data=bladeTex.image.data, nc=RUNS?RUNS.columns.length:0;
+  const prof=new Float32Array(AZ_BINS);
+  for(let ci=0;ci<nc&&ci<MAXCOLS;ci++){
+   prof.fill(0); let any=0;
+   for(let g=0;g<GAPS;g++){const wgt=P.cg[ci*GAPS+g]; if(wgt<=0)continue; any=1; const az0=P.gapAz[ci*GAPS+g];
+    for(let bIdx=0;bIdx<AZ_BINS;bIdx++){let d=(bIdx+0.5)/AZ_BINS*2*Math.PI-Math.PI-az0;
+     d=((d+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; prof[bIdx]+=wgt*shape(d);}}
+   let mean=0; if(any){for(let bIdx=0;bIdx<AZ_BINS;bIdx++)mean+=prof[bIdx]; mean/=AZ_BINS;}
+   for(let bIdx=0;bIdx<AZ_BINS;bIdx++){
+    const v=any&&mean>0?prof[bIdx]/mean:1;
+    data[(ci*AZ_BINS+bIdx)*4]=Math.max(0,Math.min(255,Math.round(v/BLADE_SCALE*255)));}}
+  bladeTex.needsUpdate=true;
+ }
  }
  if(!animate.rs||performance.now()-animate.rs>250){animate.rs=performance.now();
-  const lm=lit.lmStrip, wt=lit.watts, mets=P.metres||1, room=lm*COVER_T[state.cover];
+  const lm=lit.lmStrip, wt=lit.watts, mets=P.metres||1, room=lm*dT;
   const f=x=>x>=10000?Math.round(x).toLocaleString():x>=100?x.toFixed(0):x.toFixed(1);
-  const passTxt=state.cover==='black'?`black acrylic passes ${Math.round(DIFFUSER_T*100)}%`
+  const passTxt=neon?'silicone body, measured out the front'
+              :state.cover==='black'?`black acrylic passes ${Math.round(DIFFUSER_T*100)}%`
               :state.cover==='opal'?`opal passes ${Math.round(OPAL_T*100)}%`:'open channel';
-  const modeTxt=maxMode?'RGBW max':'RGBW', wTxt=wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W';
-  const txt=`Running: ${f(lm)} lm at the strips -> ${f(room)} lm into the hall (${passTxt})`+
+  const modeTxt=(maxMode?'RGBW max':'RGBW')+' \u00b7 '+sys.label, wTxt=wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W';
+  const txt=`Running: ${f(lm)} lm at the ${neon?'neon':'strips'} -> ${f(room)} lm into the hall (${passTxt})`+
    ` · ${wTxt} (${(wt/mets).toFixed(1)} W/m) · ${modeTxt}`;
   const el=document.getElementById('runstat'); if(el.textContent!==txt){el.textContent=txt; if(rc.conn&&rc.conn.open)rc.conn.send({t:'stats',v:txt});}
   if(state.hud){const h=document.getElementById('hud');
-   const ht=`${Math.round(animate.fps||0)} fps · ${n.toLocaleString()} LEDs · ${modeTxt} · dimmer ${Math.round(lv*100)}%
+   const ht=`${Math.round(animate.fps||0)} fps · ${n.toLocaleString()} ${neon?'px':'LEDs'} · ${modeTxt} · dimmer ${Math.round(lv*100)}%
 `+
-    `${f(lm)} lm at the strips · ${wTxt} (${(wt/mets).toFixed(1)} W/m)
+    `${f(lm)} lm at the ${neon?'neon':'strips'} · ${wTxt} (${(wt/mets).toFixed(1)} W/m)
 ${f(room)} lm into the hall (${passTxt})`;
    if(h.textContent!==ht)h.textContent=ht;}}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
- const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
+ const scale=(sys.lmAll/sys.pxPerM)/(4*Math.PI)/HOUSE_LUX; let nl=0;
  for(let q=0;q<P.nBands&&nl<MAX_LIGHTS;q++){ const r=acc[q*3],g=acc[q*3+1],b=acc[q*3+2]; if(r+g+b<=0)continue;
-  lightPos[nl*3]=P.bandPos[q*3]; lightPos[nl*3+1]=P.bandPos[q*3+1]; lightPos[nl*3+2]=P.bandPos[q*3+2];
-  lightCol[nl*3]=r*scale; lightCol[nl*3+1]=g*scale; lightCol[nl*3+2]=b*scale; nl++; }
+  lightPos[nl*4]=P.bandPos[q*3]; lightPos[nl*4+1]=Math.min(P.bandY0[q],P.bandPos[q*3+1]); lightPos[nl*4+2]=P.bandPos[q*3+2];
+  lightPos[nl*4+3]=(Math.floor(q/BANDS)+0.5)/MAXCOLS; // which blade row is mine
+  lightCol[nl*4+3]=Math.max(P.bandY1[q]-P.bandY0[q],0.01);
+  lightCol[nl*4]=r*scale; lightCol[nl*4+1]=g*scale; lightCol[nl*4+2]=b*scale; nl++; }
  lit.nLights=nl;
  for(const m of photoMats){m.uniforms.house.value=lit.house; m.uniforms.nLights.value=nl; m.uniformsNeedUpdate=true;}
  hemi.intensity=0.9*(lit.house+AMBIENT); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT;
@@ -701,7 +824,7 @@ window.elmCsv=elmCsv;
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
 window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
- const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+state.density+'pxm.csv'; a.click();
+ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+(state.system==='neon'?'neon-10':state.density)+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
 // ---- live input. The bridge sends binary frames of [uint16 universe, uint16 length, DMX bytes]
 // records; each universe is kept as its latest 512 slots. The page's own pixel map turns a
@@ -728,6 +851,12 @@ document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count
 document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.cover=btn.dataset.c; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
 document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); sceneDirty=true; rcSync();});
 document.getElementById('hudb').onclick=()=>{state.hud=!state.hud; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); rcSync();};
+// density grouping and covers are strip concepts; the neon hides those rows
+function applySystemUI(){const neon=state.system==='neon';
+ document.querySelectorAll('#sysseg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===state.system));
+ document.getElementById('diff').closest('.row').style.display=neon?'none':'';
+ const dens=document.getElementById('dens'); if(dens&&dens.closest('.row'))dens.closest('.row').style.display=neon?'none':'';}
+document.querySelectorAll('#sysseg button').forEach(btn=>btn.onclick=()=>{state.system=btn.dataset.s; applySystemUI(); rebuild(); rcSync();});
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
 document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
 document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
@@ -842,7 +971,7 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, cover:state.cover, diffuser:state.cover==='black', drive:state.drive, hud:state.hud, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, cover:state.cover, diffuser:state.cover==='black', drive:state.drive, hud:state.hud, system:state.system, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
  sceneDirty=true;
@@ -860,6 +989,7 @@ function rcApply(m){
    state.cover=m.t==='cover'?(['black','opal','none'].includes(m.v)?m.v:'black'):(m.v?'black':'none');
    document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===state.cover)); rebuild(); } break;
   case 'hud': state.hud=!!m.v; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); break;
+  case 'system': state.system=m.v==='neon'?'neon':'strip'; applySystemUI(); rebuild(); break;
   case 'drive': state.drive=m.v==='rgbwmax'?'rgbwmax':'rgbw'; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===state.drive)); break;
   case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
