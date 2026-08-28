@@ -54,6 +54,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .panel select{height:40px;width:100%}
 .row input[type=range]+span{margin-top:-2px}
 .stat{grid-column:1/-1;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
+.layers{display:flex;flex-direction:column;gap:4px}
+.layer{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #333;border-radius:6px;cursor:pointer;font-size:13px;color:var(--dim)}
+.layer.sel{border-color:#c9b27c;color:inherit}
+.layer .lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer input[type=range]{width:90px}
+.layer button{background:none;border:0;color:inherit;font-size:16px;cursor:pointer}
 </style></head><body><main>
 <header><span class="sub">Sitecapture, 28 Aug 2026</span><h1>NGV Hall, clean model v17</h1></header>
 <div id="stage"><canvas id="cv"></canvas>
@@ -67,6 +73,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div></div>
  <div class="row"><label>Pixel density (every strip is 60 LEDs/m)</label>
   <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
+ <div class="row"><label>Animation layers (blended bottom to top; the controls below edit the selected one)</label>
+  <div id="layers" class="layers"></div><button type="button" id="addlayer" class="sw" style="margin-top:6px">+ Add layer</button></div>
  <div class="row"><label>Colour</label>
   <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="160" height="160"></canvas><div id="mark"></div></div>
    <div class="swatches">
@@ -179,7 +187,13 @@ new GLTFLoader().load('model.glb',g=>{
 // chosen animation. Every strip is 60 LEDs/m; the pixel density option only sets how many
 // consecutive LEDs share one colour (1, 3 or 6), which is what 60/20/10 px/m means on the product.
 // Nothing here is baked into the GLB.
-const state={count:8, density:60, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, active:'A', anim:'solid', speed:0.35, level:1};
+// ANIMATION LAYERS. A look is a stack: each layer is one animation with its own two colours, speed
+// and opacity, blended onto what is below it (Add, Over, Multiply), bottom to top, like a lighting
+// console or an image editor. The colour wheel, intensity, animation and speed controls edit the
+// SELECTED layer; count, density, strip brightness and house lights are global.
+function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1};
+const L=()=>state.layers[state.sel];
 let RUNS=null, pix=null, ribbon=null, glow=null;
 // soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
 // from across the hall even at 10 px/m
@@ -262,27 +276,33 @@ const cA=[0,0,0], cB=[0,0,0], tmp=[0,0,0];
 function hash(i){i=Math.imul(i^(i>>>16),2246822507); i=Math.imul(i^(i>>>13),3266489909); return ((i^(i>>>16))>>>0)/4294967296;}
 function animate(time){
  if(!pix)return;
- const T=time*(0.2+state.speed*3), a=pix.instanceColor.array, n=P.n, acc=P.bandAcc; acc.fill(0);
- hsv(state.A.h,state.A.s,state.A.v,cA); hsv(state.B.h,state.B.s,state.B.v,cB);
- const A=cA.map(lin), B=cB.map(lin), kind=state.anim;
- const dimB=[B[0]*0.15,B[1]*0.15,B[2]*0.15], lv=state.level;
- for(let i=0;i<n;i++){
-  let r,g,b;
-  if(kind==='solid'){r=A[0];g=A[1];b=A[2];}
-  else if(kind==='breathe'){const k=0.15+0.85*(0.5+0.5*Math.sin(T*1.5)); r=A[0]*k;g=A[1]*k;b=A[2]*k;}
-  else if(kind==='chaseup'||kind==='chasedown'){const dir=kind==='chaseup'?1:-1; const ph=((P.s[i]*3-dir*T*0.5)%1+1)%1; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
-  else if(kind==='wave'){const k=0.5+0.5*Math.sin(P.s[i]*Math.PI*4-T*2); r=B[0]+(A[0]-B[0])*k; g=B[1]+(A[1]-B[1])*k; b=B[2]+(A[2]-B[2])*k;}
-  else if(kind==='rainbow'){hsv(((P.s[i]*360+P.col[i]*30+T*40)%360+360)%360,1,state.A.v,tmp); r=lin(tmp[0]);g=lin(tmp[1]);b=lin(tmp[2]);}
-  else if(kind==='sparkle'){const fr=Math.floor(T*6); const q=P.pid[i]; const k=hash(q*7919+fr)<0.02?1:(hash(q*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
-  else if(kind==='sweep'){const ph=((P.colx[i]*1.2-T*0.3)%1.2+1.2)%1.2; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
-  else if(kind==='alternate'){const on=((P.gap[i]+Math.floor(T*0.8))%2)===0; const C=on?A:B; r=C[0];g=C[1];b=C[2];}
-  else {r=A[0];g=A[1];b=A[2];}
-  // the strip dimmer: one output level for every LED, on top of whatever the animation asked for,
-  // so it scales the pixels, the halo and the light they throw on the room together
-  r*=lv; g*=lv; b*=lv;
-  a[i*3]=r; a[i*3+1]=g; a[i*3+2]=b;
-  const q=P.band[i]*3; acc[q]+=r; acc[q+1]+=g; acc[q+2]+=b;
+ const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc; acc.fill(0); a.fill(0);
+ const lv=state.level;
+ for(const Ly of state.layers){ if(!Ly.on||Ly.opacity<=0)continue;
+  const T=time*(0.2+Ly.speed*3), kind=Ly.anim, op=Ly.opacity, bl=Ly.blend;
+  hsv(Ly.A.h,Ly.A.s,Ly.A.v,cA); hsv(Ly.B.h,Ly.B.s,Ly.B.v,cB);
+  const A=cA.map(lin), B=cB.map(lin);
+  const dimB=[B[0]*0.15,B[1]*0.15,B[2]*0.15];
+  for(let i=0;i<n;i++){
+   let r,g,b;
+   if(kind==='solid'){r=A[0];g=A[1];b=A[2];}
+   else if(kind==='breathe'){const k=0.15+0.85*(0.5+0.5*Math.sin(T*1.5)); r=A[0]*k;g=A[1]*k;b=A[2]*k;}
+   else if(kind==='chaseup'||kind==='chasedown'){const dir=kind==='chaseup'?1:-1; const ph=((P.s[i]*3-dir*T*0.5)%1+1)%1; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+   else if(kind==='wave'){const k=0.5+0.5*Math.sin(P.s[i]*Math.PI*4-T*2); r=B[0]+(A[0]-B[0])*k; g=B[1]+(A[1]-B[1])*k; b=B[2]+(A[2]-B[2])*k;}
+   else if(kind==='rainbow'){hsv(((P.s[i]*360+P.col[i]*30+T*40)%360+360)%360,1,Ly.A.v,tmp); r=lin(tmp[0]);g=lin(tmp[1]);b=lin(tmp[2]);}
+   else if(kind==='sparkle'){const fr=Math.floor(T*6); const q=P.pid[i]; const k=hash(q*7919+fr)<0.02?1:(hash(q*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+   else if(kind==='sweep'){const ph=((P.colx[i]*1.2-T*0.3)%1.2+1.2)%1.2; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+   else if(kind==='alternate'){const on=((P.gap[i]+Math.floor(T*0.8))%2)===0; const C=on?A:B; r=C[0];g=C[1];b=C[2];}
+   else {r=A[0];g=A[1];b=A[2];}
+   const o=i*3;
+   if(bl==='add'){a[o]+=r*op; a[o+1]+=g*op; a[o+2]+=b*op;}
+   else if(bl==='over'){a[o]+=(r-a[o])*op; a[o+1]+=(g-a[o+1])*op; a[o+2]+=(b-a[o+2])*op;}
+   else {a[o]*=1-op+r*op; a[o+1]*=1-op+g*op; a[o+2]*=1-op+b*op;}
+  }
  }
+ // the strip dimmer: one output level for every LED, on top of the whole stack, so it scales the
+ // pixels, the halo and the light they throw on the room together; then the band sums
+ for(let i=0;i<n;i++){const o=i*3; a[o]*=lv; a[o+1]*=lv; a[o+2]*=lv; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -299,8 +319,8 @@ const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
-document.getElementById('anim').onchange=e=>state.anim=e.target.value;
-document.getElementById('spd').oninput=e=>state.speed=e.target.value/100;
+document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayers();};
+document.getElementById('spd').oninput=e=>L().speed=e.target.value/100;
 document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%';};
 document.getElementById('house').oninput=e=>{lit.house=e.target.value/100; document.getElementById('houseval').textContent=e.target.value+'%';};
 // colour wheel: hue round the ring, saturation from the centre, brightness on the slider
@@ -310,19 +330,36 @@ const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=
   const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; hsv(h,Math.min(1,rr),1,o); d[i]=o[0]*255;d[i+1]=o[1]*255;d[i+2]=o[2]*255;d[i+3]=rr>0.97?Math.round(255*(1-rr)/0.03):255;}
  wctx.putImageData(img,0,0);})();
 function swatchCss(c){hsv(c.h,c.s,c.v,tmp); return `rgb(${tmp.map(v=>Math.round(v*255)).join(',')})`;}
-function paintUI(){document.getElementById('swAi').style.background=swatchCss(state.A); document.getElementById('swBi').style.background=swatchCss(state.B);
- const c=state[state.active]; const ang=c.h*Math.PI/180, r=c.s*80; mark.style.left=(80+Math.cos(ang)*r)+'px'; mark.style.top=(80+Math.sin(ang)*r)+'px'; mark.style.background=swatchCss({h:c.h,s:c.s,v:1}); val.value=Math.round(c.v*255); document.getElementById('valn').textContent=val.value;
+function paintUI(){const Ly=L(); document.getElementById('swAi').style.background=swatchCss(Ly.A); document.getElementById('swBi').style.background=swatchCss(Ly.B);
+ document.getElementById('anim').value=Ly.anim; document.getElementById('spd').value=Math.round(Ly.speed*100); paintLayers();
+ const c=Ly[state.active]; const ang=c.h*Math.PI/180, r=c.s*80; mark.style.left=(80+Math.cos(ang)*r)+'px'; mark.style.top=(80+Math.sin(ang)*r)+'px'; mark.style.background=swatchCss({h:c.h,s:c.s,v:1}); val.value=Math.round(c.v*255); document.getElementById('valn').textContent=val.value;
  document.getElementById('swA').setAttribute('aria-pressed',state.active==='A'); document.getElementById('swB').setAttribute('aria-pressed',state.active==='B');}
 let wdrag=false;
-function pickWheel(e){const rc=wheel.getBoundingClientRect(); const dx=e.clientX-rc.left-rc.width/2, dy=e.clientY-rc.top-rc.height/2; const c=state[state.active];
+function pickWheel(e){const rc=wheel.getBoundingClientRect(); const dx=e.clientX-rc.left-rc.width/2, dy=e.clientY-rc.top-rc.height/2; const c=L()[state.active];
  c.h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; c.s=Math.min(1,Math.hypot(dx,dy)/(rc.width/2)); paintUI();}
 wheel.addEventListener('pointerdown',e=>{wdrag=true; wheel.setPointerCapture(e.pointerId); pickWheel(e);});
 wheel.addEventListener('pointermove',e=>{if(wdrag)pickWheel(e);});
 wheel.addEventListener('pointerup',()=>wdrag=false); wheel.addEventListener('pointercancel',()=>wdrag=false);
 // 8-bit strips: 256 levels per channel per pixel, so the intensity is the 0-255 value itself and 0 is black
-val.oninput=()=>{state[state.active].v=val.value/255; paintUI();};
+val.oninput=()=>{L()[state.active].v=val.value/255; paintUI();};
 document.getElementById('swA').onclick=()=>{state.active='A'; paintUI();};
 document.getElementById('swB').onclick=()=>{state.active='B'; paintUI();};
+// the layer list: click a row to select it; each row carries its own on/off, blend and opacity
+const layersEl=document.getElementById('layers');
+function paintLayers(){layersEl.innerHTML='';
+ state.layers.forEach((Ly,k)=>{const row=document.createElement('div'); row.className='layer'+(k===state.sel?' sel':'');
+  row.innerHTML=`<input type="checkbox" ${Ly.on?'checked':''} title="on"><span class="lname">${Ly.name}: ${Ly.anim}</span>`+
+   `<select title="blend"><option value="add">Add</option><option value="over">Over</option><option value="mul">Multiply</option></select>`+
+   `<input type="range" min="0" max="100" value="${Math.round(Ly.opacity*100)}" title="opacity"><button type="button" title="remove">&times;</button>`;
+  const chk=row.children[0], sel=row.children[2], rng=row.children[3], del=row.children[4]; sel.value=Ly.blend;
+  row.onclick=()=>{if(state.sel!==k){state.sel=k; paintUI();}};
+  chk.onchange=e=>{Ly.on=e.target.checked;}; chk.onclick=e=>e.stopPropagation();
+  sel.onchange=e=>{Ly.blend=e.target.value;}; sel.onclick=e=>e.stopPropagation();
+  rng.oninput=e=>{Ly.opacity=e.target.value/100;}; rng.onclick=e=>e.stopPropagation(); rng.onpointerdown=e=>e.stopPropagation();
+  del.onclick=e=>{e.stopPropagation(); if(state.layers.length===1)return; state.layers.splice(k,1); state.sel=Math.min(state.sel,state.layers.length-1); paintUI();};
+  layersEl.appendChild(row);});}
+let layerSeq=1;
+document.getElementById('addlayer').onclick=()=>{const Ly=newLayer(++layerSeq); Ly.anim='sparkle'; Ly.A={h:40,s:0.1,v:1}; Ly.B={h:0,s:0,v:0}; state.layers.push(Ly); state.sel=state.layers.length-1; paintUI();};
 paintUI();
 
 // ---- desktop: keys + hold-left-mouse look (live_viewer.py convention)
