@@ -54,6 +54,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .panel select{height:40px;width:100%}
 .row input[type=range]+span{margin-top:-2px}
 .stat{grid-column:1/-1;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
+#livein{grid-column:1/-1}
+.note{font-size:13px;color:var(--dim);line-height:1.5;margin:8px 0}
+.note a{color:inherit}
+.pmgrid input[type=text]{width:100%}
 .pmgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:8px 0}
 .pmgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
 .pmgrid input,.pmgrid select{font:inherit;padding:4px 6px;background:#111;color:inherit;border:1px solid #333;border-radius:4px}
@@ -131,10 +135,22 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
    <label>Strip order <select id="pm_order"><option value="ns">N1..N6 then S1..S6, gap 1..8</option><option value="sn">S1..S6 then N1..N6, gap 1..8</option><option value="alt">N1, S1, N2, S2 ... gap 1..8</option><option value="gap">Gap 1 on every column, then gap 2 ...</option></select></label>
    <label>Data direction <select id="pm_dir"><option value="up">All strips bottom to top</option><option value="down">All strips top to bottom</option><option value="serp">Serpentine: alternate up / down</option></select></label>
    <label>Show in 3D <select id="pm_show"><option value="">Everything</option></select></label>
-   <button type="button" id="pm_csv" class="sw">Download CSV</button>
+   <button type="button" id="pm_csv" class="sw">Download patch CSV (one row per strip)</button>
+   <label>ELM up axis <select id="pm_up"><option value="y">Y up (as modelled)</option><option value="z">Z up (swap Y and Z)</option></select></label>
+   <label>ELM protocol <select id="pm_proto"><option>Art-Net</option><option>sACN</option></select></label>
+   <button type="button" id="pm_elm" class="sw">Download ELM CSV (one row per pixel)</button>
   </div>
   <div class="stat" id="pm_tot"></div>
   <div class="pmtable"><table id="pm_table"></table></div>
+ </details>
+ <details class="row" id="livein"><summary>Live input: drive the strips from ELM or any Art-Net / sACN sender</summary>
+  <p class="note">Pixel-map in ELM (or Resolume, MadMapper, a console) and see it here. A browser cannot receive Art-Net, so a small bridge runs on the computer showing this page: <a href="tools/dmx_bridge.js" download>download dmx_bridge.js</a> and <a href="tools/run-bridge.cmd" download>run-bridge.cmd</a> into one folder, double-click run-bridge.cmd (needs <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a>), point the mapper's Art-Net or sACN output at this computer's IP (or broadcast on the LAN), then Connect. The patch in the Pixel map above is the patch the mapper must use: 170 pixels per universe, RGB, strips in the order of the table.</p>
+  <div class="pmgrid">
+   <label>Bridge <input type="text" id="lv_url" value="ws://localhost:9930"></label>
+   <label>Universe offset (page universe = sender universe + this) <input type="number" id="lv_off" value="0"></label>
+   <label>&nbsp;<button type="button" id="lv_btn" class="sw">Connect</button></label>
+  </div>
+  <div class="stat" id="lv_stat">not connected</div>
  </details>
 </div>
 <script type="module">
@@ -248,7 +264,7 @@ function rebuild(){
  // count pixels
  const segs=[]; let total=0;
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
- P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), runs:[]};
+ P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), runs:[]};
  let pixels=0;
  const dot=Math.min(0.012, pitch*0.6);
  const pg=new THREE.BoxGeometry(0.012,dot,0.004);
@@ -292,7 +308,7 @@ function rebuild(){
  });
  pixelMap();
  for(let q=0;q<cols.length*BANDS;q++){const c=bandSum[q*4+3]||1; bandPos[q*3]=bandSum[q*4]/c; bandPos[q*3+1]=bandSum[q*4+1]/c; bandPos[q*3+2]=bandSum[q*4+2]/c;}
- P.bandPos=bandPos; P.nBands=cols.length*BANDS; P.bandAcc=new Float32Array(P.nBands*3);
+ P.bandPos=bandPos; P.nBands=cols.length*BANDS; P.bandAcc=new Float32Array(P.nBands*3); P.pos=gpos;
  pix.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(total*3),3);
  pix.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gpos,3));
@@ -313,6 +329,14 @@ function animate(time){
  if(!pix)return;
  const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc; acc.fill(0); a.fill(0);
  const lv=state.level;
+ if(live.on&&live.ws&&live.ws.readyState===1){
+  // LIVE INPUT: the LEDs show what the mapper sent, read through this page's own pixel map.
+  // A universe the bridge has not heard stays dark, which is what a real strip would do.
+  const off=live.offset; let lit_=0;
+  for(let i=0;i<n;i++){const buf=live.uni.get(P.univ[i]+off); if(!buf)continue; const c=P.dmxC[i], o=i*3;
+   a[o]=lin(buf[c]/255); a[o+1]=lin(buf[c+1]/255); a[o+2]=lin(buf[c+2]/255); lit_++;}
+  live.litLeds=lit_;
+ } else
  for(const Ly of state.layers){ if(!Ly.on||Ly.opacity<=0)continue;
   const T=time*(0.2+Ly.speed*3), kind=Ly.anim, op=Ly.opacity, bl=Ly.blend;
   hsv(Ly.A.h,Ly.A.s,Ly.A.v,cA); hsv(Ly.B.h,Ly.B.s,Ly.B.v,cB);
@@ -375,7 +399,7 @@ function pixelMap(){
    u0:outU+Math.floor(off/ppu), ch0:(off%ppu)*3+1, u1:outU+Math.floor(last/ppu), ch1:(last%ppu)*3+3, outU, off};
   r.map=entry; rows.push(entry); outPix+=r.pixels; nextU=outU+Math.ceil(outPix/ppu);});
  for(let k=0;k<P.n;k++){const r=P.runs[P.run[k]], m=r.map; const pj=m.dir==='down'?r.pixels-1-P.pi[k]:P.pi[k];
-  P.univ[k]=m.outU+Math.floor((m.off+pj)/ppu); P.out[k]=(m.controller-1)*opc+m.output;}
+  const idx=m.off+pj; P.univ[k]=m.outU+Math.floor(idx/ppu); P.out[k]=(m.controller-1)*opc+m.output; P.dmxC[k]=(idx%ppu)*3;}
  const nOut=out+1, nU=nextU-u0, nCtl=Math.ceil(nOut/opc);
  document.getElementById('pm_tot').textContent=`${rows.length} strips -> ${nOut} outputs on ${nCtl} controller${nCtl>1?'s':''} (${opc} outputs each) -> ${nU} universes (${u0} to ${nextU-1}) at ${ppu} px per universe`;
  const T=document.getElementById('pm_table');
@@ -394,6 +418,48 @@ document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
  const csv=['strip,column,gap,pixels,leds,length_m,direction,controller,output,start_universe,start_channel,end_universe,end_channel']
   .concat(rows.map(e=>[e.strip,e.column,e.gap,e.pixels,e.leds,e.length.toFixed(2),e.dir,e.controller,e.output,e.u0,e.ch0,e.u1,e.ch1].join(','))).join('\n');
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-pixel-map.csv'; a.click();};
+// ---- ELM export. ENTTEC LED Mapper's 3D stage imports a CSV with one row per LED:
+// x,y,z,pixel_type,bit_depth,protocol,universe,start_channel (mm, 1-based universe and channel;
+// support.enttec.com/dmx-software/elm/how-to-create-and-import-a-3d-shape-csv-into-elm). Every
+// PIXEL of the current design becomes a row at its true position in the hall, patched exactly as
+// the table above, so what ELM drives is what the live input here shows.
+function elmCsv(){
+ if(!P.runs.length||!P.pos)return '';
+ const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value;
+ // pixel centre = mean of its LEDs (one LED per pixel at 60 px/m, three or six at the lower densities)
+ const acc=new Map();
+ for(let k=0;k<P.n;k++){const id=P.run[k]*4096+P.pi[k]; let e=acc.get(id); if(!e){e={x:0,y:0,z:0,n:0,u:P.univ[k],c:P.dmxC[k]+1}; acc.set(id,e);}
+  e.x+=P.pos[k*3]; e.y+=P.pos[k*3+1]; e.z+=P.pos[k*3+2]; e.n++;}
+ const rows=Array.from(acc.values()).sort((a,b)=>a.u-b.u||a.c-b.c);
+ // centred on the hall in plan, floor at zero, so the stage in ELM sits at its origin
+ let cx=0,cz=0,y0=Infinity; for(const e of rows){cx+=e.x/e.n; cz+=e.z/e.n; y0=Math.min(y0,e.y/e.n);} cx/=rows.length; cz/=rows.length;
+ const lines=['x,y,z,pixel_type,bit_depth,protocol,universe,start_channel'];
+ for(const e of rows){const x=(e.x/e.n-cx)*1000, y=(e.y/e.n-y0)*1000, z=(e.z/e.n-cz)*1000;
+  lines.push(x.toFixed(1)+','+(zup?z:y).toFixed(1)+','+(zup?y:z).toFixed(1)+',RGB,8,'+proto+','+e.u+','+e.c);}
+ return lines.join('\n');
+}
+window.elmCsv=elmCsv;
+document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
+ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+state.density+'pxm.csv'; a.click();
+ document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
+// ---- live input. The bridge sends binary frames of [uint16 universe, uint16 length, DMX bytes]
+// records; each universe is kept as its latest 512 slots. The page's own pixel map turns a
+// universe and channel into an LED, so what the mapper sees in its patch is what lights up here.
+const live={on:false, ws:null, uni:new Map(), offset:0, frames:0, litLeds:0, t0:0};
+function liveStat(t){document.getElementById('lv_stat').textContent=t;}
+document.getElementById('lv_off').oninput=e=>{live.offset=+e.target.value|0;};
+document.getElementById('lv_btn').onclick=()=>{
+ if(live.ws){live.ws.close(); return;}
+ let ws; try{ws=new WebSocket(document.getElementById('lv_url').value);}catch(e){liveStat('bad address: '+e.message); return;}
+ ws.binaryType='arraybuffer'; live.ws=ws; live.frames=0; live.uni.clear(); liveStat('connecting');
+ ws.onopen=()=>{live.on=true; live.t0=performance.now(); document.getElementById('lv_btn').textContent='Disconnect'; liveStat('connected, waiting for DMX');};
+ ws.onmessage=ev=>{const d=new DataView(ev.data); let p=0;
+  while(p+4<=d.byteLength){const u=d.getUint16(p,true), len=d.getUint16(p+2,true); p+=4; if(p+len>d.byteLength)break;
+   let buf=live.uni.get(u); if(!buf){buf=new Uint8Array(512); live.uni.set(u,buf);} buf.set(new Uint8Array(ev.data,p,Math.min(len,512))); p+=len;}
+  live.frames++; if(live.frames%10===0){const fps=live.frames/((performance.now()-live.t0)/1000); liveStat(`${live.uni.size} universes heard, ${fps.toFixed(0)} frames/s, ${live.litLeds.toLocaleString()} of ${P.n.toLocaleString()} LEDs addressed`);}};
+ ws.onclose=()=>{live.on=false; live.ws=null; document.getElementById('lv_btn').textContent='Connect'; liveStat('not connected (is the bridge running?)');};
+ ws.onerror=()=>{liveStat('cannot reach the bridge at '+document.getElementById('lv_url').value);};
+};
 // ---- panel wiring
 const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
@@ -503,7 +569,7 @@ function resolveMove(){
  }
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,yaw:()=>yaw,get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
