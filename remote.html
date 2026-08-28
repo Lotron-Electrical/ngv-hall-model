@@ -59,6 +59,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <label style="display:flex;gap:10px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom 2 m</label></div>
  <div class="row"><label class="h">Pixel density</label><div class="seg" id="dens"><button data-d="60">60 px/m</button><button data-d="20">20 px/m</button><button data-d="10">10 px/m</button></div></div>
  <div class="row"><label class="h">Fixture</label><div class="seg" id="diff"><button data-d="1">Black diffuser</button><button data-d="0">No diffuser</button></div></div>
+ <div class="row"><label class="h">RGBW drive</label><div class="seg" id="drive"><button data-d="rgbw">RGBW</button><button data-d="rgbwmax">RGBW max</button></div></div>
+ <div class="row"><div id="runstat" style="font-size:12px;color:#9a9a9a;line-height:1.5"></div></div>
  <div class="row"><label class="h">Field of view <span id="fovv"></span></label><input type="range" id="fov" min="40" max="110"></div>
  <div class="row"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="noclip"> Walk through walls (no-clip)</label></div>
 </div>
@@ -76,7 +78,7 @@ else{
  const peer=new Peer();
  peer.on('open',()=>{status.textContent='joining '+peerId; conn=peer.connect(peerId,{reliable:true});
   conn.on('open',()=>{status.textContent='connected to '+peerId; status.className='ok';});
-  conn.on('data',m=>{if(m.t==='sync'){S=m.s; paint();}});
+  conn.on('data',m=>{if(m.t==='sync'){S=m.s; paint();} else if(m.t==='stats'){$('runstat').textContent=m.v;}});
   conn.on('close',()=>{status.textContent='PC closed the link'; status.className='';});
   conn.on('error',e=>{status.textContent='link error: '+e; status.className='';});});
  peer.on('error',e=>{status.textContent='cannot reach the PC ('+e.type+'); reload the PC page and scan again';});
@@ -113,6 +115,7 @@ $('skip').onchange=e=>send({t:'skip',v:e.target.checked?2:0});
 $('cm').onclick=()=>send({t:'count',v:S.count-1}); $('cp').onclick=()=>send({t:'count',v:S.count+1});
 document.querySelectorAll('#dens button').forEach(b=>b.onclick=()=>send({t:'density',v:+b.dataset.d}));
 document.querySelectorAll('#diff button').forEach(b=>b.onclick=()=>send({t:'diffuser',v:b.dataset.d==='1'}));
+document.querySelectorAll('#drive button').forEach(b=>b.onclick=()=>send({t:'drive',v:b.dataset.d}));
 $('swA').onclick=()=>send({t:'active',v:'A'}); $('swB').onclick=()=>send({t:'active',v:'B'});
 $('val').oninput=e=>{$('valn').textContent=e.target.value; const c={}; c[S.active]={v:e.target.value/255}; send(Object.assign({t:'layer',i:S.sel},c));};
 function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
@@ -142,6 +145,7 @@ function paint(){if(!S)return;
  $('skip').checked=S.skip>0; $('fov').value=Math.round(S.fov); $('fovv').textContent=$('fov').value+'°'; $('noclip').checked=!!S.noclip; $('cn').value=S.count;
  document.querySelectorAll('#dens button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.d===S.density));
  document.querySelectorAll('#diff button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.d==='1')===!!S.diffuser));
+ document.querySelectorAll('#drive button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.d===(S.drive||'rgbw')));
  const el=$('layers'); el.innerHTML=''; S.layers.forEach((L,k)=>{const row=document.createElement('div'); row.className='layer'+(k===S.sel?' sel':'');
   row.innerHTML=`<input type="checkbox" ${L.on?'checked':''}><span class="n">${L.name}: ${L.anim}</span><select><option value="add">Add</option><option value="over">Over</option><option value="mul">Multiply</option></select><input type="range" min="0" max="100" value="${Math.round(L.opacity*100)}"><button>&times;</button>`;
   const [chk,,sel,rng,del]=row.children; sel.value=L.blend;

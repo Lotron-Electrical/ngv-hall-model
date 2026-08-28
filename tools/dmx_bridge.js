@@ -3,7 +3,7 @@
 // MadMapper, a console) is sending. A browser cannot open a UDP socket; this listens on the two
 // standard ports and re-sends every universe it hears over ws://localhost:9930 as binary frames.
 //
-//     node tools/dmx_bridge.js [--ws 9930] [--artnet 6454] [--sacn 5568] [--universes 1-512] [--fps 40]
+//     node tools/dmx_bridge.js [--ws 9930] [--artnet 6454] [--sacn 5568] [--universes 1-1024] [--fps 40]
 //
 // Point the mapper's Art-Net or sACN output at this machine (unicast to its IP, or broadcast /
 // multicast on the same LAN), open the hall page, expand "Live input" and press Connect. The page
@@ -24,7 +24,9 @@ const os = require('os');
 
 const args = Object.fromEntries(process.argv.slice(2).map((a, i, all) => a.startsWith('--') ? [a.slice(2), all[i + 1]] : []).filter(x => x.length));
 const WS_PORT = +(args.ws || 9930), ARTNET_PORT = +(args.artnet || 6454), SACN_PORT = +(args.sacn || 5568), FPS = +(args.fps || 40);
-const [U_LO, U_HI] = (args.universes || '1-512').split('-').map(Number);
+// the default window must cover the page's own patch: 608 universes at 128 RGBW px each for the
+// full eight-per-column design, so 1-512 (the RGB era's figure) silently dropped the last 96
+const [U_LO, U_HI] = (args.universes || '1-1024').split('-').map(Number);
 
 const universes = new Map();   // universe -> Uint8Array(512)
 const dirty = new Set();

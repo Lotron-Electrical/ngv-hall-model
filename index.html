@@ -101,6 +101,8 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
   <div id="layers" class="layers"></div><button type="button" id="addlayer" class="sw" style="margin-top:6px">+ Add layer</button></div>
  <div class="row"><label>Fixture</label>
   <div class="seg" id="diff"><button type="button" data-d="1" aria-pressed="true">Black acrylic diffuser<br><small>satin, one continuous line</small></button><button type="button" data-d="0" aria-pressed="false">No diffuser<br><small>raw pixels in the open channel</small></button></div></div>
+ <div class="row"><label>RGBW drive</label>
+  <div class="seg" id="drive"><button type="button" data-d="rgbw" aria-pressed="true">RGBW<br><small>white rides the W die alone</small></button><button type="button" data-d="rgbwmax" aria-pressed="false">RGBW max<br><small>the RGB dies boost the W</small></button></div></div>
  <div class="row"><label>Colour</label>
   <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="160" height="160"></canvas><div id="mark"></div></div>
    <div class="swatches">
@@ -129,9 +131,10 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div class="row"><label for="house">House lights</label>
   <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
  <div class="stat" id="stat"></div>
+ <div class="stat" id="runstat"></div>
  <details class="row" id="pmap"><summary>Pixel map: controller outputs, universes and DMX addresses</summary>
   <div class="pmgrid">
-   <label>Pixels per universe <input type="number" id="pm_ppu" value="170" min="1" max="170"></label>
+   <label>Pixels per universe <input type="number" id="pm_ppu" value="128" min="1" max="128"></label>
    <label>First universe <input type="number" id="pm_u0" value="1" min="0"></label>
    <label>Max pixels per output <input type="number" id="pm_maxout" value="1024" min="1"></label>
    <label>Outputs per controller <input type="number" id="pm_opc" value="16" min="1"></label>
@@ -148,7 +151,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
   <div class="pmtable"><table id="pm_table"></table></div>
  </details>
  <details class="row" id="livein"><summary>Live input: drive the strips from ELM or any Art-Net / sACN sender</summary>
-  <p class="note">Pixel-map in ELM (or Resolume, MadMapper, a console) and see it here. A browser cannot receive Art-Net, so a small bridge runs on the computer showing this page: <a href="tools/dmx_bridge.js" download>download dmx_bridge.js</a> and <a href="tools/run-bridge.cmd" download>run-bridge.cmd</a> into one folder, double-click run-bridge.cmd (needs <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a>), point the mapper's Art-Net or sACN output at this computer's IP (or broadcast on the LAN), then Connect. The patch in the Pixel map above is the patch the mapper must use: 170 pixels per universe, RGB, strips in the order of the table.</p>
+  <p class="note">Pixel-map in ELM (or Resolume, MadMapper, a console) and see it here. A browser cannot receive Art-Net, so a small bridge runs on the computer showing this page: <a href="tools/dmx_bridge.js" download>download dmx_bridge.js</a> and <a href="tools/run-bridge.cmd" download>run-bridge.cmd</a> into one folder, double-click run-bridge.cmd (needs <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a>), point the mapper's Art-Net or sACN output at this computer's IP (or broadcast on the LAN), then Connect. The patch in the Pixel map above is the patch the mapper must use: 128 pixels per universe, RGBW, strips in the order of the table.</p>
   <div class="pmgrid">
    <label>Bridge <input type="text" id="lv_url" value="ws://localhost:9930"></label>
    <label>Universe offset (page universe = sender universe + this) <input type="number" id="lv_off" value="0"></label>
@@ -180,13 +183,30 @@ const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // glass the house term IS the backlight, the photograph is the transmitted colour, and LED light
 // arriving from below mostly passes on up into the void: it gets LED_GAIN_GLASS of a wall's share.
 const HOUSE_LUX=150;        // assumed floor illuminance in the photographs (typical hall house lighting)
-// ENTTEC 8PXA60-RGBW-12V pixel strip (SK6805-class, GRBW): 1,088 lm/m at 21.8 W/m, 10 mm wide,
-// 120 deg (enttec.com.au/product/led-pixel-strip/12v-rgbw-60-leds-m-pixel-strip). The datasheet
-// splits that as RGB 432.8 + W 700 lm/m with all four channels on, and the pixel map here still
-// addresses RGB only, so a white scene on the real strip as currently patched would be 432.8 lm/m,
-// forty percent of what this constant assumes. RGBW addressing (4 ch per pixel, 128 px per
-// universe) is the pending change that closes that gap. Per LED at full output:
-const LM_PER_LED=1088/60;   // 18.1 lm
+// ENTTEC 8PXA60-RGBW-12V-B pixel strip (SK6805-class, GRBW wire order): 1,088 lm/m at 21.8 W/m,
+// 10 mm wide, 120 deg, black PCB (datasheet ID 5957689, July 2025). The datasheet splits the
+// light as RGB 432.8 + W 700 lm/m, white die 4000 K, and the page models the four channels
+// (Lloyd, 2026-08-28): a scene colour is split the way a mapper drives an RGBW fixture,
+// W = min(R,G,B) with the residue on the RGB dies, so a white scene is genuinely the W die
+// alone: 700 lm/m of 4000 K at 10.1 W/m, not an RGB pretence of 1,088.
+// Colour model: the RGB dies span sRGB and the trio at full is RGB_LM; per-die lumens are not
+// published, so each die carries its sRGB luminance share (that makes G/R 3.4 against the
+// SK6812 class's measured ~2.5, the closest a datasheet-only model gets). Wattage: a white
+// scene draws W_WHITE_PER_M; the supply stays sized on W_PER_M, all four channels hard on.
+const LM_PER_LED=1088/60;   // 18.1 lm, every die of one LED hard on: the unit the band sums use
+const RGB_LM=432.8, W_LM=700, W_WHITE_PER_M=10.1;
+// The datasheet's group figures do not sum to their published totals: RGB 5.2 + W 10.1 W/m
+// against 21.8 all-on, and RGB 432.8 + W 700 lm/m against 1,088. Rather than pick a side, the
+// readout model hits every published point exactly: each group scales with its own duty and a
+// mix term appears only when the RGB dies and the W die run together (positive for watts,
+// negative for lumens: the all-on derate).
+const W_RGB_M=5.2, W_W_M=10.1, W_MIX_M=21.8-W_RGB_M-W_W_M, LM_MIX_M=1088-RGB_LM-W_LM;
+const RGB_SCALE=RGB_LM/1088;
+// 4000 K on the Planck locus in linear sRGB (CIE fit -> xy 0.3805,0.3768 -> XYZ -> sRGB),
+// peak-normalised; WCOL scales it so its luminance share is the W die's 700 of 1,088
+const W_TINT=[1.0,0.6535,0.3770];
+const WY=0.2126*W_TINT[0]+0.7152*W_TINT[1]+0.0722*W_TINT[2];
+const WCOL=W_TINT.map(c=>c*(W_LM/1088)/WY);
 const W_PER_M=21.8;         // at full white, for the stats line; the supply is sized on this
 const AMBIENT=0.03;         // fraction of house level that remains with everything off
 const LED_GAIN_GLASS=0.25;  // translucent glass scatters back only a fraction of the LED light from below
@@ -252,13 +272,74 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, diffuser:true};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, diffuser:true, drive:'rgbw'};
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
-let RUNS=null, pix=null, ribbon=null, glow=null;
+let RUNS=null, pix=null, ribbon=null, glow=null, pcb=null, pkg=null;
 // soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
 // from across the hall even at 10 px/m
 const GLOWTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(0.25,'rgba(255,255,255,.55)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.NoColorSpace; return t;})();
+// THE STRIP'S FACE, drawn from ENTTEC's own product image of the 8PXA60-RGBW-12V-B (Lloyd's
+// strip, confirmed 2026-08-28): black PCB with faint traces, three gold stadium pads each side
+// of every 16.6 mm cut, the 181 resistor left of the LED and the C1 capacitor right, white
+// silkscreen (+12V ENTTEC +12V along one edge, GND at both ends of the other, DI and DO at the
+// ends, C 1 by the capacitor) and the data-direction arrow. One texture tile is one cuttable
+// section, u across the 10 mm width, v along the pitch, so the PCB is drawn as one box per LED
+// and the artwork repeats exactly at the cut lines. flipY is on, so canvas bottom = v0 = the DI
+// end: data enters at the bottom of a run and the arrow points up it.
+const STRIPTEX=(()=>{const c=document.createElement('canvas'); c.width=300; c.height=500;
+ const g=c.getContext('2d'); const mmU=300/10, mmV=500/(1000/60);
+ const U=mm=>mm*mmU, V=mm=>500-mm*mmV; // V() takes mm from the DI end
+ g.fillStyle='#0a0a0b'; g.fillRect(0,0,300,500);
+ g.strokeStyle='#141416'; g.lineWidth=3; // the faint routed traces the photo shows in the black
+ for(const q of [[1.5,2,4,6],[8.5,2,6,6],[1.5,14.6,4,10.6],[8.5,14.6,6,10.6]]){
+  g.beginPath(); g.moveTo(U(q[0]),V(q[1])); g.quadraticCurveTo(U((q[0]+q[2])/2),V((q[1]+q[3])/2+1),U(q[2]),V(q[3])); g.stroke();}
+ // the pads are stadium slots, LONG ALONG the strip like the photo's, three abreast at each cut
+ const pad=(um,vm)=>{g.fillStyle='#e6a23c'; g.beginPath();
+  g.roundRect(U(um-0.75),V(vm+1.7),U(1.5),V(vm-1.7)-V(vm+1.7),U(0.6)); g.fill();};
+ for(const u of [2.0,5.0,8.0]){pad(u,1.9); pad(u,14.75);} // DI pads then DO pads, half each side of the cut
+ g.fillStyle='#bfc3c9'; // cut tick marks crossing the strip edges at the section boundary
+ g.fillRect(U(4.7),0,U(0.6),4); g.fillRect(U(4.7),496,U(0.6),4);
+ for(const u of [3.5,6.5]){g.beginPath(); g.arc(U(u),1,4,0,7); g.fill(); g.beginPath(); g.arc(U(u),499,4,0,7); g.fill();} // the plated dots on the cut line
+ const text=(t,um,vm,size,rot)=>{g.save(); g.translate(U(um),V(vm)); g.rotate(rot); g.fillStyle='#f5f5f5';
+  g.font='700 '+Math.round(size*mmU)+'px Arial'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(t,0,0); g.restore();};
+ // silkscreen: on the strip the lettering reads along the run, so it is rotated 90 degrees here
+ text('+12V',1.0,4.0,1.15,-Math.PI/2); text('ENTTEC',1.0,8.3,1.15,-Math.PI/2); text('+12V',1.0,13.4,1.15,-Math.PI/2);
+ text('GND',9.0,3.9,1.15,-Math.PI/2); text('GND',9.0,13.6,1.15,-Math.PI/2);
+ text('DI',6.3,2.2,1.05,0); text('DO',6.4,14.4,1.05,0); text('C 1',7.2,11.9,1.0,-Math.PI/2);
+ g.save(); g.translate(U(2.1),V(11.6)); g.rotate(-Math.PI/2); g.fillStyle='#d9d4ee'; // the data arrow
+ g.beginPath(); g.moveTo(-U(1.1),-U(0.32)); g.lineTo(U(0.1),-U(0.32)); g.lineTo(U(0.1),-U(0.62)); g.lineTo(U(1.1),0);
+ g.lineTo(U(0.1),U(0.62)); g.lineTo(U(0.1),U(0.32)); g.lineTo(-U(1.1),U(0.32)); g.closePath(); g.fill(); g.restore();
+ const chip=(um,vm,body)=>{ // the two passives lie ACROSS the strip: grey end caps, printed body
+  g.fillStyle='#8f9296'; g.fillRect(U(um-1.1),V(vm+0.55),U(2.2),V(vm-0.55)-V(vm+0.55));
+  g.fillStyle=body; g.fillRect(U(um-0.7),V(vm+0.55),U(1.4),V(vm-0.55)-V(vm+0.55));};
+ chip(5.0,4.6,'#17181a'); text('181',5.0,4.6,0.62,0);            // the resistor, black body
+ chip(5.0,12.0,'#8a5a2b');                                        // C1, tan ceramic
+ const t=new THREE.CanvasTexture(c); t.anisotropy=8; t.colorSpace=THREE.SRGBColorSpace; return t;})();
+// the 5050 package top: white frame, round cavity, the W die's yellow phosphor D toward the DI
+// end and the clear RGB window with its dies toward DO, three lead stubs on each side edge
+const LEDTEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+ g.fillStyle='#f4f4f1'; g.fillRect(0,0,256,256);
+ // the face maps u across the strip and v along the run, and flipY puts canvas bottom at the DI
+ // end, so the drawing is rotated a quarter turn from the (horizontal) product photo: phosphor
+ // dome toward DI at the bottom, die window toward DO above it, leads on the +12V and GND edges
+ g.save(); g.translate(128,128); g.rotate(-Math.PI/2); g.translate(-128,-128);
+ g.fillStyle='#9a9da1'; for(const u of [0.2,0.5,0.8]){g.fillRect(u*256-20,0,40,14); g.fillRect(u*256-20,242,40,14);}
+ g.fillStyle='#d9d5cb'; g.beginPath(); g.arc(128,128,112,0,7); g.fill(); // cavity floor
+ // the W die's phosphor: a D just over a third of the cavity, with the moulded divider bar the
+ // photo shows as a hard edge between the yellow and the clear window
+ g.fillStyle='#ffe95c'; g.beginPath(); g.moveTo(96,226); g.arc(96,128,100,Math.PI/2,-Math.PI/2,false); g.closePath(); g.fill();
+ g.fillStyle='#ccd4ea'; g.beginPath(); g.moveTo(112,224); g.arc(112,128,98,Math.PI/2,-Math.PI/2,true); g.closePath(); g.fill();
+ g.fillStyle='#e8e8e2'; g.fillRect(96,26,12,204); // the divider bar
+ g.fillStyle='#3a3f52'; g.fillRect(150,104,22,30); g.fillRect(150,142,16,20); g.fillRect(178,112,10,14); // the dies
+ g.strokeStyle='#aab0c4'; g.lineWidth=3; g.beginPath(); g.moveTo(172,112); g.lineTo(206,96); g.moveTo(172,130); g.lineTo(210,140); g.moveTo(166,152); g.lineTo(198,170); g.stroke();
+ g.restore();
+ const t=new THREE.CanvasTexture(c); t.anisotropy=8; t.colorSpace=THREE.SRGBColorSpace; return t;})();
+// the emitting aperture for the additive lit overlay: the cavity shape, soft-edged
+const DIETEX=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+ g.fillStyle='#000'; g.fillRect(0,0,64,64); const r=g.createRadialGradient(32,32,22,32,32,30);
+ r.addColorStop(0,'#fff'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.beginPath(); g.arc(32,32,30,0,7); g.fill();
+ const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.NoColorSpace; return t;})();
 // per-pixel attributes for the animations
 let P={n:0, s:null, run:null, col:null, gap:null, colx:null, pid:null};
 const LEDS_PER_M=60;
@@ -299,8 +380,8 @@ const GAPS=8;
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
  if(!RUNS)return;
- for(const m of [pix,ribbon,glow]) if(m){scene.remove(m); m.geometry.dispose(); m.material.dispose();}
- pix=ribbon=glow=null;
+ for(const m of [pix,ribbon,glow,pcb,pkg]) if(m){scene.remove(m); m.geometry.dispose(); for(const mm of [].concat(m.material))mm.dispose();}
+ pix=ribbon=glow=pcb=pkg=null;
  const gaps=chosenGaps(state.count), pitch=1/LEDS_PER_M, group=Math.round(LEDS_PER_M/state.density);
  // the client's option: no LEDs on the bottom SKIP metres of a shaft. The run is cut there, so every
  // count, address and export downstream sees a shorter strip rather than a masked one.
@@ -313,11 +394,13 @@ function rebuild(){
  // count pixels
  const segs=[]; let total=0;
  for(const r of runs){let L=0; const cum=[0]; for(let i=1;i<r.points.length;i++){L+=Math.hypot(...[0,1,2].map(k=>r.points[i][k]-r.points[i-1][k])); cum.push(L);} const n=Math.floor(L/pitch); segs.push({r,cum,L,n}); total+=n;}
- P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), runs:[]};
+ P={n:total, s:new Float32Array(total), run:new Uint16Array(total), col:new Uint8Array(total), gap:new Uint8Array(total), colx:new Float32Array(total), pid:new Uint32Array(total), pi:new Uint16Array(total), univ:new Uint16Array(total), out:new Uint16Array(total), dmxC:new Uint16Array(total), w4:new Float32Array(total), runs:[]};
  let pixels=0;
  const diff=state.diffuser;
- const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,TILE_T):new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H);
- const emitOff=diff?EXT_BACK+EXT_D+0.0006:EXT_BACK+WALL+PCB_T+LED_H/2;
+ // with the cover off the lit thing is the LED's round cavity: a thin additive overlay on the
+ // package top, shaped by DIETEX, so an off pixel shows the yellow phosphor printed below it
+ const pg=diff?new THREE.BoxGeometry(FACE_W,pitch,TILE_T):new THREE.BoxGeometry(0.0042,0.0042,0.0002);
+ const emitOff=diff?EXT_BACK+EXT_D+0.0006:EXT_BACK+WALL+PCB_T+LED_H+0.0001;
  // The halo sprite is a screen-facing disc drawn at ONE depth, its anchor's, and it is depth-tested
  // like anything else. Anchored at the LED centre it sat inside its own tile, so the tile's front
  // face hid the core of the halo and only the margins showed, either side of a dull tile: the light
@@ -327,13 +410,24 @@ function rebuild(){
  // any angle over about 20 degrees and read lopsided). The LED positions themselves are unchanged:
  // that is what the pixel map exports and what lights the room.
  const haloOff=diff?emitOff+TILE_T/2+0.001:EXT_BACK+EXT_D+0.001;
- const pm=new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false});
+ const pm=diff?new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false})
+             :new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(EMIT_EXPOSURE),toneMapped:false,map:DIETEX,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
  pix=new THREE.InstancedMesh(pg,pm,total);
+ if(!diff){ // the strip itself: one PCB tile and one 5050 package per LED, artwork from the photo
+  pcb=new THREE.InstancedMesh(new THREE.BoxGeometry(PCB_W,pitch,PCB_T),
+   (()=>{const side=new THREE.MeshStandardMaterial({color:0x0a0a0b,roughness:0.8,metalness:0.1});
+     const art=new THREE.MeshStandardMaterial({map:STRIPTEX,roughness:0.7,metalness:0.15});
+     return [side,side,side,side,art,side];})(),total);
+  pkg=new THREE.InstancedMesh(new THREE.BoxGeometry(LED_SZ,LED_SZ,LED_H),
+   (()=>{const body=new THREE.MeshStandardMaterial({color:0xe8e8e4,roughness:0.55});
+     const top=new THREE.MeshStandardMaterial({map:LEDTEX,roughness:0.5});
+     return [body,body,body,body,top,body];})(),total);
+ }
  const rg=new THREE.BoxGeometry(1,1,1);
  // the diffuser: matte black when off, so an unlit strip reads as a black line on a black shaft
  // the extrusion body. Black anodised is assumed for a black column; raw silver would read as a
  // bright edge either side of the strip and is one constant away if that is what goes in.
- const PARTS=diff?3:4;  // back, two walls, and the PCB when the channel is open
+ const PARTS=3;  // back plate and two walls; the PCB is its own textured mesh when the cover is off
  ribbon=new THREE.InstancedMesh(rg,new THREE.MeshStandardMaterial({color:0x232326,metalness:0.7,roughness:0.45}),runs.length*(RUNS.runs[0].points.length-1)*PARTS);
  const M=new THREE.Matrix4(), pos=new THREE.Vector3(), t=new THREE.Vector3(), nn=new THREE.Vector3(), b=new THREE.Vector3(), sc=new THREE.Vector3();
  const gpos=new Float32Array(total*3), hpos=new Float32Array(total*3);
@@ -354,7 +448,7 @@ function rebuild(){
    part(EXT_BACK+WALL/2,0,EXT_W,WALL);                       // back plate on the valley
    part(EXT_BACK+EXT_D/2,(EXT_W-WALL)/2,WALL,EXT_D);          // walls
    part(EXT_BACK+EXT_D/2,-(EXT_W-WALL)/2,WALL,EXT_D);
-   if(!diff)part(EXT_BACK+WALL+PCB_T/2,0,PCB_W,PCB_T);        // the strip's PCB, seen through the open face
+   // the PCB is no longer a plain ribbon part: it is its own textured mesh, one tile per LED
   }
   let seg=1;
   for(let j=0;j<n;j++){
@@ -365,10 +459,13 @@ function rebuild(){
    pos.lerpVectors(a,c,f).addScaledVector(nn,emitOff);
    M.makeBasis(b,t,nn); M.setPosition(pos); pix.setMatrixAt(k,M); gpos[k*3]=pos.x; gpos[k*3+1]=pos.y; gpos[k*3+2]=pos.z;
    { const h=haloOff-emitOff; hpos[k*3]=pos.x+nn.x*h; hpos[k*3+1]=pos.y+nn.y*h; hpos[k*3+2]=pos.z+nn.z*h; }
+   if(pcb){ pos.addScaledVector(nn,EXT_BACK+WALL+PCB_T/2-emitOff); M.setPosition(pos); pcb.setMatrixAt(k,M);
+    pos.addScaledVector(nn,PCB_T/2+LED_H/2); M.setPosition(pos); pkg.setMatrixAt(k,M); }
    // the LED takes its pixel's centre, so every LED in a group animates as one
    const pj=Math.floor(j/group); P.s[k]=Math.min(1,(pj+0.5)*group*pitch/L); P.pid[k]=pixels+pj; P.pi[k]=pj;
    { const ci=cols.indexOf(r.column), bi=Math.min(BANDS-1,Math.floor(d/L*BANDS)), q=(ci*BANDS+bi); P.band[k]=q;
-     bandSum[q*4]+=pos.x; bandSum[q*4+1]+=pos.y; bandSum[q*4+2]+=pos.z; bandSum[q*4+3]+=1; }
+     // gpos, not pos: the pcb/pkg placement above reuses pos, and a light sample belongs on the die
+     bandSum[q*4]+=gpos[k*3]; bandSum[q*4+1]+=gpos[k*3+1]; bandSum[q*4+2]+=gpos[k*3+2]; bandSum[q*4+3]+=1; }
    P.run[k]=ri; P.col[k]=cols.indexOf(r.column); P.gap[k]=r.gap; P.colx[k]=cx; k++;
   }
   pixels+=Math.ceil(n/group); P.runs.push({column:r.column, gap:r.gap, pixels:Math.ceil(n/group), leds:n, length:L});
@@ -387,9 +484,9 @@ function rebuild(){
  // light on the room keeps the full DIFFUSER_T.
  const gsize=diff?0.08:0.14, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*(diff?DIFFUSER_T:1));
  glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,color:new THREE.Color().setScalar(ggain),size:gsize,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
- scene.add(ribbon); scene.add(pix); scene.add(glow);
- const metres=segs.reduce((a,s)=>a+s.L,0);
- document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_PER_M/1000).toFixed(1)} kW at full white`;
+ scene.add(ribbon); scene.add(pix); scene.add(glow); if(pcb){scene.add(pcb); scene.add(pkg);}
+ const metres=segs.reduce((a,s)=>a+s.L,0); P.metres=metres;
+ document.getElementById('stat').textContent=`${runs.length} strips (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of strip · ${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel) · ${(metres*W_WHITE_PER_M/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*W_PER_M/1000).toFixed(1)} kW all-on`;
 }
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
@@ -403,12 +500,16 @@ function animate(time){
  if(!pix)return;
  const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc; acc.fill(0); a.fill(0);
  const lv=state.level;
- if(live.on&&live.ws&&live.ws.readyState===1){
+ const liveActive=live.on&&live.ws&&live.ws.readyState===1;
+ if(liveActive){
   // LIVE INPUT: the LEDs show what the mapper sent, read through this page's own pixel map.
   // A universe the bridge has not heard stays dark, which is what a real strip would do.
-  const off=live.offset; let lit_=0;
+  // Four channels per pixel in ELM's semantic order R,G,B,W (the strip's GRBW is wire order,
+  // the pixel controller's business). This branch stores raw die duties; the pass below turns
+  // duties into colour, light and the running lumen/watt readout for both sources alike.
+  const off=live.offset, w4=P.w4; w4.fill(0); let lit_=0;
   for(let i=0;i<n;i++){const buf=live.uni.get(P.univ[i]+off); if(!buf)continue; const c=P.dmxC[i], o=i*3;
-   a[o]=lin(buf[c]/255); a[o+1]=lin(buf[c+1]/255); a[o+2]=lin(buf[c+2]/255); lit_++;}
+   a[o]=lin(buf[c]/255); a[o+1]=lin(buf[c+1]/255); a[o+2]=lin(buf[c+2]/255); w4[i]=lin(buf[c+3]/255); lit_++;}
   live.litLeds=lit_;
  } else
  for(const Ly of state.layers){ if(!Ly.on||Ly.opacity<=0)continue;
@@ -433,13 +534,40 @@ function animate(time){
    else {a[o]*=1-op+r*op; a[o+1]*=1-op+g*op; a[o+2]*=1-op+b*op;}
   }
  }
- // the strip dimmer: one output level for every LED, on top of the whole stack, so it scales the
- // pixels, the halo and the light they throw on the room together; then the band sums
+ // RGBW split, the way a mapper drives an RGBW fixture, in the chosen drive mode:
+ //   RGBW      W carries the white in the colour (W = min of the three) and only the residue
+ //             stays on the RGB dies, so a white scene is the W die alone, 700 lm/m of 4000 K.
+ //   RGBW max  the RGB dies keep the full scene colour and W = min rides on top; full white is
+ //             every die on, the datasheet's 1,088 lm/m at 21.8 W/m.
+ // The same pass applies the strip dimmer and the pixel-map highlight to the DIE duties, adds
+ // the duties up for the running lumen/watt readout (so it tracks whatever pattern is playing),
+ // and only then turns duties into display colour and the light thrown on the room. The render
+ // colour skips the ~4% all-on derate; the readout includes it through the mix terms.
  // pixel-map highlight: everything outside the chosen universe or output drops to 3%, so the
  // addressing can be checked by eye in the hall rather than in a table
  const hk=pmHi.kind, hv=pmHi.v, hi=hk==='u'?P.univ:P.out;
- const dT=state.diffuser?DIFFUSER_T:1.0;
- for(let i=0;i<n;i++){const o=i*3; const m=((hk&&hi[i]!==hv)?0.03*lv:lv)*dT; a[o]*=m; a[o+1]*=m; a[o+2]*=m; const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+ const dT=state.diffuser?DIFFUSER_T:1.0, maxMode=state.drive==='rgbwmax', w4=P.w4;
+ let lmStrip=0, wattsM=0;
+ for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv;
+  let r,g,b,w;
+  if(liveActive){ r=a[o]*m; g=a[o+1]*m; b=a[o+2]*m; w=w4[i]*m; }
+  else { const R=a[o],G=a[o+1],B=a[o+2]; w=Math.min(R,G,B)*m;
+   if(maxMode){ r=R*m; g=G*m; b=B*m; } else { r=R*m-w; g=G*m-w; b=B*m-w; } }
+  const mixL=0.2126*r+0.7152*g+0.0722*b, mixD=(r+g+b)/3;
+  lmStrip+=RGB_LM*mixL+W_LM*w+LM_MIX_M*mixL*w;
+  wattsM+=W_RGB_M*mixD+W_W_M*w+W_MIX_M*mixD*w;
+  a[o]=(r*RGB_SCALE+w*WCOL[0])*dT; a[o+1]=(g*RGB_SCALE+w*WCOL[1])*dT; a[o+2]=(b*RGB_SCALE+w*WCOL[2])*dT;
+  const q=P.band[i]*3; acc[q]+=a[o]; acc[q+1]+=a[o+1]; acc[q+2]+=a[o+2];}
+ // the readout: constants above are per metre of strip at 60 LED/m, so a per-LED duty carries
+ // 1/60 of them; the diffuser then passes DIFFUSER_T of the strip lumens on into the hall
+ lit.lmStrip=lmStrip/60; lit.watts=wattsM/60;
+ if(!animate.rs||performance.now()-animate.rs>250){animate.rs=performance.now();
+  const lm=lit.lmStrip, wt=lit.watts, mets=P.metres||1, room=lm*dT;
+  const f=x=>x>=10000?Math.round(x).toLocaleString():x>=100?x.toFixed(0):x.toFixed(1);
+  const txt=`Running: ${f(lm)} lm at the strips -> ${f(room)} lm into the hall `+
+   (state.diffuser?`(black acrylic passes ${Math.round(DIFFUSER_T*100)}%)`:`(open channel)`)+
+   ` · ${wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W'} (${(wt/mets).toFixed(1)} W/m) · ${maxMode?'RGBW max':'RGBW'}`;
+  const el=document.getElementById('runstat'); if(el.textContent!==txt){el.textContent=txt; if(rc.conn&&rc.conn.open)rc.conn.send({t:'stats',v:txt});}}
  // band sums -> light samples. Intensity in candela = lumens / 4pi, then over HOUSE_LUX so the
  // shader adds it in units of the photograph's own light.
  const scale=LM_PER_LED/(4*Math.PI)/HOUSE_LUX; let nl=0;
@@ -452,14 +580,16 @@ function animate(time){
  pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;
 }
 // ---- pixel map. Strips become controller outputs in a chosen order; each output starts on a
-// fresh universe and its pixels run on through universes of PPU pixels (170 = 510 of 512 DMX
-// channels); a strip that would overflow the output's pixel limit starts the next output.
-// Addresses are 1-based DMX channels, RGB, three per pixel.
+// fresh universe and its pixels run on through universes of PPU pixels (128 RGBW pixels fill
+// 512 DMX channels exactly); a strip that would overflow the output's pixel limit starts the
+// next output. Addresses are 1-based DMX channels, RGBW, four per pixel.
 const pmHi={kind:'',v:0};
 function pmVal(id){return +document.getElementById(id).value;}
 function pixelMap(){
  if(!P.runs.length)return;
- const ppu=Math.max(1,pmVal('pm_ppu')), u0=pmVal('pm_u0'), maxout=Math.max(1,pmVal('pm_maxout')), opc=Math.max(1,pmVal('pm_opc'));
+ // 128 is a hard ceiling, not a default: a typed 170 (yesterday's RGB figure) would put the live
+ // path's 4-channel read past slot 512 and feed NaN into the colours
+ const ppu=Math.min(128,Math.max(1,pmVal('pm_ppu'))), u0=pmVal('pm_u0'), maxout=Math.max(1,pmVal('pm_maxout')), opc=Math.max(1,pmVal('pm_opc'));
  const order=document.getElementById('pm_order').value, dir=document.getElementById('pm_dir').value;
  const rowOf=c=>c[0], numOf=c=>+c.slice(1);
  const key={ns:r=>[rowOf(r.column)==='N'?0:1,numOf(r.column),r.gap], sn:r=>[rowOf(r.column)==='S'?0:1,numOf(r.column),r.gap],
@@ -471,12 +601,12 @@ function pixelMap(){
   const off=outPix, last=off+r.pixels-1;
   const entry={strip:si+1, column:r.column, gap:r.gap, pixels:r.pixels, leds:r.leds, length:r.length,
    controller:Math.floor(out/opc)+1, output:out%opc+1, dir:dir==='up'?'up':dir==='down'?'down':(si%2?'down':'up'),
-   u0:outU+Math.floor(off/ppu), ch0:(off%ppu)*3+1, u1:outU+Math.floor(last/ppu), ch1:(last%ppu)*3+3, outU, off};
+   u0:outU+Math.floor(off/ppu), ch0:(off%ppu)*4+1, u1:outU+Math.floor(last/ppu), ch1:(last%ppu)*4+4, outU, off};
   r.map=entry; rows.push(entry); outPix+=r.pixels; nextU=outU+Math.ceil(outPix/ppu);});
  for(let k=0;k<P.n;k++){const r=P.runs[P.run[k]], m=r.map; const pj=m.dir==='down'?r.pixels-1-P.pi[k]:P.pi[k];
-  const idx=m.off+pj; P.univ[k]=m.outU+Math.floor(idx/ppu); P.out[k]=(m.controller-1)*opc+m.output; P.dmxC[k]=(idx%ppu)*3;}
+  const idx=m.off+pj; P.univ[k]=m.outU+Math.floor(idx/ppu); P.out[k]=(m.controller-1)*opc+m.output; P.dmxC[k]=(idx%ppu)*4;}
  const nOut=out+1, nU=nextU-u0, nCtl=Math.ceil(nOut/opc);
- document.getElementById('pm_tot').textContent=`${rows.length} strips -> ${nOut} outputs on ${nCtl} controller${nCtl>1?'s':''} (${opc} outputs each) -> ${nU} universes (${u0} to ${nextU-1}) at ${ppu} px per universe`;
+ document.getElementById('pm_tot').textContent=`${rows.length} strips -> ${nOut} outputs on ${nCtl} controller${nCtl>1?'s':''} (${opc} outputs each) -> ${nU} universes (${u0} to ${nextU-1}) at ${ppu} RGBW px per universe`;
  const T=document.getElementById('pm_table');
  T.innerHTML='<tr><th>#</th><th>Column</th><th>Gap</th><th>Pixels</th><th>Dir</th><th>Ctrl</th><th>Out</th><th>Start</th><th>End</th></tr>'+
   rows.map(e=>`<tr><td>${e.strip}</td><td>${e.column}</td><td>${e.gap}</td><td>${e.pixels}</td><td>${e.dir}</td><td>${e.controller}</td><td>${e.output}</td><td>U${e.u0} ch ${e.ch0}</td><td>U${e.u1} ch ${e.ch1}</td></tr>`).join('');
@@ -513,11 +643,14 @@ function elmCsv(){
  let cx=0,cz=0,y0=Infinity; for(const e of rows){cx+=e.x/e.n; cz+=e.z/e.n; y0=Math.min(y0,e.y/e.n);} cx/=rows.length; cz/=rows.length;
  const lines=[manual?'x,y,z,protocol,universe,address,type,bits,strip,order,name':'x,y,z,pixel_type,bit_depth,protocol,universe,start_channel'];
  for(const e of rows){const x=(e.x/e.n-cx)*1000, y=(e.y/e.n-y0)*1000, z=(e.z/e.n-cz)*1000; const xyz=x.toFixed(1)+','+(zup?z:y).toFixed(1)+','+(zup?y:z).toFixed(1);
-  lines.push(manual?xyz+','+proto+','+(e.u+uOff)+','+e.c+',RGB,8,'+e.strip+','+e.order+','+e.name
-                   :xyz+',RGB,8,'+(proto==='ArtNet'?'Art-Net':proto)+','+(e.u+uOff)+','+e.c);}
+  lines.push(manual?xyz+','+proto+','+(e.u+uOff)+','+e.c+',RGBW,8,'+e.strip+','+e.order+','+e.name
+                   :xyz+',RGBW,8,'+(proto==='ArtNet'?'Art-Net':proto)+','+(e.u+uOff)+','+e.c);}
  return lines.join('\n');
 }
 window.elmCsv=elmCsv;
+// the module keeps its state private, which also keeps it out of reach of the headless
+// checks that verify this page; ngv is the deliberate keyhole they drive it through
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+state.density+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
@@ -544,6 +677,7 @@ const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
 document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.diffuser=btn.dataset.d==='1'; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
+document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rcSync();});
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
 document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
 document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
@@ -658,7 +792,7 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, diffuser:state.diffuser, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, diffuser:state.diffuser, drive:state.drive, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
  switch(m.t){
@@ -672,6 +806,7 @@ function rcApply(m){
   case 'noclip': noclip=!!m.v; document.getElementById('noclip').checked=noclip; break;
   case 'count': state.count=Math.max(0,Math.min(GAPS,+m.v|0)); cn.value=state.count; rebuild(); break;
   case 'diffuser': state.diffuser=!!m.v; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',(x.dataset.d==='1')===state.diffuser)); rebuild(); break;
+  case 'drive': state.drive=m.v==='rgbwmax'?'rgbwmax':'rgbw'; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===state.drive)); break;
   case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
   case 'sel': state.sel=Math.max(0,Math.min(state.layers.length-1,+m.i|0)); paintUI(); break;
@@ -722,7 +857,7 @@ requestAnimationFrame(frame);
 <h2>What is in the model</h2>
 <table>
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
-<tr><td>Strips</td><td>ENTTEC 12 V RGBW 60 LED/m pixel strip (10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser, one per fin gap, floor to glass</td></tr>
+<tr><td>Strips</td><td>ENTTEC 8PXA60-RGBW-12V-B pixel strip (60 RGBW LED/m, 4,000 K white die, black PCB, 10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser, one per fin gap, floor to glass</td></tr>
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
