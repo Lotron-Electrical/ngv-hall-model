@@ -2,6 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NGV Hall v17</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
 :root{--bg:#0e0f11;--rule:#2a2d33;--ink:#e9e6df;--dim:#9a978f;--accent:#b9a887;--ok:#6fbf8a;--panel:#16181c}
@@ -63,6 +65,14 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .pmtable th{position:sticky;top:0;background:#151515}
 #pmap{grid-column:1/-1}
 details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.qr{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:5}
+.qr[hidden]{display:none}
+.qrbox{background:#111;border:1px solid #444;border-radius:10px;padding:18px;display:flex;gap:18px;align-items:center;max-width:92%;flex-wrap:wrap}
+.qrbox svg{width:220px;height:220px;background:#fff;border-radius:6px}
+.qrtxt{font-size:13px;line-height:1.6;max-width:320px;word-break:break-all}
+.qrbox button{align-self:flex-start}
+.rcbadge{position:absolute;left:12px;top:12px;background:#1d3;color:#000;font-size:12px;padding:3px 8px;border-radius:12px;z-index:4}
+.rcbadge[hidden]{display:none}
 .layers{display:flex;flex-direction:column;gap:4px}
 .layer{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #333;border-radius:6px;cursor:pointer;font-size:13px;color:var(--dim)}
 .layer.sel{border-color:#c9b27c;color:inherit}
@@ -74,7 +84,9 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 <div id="stage"><canvas id="cv"></canvas>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
- <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button></div>
+ <div class="ctl"><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button><button id="remote" type="button">Phone remote</button></div>
+ <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
+ <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
 </div>
 <p class="hint" id="hint"></p>
 <div class="panel" id="panel">
@@ -217,6 +229,7 @@ new GLTFLoader().load('model.glb',g=>{
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
 const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1};
 const L=()=>state.layers[state.sel];
+const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
 let RUNS=null, pix=null, ribbon=null, glow=null;
 // soft disc for the glow sprites: the halo an LED throws, which is what makes a strip readable
 // from across the hall even at 10 px/m
@@ -391,7 +404,7 @@ document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.de
 document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayers();};
 document.getElementById('spd').oninput=e=>L().speed=e.target.value/100;
 document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%';};
-document.getElementById('house').oninput=e=>{lit.house=e.target.value/100; document.getElementById('houseval').textContent=e.target.value+'%';};
+document.getElementById('house').oninput=e=>{lit.house=e.target.value/100; document.getElementById('houseval').textContent=e.target.value+'%'; rcSync();};
 // colour wheel: hue round the ring, saturation from the centre, brightness on the slider
 const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=document.getElementById('mark'), val=document.getElementById('val');
 (function drawWheel(){const W=160,c=W/2,img=wctx.createImageData(W,W),d=img.data,o=[0,0,0];
@@ -399,7 +412,7 @@ const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=
   const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; hsv(h,Math.min(1,rr),1,o); d[i]=o[0]*255;d[i+1]=o[1]*255;d[i+2]=o[2]*255;d[i+3]=rr>0.97?Math.round(255*(1-rr)/0.03):255;}
  wctx.putImageData(img,0,0);})();
 function swatchCss(c){hsv(c.h,c.s,c.v,tmp); return `rgb(${tmp.map(v=>Math.round(v*255)).join(',')})`;}
-function paintUI(){const Ly=L(); document.getElementById('swAi').style.background=swatchCss(Ly.A); document.getElementById('swBi').style.background=swatchCss(Ly.B);
+function paintUI(){rcSync(); const Ly=L(); document.getElementById('swAi').style.background=swatchCss(Ly.A); document.getElementById('swBi').style.background=swatchCss(Ly.B);
  document.getElementById('anim').value=Ly.anim; document.getElementById('spd').value=Math.round(Ly.speed*100); paintLayers();
  const c=Ly[state.active]; const ang=c.h*Math.PI/180, r=c.s*80; mark.style.left=(80+Math.cos(ang)*r)+'px'; mark.style.top=(80+Math.sin(ang)*r)+'px'; mark.style.background=swatchCss({h:c.h,s:c.s,v:1}); val.value=Math.round(c.v*255); document.getElementById('valn').textContent=val.value;
  document.getElementById('swA').setAttribute('aria-pressed',state.active==='A'); document.getElementById('swB').setAttribute('aria-pressed',state.active==='B');}
@@ -492,7 +505,52 @@ function resolveMove(){
  }
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,yaw:()=>yaw,get P(){return P;},get solids(){return solids.length;}};
+// ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
+// data channel through its public signalling server and the packets then go phone -> PC
+// directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
+// applies what the phone sends: stick velocities, look deltas, and the same panel changes the
+// desktop controls make. After every change the PC sends the phone its whole state, so the phone
+// UI is a mirror, never a second copy.
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
+function rcApply(m){
+ switch(m.t){
+  case 'move': rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
+  case 'look': yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
+  case 'home': home(); break;
+  case 'full': document.getElementById('full').click(); break;
+  case 'house': lit.house=Math.max(0,Math.min(1,+m.v)); {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';} break;
+  case 'level': state.level=Math.max(0,Math.min(1,+m.v)); {const l=document.getElementById('level'); l.value=Math.round(state.level*100); document.getElementById('levelval').textContent=l.value+'%';} break;
+  case 'fov': {const f=document.getElementById('fov'); f.value=Math.max(40,Math.min(110,+m.v)); f.dispatchEvent(new Event('input'));} break;
+  case 'noclip': noclip=!!m.v; document.getElementById('noclip').checked=noclip; break;
+  case 'count': state.count=Math.max(0,Math.min(GAPS,+m.v|0)); cn.value=state.count; rebuild(); break;
+  case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
+  case 'sel': state.sel=Math.max(0,Math.min(state.layers.length-1,+m.i|0)); paintUI(); break;
+  case 'active': state.active=m.v==='B'?'B':'A'; paintUI(); break;
+  case 'layer': {const Ly=state.layers[+m.i|0]; if(!Ly)return; for(const k of ['anim','speed','opacity','blend','on','name'])if(k in m)Ly[k]=m[k]; if(m.A)Object.assign(Ly.A,m.A); if(m.B)Object.assign(Ly.B,m.B); paintUI();} break;
+  case 'addlayer': document.getElementById('addlayer').click(); break;
+  case 'dellayer': if(state.layers.length>1){state.layers.splice(+m.i|0,1); state.sel=Math.min(state.sel,state.layers.length-1); paintUI();} break;
+  default: return;
+ }
+ rcSync();
+}
+document.getElementById('remote').onclick=()=>{
+ const box=document.getElementById('qr'); box.hidden=false;
+ if(rc.peer)return;
+ const id='ngv-'+Math.random().toString(36).slice(2,8);
+ const url=new URL('remote.html',location.href); url.searchParams.set('peer',id);
+ document.getElementById('qrurl').textContent=url.href;
+ const q=qrcode(0,'M'); q.addData(url.href); q.make(); document.getElementById('qrimg').innerHTML=q.createSvgTag({cellSize:5,margin:2});
+ rc.peer=new Peer(id);
+ rc.peer.on('open',()=>{document.getElementById('qrstat').textContent='room '+id+', waiting for the phone';});
+ rc.peer.on('error',e=>{document.getElementById('qrstat').textContent='link error: '+e.type;});
+ rc.peer.on('connection',c=>{rc.conn=c;
+  c.on('open',()=>{document.getElementById('qrstat').textContent='phone connected'; document.getElementById('rcbadge').hidden=false; box.hidden=true; rcSync();});
+  c.on('data',rcApply);
+  c.on('close',()=>{rc.mv={f:0,r:0,u:0}; document.getElementById('rcbadge').hidden=true; document.getElementById('qrstat').textContent='phone disconnected, scan again'; rc.conn=null;});});
+};
+document.getElementById('qrclose').onclick=()=>{document.getElementById('qr').hidden=true;};
 let last=performance.now();
 function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
@@ -500,6 +558,8 @@ function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
  if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
  if(stick){const g=speed*dt*2; eye.addScaledVector(f,-stick.dy/60*g); eye.addScaledVector(r,stick.dx/60*g);}
+ // the phone remote: its stick is a velocity, held until it sends zero
+ if(rc.mv.f||rc.mv.r||rc.mv.u){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
  animate(now/1000);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}

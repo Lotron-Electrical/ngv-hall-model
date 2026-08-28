@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NGV Hall remote</title>
+<!-- The phone side of the remote. It never renders the hall: it is a controller for a PC page that
+     does, joined by the peer id in the URL (the QR the PC shows). Everything it displays comes
+     from the PC's `sync` message, so the two never disagree about what is on. -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--ink:#eee;--dim:#9a9a9a;--rule:#333;--accent:#c9b27c;--bg:#0b0b0b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh}
+#top{flex:none;height:46vh;display:grid;grid-template-columns:1fr 64px 1fr;gap:8px;padding:8px;touch-action:none}
+.pad{position:relative;border:1px solid var(--rule);border-radius:14px;background:#141414;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;letter-spacing:.1em;text-transform:uppercase;user-select:none}
+.pad .knob{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(201,178,124,.35);border:2px solid var(--accent);left:calc(50% - 28px);top:calc(50% - 28px);pointer-events:none}
+#ud{display:flex;flex-direction:column;gap:8px}
+#ud button{flex:1;font-size:22px}
+#status{flex:none;padding:4px 12px;font-size:12px;color:var(--dim);border-bottom:1px solid var(--rule)}
+#status.ok{color:#5d5}
+#panel{flex:1;overflow:auto;padding:10px 12px 40px;display:flex;flex-direction:column;gap:14px}
+.row label.h{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+button,select{background:#1a1a1a;color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;font:inherit}
+button[aria-pressed=true]{background:var(--accent);color:#000;border-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;gap:6px}.seg button{flex:1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.layers{display:flex;flex-direction:column;gap:6px}
+.layer{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--rule);border-radius:8px}
+.layer.sel{border-color:var(--accent)}
+.layer .n{flex:1}
+.layer input[type=range]{width:80px}
+.wheelwrap{display:flex;gap:14px;align-items:center}
+.wheelbox{position:relative;width:150px;height:150px;flex:none}
+#wheel{width:150px;height:150px;border-radius:50%;touch-action:none}
+#mark{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000;transform:translate(-50%,-50%);pointer-events:none}
+.sw{display:flex;align-items:center;gap:8px}.sw i{width:18px;height:18px;border-radius:4px;border:1px solid #666;display:inline-block}
+.stepper{display:flex;align-items:center;gap:10px}.stepper output{font-size:22px;min-width:2ch;text-align:center}
+</style></head><body>
+<div id="status">connecting</div>
+<div id="top">
+ <div class="pad" id="movepad">move<div class="knob" id="mknob"></div></div>
+ <div id="ud"><button id="up">&#9650;</button><button id="down">&#9660;</button></div>
+ <div class="pad" id="lookpad">look</div>
+</div>
+<div id="panel">
+ <div class="row two"><button id="home">Reset view</button><button id="full">Full screen on PC</button></div>
+ <div class="row"><label class="h">Animation layers</label><div class="layers" id="layers"></div><button id="addlayer" style="margin-top:6px">+ Add layer</button></div>
+ <div class="row"><label class="h">Animation</label><select id="anim"></select></div>
+ <div class="row"><label class="h">Speed <span id="spdv"></span></label><input type="range" id="spd" min="1" max="100"></div>
+ <div class="row"><label class="h">Colour</label>
+  <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="150" height="150"></canvas><div id="mark"></div></div>
+   <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+    <button class="sw" id="swA"><i id="swAi"></i>Colour A</button><button class="sw" id="swB"><i id="swBi"></i>Colour B</button>
+    <label style="font-size:12px;color:var(--dim)">Intensity <span id="valn"></span>/255<input type="range" id="val" min="0" max="255"></label>
+   </div></div></div>
+ <div class="row"><label class="h">Strip brightness <span id="levelv"></span></label><input type="range" id="level" min="0" max="100"></div>
+ <div class="row"><label class="h">House lights <span id="housev"></span></label><input type="range" id="house" min="0" max="100"></div>
+ <div class="row"><label class="h">Lights per column</label><div class="stepper"><button id="cm">&minus;</button><output id="cn"></output><button id="cp">+</button></div></div>
+ <div class="row"><label class="h">Pixel density</label><div class="seg" id="dens"><button data-d="60">60 px/m</button><button data-d="20">20 px/m</button><button data-d="10">10 px/m</button></div></div>
+ <div class="row"><label class="h">Field of view <span id="fovv"></span></label><input type="range" id="fov" min="40" max="110"></div>
+ <div class="row"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="noclip"> Walk through walls (no-clip)</label></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const peerId=new URLSearchParams(location.search).get('peer');
+let conn=null, S=null;
+const status=$('status');
+function send(m){if(conn&&conn.open)conn.send(m);}
+window.rsend=send;
+if(!peerId){status.textContent='no room in the link: open this from the QR on the PC page';}
+else{
+ const peer=new Peer();
+ peer.on('open',()=>{status.textContent='joining '+peerId; conn=peer.connect(peerId,{reliable:true});
+  conn.on('open',()=>{status.textContent='connected to '+peerId; status.className='ok';});
+  conn.on('data',m=>{if(m.t==='sync'){S=m.s; paint();}});
+  conn.on('close',()=>{status.textContent='PC closed the link'; status.className='';});
+  conn.on('error',e=>{status.textContent='link error: '+e; status.className='';});});
+ peer.on('error',e=>{status.textContent='cannot reach the PC ('+e.type+'); reload the PC page and scan again';});
+}
+// ---- sticks. The move pad sends a velocity while held and a zero on release; the look pad sends
+// deltas as the finger moves. Both are throttled so the channel carries intent, not every pixel.
+let mv={f:0,r:0,u:0}, mvTimer=null;
+function pushMove(){send({t:'move',f:mv.f,r:mv.r,u:mv.u});}
+const mp=$('movepad'), knob=$('mknob'); let mId=null, m0=null;
+mp.addEventListener('pointerdown',e=>{mId=e.pointerId; mp.setPointerCapture(mId); m0=[e.clientX,e.clientY]; mvTimer=setInterval(pushMove,50);});
+mp.addEventListener('pointermove',e=>{if(e.pointerId!==mId)return; const dx=e.clientX-m0[0], dy=e.clientY-m0[1]; const R=60; const cx=Math.max(-R,Math.min(R,dx)), cy=Math.max(-R,Math.min(R,dy));
+ knob.style.transform=`translate(${cx}px,${cy}px)`; mv.r=cx/R; mv.f=-cy/R;});
+function mEnd(e){if(e.pointerId!==mId)return; mId=null; knob.style.transform=''; mv.f=mv.r=0; clearInterval(mvTimer); pushMove();}
+mp.addEventListener('pointerup',mEnd); mp.addEventListener('pointercancel',mEnd);
+const lp=$('lookpad'); let lId=null, l0=null;
+lp.addEventListener('pointerdown',e=>{lId=e.pointerId; lp.setPointerCapture(lId); l0=[e.clientX,e.clientY];});
+lp.addEventListener('pointermove',e=>{if(e.pointerId!==lId)return; const dx=e.clientX-l0[0], dy=e.clientY-l0[1]; l0=[e.clientX,e.clientY]; send({t:'look',dx:dx*0.006,dy:dy*0.006});});
+function lEnd(e){if(e.pointerId===lId)lId=null;}
+lp.addEventListener('pointerup',lEnd); lp.addEventListener('pointercancel',lEnd);
+for(const [id,u] of [['up',1],['down',-1]]){const b=$(id);
+ b.addEventListener('pointerdown',e=>{b.setPointerCapture(e.pointerId); mv.u=u; if(!mvTimer)mvTimer=setInterval(pushMove,50); pushMove();});
+ const end=()=>{mv.u=0; if(mId===null){clearInterval(mvTimer); mvTimer=null;} pushMove();};
+ b.addEventListener('pointerup',end); b.addEventListener('pointercancel',end);}
+// ---- panel: every control sends one message; the PC answers with a sync and paint() redraws
+$('home').onclick=()=>send({t:'home'}); $('full').onclick=()=>send({t:'full'});
+$('addlayer').onclick=()=>send({t:'addlayer'});
+$('anim').onchange=e=>send({t:'layer',i:S.sel,anim:e.target.value});
+$('spd').oninput=e=>{$('spdv').textContent=e.target.value; send({t:'layer',i:S.sel,speed:e.target.value/100});};
+$('level').oninput=e=>{$('levelv').textContent=e.target.value+'%'; send({t:'level',v:e.target.value/100});};
+$('house').oninput=e=>{$('housev').textContent=e.target.value+'%'; send({t:'house',v:e.target.value/100});};
+$('fov').oninput=e=>{$('fovv').textContent=e.target.value+'°'; send({t:'fov',v:+e.target.value});};
+$('noclip').onchange=e=>send({t:'noclip',v:e.target.checked});
+$('cm').onclick=()=>send({t:'count',v:S.count-1}); $('cp').onclick=()=>send({t:'count',v:S.count+1});
+document.querySelectorAll('#dens button').forEach(b=>b.onclick=()=>send({t:'density',v:+b.dataset.d}));
+$('swA').onclick=()=>send({t:'active',v:'A'}); $('swB').onclick=()=>send({t:'active',v:'B'});
+$('val').oninput=e=>{$('valn').textContent=e.target.value; const c={}; c[S.active]={v:e.target.value/255}; send(Object.assign({t:'layer',i:S.sel},c));};
+function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
+ if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+ out[0]=r+m; out[1]=g+m; out[2]=b+m; return out;}
+const tmp=[0,0,0]; function css(c){hsv(c.h,c.s,c.v,tmp); return `rgb(${tmp.map(v=>Math.round(v*255)).join(',')})`;}
+const wheel=$('wheel'), wctx=wheel.getContext('2d'), mark=$('mark');
+(function drawWheel(){const W=150,c=W/2,img=wctx.createImageData(W,W),d=img.data,o=[0,0,0];
+ for(let y=0;y<W;y++)for(let x=0;x<W;x++){const dx=x-c+0.5,dy=y-c+0.5,rr=Math.hypot(dx,dy)/c; const i=(y*W+x)*4; if(rr>1){d[i+3]=0;continue;}
+  const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360; hsv(h,Math.min(1,rr),1,o); d[i]=o[0]*255;d[i+1]=o[1]*255;d[i+2]=o[2]*255;d[i+3]=rr>0.97?Math.round(255*(1-rr)/0.03):255;}
+ wctx.putImageData(img,0,0);})();
+let wdrag=false;
+function pick(e){if(!S)return; const rc=wheel.getBoundingClientRect(); const dx=e.clientX-rc.left-rc.width/2, dy=e.clientY-rc.top-rc.height/2;
+ const h=((Math.atan2(dy,dx)*180/Math.PI)+360)%360, s=Math.min(1,Math.hypot(dx,dy)/(rc.width/2)); const c={}; c[S.active]={h,s};
+ const Ly=S.layers[S.sel]; Object.assign(Ly[S.active],{h,s}); paintColour(); send(Object.assign({t:'layer',i:S.sel},c));}
+wheel.addEventListener('pointerdown',e=>{wdrag=true; wheel.setPointerCapture(e.pointerId); pick(e);});
+wheel.addEventListener('pointermove',e=>{if(wdrag)pick(e);});
+wheel.addEventListener('pointerup',()=>wdrag=false); wheel.addEventListener('pointercancel',()=>wdrag=false);
+function paintColour(){const Ly=S.layers[S.sel], c=Ly[S.active]; $('swAi').style.background=css(Ly.A); $('swBi').style.background=css(Ly.B);
+ const ang=c.h*Math.PI/180, r=c.s*75; mark.style.left=(75+Math.cos(ang)*r)+'px'; mark.style.top=(75+Math.sin(ang)*r)+'px'; mark.style.background=css({h:c.h,s:c.s,v:1});
+ $('val').value=Math.round(c.v*255); $('valn').textContent=$('val').value; $('swA').setAttribute('aria-pressed',S.active==='A'); $('swB').setAttribute('aria-pressed',S.active==='B');}
+function paint(){if(!S)return;
+ const an=$('anim'); if(an.options.length!==S.anims.length){an.innerHTML=S.anims.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');}
+ const Ly=S.layers[S.sel]; an.value=Ly.anim; $('spd').value=Math.round(Ly.speed*100); $('spdv').textContent=$('spd').value;
+ $('level').value=Math.round(S.level*100); $('levelv').textContent=$('level').value+'%';
+ $('house').value=Math.round(S.house*100); $('housev').textContent=$('house').value+'%';
+ $('fov').value=Math.round(S.fov); $('fovv').textContent=$('fov').value+'°'; $('noclip').checked=!!S.noclip; $('cn').value=S.count;
+ document.querySelectorAll('#dens button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.d===S.density));
+ const el=$('layers'); el.innerHTML=''; S.layers.forEach((L,k)=>{const row=document.createElement('div'); row.className='layer'+(k===S.sel?' sel':'');
+  row.innerHTML=`<input type="checkbox" ${L.on?'checked':''}><span class="n">${L.name}: ${L.anim}</span><select><option value="add">Add</option><option value="over">Over</option><option value="mul">Multiply</option></select><input type="range" min="0" max="100" value="${Math.round(L.opacity*100)}"><button>&times;</button>`;
+  const [chk,,sel,rng,del]=row.children; sel.value=L.blend;
+  row.onclick=()=>send({t:'sel',i:k});
+  chk.onclick=e=>{e.stopPropagation(); send({t:'layer',i:k,on:e.target.checked});};
+  sel.onclick=e=>e.stopPropagation(); sel.onchange=e=>send({t:'layer',i:k,blend:e.target.value});
+  rng.onpointerdown=e=>e.stopPropagation(); rng.onclick=e=>e.stopPropagation(); rng.oninput=e=>send({t:'layer',i:k,opacity:e.target.value/100});
+  del.onclick=e=>{e.stopPropagation(); send({t:'dellayer',i:k});};
+  el.appendChild(row);});
+ paintColour();}
+</script></body></html>
