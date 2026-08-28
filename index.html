@@ -97,6 +97,14 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div class="row"><label for="cn">Lights per column</label>
   <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom <input type="number" id="skipm" value="2" min="0" max="6" step="0.5" style="width:56px"> m (client option: strips start above reach)</label></div>
+ <div class="row"><label for="colhm">Column height, floor to shaft top</label>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+   <input type="range" id="colh" min="10" max="18" step="0.01" value="12.77" style="flex:1;min-width:140px">
+   <input type="number" id="colhm" min="6" max="30" step="0.01" value="12.77" style="width:84px"><span style="color:var(--dim);font-size:13px">m</span>
+   <button type="button" id="colhr" style="height:40px;padding:0 12px">Scanned</button>
+  </div>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="evenruns"> Cut every run to that length (the twelve shafts really differ by 143 mm; a drum does not)</label>
+  <div class="stat" id="colhstat" style="margin-top:8px"></div></div>
  <div class="row"><label>Pixel density (every strip is 60 LEDs/m)</label>
   <div class="seg" id="dens"><button type="button" data-d="60" aria-pressed="true">60 px/m<br><small>1 LED per pixel</small></button><button type="button" data-d="20" aria-pressed="false">12 V, 20 px/m<br><small>3 LEDs per pixel</small></button><button type="button" data-d="10" aria-pressed="false">24 V, 10 px/m<br><small>6 LEDs per pixel</small></button></div></div>
  <div class="row"><label>Animation layers (blended bottom to top; the controls below edit the selected one)</label>
@@ -334,9 +342,12 @@ new GLTFLoader().load('model.glb',g=>{
  // turned the canopy black. They render unlit; only the columns keep a lit gloss material.
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
   const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnMats.push(m); return m;} return photoMaterial(m); });
-  o.material=Array.isArray(o.material)?out:out[0]; });
+  o.material=Array.isArray(o.material)?out:out[0];
+  // every column is its own primitive (flat-column-N1 .. flat-column-S6), so the height lever can
+  // move the twelve shafts without touching the floor, the walls or the canopy
+  if(ms.some(m=>/column/i.test(m.name||''))){o.geometry.computeBoundingBox(); columnMeshes.push({mesh:o, baseY:o.geometry.boundingBox.min.y});} });
  g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
- scene.add(g.scene); bar.remove();},
+ scene.add(g.scene); applyColumnHeight(); bar.remove();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -351,7 +362,20 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip'};
+const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip', colH:0, evenRuns:false};
+// ---- column height. The scan measures its own columns (H0 below, 12.772 m floor to shaft top);
+// the 13 m in the quote is an estimate nobody has put a tape on yet. Setting a height here
+// stretches every column mesh AND every run about its own foot by the same factor, so the strip
+// stays on the shaft and the pixel count, the addresses, the metres and the watts are all
+// recomputed FROM the new geometry rather than adjusted after the fact. The footprint does not
+// move: this is a taller column, not a bigger hall.
+let H0=0;                    // the model's own mean column height, measured from runs.json
+const columnMeshes=[];       // {mesh, baseY} per column primitive, collected as the GLB loads
+const heightFactor=()=>state.colH&&H0?state.colH/H0:1;
+function applyColumnHeight(){const f=heightFactor();
+ // scaling a mesh scales it about the world origin, so the base is put back where it was
+ for(const c of columnMeshes){c.mesh.scale.y=f; c.mesh.position.y=c.baseY*(1-f); c.mesh.updateMatrixWorld(true);}
+ sceneDirty=true;}
 // a control change means the next frame must repaint the LEDs even if every layer is static
 let sceneDirty=true;
 const L=()=>state.layers[state.sel];
@@ -479,7 +503,15 @@ function rebuild(){
  const trim=r=>{const sk=state.skip; if(sk<=0)return r; const pts=r.points; let L=0; const cum=[0]; for(let i=1;i<pts.length;i++){L+=Math.hypot(...[0,1,2].map(k=>pts[i][k]-pts[i-1][k])); cum.push(L);}
   if(sk>=L-0.05)return null; let i=1; while(cum[i]<sk)i++; const f=(sk-cum[i-1])/(cum[i]-cum[i-1]); const p0=[0,1,2].map(k=>pts[i-1][k]+(pts[i][k]-pts[i-1][k])*f);
   return Object.assign({},r,{points:[p0,...pts.slice(i)]});};
- const runs=RUNS.runs.filter(r=>gaps.has(r.gap)).map(trim).filter(Boolean);
+ // the same stretch the columns get, about each run's own foot, so the strip stays on the shaft.
+ // Evenly cut, every run is brought to the set length instead, which is what comes off a drum:
+ // the shafts keep their measured 143 mm spread and the strips no longer inherit it, so a run
+ // length can actually be landed on a universe boundary.
+ const hf=heightFactor(), uni=state.evenRuns&&state.colH>0;
+ const stretch=r=>{const y0=r.points[0][1], rise=r.points[r.points.length-1][1]-y0;
+  const f=uni?state.colH/rise:hf; if(f===1)return r;
+  return Object.assign({},r,{points:r.points.map(p=>[p[0],y0+(p[1]-y0)*f,p[2]])});};
+ const runs=RUNS.runs.filter(r=>gaps.has(r.gap)).map(stretch).map(trim).filter(Boolean);
  const cols=RUNS.columns; const colX={}; for(const r of RUNS.runs){colX[r.column]=r.points[0][0];}
  const xs=Object.values(colX); const x0=Math.min(...xs), x1=Math.max(...xs);
  // count pixels
@@ -611,9 +643,14 @@ function rebuild(){
  sceneDirty=true;
  const emitTxt=neon?`${total.toLocaleString()} pixels at 10 px/m (70 LED/m in 100 mm cut units)`
   :`${total.toLocaleString()} LEDs at 60/m · ${pixels.toLocaleString()} pixels at ${state.density} px/m (${group} LED${group>1?'s':''} per pixel)`;
+ const hs=document.getElementById('colhstat');
+ if(hs&&H0){const set=state.colH||H0, d=100*(set/H0-1);
+  hs.textContent=`Set ${set.toFixed(2)} m ${state.evenRuns?'on every run':'on the mean'} · scanned ${H0.toFixed(3)} m (${d>=0?'+':''}${d.toFixed(2)}%) · mean run ${(metres/Math.max(1,runs.length)).toFixed(3)} m${state.skip>0?' after the '+state.skip+' m skip':''} · ${metres.toFixed(1)} m in total`;}
  document.getElementById('stat').textContent=`${runs.length} runs (${state.count} per column, 12 columns) · ${metres.toFixed(0)} m of ${neon?'neon':'strip'} · ${emitTxt} · ${(metres*(neon?SYSTEMS.neon.KB:W_WHITE_PER_M)/1000).toFixed(1)} kW at full white (the W die), supply sized ${(metres*sys.wAll/1000).toFixed(1)} kW all-on`;
 }
-fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j; rebuild();});
+fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j;
+ H0=j.runs.reduce((a,r)=>a+(r.points[r.points.length-1][1]-r.points[0][1]),0)/j.runs.length;
+ initHeight(); rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
 function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
@@ -822,7 +859,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}};
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+(state.system==='neon'?'neon-10':state.density)+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
@@ -858,6 +895,20 @@ function applySystemUI(){const neon=state.system==='neon';
  const dens=document.getElementById('dens'); if(dens&&dens.closest('.row'))dens.closest('.row').style.display=neon?'none':'';}
 document.querySelectorAll('#sysseg button').forEach(btn=>btn.onclick=()=>{state.system=btn.dataset.s; applySystemUI(); rebuild(); rcSync();});
 document.querySelectorAll('#dens button').forEach(btn=>btn.onclick=()=>{state.density=+btn.dataset.d; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild();});
+const colhEl=document.getElementById('colh'), colhmEl=document.getElementById('colhm');
+let hTimer=0;
+function initHeight(){colhEl.min=(H0-3).toFixed(2); colhEl.max=(H0+5).toFixed(2);
+ colhEl.value=colhmEl.value=H0.toFixed(2); state.colH=H0;
+ document.getElementById('colhr').textContent=`Scanned ${H0.toFixed(2)} m`;}
+function setColH(v,src){ if(!H0)return; v=Math.min(30,Math.max(6,+v||H0)); state.colH=v;
+ if(src!=='slider')colhEl.value=Math.min(+colhEl.max,Math.max(+colhEl.min,v));
+ if(src!=='num')colhmEl.value=v.toFixed(2);
+ applyColumnHeight();
+ clearTimeout(hTimer); hTimer=setTimeout(()=>{rebuild(); rcSync();},60);}
+document.getElementById('evenruns').onchange=e=>{state.evenRuns=e.target.checked; rebuild(); rcSync();};
+colhEl.oninput=e=>setColH(e.target.value,'slider');
+colhmEl.oninput=e=>setColH(e.target.value,'num');
+document.getElementById('colhr').onclick=()=>setColH(H0,'reset');
 document.getElementById('skip').onchange=e=>{state.skip=e.target.checked?+document.getElementById('skipm').value:0; rebuild();};
 document.getElementById('skipm').oninput=e=>{if(document.getElementById('skip').checked){state.skip=+e.target.value; rebuild();}};
 document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayers();};
@@ -971,7 +1022,7 @@ window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get 
 // applies what the phone sends: stick velocities, look deltas, and the same panel changes the
 // desktop controls make. After every change the PC sends the phone its whole state, so the phone
 // UI is a mirror, never a second copy.
-function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, cover:state.cover, diffuser:state.cover==='black', drive:state.drive, hud:state.hud, system:state.system, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
+function rcState(){return {layers:state.layers, sel:state.sel, active:state.active, count:state.count, density:state.density, skip:state.skip, colH:state.colH||H0, colH0:H0, evenRuns:state.evenRuns, cover:state.cover, diffuser:state.cover==='black', drive:state.drive, hud:state.hud, system:state.system, level:state.level, house:lit.house, fov:cam.fov, noclip, anims:Array.from(document.getElementById('anim').options).map(o=>[o.value,o.textContent]), gaps:GAPS};}
 function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()});}
 function rcApply(m){
  sceneDirty=true;
@@ -991,6 +1042,8 @@ function rcApply(m){
   case 'hud': state.hud=!!m.v; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); break;
   case 'system': state.system=m.v==='neon'?'neon':'strip'; applySystemUI(); rebuild(); break;
   case 'drive': state.drive=m.v==='rgbwmax'?'rgbwmax':'rgbw'; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===state.drive)); break;
+  case 'colh': setColH(m.v,'remote'); break;
+  case 'evenruns': state.evenRuns=!!m.v; document.getElementById('evenruns').checked=state.evenRuns; rebuild(); break;
   case 'skip': state.skip=Math.max(0,+m.v||0); document.getElementById('skip').checked=state.skip>0; if(state.skip>0)document.getElementById('skipm').value=state.skip; rebuild(); break;
   case 'density': state.density=+m.v; document.querySelectorAll('#dens button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.d===state.density)); rebuild(); break;
   case 'sel': state.sel=Math.max(0,Math.min(state.layers.length-1,+m.i|0)); paintUI(); break;
