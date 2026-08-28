@@ -2,8 +2,6 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NGV Hall v18</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
 :root{--bg:#0e0f11;--rule:#2a2d33;--ink:#e9e6df;--dim:#9a978f;--accent:#b9a887;--ok:#6fbf8a;--panel:#16181c}
@@ -535,9 +533,15 @@ function rcApply(m){
  }
  rcSync();
 }
-document.getElementById('remote').onclick=()=>{
+// the link libraries load on demand: a script in <head> blocks first paint for every visitor,
+// remote or not, and a phone that cannot reach the CDN sat on a white page (2026-08-28)
+const loadScript=src=>new Promise((ok,bad)=>{const e=document.createElement('script'); e.src=src; e.onload=ok; e.onerror=()=>bad(new Error('could not load '+src)); document.head.appendChild(e);});
+document.getElementById('remote').onclick=async()=>{
  const box=document.getElementById('qr'); box.hidden=false;
  if(rc.peer)return;
+ document.getElementById('qrstat').textContent='loading the link';
+ try{await Promise.all([loadScript('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'),loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js')]);}
+ catch(e){document.getElementById('qrstat').textContent=e.message; return;}
  const id='ngv-'+Math.random().toString(36).slice(2,8);
  const url=new URL('remote.html',location.href); url.searchParams.set('peer',id);
  document.getElementById('qrurl').textContent=url.href;

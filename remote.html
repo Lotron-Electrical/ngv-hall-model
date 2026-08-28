@@ -4,7 +4,7 @@
 <!-- The phone side of the remote. It never renders the hall: it is a controller for a PC page that
      does, joined by the peer id in the URL (the QR the PC shows). Everything it displays comes
      from the PC's `sync` message, so the two never disagree about what is on. -->
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root{--ink:#eee;--dim:#9a9a9a;--rule:#333;--accent:#c9b27c;--bg:#0b0b0b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -61,6 +61,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
  <div class="row"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="noclip"> Walk through walls (no-clip)</label></div>
 </div>
 <script>
+// runs after the deferred PeerJS script, so the page paints its status line before the library arrives
+window.addEventListener('DOMContentLoaded',()=>{
 const $=id=>document.getElementById(id);
 const peerId=new URLSearchParams(location.search).get('peer');
 let conn=null, S=null;
@@ -145,4 +147,5 @@ function paint(){if(!S)return;
   del.onclick=e=>{e.stopPropagation(); send({t:'dellayer',i:k});};
   el.appendChild(row);});
  paintColour();}
+});
 </script></body></html>
