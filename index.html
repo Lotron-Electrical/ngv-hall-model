@@ -155,6 +155,10 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div class="row"><label>Courtyard<button type="button" class="i" data-tip="A PROPOSAL, not a scan. The court beyond the glazed wall is drawn from reference photographs (proportions only: floor at hall level, stone walls, the glazed roof left open) and a rainbow Lotron mark stands where the yellow sculpture stands today. Nothing here is measured.">!</button></label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="court" checked> Lotron sculpture in the court</label>
   <label style="color:var(--dim);font-size:12px">Sculpture width <input type="range" id="logoh" min="6" max="30" step="0.5" value="22"> <span id="logohval">22</span> m</label></div>
+ <div class="row"><label>Event<button type="button" class="i" data-tip="The hall as the client runs it on an event night: a stage against the wall opposite the glass with the projector screen above it, and the room set STANDING (about a thousand people) or DINNER (round tables of ten). Confetti falls from the ceiling. All of it is a proposal layer; sizes are typical, not measured.">!</button></label>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="event"> Event on</label>
+  <select id="eventmode" style="min-width:120px"><option value="standing">Standing, ~1,000</option><option value="dinner">Dinner, tables of 10</option></select>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="confetti" checked> Confetti</label></div>
  <div class="row"><label for="tod">Time of day<button type="button" class="i" data-tip="Daylight comes down through the polycarbonate roof over the canopy void and lights the stained glass from above, and in through the glazed wall (the direct beam in the morning, with its rays and dust). At night the sky is black and the house lights carry the room. The photographs on the walls were shot by day, so daylight LIFTS them; night is the house lights and the LEDs alone. No sun position or shadows: this is diffuse daylight, a proposal aid, not a lighting calculation.">!</button></label>
   <input type="range" id="tod" min="0" max="24" step="0.25" value="21" style="flex:1;min-width:140px"><span id="todval" style="color:var(--dim);font-size:13px">21:00</span>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cycle"> Cycle</label></div>
@@ -346,7 +350,7 @@ function applyDay(hour){
  for(const m of photoMats){m.uniforms.day.value=lit.day; m.uniformsNeedUpdate=true;}
  scene.background=SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
  if(typeof updateBeams==='function')updateBeams(hour);
- if(typeof court!=='undefined'&&court)court.traverse(o=>{ if(o.isMesh&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
+ for(const grp of [typeof court!=='undefined'?court:null, typeof eventGroup!=='undefined'?eventGroup:null]) if(grp)grp.traverse(o=>{ if(o.isMesh&&o.material.userData&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
  sceneDirty=true;
 }
 function photoMaterial(src){
@@ -1284,6 +1288,90 @@ buildCourt();
 // lives inside those prisms, drifting. Both scale with beamOf(hour): nothing at night, nothing
 // when the sun is behind the wall. The legs come from the GLB (glazing-south-glass-*), so this is
 // built when the model has loaded.
+// THE EVENT (Lloyd, 2026-08-31): "they have a stage that they put up on the wall opposite the
+// glass wall and they have a projector screen that goes above the stage as well on that wall.
+// also during events they have confetti that comes down from the ceiling. sometimes they fit
+// about a thousand people standing or they would have an event like a dinner with round tables
+// that seat about 10 people per table." A viewer layer: stage + screen on wall-north, a standing
+// crowd or dinner rounds on the hall floor, confetti from the canopy. Typical sizes, not measured.
+const EVENT={N:{origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new THREE.Vector3(0.975681,0,0.219196), inRoom:new THREE.Vector3(0.219186,0,-0.975639)},
+ wallLen:48.9, stageW:12, stageD:4, stageH:0.6, screenW:8, screenH:4.5};
+let eventGroup=null, confetti=null, confettiMat=null;
+function eventMat(night,day){ const m=new THREE.MeshBasicMaterial({color:night}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); return m; }
+function eventPoint(u,y,d){ return EVENT.N.origin.clone().addScaledVector(EVENT.N.u,u).addScaledVector(EVENT.N.inRoom,d).setY(y); }
+function buildEvent(){
+ if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}
+ if(!document.getElementById('event').checked){sceneDirty=true; return;}
+ eventGroup=new THREE.Group(); const y0=FLOOR_Y||EVENT.N.origin.y, uMid=EVENT.wallLen/2;
+ const basis=new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate());
+ // stage: a black riser against the wall, and the screen on the wall above it
+ const stage=new THREE.Mesh(new THREE.BoxGeometry(EVENT.stageW,EVENT.stageH,EVENT.stageD),eventMat(0x141414,0x2a2a2a));
+ stage.position.copy(eventPoint(uMid,y0+EVENT.stageH/2,EVENT.stageD/2+0.1)); stage.quaternion.setFromRotationMatrix(basis);
+ eventGroup.add(stage); solids.push(stage);
+ const screen=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW,EVENT.screenH),new THREE.MeshBasicMaterial({color:0xe8e8e6,toneMapped:false}));
+ screen.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.15)); screen.quaternion.setFromRotationMatrix(basis);
+ eventGroup.add(screen);
+ // the floor the guests can use: inside the hall, clear of the stage front and the glazed wall
+ const mode=document.getElementById('eventmode').value;
+ const uLo=3, uHi=EVENT.wallLen-3, dLo=EVENT.stageD+2.5, dHi=14.5;
+ const rnd=(a,b)=>a+Math.random()*(b-a);
+ if(mode==='standing'){
+  // ~1,000 people: body capsules + heads, two instanced meshes, muted colours, all facing the stage
+  const n=1000, body=new THREE.CapsuleGeometry(0.16,1.05,3,8), head=new THREE.SphereGeometry(0.11,8,6);
+  const bm=new THREE.InstancedMesh(body,new THREE.MeshBasicMaterial(),n), hm=new THREE.InstancedMesh(head,new THREE.MeshBasicMaterial({color:0xc9a688}),n);
+  const M=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0), c=new THREE.Color();
+  for(let i=0;i<n;i++){
+   const pos=eventPoint(rnd(uLo,uHi),0,rnd(dLo,dHi)); const sc=rnd(0.92,1.08);
+   q.setFromAxisAngle(up,rnd(-0.4,0.4)); M.compose(new THREE.Vector3(pos.x,y0+0.78*sc,pos.z),q,new THREE.Vector3(sc,sc,sc)); bm.setMatrixAt(i,M);
+   M.compose(new THREE.Vector3(pos.x,y0+1.62*sc,pos.z),q,new THREE.Vector3(sc,sc,sc)); hm.setMatrixAt(i,M);
+   bm.setColorAt(i,c.setHSL(rnd(0,1),rnd(0.1,0.45),rnd(0.06,0.28),THREE.SRGBColorSpace));
+  }
+  bm.instanceColor.needsUpdate=true; eventGroup.add(bm,hm);
+ } else {
+  // dinner: rounds of ten, 1.8 m tops, chairs and seated guests around each
+  const rows=4, cols=10, tops=[], legs=[], cloth=eventMat(0xe9e6df,0xf4f2ec);
+  const tableG=new THREE.CylinderGeometry(0.9,0.9,0.04,24), legG=new THREE.CylinderGeometry(0.06,0.08,0.72,8);
+  const chairG=new THREE.BoxGeometry(0.42,0.5,0.42), guestG=new THREE.CapsuleGeometry(0.15,0.55,3,8), headG=new THREE.SphereGeometry(0.11,8,6);
+  const nT=rows*cols, tm=new THREE.InstancedMesh(tableG,cloth,nT), lm=new THREE.InstancedMesh(legG,eventMat(0x4a4a4a,0x6a6a6a),nT);
+  const cm=new THREE.InstancedMesh(chairG,eventMat(0x2e2b28,0x4e4a46),nT*10), gm=new THREE.InstancedMesh(guestG,new THREE.MeshBasicMaterial(),nT*10), hm2=new THREE.InstancedMesh(headG,new THREE.MeshBasicMaterial({color:0xc9a688}),nT*10);
+  const M=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0), c=new THREE.Color(); let k=0;
+  for(let r=0;r<rows;r++)for(let cix=0;cix<cols;cix++){
+   const i=r*cols+cix, u=uLo+2+(uHi-uLo-4)*(cix/(cols-1)), d=dLo+1.5+(dHi-dLo-3)*(r/(rows-1));
+   const pos=eventPoint(u,0,d);
+   M.compose(new THREE.Vector3(pos.x,y0+0.74,pos.z),q.identity(),new THREE.Vector3(1,1,1)); tm.setMatrixAt(i,M);
+   M.compose(new THREE.Vector3(pos.x,y0+0.36,pos.z),q,new THREE.Vector3(1,1,1)); lm.setMatrixAt(i,M);
+   for(let sIdx=0;sIdx<10;sIdx++){
+    const a=sIdx/10*Math.PI*2, cx=pos.x+Math.cos(a)*1.25, cz=pos.z+Math.sin(a)*1.25;
+    q.setFromAxisAngle(up,-a+Math.PI/2);
+    M.compose(new THREE.Vector3(cx,y0+0.25,cz),q,new THREE.Vector3(1,1,1)); cm.setMatrixAt(k,M);
+    M.compose(new THREE.Vector3(cx,y0+0.72,cz),q,new THREE.Vector3(1,1,1)); gm.setMatrixAt(k,M);
+    M.compose(new THREE.Vector3(cx,y0+1.18,cz),q,new THREE.Vector3(1,1,1)); hm2.setMatrixAt(k,M);
+    gm.setColorAt(k,c.setHSL(Math.random(),0.25,0.18,THREE.SRGBColorSpace)); k++;
+   }
+  }
+  gm.instanceColor.needsUpdate=true; eventGroup.add(tm,lm,cm,gm,hm2);
+ }
+ scene.add(eventGroup);
+ // confetti: a slow rain from the canopy over the whole hall, looping; colours per piece
+ if(document.getElementById('confetti').checked){
+  const n=5000, pos=new Float32Array(n*3), seed=new Float32Array(n*3), col=new Float32Array(n*3); const c=new THREE.Color();
+  for(let i=0;i<n;i++){ const pt=eventPoint(rnd(uLo,uHi),0,rnd(1.5,dHi));
+   pos.set([pt.x,0,pt.z],i*3); seed.set([Math.random(),Math.random(),Math.random()],i*3);
+   c.setHSL(Math.random(),0.85,0.6); col.set([c.r,c.g,c.b],i*3); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  confettiMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},top:{value:y0+11.5},floorY:{value:y0}},
+   vertexShader:'uniform float t,top,floorY; attribute vec3 seed; varying vec3 vC;\n'+
+    'void main(){float h=top-floorY; float y=top-fract(seed.x+t*0.05*(0.6+seed.y))*h; vec3 p=vec3(position.x+0.6*sin(t*0.7+seed.z*6.2831+y*0.8),y,position.z+0.6*cos(t*0.6+seed.x*6.2831+y*0.7));\n'+
+    ' vC=color; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(110.0/max(-mv.z,1.0),2.0,7.0); gl_Position=projectionMatrix*mv;}',
+   fragmentShader:'varying vec3 vC; void main(){vec2 d=gl_PointCoord-0.5; if(abs(d.x)+abs(d.y)>0.5)discard; gl_FragColor=vec4(vC,1.0);}',
+   vertexColors:true});
+  confetti=new THREE.Points(g,confettiMat); confetti.frustumCulled=false; scene.add(confetti);
+ }
+ applyDay(+document.getElementById('tod').value); sceneDirty=true;
+}
+document.getElementById('event').onchange=buildEvent;
+document.getElementById('eventmode').onchange=buildEvent;
+document.getElementById('confetti').onchange=buildEvent;
 let beams=null, beamMats=[], dust=null, dustMat=null, beamLegs=null;
 function collectLegs(){ const legs=[]; if(!hallGroup)return legs;
  hallGroup.traverse(o=>{ if(!o.isMesh)return; const nm=[].concat(o.material).map(m=>m.name||'').join(' ');
@@ -1346,7 +1434,7 @@ document.getElementById('cycle').onchange=e=>{cycleOn=e.target.checked;};
 document.getElementById('court').onchange=e=>{court.visible=e.target.checked; sceneDirty=true;};
 document.getElementById('logoh').oninput=e=>{document.getElementById('logohval').textContent=e.target.value; buildCourt();};
 let last=performance.now();
-function frame(now){ if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
+function frame(now){ if(confettiMat)confettiMat.uniforms.t.value=now/1000; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
