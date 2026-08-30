@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NGV Hall v26</title>
+<title>NGV Hall v27</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
@@ -95,7 +95,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 .layer input[type=range]{width:90px}
 .layer button{background:none;border:0;color:inherit;font-size:16px;cursor:pointer}
 </style></head><body><main>
-<header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v26</h1></header>
+<header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v27</h1></header>
 <div id="stage"><canvas id="cv"></canvas>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
@@ -152,6 +152,12 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div class="row"><label>Camera</label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="collide" checked> Collision<button type="button" class="i" data-tip="On, the floor, the walls, the glass and the columns are solid. Turn it off to fly through them.">!</button></label>
   <label style="color:var(--dim);font-size:12px">Field of view <input type="range" id="fov" min="40" max="110" value="65"> <span id="fovval">65</span>&deg;</label></div>
+ <div class="row"><label>Courtyard<button type="button" class="i" data-tip="A PROPOSAL, not a scan. The court beyond the glazed wall is drawn from reference photographs (proportions only: floor at hall level, stone walls, the glazed roof left open) and a rainbow Lotron mark stands where the yellow sculpture stands today. Nothing here is measured.">!</button></label>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="court" checked> Lotron sculpture in the court</label>
+  <label style="color:var(--dim);font-size:12px">Sculpture width <input type="range" id="logoh" min="6" max="30" step="0.5" value="22"> <span id="logohval">22</span> m</label></div>
+ <div class="row"><label for="tod">Time of day<button type="button" class="i" data-tip="Daylight comes down through the polycarbonate roof over the canopy void and lights the stained glass from above, and in through the glazed wall (the direct beam in the morning, with its rays and dust). At night the sky is black and the house lights carry the room. The photographs on the walls were shot by day, so daylight LIFTS them; night is the house lights and the LEDs alone. No sun position or shadows: this is diffuse daylight, a proposal aid, not a lighting calculation.">!</button></label>
+  <input type="range" id="tod" min="0" max="24" step="0.25" value="21" style="flex:1;min-width:140px"><span id="todval" style="color:var(--dim);font-size:13px">21:00</span>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cycle"> Cycle</label></div>
  <div class="row"><label for="house">House lights</label>
   <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
  <div class="stat" id="stat"></div>
@@ -188,6 +194,9 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 const cv=document.getElementById('cv'), stage=document.getElementById('stage'), bar=document.getElementById('bar'), hint=document.getElementById('hint');
 const COARSE=matchMedia('(pointer: coarse)').matches;
 hint.innerHTML = COARSE
@@ -291,15 +300,65 @@ const lightPos=new Float32Array(MAX_LIGHTS*4), lightCol=new Float32Array(MAX_LIG
 // a lump at the band's centre, and the vertical wash up a wall is continuous the way 73k real
 // point sources make it.
 // lightCol.w carries the segment height: see the uniform-budget note by the shader below
-const lit={house:1, nLights:0};
+const lit={house:1, nLights:0,day:0};
 const photoMats=[], columnMats=[];
+// DAYLIGHT, per surface. The canopy and the glazed wall are backlit by the sky, so they gain most;
+// the walls and floor were photographed by day and gain a diffuse lift. Numbers are looks, not lux.
+function dayGainOf(name){
+ if(/ceiling-glass/i.test(name))return 2.4;
+ if(/glazing-south-glass/i.test(name))return 1.8;
+ if(/glazing-south/i.test(name))return 1.2;
+ if(/floor/i.test(name))return 0.8;
+ return 1.0;
+}
+const SKY_NIGHT=new THREE.Color(0x000000), SKY_DAY=new THREE.Color(0x9fb4c8);
+// THE SUN. Lloyd, 2026-08-30: "that glass wall is facing North East East (70-80% East)", read as
+// the glazed face's outward normal bearing 070. In model coordinates that outward normal is the
+// negative of wall-south's plane normal, (0.219, 0, -0.976), which fixes the compass: a bearing b
+// is that vector turned by (70 - b) degrees about +y. Melbourne, -37.81 latitude; the date is
+// today's, so the path is the real path for the day the page is opened. Diffuse daylight follows
+// the sun's altitude; the direct beam comes through the glass when the sun is on its outward
+// side, and that is what the god rays and the dust are drawn from.
+const COMPASS={out:new THREE.Vector3(0.219186,0,-0.975639).normalize(), bearingOfOut:70, lat:-37.81, lon:144.97};
+function dirForBearing(b){ const a=(COMPASS.bearingOfOut-b)*Math.PI/180, o=COMPASS.out;
+ return new THREE.Vector3(o.x*Math.cos(a)+o.z*Math.sin(a), 0, -o.x*Math.sin(a)+o.z*Math.cos(a)); }
+function sunAt(hour){ // local clock hour (AEST, no DST correction) -> {alt, az} radians, az from north clockwise
+ const d=new Date(), n=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);
+ const decl=23.44*Math.PI/180*Math.sin(2*Math.PI*(284+n)/365);
+ const B=2*Math.PI*(n-81)/364, eot=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B); // minutes
+ const solar=hour+(4*(COMPASS.lon-150)+eot)/60, H=(solar-12)*15*Math.PI/180, lat=COMPASS.lat*Math.PI/180;
+ const alt=Math.asin(Math.sin(lat)*Math.sin(decl)+Math.cos(lat)*Math.cos(decl)*Math.cos(H));
+ let az=Math.acos(Math.max(-1,Math.min(1,(Math.sin(decl)-Math.sin(alt)*Math.sin(lat))/(Math.cos(alt)*Math.cos(lat))))); if(H>0)az=2*Math.PI-az;
+ return {alt,az};
+}
+function sunVector(hour){ const {alt,az}=sunAt(hour); const h=dirForBearing(az*180/Math.PI); // toward the sun
+ return {v:new THREE.Vector3(h.x*Math.cos(alt),Math.sin(alt),h.z*Math.cos(alt)), alt}; }
+function daylightOf(hour){ const {alt}=sunAt(hour); return alt<=0?0:Math.min(1,Math.sin(alt)*2.2); }
+function beamOf(hour){ // how much direct sun enters the glazed wall, 0..1
+ const {v,alt}=sunVector(hour); if(alt<=0)return {beam:0,v}; const facing=v.dot(COMPASS.out);
+ return {beam:facing<=0?0:Math.min(1,facing*Math.min(1,Math.sin(alt)*3)), v}; }
+let cycleOn=false;
+function applyDay(hour){
+ lit.day=daylightOf(hour);
+ const el=document.getElementById('tod'); if(el&&+el.value!==hour)el.value=hour;
+ const hh=Math.floor(hour)%24, mm=Math.round((hour%1)*60);
+ document.getElementById('todval').textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+ for(const m of photoMats){m.uniforms.day.value=lit.day; m.uniformsNeedUpdate=true;}
+ scene.background=SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
+ if(typeof updateBeams==='function')updateBeams(hour);
+ if(typeof court!=='undefined'&&court)court.traverse(o=>{ if(o.isMesh&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
+ sceneDirty=true;
+}
 function photoMaterial(src){
  const m=new THREE.ShaderMaterial({
-  uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},house:{value:1},ambient:{value:AMBIENT},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
+  // the bake's glTF carries alpha on the material factor (declared glass ships BLEND at 0.35);
+  // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
+  // every pane is an opaque panel, which is what v26 shipped
+  uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex}},
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
    void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
-  fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain; uniform int nLights;
+  fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
@@ -309,7 +368,7 @@ function photoMaterial(src){
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
-    vec3 E=vec3(house+ambient);
+    vec3 E=vec3(house+ambient+day*dayGain);
     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
      // closed-form diffuse integral of a vertical line of point sources: lightPos.xyz is the
      // segment's foot, lightCol.w its height. F(t) integrates N.(v+t*up)/|v+t*up|^3; the light's
@@ -331,11 +390,11 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    gl_FragColor=vec4(albedo*E,1.0);
+    gl_FragColor=vec4(albedo*E,alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
-  side:THREE.DoubleSide});
+  side:THREE.DoubleSide,transparent:!!src.transparent,depthWrite:!src.transparent});
  m.name=src.name; photoMats.push(m); return m;
 }
 const cam=new THREE.PerspectiveCamera(65,1,0.05,400);
@@ -366,7 +425,7 @@ new GLTFLoader().load('model.glb',g=>{
  g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
  // the canopy underside, reported next to the height so a set value can be sanity-checked
  CEIL_Y=Math.min(...solids.filter(o=>/ceiling/i.test(([].concat(o.material))[0].name||'')).map(o=>o.geometry.boundingBox.min.y));
- hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove();},
+ hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -810,7 +869,7 @@ ${f(room)} lm into the hall (${passTxt})`;
   lightCol[nl*4]=r*scale; lightCol[nl*4+1]=g*scale; lightCol[nl*4+2]=b*scale; nl++; }
  lit.nLights=nl;
  for(const m of photoMats){m.uniforms.house.value=lit.house; m.uniforms.nLights.value=nl; m.uniformsNeedUpdate=true;}
- hemi.intensity=0.9*(lit.house+AMBIENT); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT;
+ hemi.intensity=0.9*(lit.house+AMBIENT+lit.day); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT+lit.day;
  if(!skipStatic){pix.instanceColor.needsUpdate=true; if(glow)glow.geometry.attributes.color.needsUpdate=true;}
 }
 // ---- pixel map. Strips become controller outputs in a chosen order; each output starts on a
@@ -1128,8 +1187,168 @@ document.getElementById('remote').onclick=async()=>{
   c.on('close',()=>{rc.mv={f:0,r:0,u:0}; document.getElementById('rcbadge').hidden=true; document.getElementById('qrstat').textContent='phone disconnected, scan again'; rc.conn=null;});});
 };
 document.getElementById('qrclose').onclick=()=>{document.getElementById('qr').hidden=true;};
+// ---- THE COURT BEYOND THE GLASS, AND THE LOTRON MARK IN IT. Lloyd, 2026-08-30: "right now they
+// have this yellow sculpture out there in the main courtyard. But I think it would be better if
+// there was a big 3D sculpture of the Lotron Logo in rainbow animation". Nothing beyond the glass
+// is scanned; the court is PROPORTIONS from his reference photographs and every number here is an
+// assumption, named as such. It is a viewer layer like the LED runs: the bake is untouched.
+//
+// Frame: wall-south's own plane from hall-surfaces.json (origin, u along the wall, n into the
+// hall). The glazed span is u 23.72..39.33 (glazing.json), so the court is centred on u 31.5 and
+// extends AWAY from the hall along -n. The court floor is the wall's own origin height, which is
+// the hall floor at that wall: the photographs show one level through the glass.
+const COURT={
+ origin:new THREE.Vector3(-56.792652,-1.319472,-13.203698),
+ u:new THREE.Vector3(0.975681,0,0.219196), n:new THREE.Vector3(-0.219186,0,0.975639),
+ uMid:31.5, width:60, depth:44, wallH:12.2, glassOut:1.6,        // metres; Lloyd 2026-08-30: "the courtyard is an open space, there are no walls cutting across it", so only the paving is drawn
+ plinthR:9, plinthH:0.15, logoZ:16,                              // the sculpture's stand, mid-court
+};
+// the Lotron logo, traced from Lloyd's PNG (tools/lotron-logo.png, 7478 x 4405, y down) by
+// tools/trace-logo (cv2 contours): LOTRON in rainbow bands over ELECTRICAL in white.
+const LOGO={"lotron": "M1819,1482 L1817,1539 L1817,2116 L1820,2123 L1827,2126 L2637,2126 L2644,2123 L2647,2117 L2647,1485 L2642,1478 L1826,1477ZM2102,1653 L2363,1654 L2362,1950 L2101,1949ZM5628,1479 L5625,1487 L5626,2116 L5631,2124 L5902,2125 L5906,2123 L5910,2115 L5911,1861 L6181,2124 L6448,2125 L6454,2121 L6456,2115 L6456,1487 L6453,1479 L6445,1476 L6182,1476 L6175,1479 L6172,1486 L6171,1740 L6156,1728 L5900,1477 L5636,1476ZM4665,1479 L4662,1487 L4661,2115 L4665,2123 L4669,2125 L5484,2125 L5489,2122 L5491,2118 L5491,1484 L5488,1479 L5481,1476 L4673,1476ZM4946,1653 L5208,1654 L5207,1949 L4945,1948ZM3699,1480 L3697,1484 L3698,2118 L3701,2123 L3705,2125 L3976,2124 L3981,2117 L3982,1907 L4098,1907 L4247,2124 L4518,2125 L4524,2122 L4526,2111 L4393,1908 L4519,1907 L4527,1901 L4528,1487 L4525,1479 L4517,1476 L3707,1476ZM3981,1654 L4243,1653 L4244,1730 L3982,1731ZM3560,1479 L3552,1476 L2823,1481 L2764,1482 L2758,1485 L2755,1492 L2756,1643 L2762,1652 L3020,1654 L3020,2117 L3025,2124 L3296,2125 L3302,2121 L3304,2115 L3304,1654 L3553,1653 L3560,1650 L3563,1643 L3563,1487ZM924,1479 L921,1485 L921,2117 L926,2124 L1701,2125 L1707,2121 L1709,2116 L1709,1959 L1703,1950 L1205,1949 L1204,1484 L1202,1480 L1194,1476 L931,1476Z", "electrical": "M5952,2417 L5953,2813 L6436,2813 L6436,2715 L6120,2715 L6119,2417ZM5345,2417 L5345,2813 L5511,2813 L5512,2686 L5689,2686 L5690,2813 L5856,2812 L5855,2417ZM5511,2516 L5689,2515 L5690,2587 L5512,2588ZM4738,2417 L4739,2813 L5247,2813 L5247,2715 L4905,2714 L4906,2515 L5247,2515 L5247,2417ZM4474,2417 L4475,2813 L4641,2813 L4641,2417ZM3866,2417 L3867,2813 L4032,2813 L4033,2675 L4116,2675 L4210,2813 L4376,2813 L4287,2676 L4377,2675 L4377,2417ZM4032,2516 L4210,2515 L4211,2577 L4034,2578 L4032,2576ZM3794,2417 L3299,2420 L3299,2515 L3465,2516 L3466,2813 L3631,2813 L3631,2516 L3794,2515ZM2698,2417 L2699,2813 L3207,2813 L3207,2715 L2865,2714 L2866,2515 L3207,2515 L3207,2417ZM2090,2417 L2091,2813 L2601,2812 L2600,2715 L2256,2714 L2257,2664 L2600,2664 L2600,2566 L2257,2566 L2256,2516 L2601,2515 L2601,2417ZM1530,2417 L1530,2813 L2014,2813 L2013,2715 L1697,2715 L1696,2417ZM922,2417 L922,2813 L1432,2813 L1432,2715 L1088,2714 L1089,2664 L1432,2664 L1432,2566 L1088,2565 L1089,2515 L1432,2515 L1432,2417Z", "lotron_box": [921, 1476, 6456, 2126], "electrical_box": [922, 2417, 6436, 2813]};
+const LOTRON_PATH_UNUSED='M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z';
+let court=null, logo=null, logoMat=null, tag=null;
+function courtPoint(u,y,z){ // u along the wall from its origin, z metres beyond the glass line, y absolute
+ return COURT.origin.clone().addScaledVector(COURT.u,u).addScaledVector(COURT.n,-(COURT.glassOut+z)).setY(y);
+}
+function buildCourt(){
+ if(court){scene.remove(court); court=null;}
+ court=new THREE.Group(); const y0=COURT.origin.y;
+ const basis=new THREE.Matrix4().makeBasis(COURT.u.clone(), new THREE.Vector3(0,1,0), COURT.n.clone().negate());
+ const place=(mesh,u,y,z)=>{mesh.position.copy(courtPoint(u,y,z)); mesh.quaternion.setFromRotationMatrix(basis); court.add(mesh); solids.push(mesh); return mesh;};
+ const dn=(night,day,extra={})=>{const m=new THREE.MeshBasicMaterial({color:night,...extra}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); return m;};
+ const stone=dn(0x4a4844,0xa8a29a), paving=dn(0x5a5852,0xbdb8b0);
+ // the paving only: no walls (Lloyd), no roof; the sky is the viewer background
+ // the paving starts at the glass line and sits 12 cm under the wall's floor height: the hall's
+ // own floor is tilted a few centimetres either way, and a paving plane at the same height poked
+ // through it as a grey strip of carpet along the glazed wall (Lloyd spotted it, 2026-08-31)
+ place(new THREE.Mesh(new THREE.PlaneGeometry(COURT.width,COURT.depth).rotateX(-Math.PI/2),paving), COURT.uMid, y0-0.12, COURT.depth/2);
+ // and a dark interior behind the north wall's arcade openings: galleries, never sky
+ {const N={origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new THREE.Vector3(0.975681,0,0.219196), out:new THREE.Vector3(-0.219186,0,0.975639)};
+  const back=new THREE.Mesh(new THREE.PlaneGeometry(60,16),dn(0x0b0b0b,0x2a2826,{side:THREE.DoubleSide}));
+  back.position.copy(N.origin).addScaledVector(N.u,24.5).addScaledVector(N.out,1.2).setY(N.origin.y+6.5);
+  back.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(N.u.clone(),new THREE.Vector3(0,1,0),N.out.clone()));
+  court.add(back);}
+ // the plinth: the pale disc the present sculpture stands on (photo 1), same place, same idea
+ place(new THREE.Mesh(new THREE.CylinderGeometry(COURT.plinthR,COURT.plinthR,COURT.plinthH,64),dn(0x9a9893,0xe2dfd8)), COURT.uMid, y0+COURT.plinthH/2, COURT.logoZ);
+ // the logo: both words extruded as one sculpture, standing on the plinth, face-on to the hall.
+ // The slider is the WIDTH of LOTRON; the letters, the gap and ELECTRICAL keep the PNG's proportions.
+ const W=parseFloat(document.getElementById('logoh').value);
+ const [lx0,ly0,lx1,ly1]=LOGO.lotron_box, [ex0,ey0,ex1,ey1]=LOGO.electrical_box;
+ const sc=W/(lx1-lx0), depth=Math.max(0.6,W*0.05);
+ const svg=(dstr)=>`<svg xmlns="http://www.w3.org/2000/svg"><path d="${dstr}" fill-rule="evenodd"/></svg>`;
+ const build=(dstr)=>{ const shapes=SVGLoader.createShapes(new SVGLoader().parse(svg(dstr)).paths[0]);
+  const g=new THREE.ExtrudeGeometry(shapes,{depth:depth/sc,bevelEnabled:true,bevelThickness:6,bevelSize:6,bevelSegments:2,curveSegments:4});
+  g.scale(sc,-sc,sc); g.computeVertexNormals(); return g; };
+ // shared origin: the PNG's LOTRON box centre at x, its bottom line of ELECTRICAL at the plinth
+ const cx=(lx0+lx1)/2, baseY=ey1;
+ const gL=build(LOGO.lotron), gE=build(LOGO.electrical);
+ for(const g of [gL,gE]){ g.translate(-cx*sc, baseY*sc, -depth/2); }
+ const H=(ly1-ly0)*sc, top=(baseY-ly0)*sc, bottom=(baseY-ly1)*sc;
+ logoMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},y0:{value:bottom},y1:{value:top}},
+  vertexShader:`varying vec3 vP; varying vec3 vN; void main(){vP=position; vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  // the PNG's seven horizontal bands, red at the top to violet at the bottom, with the dark rule
+  // between them, scrolling slowly downwards; a little shading from the normal so the bevels read
+  fragmentShader:`uniform float t,y0,y1; varying vec3 vP; varying vec3 vN;
+   vec3 band(int i){ if(i==0)return vec3(0.93,0.11,0.14); if(i==1)return vec3(0.96,0.48,0.13); if(i==2)return vec3(0.98,0.93,0.15);
+    if(i==3)return vec3(0.16,0.72,0.28); if(i==4)return vec3(0.16,0.82,0.93); if(i==5)return vec3(0.25,0.32,0.75); return vec3(0.68,0.22,0.85); }
+   void main(){ float u=fract((y1-vP.y)/(y1-y0)+t*0.12); float f=u*7.0; int i=int(floor(f)); float w=fract(f);
+    float rule=smoothstep(0.0,0.12,w)*smoothstep(1.0,0.88,w); vec3 c=band(i)*(0.25+0.75*rule); float sh=0.7+0.3*abs(vN.z);
+    // written straight to the sRGB framebuffer: the band colours are the PNG's own sRGB values
+    gl_FragColor=vec4(c*sh,1.0);
+   }`, toneMapped:false});
+ const whiteMat=new THREE.MeshBasicMaterial({color:0xf4f4f2});
+ logo=new THREE.Group(); logo.add(new THREE.Mesh(gL,logoMat)); logo.add(new THREE.Mesh(gE,whiteMat));
+ // the line above the logo. Lloyd, 2026-08-31: "Brought to light by is perfect". Same white as
+ // ELECTRICAL, a plain bold face, cap height about a third of LOTRON's, sitting one gap above it.
+ // It HOVERS above the sculpture and GLOWS (Lloyd): a bright white face with a soft additive halo
+ // (the same letters, slightly inflated, blended in), bobbing gently in frame().
+ const tagSize=H*0.34, tagY=top+H*1.1;
+ const addTag=(font)=>{ if(!logo)return; const tg=new TextGeometry('BROUGHT TO LIGHT BY',{font,size:tagSize,height:depth*0.4,curveSegments:3,bevelEnabled:false});
+  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2, -(b.min.y+b.max.y)/2, -depth*0.2); tg.computeVertexNormals();
+  const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+  const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xfff6dc,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  halo.scale.set(1.06,1.18,1.6); const halo2=halo.clone(); halo2.scale.set(1.14,1.4,2.4); halo2.material=halo.material.clone(); halo2.material.opacity=0.1;
+  // in the court group, not the logo group: it faces the glass and does not turn with the letters (Lloyd)
+  tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(logo.position).y+=tagY; tag.quaternion.copy(logo.quaternion); tag.userData.baseY=tag.position.y; court.add(tag); };
+ logo.position.copy(courtPoint(COURT.uMid,y0+COURT.plinthH,COURT.logoZ)); logo.quaternion.setFromRotationMatrix(basis); court.add(logo);
+ if(buildCourt.font)addTag(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addTag(f);});
+ for(const m of logo.children)solids.push(m);
+ court.visible=document.getElementById('court').checked;
+ scene.add(court);
+}
+buildCourt();
+// GOD RAYS AND DUST. Lloyd, 2026-08-30: "the sun would come beaming in, in the morning with some
+// sun/god rays which would light up any floating dust particles in the room". Each glass leg is
+// swept along the beam into the hall as a translucent additive prism, and a cloud of dust sprites
+// lives inside those prisms, drifting. Both scale with beamOf(hour): nothing at night, nothing
+// when the sun is behind the wall. The legs come from the GLB (glazing-south-glass-*), so this is
+// built when the model has loaded.
+let beams=null, beamMats=[], dust=null, dustMat=null, beamLegs=null;
+function collectLegs(){ const legs=[]; if(!hallGroup)return legs;
+ hallGroup.traverse(o=>{ if(!o.isMesh)return; const nm=[].concat(o.material).map(m=>m.name||'').join(' ');
+  if(!/glazing-south-glass/i.test(nm))return;
+  const pos=o.geometry.attributes.position; o.updateWorldMatrix(true,false);
+  // the pack writes unindexed triangles (6 vertices per quad), so a leg is its 4 distinct corners
+  const seen=new Map(); for(let i=0;i<pos.count;i++){const w=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld); const k=w.toArray().map(x=>x.toFixed(3)).join(','); if(!seen.has(k))seen.set(k,w);}
+  const v=[...seen.values()]; if(v.length!==4)return;
+  // order the corners bottom-left, bottom-right, top-right, top-left so the sweep and the dust agree
+  const c=v.reduce((a,b)=>a.clone().add(b)).multiplyScalar(0.25); const bottom=v.filter(p=>p.y<c.y), top=v.filter(p=>p.y>=c.y);
+  if(bottom.length!==2||top.length!==2)return; const tl=top[0].distanceTo(bottom[0])<top[1].distanceTo(bottom[0])?top[0]:top[1];
+  legs.push([bottom[0],bottom[1],tl===top[0]?top[1]:top[0],tl]); });
+ return legs; }
+function buildBeams(){
+ if(beams){scene.remove(beams); beams=null; beamMats=[];} if(dust){scene.remove(dust); dust=null;}
+ beamLegs=collectLegs(); if(!beamLegs.length)return;
+ beams=new THREE.Group(); const L=32;
+ for(const leg of beamLegs){
+  const c=leg.reduce((a,b)=>a.clone().add(b)).multiplyScalar(0.25);
+  const bottom=leg.filter(p=>p.y<c.y), top=leg.filter(p=>p.y>=c.y);
+  if(bottom.length!==2||top.length!==2)continue;
+  const tl=top[0].distanceTo(bottom[0])<top[1].distanceTo(bottom[0])?top[0]:top[1], tr=top[0]===tl?top[1]:top[0];
+  const q=[bottom[0],bottom[1],tr,tl];
+  const m=new THREE.ShaderMaterial({uniforms:{beam:{value:0},dir:{value:new THREE.Vector3(0,0,1)},L:{value:L}},
+   vertexShader:'uniform vec3 dir; uniform float L; attribute float along; varying float vA; varying float vE;\n'+
+    'void main(){vA=along; vE=uv.x; vec3 p=position+dir*along*L; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
+   fragmentShader:'uniform float beam; varying float vA; varying float vE;\n'+
+    'void main(){float edge=smoothstep(0.0,0.25,vE)*smoothstep(1.0,0.75,vE); float fall=exp(-vA*1.4)*(1.0-vA);\n'+
+    ' gl_FragColor=vec4(vec3(1.0,0.93,0.8)*beam*0.42*edge*fall,1.0);}',
+   transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const g=new THREE.BufferGeometry(); const pos=[],along=[],uv=[];
+  for(const a of [0,1])for(let i=0;i<4;i++){pos.push(q[i].x,q[i].y,q[i].z); along.push(a); uv.push(i===0||i===3?0:1, 0);}
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('along',new THREE.Float32BufferAttribute(along,1)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex([0,1,5,0,5,4, 1,2,6,1,6,5, 2,3,7,2,7,6, 3,0,4,3,4,7]); // the four long sides; the caps are not lit
+  const mesh=new THREE.Mesh(g,m); mesh.frustumCulled=false; beams.add(mesh); beamMats.push(m);
+ }
+ scene.add(beams);
+ const N=Math.min(3200,400*beamLegs.length), seed=new Float32Array(N*3), base=new Float32Array(N*3);
+ for(let i=0;i<N;i++){ const leg=beamLegs[i%beamLegs.length]; const a=Math.random(), b=Math.random();
+  const p=leg[0].clone().lerp(leg[1],a).lerp(leg[3].clone().lerp(leg[2],a),b); base.set([p.x,p.y,p.z],i*3);
+  seed.set([Math.random(),Math.random(),Math.random()],i*3); }
+ const dg=new THREE.BufferGeometry(); dg.setAttribute('position',new THREE.BufferAttribute(base,3)); dg.setAttribute('seed',new THREE.BufferAttribute(seed,3));
+ dustMat=new THREE.ShaderMaterial({uniforms:{beam:{value:0},dir:{value:new THREE.Vector3(0,0,1)},L:{value:L},t:{value:0},floorY:{value:FLOOR_Y}},
+  vertexShader:'uniform vec3 dir; uniform float L,t,floorY; attribute vec3 seed; varying float vA; varying float vY;\n'+
+   'void main(){float a=fract(seed.x+t*0.004*(0.5+seed.y)); vec3 p=position+dir*a*L; p.x+=0.35*sin(t*0.3+seed.z*6.2831); p.y+=0.25*sin(t*0.21+seed.x*6.2831); p.z+=0.35*cos(t*0.26+seed.y*6.2831);\n'+
+   ' vA=a; vY=p.y-floorY; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(40.0/max(-mv.z,1.0),0.8,2.2); gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float beam; varying float vA; varying float vY;\n'+
+   'void main(){vec2 d=gl_PointCoord-0.5; float r=dot(d,d); if(r>0.25||vY<0.0)discard; float fall=exp(-vA*2.0);\n'+
+   ' gl_FragColor=vec4(vec3(1.0,0.95,0.85)*beam*fall*(1.0-r*4.0)*0.45,1.0);}',
+  transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+ dust=new THREE.Points(dg,dustMat); dust.frustumCulled=false; scene.add(dust);
+ updateBeams(+document.getElementById('tod').value);
+}
+function updateBeams(hour){ if(!beamMats.length)return; const {beam,v}=beamOf(hour); const dir=v.clone().negate();
+ const on=beam>0.002&&court&&court.visible!==false; for(const m of beamMats){m.uniforms.beam.value=beam; m.uniforms.dir.value.copy(dir);} if(beams)beams.visible=on;
+ if(dustMat){dustMat.uniforms.beam.value=beam; dustMat.uniforms.dir.value.copy(dir); dustMat.uniforms.floorY.value=FLOOR_Y; dust.visible=on;} }
+applyDay(+document.getElementById('tod').value);
+document.getElementById('tod').oninput=e=>applyDay(+e.target.value);
+document.getElementById('cycle').onchange=e=>{cycleOn=e.target.checked;};
+document.getElementById('court').onchange=e=>{court.visible=e.target.checked; sceneDirty=true;};
+document.getElementById('logoh').oninput=e=>{document.getElementById('logohval').textContent=e.target.value; buildCourt();};
 let last=performance.now();
-function frame(now){const dt=Math.min(0.1,(now-last)/1000); last=now;
+function frame(now){ if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
+ if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
+ if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
  if(keys.KeyW||keys.ArrowUp)eye.addScaledVector(f,s); if(keys.KeyS||keys.ArrowDown)eye.addScaledVector(f,-s);
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
