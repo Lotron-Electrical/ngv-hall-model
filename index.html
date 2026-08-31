@@ -1309,7 +1309,27 @@ const EVENT={N:{origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new TH
  // the twelve column feet in this wall frame (u along the wall, d into the room), measured from
  // runs.json; the stage depth stays inside the d=3.66 shaft face and the guests keep clear of all
  cols:[[7.71,3.82],[7.53,11.41],[14.94,3.86],[14.88,11.29],[22.3,3.86],[22.17,11.33],[29.67,3.77],[29.96,11.15],[37.18,3.84],[36.82,11.52],[44.54,3.80],[44.23,11.27]]};
-let eventGroup=null, confetti=null, confettiMat=null, crowd=null, eventAnim=null, confettiUntil=0, wheelchairs=[];
+let eventGroup=null, confetti=null, confettiMat=null, crowd=null, eventAnim=null, confettiUntil=0, wheelchairs=[], eventSavedLED=null;
+// THE COLUMNS DRESS FOR THE EVENT (Lloyd, 2026-08-31): each mode brings its own strip animation.
+// The user's own layer stack is saved on the first event and handed back when the event ends.
+const EVENT_LED={
+ standing:{level:1,layers:[{name:'Launch',on:true,anim:'rainbow',speed:0.3,opacity:1,blend:'add',A:{h:30,s:0.25,v:1},B:{h:215,s:1,v:1}}]},
+ dinner:{level:0.45,layers:[{name:'Candlelight',on:true,anim:'breathe',speed:0.1,opacity:1,blend:'add',A:{h:32,s:0.75,v:1},B:{h:20,s:0.9,v:0.4}},
+  {name:'Flicker',on:true,anim:'sparkle',speed:0.25,opacity:0.35,blend:'add',A:{h:38,s:0.5,v:1},B:{h:0,s:0,v:0}}]},
+ wedding:{level:0.8,layers:[{name:'Champagne',on:true,anim:'wave',speed:0.14,opacity:1,blend:'add',A:{h:44,s:0.14,v:1},B:{h:48,s:0.4,v:0.75}}]},
+ party:{level:1,layers:[{name:'Chase',on:true,anim:'chaseup',speed:0.85,opacity:1,blend:'add',A:{h:315,s:1,v:1},B:{h:230,s:1,v:0.9}},
+  {name:'Strobe sparkle',on:true,anim:'sparkle',speed:0.9,opacity:0.7,blend:'add',A:{h:0,s:0,v:1},B:{h:0,s:0,v:0}}]}};
+function applyEventLED(mode){
+ if(!eventSavedLED)eventSavedLED={layers:JSON.parse(JSON.stringify(state.layers)),sel:state.sel,level:state.level};
+ const pr=EVENT_LED[mode]; state.layers=JSON.parse(JSON.stringify(pr.layers)); state.sel=0; state.level=pr.level;
+ const lv=document.getElementById('level'); lv.value=Math.round(pr.level*100); document.getElementById('levelval').textContent=lv.value+'%';
+ paintUI();
+}
+function restoreEventLED(){ if(!eventSavedLED)return;
+ state.layers=eventSavedLED.layers; state.sel=eventSavedLED.sel; state.level=eventSavedLED.level;
+ const lv=document.getElementById('level'); lv.value=Math.round(state.level*100); document.getElementById('levelval').textContent=lv.value+'%';
+ eventSavedLED=null; paintUI();
+}
 function cheering(t){ return t<confettiUntil ? 1 : 0; }
 // skin tones, the range people actually come in, deep to pale (sRGB hex; SKIN is taken by the collision margin)
 const SKIN_TONES=['#3b2219','#5c3a21','#7b4b2a','#8d5524','#a0662c','#c68642','#d9975f','#e0ac69','#f1c27d','#ffdbac','#ffe4c4'];
@@ -1318,7 +1338,7 @@ function eventClearOfColumns(u,d){ return EVENT.cols.every(c=>Math.hypot(u-c[0],
 function eventPoint(u,y,d){ return EVENT.N.origin.clone().addScaledVector(EVENT.N.u,u).addScaledVector(EVENT.N.inRoom,d).setY(y); }
 function buildEvent(){
  if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;} crowd=null; eventAnim=null; dinner=null; wedding=null; party=null; wheelchairs=[];
- if(!document.getElementById('event').checked){sceneDirty=true; return;}
+ if(!document.getElementById('event').checked){restoreEventLED(); sceneDirty=true; return;}
  eventGroup=new THREE.Group(); const y0=FLOOR_Y||EVENT.N.origin.y, uMid=EVENT.wallLen/2;
  const basis=new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate());
  // stage: a black riser against the wall, clear of the column line, and the screen above it
@@ -1348,6 +1368,7 @@ function buildEvent(){
   eventGroup.add(wash);
  }
  const mode=document.getElementById('eventmode').value;
+ applyEventLED(mode);
  const uLo=3, uHi=EVENT.wallLen-3, dLo=EVENT.stageD+2.5, dHi=14.5;
  const rnd=(a,b)=>a+Math.random()*(b-a);
  const ctx={y0,uMid,uLo,uHi,dLo,dHi,rnd};
