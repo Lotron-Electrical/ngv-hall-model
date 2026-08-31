@@ -229,3 +229,20 @@ addressed`. `L` reaching 73,536 means every pixel in the map found a universe in
   what.
 - Writes that a client would see (a live stream on a hall, a commit, a push) need the owner's word
   first.
+
+## Zero-touch show file (measured 2026-08-31)
+
+The saved show `ngv-gandel-hall.elm` now opens and outputs with no clicks. What makes that true,
+and what does not survive a restart:
+
+- **Live-deck playback persists.** A media playing on Live deck A (Water caustic, from the built-in
+  library) is saved into the project and resumes by itself when ELM loads the file. This is the
+  zero-touch mechanism.
+- **Testing mode does NOT persist.** The Stage → Testing toggle comes back off after a reload, so
+  never rely on it for a client hand-off; it is a bench tool only.
+- **Run at startup is ON** (Settings → Project, mode "normal") and saved, so on a client machine ELM
+  also launches itself at Windows login with the last project.
+- Proof: kill ELM, relaunch with the show file, zero clicks — the sACN bridge counter climbs at a
+  steady ~1,090 packets/s within 15 s of launch (all 608 universes).
+- Caveat: unactivated ELM is in demo and blanks its output for a moment every few minutes. A real
+  client needs a licence activated, or they will see the hall blink.
