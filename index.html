@@ -19,7 +19,8 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 .ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
 .ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
 .ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
-#hud{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#e8e8e8;font:12px/1.6 ui-monospace,Consolas,monospace;padding:8px 10px;white-space:pre;pointer-events:none;border-radius:4px}
+/* bottom-left and small, so the stats never sit over the menu buttons along the top */
+#hud{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.55);color:#e8e8e8;font:10px/1.5 ui-monospace,Consolas,monospace;padding:6px 8px;white-space:pre;pointer-events:none;border-radius:4px;max-width:calc(100% - 24px);overflow:hidden}
 .hint{color:var(--dim);font-size:13px;padding:8px 16px 0}
 .hint a{color:var(--accent)}
 .bar{position:absolute;left:16px;bottom:16px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
@@ -109,7 +110,14 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 .layer .lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .layer input[type=range]{width:90px}
 .layer button{background:none;border:0;color:inherit;font-size:16px;cursor:pointer}
+/* ?embed strips the page to the stage alone -- the proposal iframe shows the viewport and
+   nothing else: no title, no help line, no documentation below */
+html.embed main>*:not(#stage){display:none!important}
+html.embed #stage{height:100vh;min-height:0;border:0}
+html.embed,html.embed body{overflow:hidden;height:100%}
+html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
+<script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
 <div id="stage"><canvas id="cv"></canvas>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
