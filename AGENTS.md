@@ -257,3 +257,14 @@ and what does not survive a restart:
   steady ~1,090 packets/s within 15 s of launch (all 608 universes).
 - Caveat: unactivated ELM is in demo and blanks its output for a moment every few minutes. A real
   client needs a licence activated, or they will see the hall blink.
+- **Import scale IS the media resolution** (measured 2026-09-01). ELM samples media per stage
+  UNIT, and the import default "Fit largest side to 100 units" makes a 38 m hall sample at
+  0.38 m per texel: ~21 LEDs per colour, which reads as low-density even though the patch is
+  60 px/m. Import the CSV with Scale = "Multiply the file's coordinates", factor 0.06 (CSV is in
+  mm, so 1 unit ≈ 16.7 mm = one LED) and the same media runs at per-LED resolution (measured:
+  run length ~21 → ~2). Both stages in the 00:54 save are imported at ×0.06. Verify with a ws
+  frame read: count identical consecutive RGBW pixels, target avg ≤3.
+- **Never touch "Edit LED arrangement" on an imported stage** — it REGENERATES the DMX wiring
+  from ELM's own scheme, silently breaking the CSV patch contract with the browser (proved
+  2026-09-01: depth-slices change offset every universe). The import dialog is the only safe
+  place for wiring, where "the file is the patch".
