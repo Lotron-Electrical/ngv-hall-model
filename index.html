@@ -1965,10 +1965,15 @@ function updateWedding(dt,t){
     const dx=s.x-O.x, dz=s.z-O.z;
     const su=dx*U.x+dz*U.z, sd=dx*R.x+dz*R.z;
     if(Math.abs(su-W.uMid)<2.6&&Math.abs(sd-dNow)<3.2)cand.push(s); }
-   const obs=[]; for(const s2 of W.seated.seat)if(!s2.gone)obs.push([s2.x,s2.z,y0+1.31]);
+   // what stands under the rice, as a height map (one cell per head), same idea as the
+   // confetti's restMap -- a grain lands on a head only if its arc actually meets one
+   const cell=0.4, rmap=new Map(), RK=(x,z)=>Math.round(x/cell)*4096+Math.round(z/cell);
+   const put=(x,z,yv)=>{const k=RK(x,z); if(!(rmap.get(k)>=yv))rmap.set(k,yv);};
+   for(const s2 of W.seated.seat)if(!s2.gone)put(s2.x,s2.z,y0+1.31);
    for(let ci=0;ci<2;ci++){ if(ci===1&&!W.hasGroom)continue;
     const wp2=eventPoint(W.uMid+(ci===0?-0.4:0.4),0,dNow);
-    obs.push([wp2.x,wp2.z,y0+1.74]); }
+    put(wp2.x,wp2.z,y0+1.74); }
+   const obs={map:rmap,RK};
    if(cand.length){
     // two or three throwers at once -- a corridor of rice, not a lone lob
     const nT2=2+(Math.random()<0.5?1:0);
@@ -2462,14 +2467,21 @@ function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
   const vx=(tx-sx)/T+(Math.random()-0.5)*0.8, vz=(tz-sz)/T+(Math.random()-0.5)*0.8;
   const vy=(ty-sy)/T+4.9*T+(Math.random()-0.5)*0.6;
   pos.set([sx,sy,sz],i*3); vel.set([vx,vy,vz],i*3);
-  // where does this grain actually come DOWN? On the floor unless a head, a shoulder or the
-  // couple stands under its landing point -- then it rests on them, like the confetti does
+  // where does this grain actually come DOWN? March its own arc against the height map:
+  // it rests on a head or the couple only when the falling path meets one, else the floor.
+  // (The old landing-point box test re-solved the flight time after raising the height,
+  // which froze grains mid-air over empty carpet -- the invisible box.)
   let ry=yf+0.02;
   let tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8;
-  if(obs){ const lx=sx+vx*tl, lz=sz+vz*tl;
-   for(let k=0;k<obs.length;k++){ const o=obs[k];
-    if(Math.abs(lx-o[0])<0.26&&Math.abs(lz-o[1])<0.26&&o[2]>ry){ ry=o[2]; } }
-   if(ry>yf+0.02)tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8;
+  if(obs){
+   let ppy=sy;
+   for(let mt=0.03;mt<tl;mt+=0.03){
+    const px=sx+vx*mt, py=sy+vy*mt-4.9*mt*mt, pz=sz+vz*mt;
+    if(py<ppy){ // falling: land only by CROSSING a head top from above -- a grain that
+     // drifts into the cell at chest height passes by (the capsule is thinner than the cell)
+     const h=obs.map.get(obs.RK(px,pz));
+     if(h!==undefined&&ppy>h+0.02&&py<=h+0.02){ ry=h+0.02; tl=mt; break; } }
+    ppy=py; }
   }
   lf.set([tl,2.5+Math.random()*1.5],i*2);
  }
