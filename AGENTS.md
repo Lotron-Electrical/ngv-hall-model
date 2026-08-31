@@ -244,6 +244,11 @@ and what does not survive a restart:
 - **Live-deck playback persists.** A media playing on Live deck A (Water caustic, from the built-in
   library) is saved into the project and resumes by itself when ELM loads the file. This is the
   zero-touch mechanism.
+- **Live media is PER STAGE** (corrected 2026-09-01). Launching a tile applies to the SELECTED
+  stage only; the other stage keeps streaming BLACK sACN, which still counts as packets. That
+  produced a false zero-touch pass on 08-31: the bridge counter climbed while every byte was 0.
+  Verify content, not traffic — read a ws frame and count non-zero bytes (a page showing
+  "608 universes heard" can still be a dark hall). The 00:15 save has media on BOTH stages.
 - **Testing mode does NOT persist.** The Stage → Testing toggle comes back off after a reload, so
   never rely on it for a client hand-off; it is a bench tool only.
 - **Run at startup is ON** (Settings → Project, mode "normal") and saved, so on a client machine ELM
