@@ -190,12 +190,18 @@ netsh advfirewall firewall add rule name="NGV DMX bridge" dir=in action=allow pr
 
 ### Browser blocks
 
-Measured 2026-08-31: **an https page cannot open `ws://localhost` — Chrome blocks it** (the
-localhost carve-out covers http fetches, not insecure WebSockets). The published GitHub Pages site
-and any https embed of it will always show "not connected". Serve the page over http instead:
-`node tools/serve.js`, then `http://127.0.0.1:8877/index.html?connect=1` — the `?connect=1`
-parameter (optionally `&ws=host:port&off=N`) auto-opens the live input and retries until the
-bridge is up, so no one has to find the panel and press Connect.
+Corrected 2026-09-01: the 2026-08-31 "https cannot open `ws://localhost`" finding was misdiagnosed.
+It is NOT mixed content (Chrome's localhost carve-out does cover ws). The blocker is **Local
+Network Access** (`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`, Chrome 151): a public site reaching
+a local address needs the user to Allow a permission prompt. Measured: the same hosted page
+connects fine with the LNA check granted (headless auto-denies, which is what produced the
+2026-08-31 "proof"). Consequences: the GitHub Pages site CAN drive from a local bridge once the
+reader clicks Allow; an https IFRAME embed additionally needs `allow="local-network-access"` on
+the iframe (the proposal has it); headless verification of this path must launch Chrome with
+`--disable-features=LocalNetworkAccessChecks` or it will always read "not connected". The http
+fallback still works everywhere: `node tools/serve.js`, then
+`http://127.0.0.1:8877/index.html?connect=1` (optionally `&ws=host:port&off=N`) — auto-opens the
+live input and retries until the bridge is up.
 
 ### Connecting the page
 
