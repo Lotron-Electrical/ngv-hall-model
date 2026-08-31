@@ -1409,7 +1409,7 @@ function buildEvent(){
   crowd={bm,hm,n,y0,u:new Float32Array(n),d:new Float32Array(n),tu:new Float32Array(n),td:new Float32Array(n),
    sc:new Float32Array(n),wide:new Float32Array(n),spd:new Float32Array(n),pause:new Float32Array(n),yaw:new Float32Array(n),
    knots:[]};
-  for(let k=0;k<26;k++){ let ku=rnd(uLo+2,uHi-2), kd=rnd(dLo+1,dHi-1); if(eventClearOfColumns(ku,kd))crowd.knots.push([ku,kd]); }
+  for(let k=0;k<26;k++){ let ku=rnd(uLo+2,uHi-2), kd=dLo+1+(dHi-dLo-2)*Math.pow(Math.random(),1.6); if(eventClearOfColumns(ku,kd))crowd.knots.push([ku,kd]); }
   const knotOf=()=>crowd.knots[Math.floor(Math.random()*crowd.knots.length)];
   crowd.kn=new Int16Array(n);
   crowd.newTarget=(i)=>{ if(Math.random()<0.25)crowd.kn[i]=Math.floor(Math.random()*crowd.knots.length); // mostly stay with your circle
@@ -1419,7 +1419,8 @@ function buildEvent(){
     if(uu>uLo&&uu<uHi&&dd>dLo&&dd<dHi&&eventClearOfColumns(uu,dd)){crowd.tu[i]=uu; crowd.td[i]=dd; return;} }
    crowd.tu[i]=crowd.u[i]; crowd.td[i]=crowd.d[i]; };
   for(let i=0;i<n;i++){
-   let uu=rnd(uLo,uHi), dd=rnd(dLo,dHi); for(let tries=0;tries<8&&!eventClearOfColumns(uu,dd);tries++){uu=rnd(uLo,uHi); dd=rnd(dLo,dHi);}
+   let uu=rnd(uLo,uHi), dd=dLo+(dHi-dLo)*Math.pow(Math.random(),1.6);
+   for(let tries=0;tries<8&&!eventClearOfColumns(uu,dd);tries++){uu=rnd(uLo,uHi); dd=dLo+(dHi-dLo)*Math.pow(Math.random(),1.6);}
    crowd.u[i]=uu; crowd.d[i]=dd; crowd.sc[i]=rnd(0.85,1.12); crowd.wide[i]=rnd(0.8,1.45);
    crowd.spd[i]=rnd(0.3,0.75); crowd.pause[i]=rnd(0,10); crowd.yaw[i]=rnd(0,Math.PI*2);
    crowd.kn=crowd.kn||new Int16Array(n); crowd.kn[i]=Math.floor(Math.random()*crowd.knots.length); crowd.newTarget(i);
@@ -1432,24 +1433,42 @@ function buildEvent(){
   addWheelchairs(ctx,[[ctx.uLo+4.5,ctx.dLo+3.2],[ctx.uMid+6,ctx.dHi-2.4],[ctx.uHi-5,ctx.dLo+5.5]]);
   // the speech: a plinth on the stage, a speaker in a suit, and a spotlight that owns the room
   {const px=eventPoint(uMid,0,1.6);
-   const plinth=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.4,1.0),new THREE.MeshBasicMaterial({color:0x3a3a3e}));
-   plinth.position.set(px.x,y0+EVENT.stageH+0.2,px.z); eventGroup.add(plinth);
+   // a proper lectern in front of the speaker (Lloyd: a podium, not a plinth): a slim pedestal
+   // with an angled reading top, facing the room; the speaker stands on the stage behind it
+   const basisS=new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate());
+   const lect=new THREE.Group();
+   const ped=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.1,0.36),new THREE.MeshBasicMaterial({color:0x2b2420}));
+   ped.position.y=0.55; lect.add(ped);
+   const topb=new THREE.Mesh(new THREE.BoxGeometry(0.68,0.05,0.48),new THREE.MeshBasicMaterial({color:0x3a312a}));
+   topb.position.set(0,1.14,-0.04); topb.rotation.x=-0.32; lect.add(topb);
+   const lp=eventPoint(uMid-2.9,0,2.2);
+   lect.position.set(lp.x,y0+EVENT.stageH,lp.z); lect.quaternion.setFromRotationMatrix(basisS); lect.rotateY(Math.PI);
+   eventGroup.add(lect);
    const sg=new THREE.Group();
    const sb=new THREE.Mesh(new THREE.CapsuleGeometry(0.17,1.05,3,8),new THREE.MeshBasicMaterial({color:0x14161f}));
    sb.position.y=0.78; sg.add(sb);
    const sh=new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),new THREE.MeshBasicMaterial({color:SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]}));
    sh.position.y=1.62; sg.add(sh);
-   sg.position.set(px.x,y0+EVENT.stageH+0.4,px.z); eventGroup.add(sg);
+   const mic=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.025,0.24,8),new THREE.MeshBasicMaterial({color:0x0c0c0e}));
+   mic.position.set(0.2,1.36,0.12); mic.rotation.z=-0.5; mic.rotation.x=-0.3; sg.add(mic);
+   const micTip=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),new THREE.MeshBasicMaterial({color:0x3f3f44}));
+   micTip.position.set(0.26,1.45,0.16); sg.add(micTip);
+   sg.position.set(px.x,y0+EVENT.stageH,px.z); eventGroup.add(sg);
    const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.35,1.1,8.2,18,1,true),
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
-   beam.position.set(px.x,y0+EVENT.stageH+0.4+1.9+8.2/2-4.1+4.1,px.z); beam.position.y=y0+EVENT.stageH+0.4+4.6; eventGroup.add(beam);
+   eventGroup.add(beam);
    const pool=new THREE.Mesh(new THREE.CircleGeometry(1.15,24).rotateX(-Math.PI/2),
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false}));
-   pool.position.set(px.x,y0+EVENT.stageH+0.41,px.z); eventGroup.add(pool);
-   speaker={g:sg,base:sg.position.clone()};
+   eventGroup.add(pool);
+   speaker={g:sg,beam,pool,uMid,y0};
   }
   eventAnim=(dt,t)=>{ updateCrowd(dt,t);
-   if(speaker){ speaker.g.rotation.z=0.05*Math.sin(t*0.9); speaker.g.rotation.x=0.03*Math.sin(t*1.4); } };
+   if(speaker){ // working the stage: pacing with the mic, the spotlight and its pool tracking
+    const su=speaker.uMid+2.6*Math.sin(t*0.22), sp2=eventPoint(su,0,1.35);
+    speaker.g.position.set(sp2.x,speaker.y0+EVENT.stageH,sp2.z);
+    speaker.g.rotation.z=0.06*Math.sin(t*0.9); speaker.g.rotation.x=0.03*Math.sin(t*1.4);
+    speaker.beam.position.set(sp2.x,speaker.y0+EVENT.stageH+4.4,sp2.z);
+    speaker.pool.position.set(sp2.x,speaker.y0+EVENT.stageH+0.02,sp2.z); } };
  } else if(mode==='dinner') buildDinner(ctx);
  else if(mode==='wedding') buildWedding(ctx);
  else buildParty(ctx);
@@ -1534,12 +1553,13 @@ function buildDinner(ctx){
  const tm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.9,0.9,0.04,24),eventMat(0xe9e6df,0xf4f2ec),nT);
  const lm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06,0.08,0.72,8),eventMat(0x4a4a4a,0x6a6a6a),nT);
  const cm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),nG);
+ const bk=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.05),eventMat(0x2e2b28,0x4e4a46),nG);
  const pm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.13,0.13,0.015,14),new THREE.MeshBasicMaterial({color:0xf2f0ea}),nG);
  const fm=new THREE.InstancedMesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial(),nG);
  const km=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035,0.03,0.1,10),new THREE.MeshBasicMaterial(),nG);
  const {bm,hm}=peopleMeshes(nG,0.55);
  const DRINKS=[0x6e1b28,0xe8d9a0,0xd28a2c,0xdfe8ea];
- dinner={bm,hm,fm,nG,y0,seat:[],hasFood:[],foodBase:[],wander:[],waiters:null,
+ dinner={bm,hm,fm,nG,y0,seat:[],hasFood:[],foodBase:[],wander:[],waiters:null,chair:[],cm,bk,
   nav:{tables:[],lanesU,lanesD}};
  let k=0;
  for(let r=0;r<rows;r++)for(let cix=0;cix<cols;cix++){
@@ -1550,7 +1570,12 @@ function buildDinner(ctx){
   for(let sx=0;sx<seats;sx++){
    const a=sx/seats*Math.PI*2, su=u+Math.cos(a)*1.25, sd=d+Math.sin(a)*1.25;
    const sp=eventPoint(su,0,sd);
-   _cM.compose(_pV.set(sp.x,y0+0.25,sp.z),_cQ,{x:1,y:1,z:1}); cm.setMatrixAt(k,_cM);
+   // the chair's back stands on its outward side, square to the table
+   const rWorld=EVENT.N.u.clone().multiplyScalar(Math.cos(a)).addScaledVector(EVENT.N.inRoom,Math.sin(a));
+   const tWorld=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),rWorld);
+   const chQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(tWorld,new THREE.Vector3(0,1,0),rWorld));
+   dinner.chair.push({x:sp.x,z:sp.z,rx:rWorld.x,rz:rWorld.z,q:chQ});
+   setChair(k,0);
    const pp=eventPoint(u+Math.cos(a)*0.62,0,d+Math.sin(a)*0.62);
    _cM.compose(_pV.set(pp.x,y0+0.78,pp.z),_cQ,{x:1,y:1,z:1}); pm.setMatrixAt(k,_cM);
    dinner.foodBase.push([pp.x,y0+0.81,pp.z]);
@@ -1578,7 +1603,7 @@ function buildDinner(ctx){
  dinner.waiters={bm:wt.bm,hm:wt.hm,tray,st:[]};
  for(let i=0;i<6;i++){ const lu=lanesU[Math.floor(Math.random()*lanesU.length)], ld=lanesD[Math.floor(Math.random()*lanesD.length)];
   dinner.waiters.st.push({u:lu,d:ld,wp:[],seatK:-1,serve:0,dirx:1,dirz:0,spd:rnd(0.85,1.05)}); }
- eventGroup.add(tm,lm,cm,pm,fm,km,bm,hm,wt.bm,wt.hm,tray);
+ eventGroup.add(tm,lm,cm,pm,fm,km,bk,bm,hm,wt.bm,wt.hm,tray);
  addWheelchairs(ctx,[[lanesU[1],lanesD[0]],[lanesU[cols-2],lanesD[1]]]);
  eventAnim=(dt,t)=>updateDinner(dt,t,ctx);
  updateDinner(0,0,ctx);
@@ -1589,6 +1614,11 @@ function stepAlong(agent,dt,spd){ // follow the waypoint queue; true when it is 
   const st=Math.min(dist,spd*dt); agent.u+=du/dist*st; agent.d+=dd/dist*st;
   agent.dirU=du/dist; agent.dirD=dd/dist; return false; }
  return true; }
+function setChair(k,out){ const C=dinner.chair[k]; if(!C)return; const y0=dinner.y0;
+ const ox=C.rx*out*0.5, oz=C.rz*out*0.5;
+ _cM.compose(_pV.set(C.x+ox,y0+0.25,C.z+oz),C.q,{x:1,y:1,z:1}); dinner.cm.setMatrixAt(k,_cM);
+ _cM.compose(_pV.set(C.x+ox+C.rx*0.185,y0+0.53,C.z+oz+C.rz*0.185),C.q,{x:1,y:1,z:1}); dinner.bk.setMatrixAt(k,_cM);
+ dinner.cm.instanceMatrix.needsUpdate=true; dinner.bk.instanceMatrix.needsUpdate=true; }
 function seatServePoint(k){ const st=dinner.seat[k], t=dinner.nav.tables[st.tab];
  return [t[0]+Math.cos(st.ang)*1.75, t[1]+Math.sin(st.ang)*1.75]; }
 function setFood(k,on){ dinner.hasFood[k]=on; const b=dinner.foodBase[k]; _cQ.identity();
@@ -1602,24 +1632,43 @@ function updateDinner(dt,t,ctx){
   const jb=cheering(t)?0.07*Math.abs(Math.sin(t*Math.PI*2.1+s.ph)):0;
   poseBH(D.bm,D.hm,i,s.x+lean*0.5,s.z+lean*0.3,y0+0.72+jb,y0+1.18+nod+jb,1,1);
  }
- // movers keep a personal bubble: the later one yields when two close within half a metre
- const movers=[...D.wander.filter(w=>D.seat[w.i].away),...D.waiters.st];
+ // movers keep a personal bubble: any two closer than half a metre are pushed apart, so nobody
+ // ever walks through anybody
+ const movers=[...D.wander.filter(w=>D.seat[w.i].away&&w.phase!=='rise'&&w.phase!=='sit'),...D.waiters.st,...wheelchairs];
  const blocked=new Set();
  for(let a=0;a<movers.length;a++)for(let b=a+1;b<movers.length;b++){
-  if(Math.hypot(movers[a].u-movers[b].u,movers[a].d-movers[b].d)<0.5)blocked.add(movers[b]); }
+  const A=movers[a],B=movers[b]; let du=B.u-A.u, dd=B.d-A.d; const d2=Math.hypot(du,dd);
+  if(d2<0.5&&d2>0){ const push=(0.5-d2)/2/d2; A.u-=du*push; A.d-=dd*push; B.u+=du*push; B.d+=dd*push; } }
  for(const w of D.wander){ const s=D.seat[w.i];
   w.timer-=dt;
-  if(w.phase==='seated'&&w.timer<=0){ w.phase='walking'; s.away=true;
-   const other=D.nav.tables[Math.floor(Math.random()*D.nav.tables.length)];
-   const ang=Math.random()*Math.PI*2, tu=other[0]+Math.cos(ang)*1.75, td=other[1]+Math.sin(ang)*1.75;
-   w.wp=dinnerRoute(w.u,w.d,tu,td); }
-  else if(w.phase==='walking'&&!blocked.has(w)){ if(stepAlong(w,dt,w.spd)){ w.phase='visiting'; w.timer=ctx.rnd(6,16); } }
-  else if(w.phase==='visiting'&&w.timer<=0){ w.phase='returning'; w.wp=dinnerRoute(w.u,w.d,s.u,s.d); }
-  else if(w.phase==='returning'&&!blocked.has(w)){ if(stepAlong(w,dt,w.spd)){ w.phase='seated'; w.timer=ctx.rnd(15,40); s.away=false; w.u=s.u; w.d=s.d; } }
-  if(s.away){ const p=eventPoint(w.u,0,w.d);
+  const exitU=s.u+Math.cos(s.ang)*0.55, exitD=s.d+Math.sin(s.ang)*0.55;
+  if(w.phase==='seated'&&w.timer<=0){ w.phase='rise'; w.timer=0.9; s.away=true; }
+  else if(w.phase==='rise'){ // the chair slides out and the guest rises with it -- nothing clips
+   const pr=1-Math.max(0,w.timer)/0.9; setChair(w.i,pr);
+   w.u=s.u+Math.cos(s.ang)*0.55*pr; w.d=s.d+Math.sin(s.ang)*0.55*pr;
+   const pp=eventPoint(w.u,0,w.d); const bodyY=D.y0+0.72+0.06*pr, headY=D.y0+1.18+0.44*pr;
+   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1);
+   if(w.timer<=0){ w.phase='walking';
+    const other=D.nav.tables[Math.floor(Math.random()*D.nav.tables.length)];
+    const ang=Math.random()*Math.PI*2, tu=other[0]+Math.cos(ang)*1.75, td=other[1]+Math.sin(ang)*1.75;
+    const sPt=seatServePoint(w.i);
+    w.wp=[[sPt[0],sPt[1]],...dinnerRoute(sPt[0],sPt[1],tu,td)]; }
+   continue; }
+  else if(w.phase==='walking'){ if(stepAlong(w,dt,w.spd)){ w.phase='visiting'; w.timer=ctx.rnd(6,16); } }
+  else if(w.phase==='visiting'&&w.timer<=0){ w.phase='returning';
+   const sPt=seatServePoint(w.i); w.wp=[...dinnerRoute(w.u,w.d,sPt[0],sPt[1]),[exitU,exitD]]; }
+  else if(w.phase==='returning'){ if(stepAlong(w,dt,w.spd)){ w.phase='sit'; w.timer=0.9; } }
+  else if(w.phase==='sit'){ // and in reverse: sit, and the chair slides home under you
+   const pr=Math.max(0,w.timer)/0.9; setChair(w.i,pr);
+   w.u=s.u+Math.cos(s.ang)*0.55*pr; w.d=s.d+Math.sin(s.ang)*0.55*pr;
+   const pp=eventPoint(w.u,0,w.d); const bodyY=D.y0+0.72+0.06*pr, headY=D.y0+1.18+0.44*pr;
+   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1);
+   if(w.timer<=0){ w.phase='seated'; w.timer=ctx.rnd(15,40); s.away=false; w.u=s.u; w.d=s.d; setChair(w.i,0); }
+   continue; }
+  if(s.away&&w.phase!=='rise'&&w.phase!=='sit'){ const pp2=eventPoint(w.u,0,w.d);
    const jb=cheering(t)?0.14*Math.abs(Math.sin(t*Math.PI*2.1+w.i)):0;
    const sway=(w.phase==='visiting')?0.025*Math.sin(t*1.1+w.i):0;
-   poseBH(D.bm,D.hm,w.i,p.x+sway,p.z,y0+0.78+jb,y0+1.62+jb,1,1); }
+   poseBH(D.bm,D.hm,w.i,pp2.x+sway,pp2.z,D.y0+0.78+jb,D.y0+1.62+jb,1,1); }
  }
  for(let i=0;i<D.waiters.st.length;i++){ const st=D.waiters.st[i];
   if(st.serve>0){ st.serve-=dt;
@@ -1676,17 +1725,21 @@ function buildWedding(ctx){
  // two blocks of chairs, an aisle between; most seats taken, nobody perfectly still
  const rows=12, cols=8, nCh=rows*cols*2;
  const ch=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),new THREE.MeshBasicMaterial({color:0xefeee8}),nCh);
+ const chB=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.05),new THREE.MeshBasicMaterial({color:0xefeee8}),nCh);
+ const wQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone()));
  const gp=peopleMeshes(nCh,0.55); const seat=[]; let k=0, occ=0;
  for(let sblk=-1;sblk<=1;sblk+=2)for(let r=0;r<rows;r++)for(let ci=0;ci<cols;ci++){
   const u=uMid+sblk*(1.35+ci*0.58), d=5.6+r*0.78, p=eventPoint(u,0,d);
   _cQ.identity(); _cM.compose(_pV.set(p.x,y0+0.25,p.z),_cQ,{x:1,y:1,z:1}); ch.setMatrixAt(k,_cM);
+  _cM.compose(_pV.set(p.x+EVENT.N.inRoom.x*0.185,y0+0.53,p.z+EVENT.N.inRoom.z*0.185),wQ,{x:1,y:1,z:1}); chB.setMatrixAt(k,_cM);
   if(Math.random()<0.88){ seat.push({x:p.x,z:p.z,ph:Math.random()*6.28,on:true}); colourPerson(gp.bm,gp.hm,occ,c); occ++; }
   k++;
  }
  gp.bm.count=occ; gp.hm.count=occ; gp.bm.instanceColor.needsUpdate=true; gp.hm.instanceColor.needsUpdate=true;
  wedding.seated={bm:gp.bm,hm:gp.hm,seat,occ};
- eventGroup.add(ch,gp.bm,gp.hm);
- addWheelchairs(ctx,[[uMid-1.05,5.1],[uMid+1.05,7.4]]);
+ eventGroup.add(ch,chB,gp.bm,gp.hm);
+ addWheelchairs(ctx,[[uMid-6.1,5.6],[uMid+6.1,7.16]]); // at the ends of the rows, with everyone else
+ for(const w of wheelchairs)w.pause=1e9; // nobody circulates during a ceremony
  eventAnim=(dt,t)=>updateWedding(t); updateWedding(0);
 }
 function updateWedding(t){
