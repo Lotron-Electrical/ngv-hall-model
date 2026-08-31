@@ -459,11 +459,12 @@ function lsq3(S,T){ const M=[[...S[0],T[0]],[...S[1],T[1]],[...S[2],T[2]]];
 function fitPlaneUV(pts){ const S=[[0,0,0],[0,0,0],[0,0,0]],T=[0,0,0];
  for(const p of pts){ const r=[1,p.u,p.v]; for(let i=0;i<3;i++){ T[i]+=r[i]*p.y; for(let j=0;j<3;j++)S[i][j]+=r[i]*r[j]; } }
  return lsq3(S,T); }
-function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
+function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap,wb){
  const m=new THREE.ShaderMaterial({
   // same uniform names as photoMaterial, so the applyDay loop and the per-frame house/nLights
   // loop update this material in the same place they update every other photo surface
-  uniforms:{map:{value:map},deadMap:{value:deadMap},house:{value:1},ambient:{value:AMBIENT},day:{value:0},
+  uniforms:{map:{value:map},deadMap:{value:deadMap},wb:{value:new THREE.Vector3(wb[0],wb[1],wb[2])},
+   house:{value:1},ambient:{value:AMBIENT},day:{value:0},
    dayGain:{value:dayGainOf('ceiling-glass-procedural')},ledGain:{value:LED_GAIN_GLASS},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},
    latO:{value:new THREE.Vector2(latO[0],latO[1])},latP:{value:new THREE.Vector2(latP[0],latP[1])},
@@ -473,7 +474,7 @@ function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
    void main(){vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform sampler2D map, deadMap; uniform float house, ambient, ledGain, day, dayGain; uniform int nLights;
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
-   uniform vec2 latO, latP; uniform vec4 rect; uniform vec3 affU, affV;
+   uniform vec2 latO, latP; uniform vec4 rect; uniform vec3 affU, affV; uniform vec3 wb;
    varying vec3 vPos;
    // deterministic hashes: the slab layout is fixed at build, nothing re-rolls per frame
    float h12(vec2 p){vec3 q=fract(vec3(p.xyx)*0.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z);}
@@ -529,9 +530,18 @@ function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
     // detail out and let the mip-mapped atlas carry the field, which is also what inherits the
     // measured bay-by-bay hue zoning at distance
     float lodT=clamp(aa/0.19-0.35,0.0,1.0), detail=1.0-lodT;
-    web=max(web,0.5*detail*(1.0-smoothstep(0.008,0.022,edgeD)));                  // slab edges, thin
+    // slab edges, thin: kept LIGHT (0.3) — edge pixels are slab-webbing blends, and with the
+    // LED wall-wash on the webbing a heavier mix drew a warm counted ring around every slab;
+    // the hammer-faceted rim vignette below carries the separation in the slab's OWN hue
+    web=max(web,0.3*detail*(1.0-smoothstep(0.008,0.022,edgeD)));
     vec2 seed=(id+h22(id))*0.19;
-    vec3 samp=texture2D(map,vec2(dot(vec3(seed,1.0),affU),dot(vec3(seed,1.0),affV))).rgb;
+    // wb is the measured counter to the bake's warm veil: the phone bake leans its whole grey
+    // field warm (live-region linear mean r>g>b), which is what promoted grey texels to red
+    // slabs and buried the u23.5 blue zone. A PARTIAL grey-world balance (strength 0.28,
+    // calibrated on the atlas ortho so u19/u32.5/u37 keep their true red leads while u23.5
+    // recovers blue) is applied to every atlas read; full-strength balance flips every bay
+    // blue, no balance leaves every bay red — both fail the measured splat zoning.
+    vec3 samp=texture2D(map,vec2(dot(vec3(seed,1.0),affU),dot(vec3(seed,1.0),affV))).rgb*wb;
     float mx=max(samp.r,max(samp.g,samp.b)), mn=min(samp.r,min(samp.g,samp.b));
     float sat=(mx-mn)/max(mx,1e-4);
     float hA=h12(id*1.7+3.1), hB=h12(id*2.3+7.7);
@@ -558,7 +568,9 @@ function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
          : hA<0.873?vec3(0.32,0.09,0.50)
          : hA<0.891?vec3(0.06,0.50,0.55)
          : vec3(0.90,0.93,0.98);
-    } else if(mx>0.42&&sat<0.34){ slab=vec3(1.08,1.11,1.18); } // pale/achromatic-BRIGHT atlas -> clear-white ribbon glass
+    } else if(mx>0.34&&sat<0.44){ slab=vec3(1.08,1.11,1.18); } // pale/LOW-chroma-bright atlas -> clear-white ribbon glass
+     // (widened from 0.42/0.34: the phone warms its whites, and a warm-white slab that misses
+     // this branch gets chroma-lifted into a fake YELLOW family that rivals the real hue leads)
     else {
      // one flat colour per slab: quantise the LUMINANCE and carry the RAW sample's chroma
      // vector. Quantising the channels independently at 0.1 steps parked every mid-dark
@@ -567,15 +579,18 @@ function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
      // measured bay zoning (u23.5 blue). Channel DIFFERENCES are scaled as one vector here,
      // so a texel's hue family in the render is its family in the atlas, exactly.
      float l=dot(samp,vec3(0.2126,0.7152,0.0722));
-     // the lift engages only above a saturation floor: a near-neutral texel is dark glass
-     // and stays neutral (promoting faint casts to coloured slabs is what homogenised the
-     // bays); a genuinely coloured texel gets the moderate lift the muted phone atlas needs
-     float lift=1.6*smoothstep(0.12,0.30,sat);
+     // the lift engages only above a saturation floor AND a brightness floor: a near-neutral
+     // texel is dark glass and stays neutral, and a DARK texel stays neutral too — the bake's
+     // dark end is where the warm veil lives (the splat itself says the field between bright
+     // slabs is a near-black lattice), and lifting it is what homogenised the bays toward
+     // warm confetti. A bright, genuinely coloured texel gets the full lift the muted phone
+     // atlas needs. Floors calibrated on the atlas ortho against the splat's station leads.
+     float lift=1.8*smoothstep(0.12,0.30,sat)*smoothstep(0.08,0.25,mx);
      slab=clamp(vec3(floor(l*10.0+0.5)/10.0)+(samp-vec3(l))*lift,0.0,1.5);
     }
     slab*=1.0-detail*(0.18-0.36*hB);                           // per-slab luminance jitter
-    slab*=1.0-detail*0.45*(1.0-smoothstep(0.0,0.055,edgeD));   // darkened hammer-faceted rim per slab
-    slab=mix(slab,texture2D(map,vec2(dot(vec3(huv,1.0),affU),dot(vec3(huv,1.0),affV))).rgb*1.2,lodT*keepLod);
+    slab*=1.0-detail*0.55*(1.0-smoothstep(0.0,0.055,edgeD));   // darkened hammer-faceted rim per slab
+    slab=mix(slab,texture2D(map,vec2(dot(vec3(huv,1.0),affU),dot(vec3(huv,1.0),affV))).rgb*wb*1.2,lodT*keepLod);
     // BACKLIT (Lloyd, 2026-08-28): house+day arrive from ABOVE the glass, so the slabs glow
     // with that term while the webbing is opaque and sees only the below light. The facet term
     // makes the four planar facets of a coffer take visibly different backlight.
@@ -583,7 +598,13 @@ function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
     float facet=0.72+0.55*clamp(dot(f3,vec3(0.5511,0.7515,0.3507)),0.0,1.0);
     vec3 Eback=vec3(house+ambient+day*dayGain)*facet+led*ledGain;
     vec3 Efront=vec3(ambient+0.15*house+0.12*day)+led*0.6;
-    vec3 col=mix(slab*Eback,vec3(0.10,0.058,0.042)*Efront,web); // webbing: matte warm #6a4f45-ish, near-black unlit
+    // webbing: matte near-black with only a WHISPER of warmth (sRGB saturation ~0.09). The
+    // previous 0.10/0.058/0.042 encoded to saturation ~0.34: counted as coloured RED over
+    // ~1/5 of every up-shot, it single-handedly made the render read red-dominant at all four
+    // stations, brighter and worse by day — exactly the reported failure shape. Even a 0.19
+    // tint bled warm through the slab-edge BLEND bands once the ACES curve raised their
+    // contrast, so the warmth the spec wants under house light is kept a hint, not a colour.
+    vec3 col=mix(slab*Eback,vec3(0.070,0.064,0.058)*Efront,web);
     gl_FragColor=vec4(col,1.0);
     }
     #include <tonemapping_fragment>
@@ -695,12 +716,24 @@ function buildProceduralCanopy(root){
  // recon scratchpad): the unphotographed far-west pair classifies 71-75% dead, every
  // photographed bay 0.0-1.5%, the far-east grey haze keeps its real half-chromatic structure.
  // Computed once at load, deterministic; synthesised fill happens ONLY inside these cells.
- const NM=8, nMU=nI*NM, nMV=nJ*NM; let deadTex=null, deadN=0, deadMask=null;
+ const NM=8, nMU=nI*NM, nMV=nJ*NM; let deadTex=null, deadN=0, deadMask=null, wbv=[1,1,1];
  try{
   const img=atlas.image, cw=Math.max(1,img.width>>1), ch=Math.max(1,img.height>>1);
   const cnv=document.createElement('canvas'); cnv.width=cw; cnv.height=ch;
   const ctx=cnv.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,cw,ch);
   const px=ctx.getImageData(0,0,cw,ch).data;
+  // 5a2. the warm-veil gauge for the shader's wb uniform: the linear-space mean colour of the
+  // LIVE atlas (max channel > 24 sRGB — same liveness floor the deadness pass uses). The bake
+  // leans warm across its whole grey field; wb pulls that veil PART way (0.28) back to grey,
+  // which is the calibrated point where the splat's station leads survive (see canopyMaterial).
+  { const lut=new Float32Array(256);
+    for(let i=0;i<256;i++){ const c=i/255; lut[i]=c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4); }
+    let sr=0,sg=0,sb=0,n=0;
+    for(let y=0;y<ch;y+=2){ let o=4*y*cw;
+     for(let x=0;x<cw;x+=2,o+=8){ const r=px[o],g=px[o+1],b=px[o+2];
+      if((r>g?(r>b?r:b):(g>b?g:b))>24){ sr+=lut[r]; sg+=lut[g]; sb+=lut[b]; n++; } } }
+    if(n>1000){ const grey=(0.2126*sr+0.7152*sg+0.0722*sb)/n;
+     wbv=[sr,sg,sb].map(s=>1+0.28*(grey/(s/n)-1)); } }
   const cf=new Float32Array(nMU*nMV), ml=new Float32Array(nMU*nMV);
   const duC=(su1-su0)/nMU, dvC=(sv1-sv0)/nMV;
   for(let j=0;j<nMV;j++)for(let i=0;i<nMU;i++){
@@ -732,7 +765,7 @@ function buildProceduralCanopy(root){
  if(!deadTex){ deadMask=new Uint8Array(1); deadN=0;            // all-live fallback: photographed bays still read right
   deadTex=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat,THREE.UnsignedByteType);
   deadTex.needsUpdate=true; }
- const mat=canopyMaterial(atlas,affU,affV,[ou,ov],[PU,PV],[su0,sv0,su1,sv1],deadTex);
+ const mat=canopyMaterial(atlas,affU,affV,[ou,ov],[PU,PV],[su0,sv0,su1,sv1],deadTex,wbv);
  const mesh=new THREE.Mesh(geo,mat); mesh.name='canopy-procedural';
  root.add(mesh); solids.push(mesh);
  // 6. the measured hanging element at every column head: a matte near-black shallow drum
@@ -752,7 +785,7 @@ function buildProceduralCanopy(root){
  // the old void band stays; nudge it to the same near-black the ring uses (16,14,18 -> 10,9,12)
  if(voidMesh&&voidMesh.material.uniforms)voidMesh.material.uniforms.tint.value.setRGB(0.59,0.62,0.61);
  canopy={mesh,drums,fit:{ou,ov,PU,PV,rect:[su0,sv0,su1,sv1],plane,bays:[nI,nJ],anchors:anchors.length,
-  glass:[gU0,gV0,gU1,gV1],affU,affV,dead:{n:deadN,grid:[nMU,nMV],mask:deadMask}}};
+  glass:[gU0,gV0,gU1,gV1],affU,affV,wb:wbv,dead:{n:deadN,grid:[nMU,nMV],mask:deadMask}}};
  console.info(`canopy: ${nI}x${nJ} bays at ${PU}x${PV} m, phase (${ou.toFixed(3)},${ov.toFixed(3)}), `+
   `vertex plane ${plane.map(x=>x.toFixed(5)).join(' ')}, ${pos.length/9} triangles, ${anchors.length} anchors, `+
   `${deadN}/${nMU*nMV} dead cells`);
@@ -1343,6 +1376,16 @@ document.getElementById('lv_btn').onclick=()=>{
  ws.onclose=()=>{live.on=false; live.ws=null; document.getElementById('lv_btn').textContent='Connect'; liveStat('not connected (is the bridge running?)');};
  ws.onerror=()=>{liveStat('cannot reach the bridge at '+document.getElementById('lv_url').value);};
 };
+// ?connect=1 auto-connects the live input on load (with optional &ws=host:port), so an agent - or a
+// client's shortcut - can open the page already listening to the bridge instead of being told to
+// find the panel and press Connect. Retries while the bridge comes up. Note this only works on a
+// page served over http (localhost included): from https, browsers block ws:// as mixed content.
+{const q=new URLSearchParams(location.search);
+ if(q.get('connect')){const el=document.getElementById('livein'); el.open=true;
+  if(q.get('ws'))document.getElementById('lv_url').value=q.get('ws').includes('://')?q.get('ws'):'ws://'+q.get('ws');
+  if(q.get('off'))document.getElementById('lv_off').value=q.get('off'), live.offset=+q.get('off')|0;
+  const tryConnect=()=>{if(!live.ws)document.getElementById('lv_btn').onclick();};
+  tryConnect(); setInterval(()=>{if(!live.ws)tryConnect();},3000);}}
 // ---- panel wiring
 const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};

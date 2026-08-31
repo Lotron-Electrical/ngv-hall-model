@@ -58,8 +58,10 @@ ART.bind(ARTNET_PORT, () => { try { ART.setBroadcast(true); } catch (e) { /* not
 
 // ---- sACN / E1.31: root layer (ACN packet identifier at 4..15), framing layer universe at 113..114
 // big-endian, DMP layer property values from 125 (start code) then slots from 126.
-const SACN = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-SACN.on('message', (m, rinfo) => {
+// Windows caps IGMP memberships at ~20 PER SOCKET (IP_MAX_MEMBERSHIPS), so one socket cannot join
+// 608 universes: spread the joins across a pool of reuseAddr sockets on the same port. Multicast is
+// delivered per (socket, group) join, so each universe arrives on exactly one socket - no dupes.
+function onSacn(m, rinfo) {
   if (m.length < 126 || m.toString('latin1', 4, 16) !== 'ASC-E1.17\0\0\0') return;
   const vector = m.readUInt32BE(18);
   if (vector !== 0x00000004) return;         // VECTOR_ROOT_E131_DATA
@@ -68,13 +70,25 @@ SACN.on('message', (m, rinfo) => {
   const count = Math.min(m.readUInt16BE(123) - 1, m.length - 126, 512);
   store(u, m.subarray(126, 126 + count), `sACN ${rinfo.address}`);
   stats.sacn++;
-});
-SACN.bind(SACN_PORT, () => {
-  // join the multicast group of every universe in range; unicast to this host arrives regardless
-  for (let u = U_LO; u <= Math.min(U_HI, 63999); u++) {
-    try { SACN.addMembership(`239.255.${(u >> 8) & 0xff}.${u & 0xff}`); } catch (e) { break; }
-  }
-});
+}
+{
+  const PER_SOCKET = 20;
+  let u = U_LO;
+  const uMax = Math.min(U_HI, 63999);
+  const openJoinSocket = () => {
+    if (u > uMax) return;
+    const s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    s.on('message', onSacn);
+    s.on('error', () => { /* keep the bridge alive; unicast still lands on the first socket */ });
+    s.bind(SACN_PORT, () => {
+      for (let i = 0; i < PER_SOCKET && u <= uMax; u++) {
+        try { s.addMembership(`239.255.${(u >> 8) & 0xff}.${u & 0xff}`); i++; } catch (e) { /* skip this group */ }
+      }
+      openJoinSocket();
+    });
+  };
+  openJoinSocket();
+}
 
 // ---- WebSocket server, server -> client only
 const clients = new Set();
