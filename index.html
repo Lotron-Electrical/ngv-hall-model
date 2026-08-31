@@ -86,6 +86,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 #livein{grid-column:1/-1}
 .note{font-size:13px;color:var(--dim);line-height:1.5;margin:8px 0}
 .note a{color:inherit}
+.startlist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
+.startlist li{padding-left:4px}
+.startlist p{margin:3px 0 0;color:var(--dim);font-size:13px;line-height:1.5}
+a.startbtn{display:inline-block;margin-top:6px;background:var(--accent);color:#0e0f11;border:1px solid var(--accent);padding:7px 10px;font:inherit;font-size:13px;font-weight:500;text-decoration:none}
+a.startbtn:link,a.startbtn:visited{color:#0e0f11}
+a.startbtn:hover{background:#d0bd98;border-color:#d0bd98}
+a.startbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .pmgrid input[type=text]{width:100%}
 .pmgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:8px 0}
 .pmgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
@@ -131,6 +138,13 @@ html.embed body,html.embed main{margin:0;padding:0}
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
 <div class="panel" id="panel">
+ <div class="row" id="getstarted">
+  <ol class="startlist">
+   <li><b>Install ELM 2026</b><p>ENTTEC's free preview.</p><a class="startbtn" href="https://cdn.enttec.com/elm/releases/ELM-Preview-win-x64-preview-Setup.exe">Download ELM 2026 Preview (Windows)</a></li>
+   <li><b>Download the show file and double-click it</b><p>It opens in ELM with the hall pixel-mapped and the lighting already running.</p><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">ngv-gandel-hall.elm (66 MB)</a></li>
+   <li><b>See ELM drive this page live</b><p>Download the live preview kit, unzip it, then double-click START-LIVE-PREVIEW.cmd. It starts the DMX bridge, serves this page locally over http and reopens it connected.</p><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-live-preview.zip">ngv-live-preview.zip</a><p>The hosted https page cannot reach the local bridge (ws://localhost), so the kit serves a local copy. The kit needs the free Node.js runtime and will also do steps 1 and 2 if they were skipped.</p></li>
+  </ol>
+ </div>
  <div class="row"><label for="cn">Lights per column</label>
   <div class="stepper"><button type="button" id="cm" aria-label="fewer">&minus;</button><output id="cn">8</output><button type="button" id="cp" aria-label="more">+</button></div>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="skip"> Skip the bottom <input type="number" id="skipm" value="2" min="0" max="6" step="0.5" style="width:56px"> m<button type="button" class="i" data-tip="A client option: the strips start above reach, so the bottom of every shaft carries no LEDs. The run is cut there, not masked, so every count, address and metre downstream sees the shorter strip.">!</button></label></div>
@@ -2954,8 +2968,11 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
 // collapsible categories by the ids they contain, and let the Menu button show and hide it
 {
  const panel=document.getElementById('panel'), stage=document.getElementById('stage');
+ // The proposal iframe carries this handoff already, so embed keeps the viewport free of duplicates.
+ if(document.documentElement.classList.contains('embed'))document.getElementById('getstarted')?.remove();
  const rows=[...panel.children]; // rows AND the loose spec text; everything folds into a category
  const catOf=(row)=>{
+  if(row.id==='getstarted')return 'Get started';
   if(row.querySelector('#event'))return 'Event';
   if(row.querySelector('#court'))return 'Courtyard';
   if(row.querySelector('#tod'))return 'Day & night';
@@ -2965,10 +2982,10 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  };
  const catOfAny=(el)=>el.classList&&el.classList.contains('row')?catOf(el):'Lighting & LEDs';
  const specEls=rows.filter(el=>!(el.classList&&el.classList.contains('row')));
- const order=['Event','Day & night','Lighting & LEDs','Columns','Courtyard','Camera'];
+ const order=['Get started','Event','Day & night','Lighting & LEDs','Columns','Courtyard','Camera'];
  const cats=new Map(order.map(n=>[n,[]]));
  for(const r of rows)cats.get(catOfAny(r)).push(r);
- for(const n of order){ const d=document.createElement('details'); const sm=document.createElement('summary');
+ for(const n of order){ if(!cats.get(n).length)continue; const d=document.createElement('details'); const sm=document.createElement('summary');
   sm.textContent=n; d.appendChild(sm); for(const r of cats.get(n))d.appendChild(r); panel.appendChild(d); }
  panel.classList.add('menu-overlay'); panel.hidden=true; stage.appendChild(panel);
  document.getElementById('menubtn').onclick=()=>{panel.hidden=!panel.hidden;};
