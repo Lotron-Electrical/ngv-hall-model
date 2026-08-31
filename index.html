@@ -1327,16 +1327,22 @@ function buildEvent(){
  // the projector is running: the screen carries the Lotron artwork and two additive washes of it
  // land straight on the brick either side (planes face the room; born facing the wall they cull)
  if(!buildEvent.logoTex){ buildEvent.logoTex=new THREE.TextureLoader().load('tools/lotron-logo.png'); buildEvent.logoTex.colorSpace=THREE.SRGBColorSpace; }
+ // the wedding projector says Congratulations! (Lloyd, 2026-08-31), gold on black
+ if(!buildEvent.congratsTex){ const cv=document.createElement('canvas'); cv.width=1024; cv.height=604; const g=cv.getContext('2d');
+  g.fillStyle='#050505'; g.fillRect(0,0,1024,604); g.fillStyle='#e8c76a'; g.textAlign='center'; g.textBaseline='middle';
+  g.font='italic 700 100px Georgia,serif'; g.fillText('Congratulations!',512,302);
+  buildEvent.congratsTex=new THREE.CanvasTexture(cv); buildEvent.congratsTex.colorSpace=THREE.SRGBColorSpace; }
+ const projTex=(document.getElementById('eventmode').value==='wedding')?buildEvent.congratsTex:buildEvent.logoTex;
  const screen=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW,EVENT.screenH),new THREE.MeshBasicMaterial({color:0x101010,toneMapped:false,side:THREE.DoubleSide}));
  screen.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.15)); screen.quaternion.setFromRotationMatrix(basis); screen.rotateY(Math.PI);
  eventGroup.add(screen);
  const content=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW*0.9,EVENT.screenW*0.9*0.59),
-  new THREE.MeshBasicMaterial({map:buildEvent.logoTex,transparent:true,toneMapped:false,side:THREE.DoubleSide}));
+  new THREE.MeshBasicMaterial({map:projTex,transparent:true,toneMapped:false,side:THREE.DoubleSide}));
  content.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.22)); content.quaternion.setFromRotationMatrix(basis); content.rotateY(Math.PI);
  eventGroup.add(content);
  for(const du of [-11,11]){
   const wash=new THREE.Mesh(new THREE.PlaneGeometry(9,9*0.59),
-   new THREE.MeshBasicMaterial({map:buildEvent.logoTex,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
+   new THREE.MeshBasicMaterial({map:projTex,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
   wash.position.copy(eventPoint(uMid+du,y0+6.2,0.12)); wash.quaternion.setFromRotationMatrix(basis); wash.rotateY(Math.PI);
   eventGroup.add(wash);
  }
@@ -1704,6 +1710,7 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
   return 'Lighting & LEDs';
  };
  const catOfAny=(el)=>el.classList&&el.classList.contains('row')?catOf(el):'Lighting & LEDs';
+ const specEls=rows.filter(el=>!(el.classList&&el.classList.contains('row')));
  const order=['Event','Day & night','Lighting & LEDs','Columns','Courtyard','Camera'];
  const cats=new Map(order.map(n=>[n,[]]));
  for(const r of rows)cats.get(catOfAny(r)).push(r);
@@ -1711,6 +1718,9 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
   sm.textContent=n; d.appendChild(sm); for(const r of cats.get(n))d.appendChild(r); panel.appendChild(d); }
  panel.classList.add('menu-overlay'); panel.hidden=true; stage.appendChild(panel);
  document.getElementById('menubtn').onclick=()=>{panel.hidden=!panel.hidden;};
+ // the spec readout is stats, not a control: it shows only while the Stats button is pressed
+ const syncSpec=()=>{const on=document.getElementById('hudb').getAttribute('aria-pressed')==='true'; for(const el of specEls)el.hidden=!on;};
+ syncSpec(); document.getElementById('hudb').addEventListener('click',()=>setTimeout(syncSpec,0));
 }
 let last=performance.now();
 function frame(now){ if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
