@@ -1361,11 +1361,22 @@ function buildEvent(){
   new THREE.MeshBasicMaterial({map:projTex,transparent:true,toneMapped:false,side:THREE.DoubleSide}));
  content.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.22)); content.quaternion.setFromRotationMatrix(basis); content.rotateY(Math.PI);
  eventGroup.add(content);
- for(const du of [-11,11]){
-  const wash=new THREE.Mesh(new THREE.PlaneGeometry(9,9*0.59),
-   new THREE.MeshBasicMaterial({map:projTex,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
-  wash.position.copy(eventPoint(uMid+du,y0+6.2,0.12)); wash.quaternion.setFromRotationMatrix(basis); wash.rotateY(Math.PI);
-  eventGroup.add(wash);
+ // either side of the screen: tall GRADIENT BANNERS in the event's colours, not more projection
+ // (Lloyd, 2026-08-31: "no need for the ones on the sides")
+ {const md=document.getElementById('eventmode').value;
+  const BANNER={standing:['#e4312b','#f28c1e','#f2d21e','#2bb84a','#28c7ec','#4152c0','#a93ad8'],
+   dinner:['#f4c069','#c4622a','#5e1c14'], wedding:['#fbf8f1','#efdcae','#d9b872'], party:['#ff2fa8','#8a3cff','#2440d8']}[md];
+  const key='banner_'+md;
+  if(!buildEvent[key]){ const cv=document.createElement('canvas'); cv.width=64; cv.height=512; const g=cv.getContext('2d');
+   const gr=g.createLinearGradient(0,0,0,512); BANNER.forEach((c,i)=>gr.addColorStop(i/(BANNER.length-1),c));
+   g.fillStyle=gr; g.fillRect(0,0,64,512);
+   buildEvent[key]=new THREE.CanvasTexture(cv); buildEvent[key].colorSpace=THREE.SRGBColorSpace; }
+  for(const du of [-8.5,-11.5,8.5,11.5]){
+   const banner=new THREE.Mesh(new THREE.PlaneGeometry(1.6,7.5),
+    new THREE.MeshBasicMaterial({map:buildEvent[key],toneMapped:false,side:THREE.DoubleSide}));
+   banner.position.copy(eventPoint(uMid+du,y0+6.6,0.12)); banner.quaternion.setFromRotationMatrix(basis); banner.rotateY(Math.PI);
+   eventGroup.add(banner);
+  }
  }
  const mode=document.getElementById('eventmode').value;
  applyEventLED(mode);
