@@ -1299,14 +1299,14 @@ const EVENT={N:{origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new TH
  // the twelve column feet in this wall frame (u along the wall, d into the room), measured from
  // runs.json; the stage depth stays inside the d=3.66 shaft face and the guests keep clear of all
  cols:[[7.71,3.82],[7.53,11.41],[14.94,3.86],[14.88,11.29],[22.3,3.86],[22.17,11.33],[29.67,3.77],[29.96,11.15],[37.18,3.84],[36.82,11.52],[44.54,3.80],[44.23,11.27]]};
-let eventGroup=null, confetti=null, confettiMat=null;
+let eventGroup=null, confetti=null, confettiMat=null, crowd=null;
 // skin tones, the range people actually come in, deep to pale (sRGB hex; SKIN is taken by the collision margin)
 const SKIN_TONES=['#3b2219','#5c3a21','#7b4b2a','#8d5524','#a0662c','#c68642','#d9975f','#e0ac69','#f1c27d','#ffdbac','#ffe4c4'];
 function eventMat(night,day){ const m=new THREE.MeshBasicMaterial({color:night}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); return m; }
 function eventClearOfColumns(u,d){ return EVENT.cols.every(c=>Math.hypot(u-c[0],d-c[1])>0.55); }
 function eventPoint(u,y,d){ return EVENT.N.origin.clone().addScaledVector(EVENT.N.u,u).addScaledVector(EVENT.N.inRoom,d).setY(y); }
 function buildEvent(){
- if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}
+ if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;} crowd=null;
  if(!document.getElementById('event').checked){sceneDirty=true; return;}
  eventGroup=new THREE.Group(); const y0=FLOOR_Y||EVENT.N.origin.y, uMid=EVENT.wallLen/2;
  const basis=new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate());
@@ -1314,9 +1314,24 @@ function buildEvent(){
  const stage=new THREE.Mesh(new THREE.BoxGeometry(EVENT.stageW,EVENT.stageH,EVENT.stageD),eventMat(0x141414,0x2a2a2a));
  stage.position.copy(eventPoint(uMid,y0+EVENT.stageH/2,EVENT.stageD/2+0.1)); stage.quaternion.setFromRotationMatrix(basis);
  eventGroup.add(stage); solids.push(stage);
- const screen=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW,EVENT.screenH),new THREE.MeshBasicMaterial({color:0xe8e8e6,toneMapped:false}));
- screen.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.15)); screen.quaternion.setFromRotationMatrix(basis);
+ // the projector is running during an event (Lloyd, 2026-08-31: "there should be something
+ // projected on the brick wall"): the screen carries the Lotron logo as content, and two wide
+ // additive washes of the same artwork land straight on the brick either side of it, the way
+ // event branding is thrown onto this wall in practice
+ if(!buildEvent.logoTex){ buildEvent.logoTex=new THREE.TextureLoader().load('tools/lotron-logo.png'); buildEvent.logoTex.colorSpace=THREE.SRGBColorSpace; }
+ const screen=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW,EVENT.screenH),new THREE.MeshBasicMaterial({color:0x101010,toneMapped:false,side:THREE.DoubleSide}));
+ screen.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.15)); screen.quaternion.setFromRotationMatrix(basis); screen.rotateY(Math.PI);
  eventGroup.add(screen);
+ const content=new THREE.Mesh(new THREE.PlaneGeometry(EVENT.screenW*0.9,EVENT.screenW*0.9*0.59),
+  new THREE.MeshBasicMaterial({map:buildEvent.logoTex,transparent:true,toneMapped:false,side:THREE.DoubleSide}));
+ content.position.copy(eventPoint(uMid,y0+EVENT.stageH+2.2+EVENT.screenH/2,0.22)); content.quaternion.setFromRotationMatrix(basis); content.rotateY(Math.PI);
+ eventGroup.add(content);
+ for(const du of [-11,11]){
+  const wash=new THREE.Mesh(new THREE.PlaneGeometry(9,9*0.59),
+   new THREE.MeshBasicMaterial({map:buildEvent.logoTex,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
+  wash.position.copy(eventPoint(uMid+du,y0+6.2,0.12)); wash.quaternion.setFromRotationMatrix(basis); wash.rotateY(Math.PI);
+  eventGroup.add(wash);
+ }
  // the floor the guests can use: inside the hall, clear of the stage front and the glazed wall
  const mode=document.getElementById('eventmode').value;
  const uLo=3, uHi=EVENT.wallLen-3, dLo=EVENT.stageD+2.5, dHi=14.5;
@@ -1326,18 +1341,25 @@ function buildEvent(){
   const n=1000, body=new THREE.CapsuleGeometry(0.16,1.05,3,8), head=new THREE.SphereGeometry(0.11,8,6);
   const bm=new THREE.InstancedMesh(body,new THREE.MeshBasicMaterial(),n), hm=new THREE.InstancedMesh(head,new THREE.MeshBasicMaterial(),n);
   const M=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0), c=new THREE.Color();
+  // THE ROOM NETWORKS (Lloyd): everyone belongs to a conversation knot and drifts between knots,
+  // walking, pausing, turning to whoever is near. State lives in flat arrays; frame() moves them.
+  crowd={bm,hm,n,y0,u:new Float32Array(n),d:new Float32Array(n),tu:new Float32Array(n),td:new Float32Array(n),
+   sc:new Float32Array(n),wide:new Float32Array(n),spd:new Float32Array(n),pause:new Float32Array(n),yaw:new Float32Array(n),
+   knots:[]};
+  for(let k=0;k<26;k++){ let ku=rnd(uLo+2,uHi-2), kd=rnd(dLo+1,dHi-1); if(eventClearOfColumns(ku,kd))crowd.knots.push([ku,kd]); }
+  const knotOf=()=>crowd.knots[Math.floor(Math.random()*crowd.knots.length)];
+  crowd.newTarget=(i)=>{ const kn=knotOf(); for(let t=0;t<8;t++){ const uu=kn[0]+rnd(-3,3), dd=kn[1]+rnd(-3,3);
+   if(uu>uLo&&uu<uHi&&dd>dLo&&dd<dHi&&eventClearOfColumns(uu,dd)){crowd.tu[i]=uu; crowd.td[i]=dd; return;} }
+   crowd.tu[i]=crowd.u[i]; crowd.td[i]=crowd.d[i]; };
   for(let i=0;i<n;i++){
    let uu=rnd(uLo,uHi), dd=rnd(dLo,dHi); for(let tries=0;tries<8&&!eventClearOfColumns(uu,dd);tries++){uu=rnd(uLo,uHi); dd=rnd(dLo,dHi);}
-   const pos=eventPoint(uu,0,dd);
-   // people are not one shape: height, build and skin all vary
-   const sc=rnd(0.85,1.12), wide=rnd(0.8,1.45);
-   q.setFromAxisAngle(up,rnd(-0.4,0.4)); M.compose(new THREE.Vector3(pos.x,y0+0.78*sc,pos.z),q,new THREE.Vector3(sc*wide,sc,sc*wide)); bm.setMatrixAt(i,M);
-   M.compose(new THREE.Vector3(pos.x,y0+1.62*sc,pos.z),q,new THREE.Vector3(sc,sc,sc)); hm.setMatrixAt(i,M);
+   crowd.u[i]=uu; crowd.d[i]=dd; crowd.sc[i]=rnd(0.85,1.12); crowd.wide[i]=rnd(0.8,1.45);
+   crowd.spd[i]=rnd(0.3,0.75); crowd.pause[i]=rnd(0,10); crowd.yaw[i]=rnd(0,Math.PI*2); crowd.newTarget(i);
    bm.setColorAt(i,c.setHSL(rnd(0,1),rnd(0.1,0.45),rnd(0.06,0.28),THREE.SRGBColorSpace));
    hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
   }
   hm.instanceColor.needsUpdate=true;
-  bm.instanceColor.needsUpdate=true; eventGroup.add(bm,hm);
+  bm.instanceColor.needsUpdate=true; eventGroup.add(bm,hm); updateCrowd(0);
  } else {
   // dinner: rounds of ten, 1.8 m tops, chairs and seated guests around each
   const rows=4, cols=10, tops=[], legs=[], cloth=eventMat(0xe9e6df,0xf4f2ec);
@@ -1365,6 +1387,23 @@ function buildEvent(){
  }
  scene.add(eventGroup);
  applyDay(+document.getElementById('tod').value); sceneDirty=true;
+}
+// each frame the crowd takes a step: walk to your knot, stand a while, pick another
+const _cM=new THREE.Matrix4(), _cQ=new THREE.Quaternion(), _cUp=new THREE.Vector3(0,1,0);
+function updateCrowd(dt){
+ if(!crowd)return; const {bm,hm,n,y0}=crowd;
+ for(let i=0;i<n;i++){
+  let du=crowd.tu[i]-crowd.u[i], dd=crowd.td[i]-crowd.d[i]; const dist=Math.hypot(du,dd);
+  if(crowd.pause[i]>0){ crowd.pause[i]-=dt; crowd.yaw[i]+=dt*0.15*Math.sin(i+performance.now()/4000); }
+  else if(dist<0.15){ crowd.pause[i]=2+Math.random()*9; if(Math.random()<0.4)crowd.newTarget(i); }
+  else { const step=Math.min(dist,crowd.spd[i]*dt); crowd.u[i]+=du/dist*step; crowd.d[i]+=dd/dist*step;
+   const want=Math.atan2(-(du/dist),(dd/dist)); crowd.yaw[i]+=(want-crowd.yaw[i])*Math.min(1,dt*4); }
+  const pos=eventPoint(crowd.u[i],0,crowd.d[i]); const sc=crowd.sc[i], wide=crowd.wide[i];
+  _cQ.setFromAxisAngle(_cUp,crowd.yaw[i]);
+  _cM.compose(pos.set(pos.x,y0+0.78*sc,pos.z),_cQ,{x:sc*wide,y:sc,z:sc*wide}); bm.setMatrixAt(i,_cM);
+  _cM.compose(pos.set(pos.x,y0+1.62*sc,pos.z),_cQ,{x:sc,y:sc,z:sc}); hm.setMatrixAt(i,_cM);
+ }
+ bm.instanceMatrix.needsUpdate=true; hm.instanceMatrix.needsUpdate=true;
 }
 // confetti: a BURST on the button, not a standing rain (Lloyd, 2026-08-31). Each press drops one
 // cloud from the canopy; the pieces land, sit a moment, and the cloud is cleared.
@@ -1453,7 +1492,7 @@ document.getElementById('cycle').onchange=e=>{cycleOn=e.target.checked;};
 document.getElementById('court').onchange=e=>{court.visible=e.target.checked; sceneDirty=true;};
 document.getElementById('logoh').oninput=e=>{document.getElementById('logohval').textContent=e.target.value; buildCourt();};
 let last=performance.now();
-function frame(now){ if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
+function frame(now){ if(crowd)updateCrowd(Math.min(0.1,(now-last)/1000)); if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
