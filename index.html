@@ -1493,12 +1493,49 @@ function buildEvent(){
    speaker={g:sg,beam,pool,uMid,y0};
   }
   eventAnim=(dt,t)=>{ updateCrowd(dt,t);
-   if(speaker){ // working the stage: pacing with the mic, the spotlight and its pool tracking
-    const su=speaker.uMid+2.6*Math.sin(t*0.22), sp2=eventPoint(su,0,1.35);
-    speaker.g.position.set(sp2.x,speaker.y0+EVENT.stageH,sp2.z);
-    speaker.g.rotation.z=0.06*Math.sin(t*0.9); speaker.g.rotation.x=0.03*Math.sin(t*1.4);
-    speaker.beam.position.set(sp2.x,speaker.y0+EVENT.stageH+4.4,sp2.z);
-    speaker.pool.position.set(sp2.x,speaker.y0+EVENT.stageH+0.02,sp2.z); } };
+   if(!speaker)return;
+   const y0s=speaker.y0, sH=EVENT.stageH;
+   // THE GUEST SPOT (Lloyd): every so often the speaker pulls someone up from the crowd; the
+   // guest crosses the floor, climbs the stage, takes the mic and the spotlight for a few
+   // moments, then climbs down and melts back into the crowd
+   if(crowd){
+    if(crowd.nextGuest===undefined)crowd.nextGuest=t+16;
+    let G=crowd.guest;
+    if(!G&&t>=crowd.nextGuest){
+     let pick=-1; for(let k=0;k<40;k++){ const j=Math.floor(Math.random()*crowd.n); if(crowd.d[j]<8){pick=j;break;} }
+     if(pick>=0){ crowd.guest=G={i:pick,phase:'up',t0:t,fu:crowd.u[pick],fd:crowd.d[pick]}; }
+     else crowd.nextGuest=t+10;
+    }
+    if(G){ const el=t-G.t0, i=G.i, sc=crowd.sc[i], wide=crowd.wide[i];
+     let gu=G.fu, gd=G.fd, lift=0;
+     const stageU=speaker.uMid+0.35, stageD=1.35, stepD=EVENT.stageD+0.45;
+     if(G.phase==='up'){ const q=Math.min(1,el/3.5); gu=G.fu+(stageU-G.fu)*q; gd=G.fd+(stepD-G.fd)*q;
+      if(el>3.5){ G.phase='climb'; G.t0=t; G.holdU=speaker.uMid+2.6*Math.sin(t*0.22); } }
+     else if(G.phase==='climb'){ const q=Math.min(1,el/1.0); lift=q; gu=stageU; gd=stepD+(stageD-stepD)*q; if(el>1.0){G.phase='speak'; G.t0=t;} }
+     else if(G.phase==='speak'){ lift=1; gu=stageU; gd=stageD; if(el>6.5){G.phase='desc'; G.t0=t;} }
+     else if(G.phase==='desc'){ const q=Math.min(1,el/1.0); lift=1-q; gu=stageU; gd=stageD+(stepD-stageD)*q; if(el>1.0){G.phase='back'; G.t0=t;} }
+     else { const q=Math.min(1,el/3.5); gu=stageU+(G.fu-stageU)*q; gd=stepD+(G.fd-stepD)*q;
+      if(el>3.5){ crowd.u[i]=G.fu; crowd.d[i]=G.fd; crowd.guest=null; crowd.nextGuest=t+14+Math.random()*20; G=null; } }
+     if(G){ G.u=gu; G.d=gd;
+      const gp=eventPoint(gu,0,gd), gy=y0s+sH*lift;
+      _cQ.identity();
+      _cM.compose(_pV.set(gp.x,gy+0.78*sc,gp.z),_cQ,{x:sc*wide,y:sc,z:sc*wide}); crowd.bm.setMatrixAt(i,_cM);
+      const hw=Math.min(sc*wide,1.1);
+      _cM.compose(_pV.set(gp.x,gy+1.62*sc,gp.z),_cQ,{x:hw,y:sc,z:hw}); crowd.hm.setMatrixAt(i,_cM);
+      crowd.bm.instanceMatrix.needsUpdate=true; crowd.hm.instanceMatrix.needsUpdate=true; }
+    }
+   }
+   const G2=crowd&&crowd.guest, hold=!!(G2&&(G2.phase==='climb'||G2.phase==='speak'||G2.phase==='desc'));
+   const su=hold?G2.holdU:speaker.uMid+2.6*Math.sin(t*0.22);
+   const sp2=eventPoint(su,0,1.35);
+   speaker.g.position.set(sp2.x,y0s+sH,sp2.z);
+   speaker.g.rotation.z=0.06*Math.sin(t*0.9); speaker.g.rotation.x=0.03*Math.sin(t*1.4);
+   // the spotlight follows whoever holds the room -- the guest, while they speak
+   const fu=hold&&G2.phase==='speak'?G2.u:su, fd2=hold&&G2.phase==='speak'?G2.d:1.35;
+   const fp=eventPoint(fu,0,fd2);
+   speaker.beam.position.set(fp.x,y0s+sH+4.4,fp.z);
+   speaker.pool.position.set(fp.x,y0s+sH+0.02,fp.z);
+  };
  } else if(mode==='dinner') buildDinner(ctx);
  else if(mode==='wedding') buildWedding(ctx);
  else buildParty(ctx);
@@ -2037,6 +2074,27 @@ function buildParty(ctx){
   gp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
  }
  gp.bm.instanceColor.needsUpdate=true; gp.hm.instanceColor.needsUpdate=true; eventGroup.add(gp.bm,gp.hm);
+ // DANCE CIRCLES (Lloyd): rings of onlookers around someone spinning or doing the worm, and
+ // one big circle holding a two-person dance battle with its own cheering crowd
+ {const rings2=[{u:uMid-4.6,d:7.6,r:1.5,n:9,perf:['spin']},
+   {u:uMid+4.6,d:11.0,r:1.5,n:9,perf:['worm']},
+   {u:uMid,d:9.4,r:2.5,n:16,perf:['battleA','battleB']}];
+  let idx2=0;
+  for(const rg of rings2){
+   for(let m2=0;m2<rg.n;m2++){ const s=party.st[idx2++]; const a2=m2/rg.n*Math.PI*2;
+    const p2=eventPoint(rg.u+Math.cos(a2)*rg.r,0,rg.d+Math.sin(a2)*rg.r);
+    s.x=p2.x; s.z=p2.z; s.amp=0.10+Math.random()*0.07; s.tempo=2.0+Math.random()*0.6; }
+   for(let m2=idx2-rg.n;m2<idx2;m2++)party.st[m2].ringlock=true;
+   for(const kind of rg.perf){ const s=party.st[idx2++]; s.perf=kind; s.ringlock=true;
+    const off2=kind==='battleB'?0.8:(kind==='battleA'?-0.8:0);
+    s.cu=rg.u+off2; s.cd=rg.d; const pc2=eventPoint(s.cu,0,s.cd); s.x=pc2.x; s.z=pc2.z; }
+  }
+  // the circle is a CIRCLE: every other dancer inside a ring is pushed out past its rim,
+  // so the performers have clear floor and the ring reads from every angle
+  for(const s of party.st){ if(s.ringlock)continue;
+   for(const rg of rings2){ const cw=eventPoint(rg.u,0,rg.d);
+    const dx3=s.x-cw.x, dz3=s.z-cw.z, h3=Math.hypot(dx3,dz3);
+    if(h3<rg.r+0.45&&h3>0){ s.x=cw.x+dx3/h3*(rg.r+0.6); s.z=cw.z+dz3/h3*(rg.r+0.6); } } }}
  addWheelchairs(ctx,[[uMid-7.8,9.2],[uMid+8.1,7.6]]);
  // THE RIG (Lloyd, 2026-08-31): haze, lasers, moving heads and disco balls. Eight heads hang
  // from a truss over the stage; six sweep the room, two stay LOCKED on the mirror balls, and
@@ -2170,11 +2228,43 @@ function updatePartyRig(t){
 function updateParty(t){
  const P=party; if(!P)return; const y0=P.y0;
  for(let i=0;i<P.st.length;i++){ const s=P.st[i];
+  if(s.perf){ performPose(P,i,s,t,y0); continue; }
   const bounce=(s.amp+(cheering(t)?0.1:0))*Math.abs(Math.sin(t*Math.PI*s.tempo+s.ph)), sway=0.06*Math.sin(t*1.3+s.ph);
   const by=s.by||0;
   poseBH(P.bm,P.hm,i,s.x+sway*0.5,s.z+sway*0.4,y0+by+0.78*s.sc+bounce,y0+by+1.62*s.sc+bounce*1.15,s.sc*s.wide,s.sc); }
  P.bm.instanceMatrix.needsUpdate=true; P.hm.instanceMatrix.needsUpdate=true;
  updatePartyRig(t);
+}
+// the circle performers: a windmill spin low over the floor, the worm rippling along it, and
+// the battle pair trading eight-second rounds while their ring cheers
+const _qA=new THREE.Quaternion(), _qB=new THREE.Quaternion(), _vA=new THREE.Vector3(), _vB=new THREE.Vector3();
+function performPose(P,i,s,t,y0){
+ const pc=eventPoint(s.cu,0,s.cd);
+ let mode=s.perf;
+ if(mode==='battleA'||mode==='battleB'){
+  const active=(mode==='battleA')===(Math.floor(t/8)%2===0);
+  if(!active){ const b=0.10*Math.abs(Math.sin(t*Math.PI*2.2+i));
+   _cQ.identity();
+   _cM.compose(_pV.set(pc.x,y0+0.78+b,pc.z),_cQ,{x:1,y:1,z:1}); P.bm.setMatrixAt(i,_cM);
+   _cM.compose(_pV.set(pc.x,y0+1.62+b*1.1,pc.z),_cQ,{x:1,y:1,z:1}); P.hm.setMatrixAt(i,_cM);
+   return; }
+  mode=(Math.floor(t/16)%2)?'worm':'spin';
+ }
+ if(mode==='spin'){
+  _qA.setFromAxisAngle(_vA.set(0,1,0),t*5+i); _qB.setFromAxisAngle(_vB.set(0,0,1),1.25); _qA.multiply(_qB);
+  _cM.compose(_pV.set(pc.x,y0+0.45,pc.z),_qA,{x:1,y:1,z:1}); P.bm.setMatrixAt(i,_cM);
+  _vA.set(0,0.66,0).applyQuaternion(_qA);
+  _cM.compose(_pV.set(pc.x+_vA.x,Math.max(y0+0.15,y0+0.45+_vA.y),pc.z+_vA.z),_qA,{x:1,y:1,z:1}); P.hm.setMatrixAt(i,_cM);
+ } else {
+  const ph=t*2.4+i, along=Math.sin(t*0.55+i)*0.7, dirU=EVENT.N.u;
+  const bx=pc.x+dirU.x*along, bz=pc.z+dirU.z*along;
+  const lift=0.13*Math.abs(Math.sin(ph)), pitch=0.35*Math.sin(ph+0.9);
+  _qA.setFromAxisAngle(_vA.set(0,1,0),Math.atan2(dirU.x,dirU.z));
+  _qB.setFromAxisAngle(_vB.set(1,0,0),Math.PI/2+pitch); _qA.multiply(_qB);
+  _cM.compose(_pV.set(bx,y0+0.24+lift,bz),_qA,{x:1,y:1,z:1}); P.bm.setMatrixAt(i,_cM);
+  _vA.set(0,0.66,0).applyQuaternion(_qA); _cQ.identity();
+  _cM.compose(_pV.set(bx+_vA.x,Math.max(y0+0.14,y0+0.24+lift+_vA.y),bz+_vA.z),_cQ,{x:1,y:1,z:1}); P.hm.setMatrixAt(i,_cM);
+ }
 }
 // each frame the crowd takes a step: drift to your circle, stand and talk, drift on.
 // People form RINGS around a knot (that is what a conversation looks like from above), walk with
@@ -2183,6 +2273,7 @@ const _cM=new THREE.Matrix4(), _cQ=new THREE.Quaternion(), _cUp=new THREE.Vector
 function updateCrowd(dt,t){
  if(!crowd)return; const {bm,hm,n,y0}=crowd; t=t||performance.now()/1000; const jump=cheering(t);
  for(let i=0;i<n;i++){
+  if(crowd.guest&&i===crowd.guest.i)continue;
   let du=crowd.tu[i]-crowd.u[i], dd=crowd.td[i]-crowd.d[i]; const dist=Math.hypot(du,dd);
   if(crowd.pause[i]>0)crowd.pause[i]-=dt;
   else if(dist<0.18){ crowd.pause[i]=4+Math.random()*14; if(Math.random()<0.3)crowd.newTarget(i); }
@@ -2200,6 +2291,7 @@ function updateCrowd(dt,t){
      const d2=Math.hypot(du,dd); if(d2>0.42||d2===0)continue; const push=(0.42-d2)/2/(d2||1);
      crowd.u[i]-=du*push; crowd.d[i]-=dd*push; crowd.u[j]+=du*push; crowd.d[j]+=dd*push; } } } }
  for(let i=0;i<n;i++){
+  if(crowd.guest&&i===crowd.guest.i)continue;
   const paused=crowd.pause[i]>0;
   const sway=paused?0.025*Math.sin(t*1.1+i*1.7):0.06*Math.sin(t*2.4+i*1.3);
   let bob=paused?0.012*Math.sin(t*2.1+i*2.6):0;
