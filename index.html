@@ -1382,7 +1382,9 @@ document.getElementById('lv_btn').onclick=()=>{
 // page served over http (localhost included): from https, browsers block ws:// as mixed content.
 {const q=new URLSearchParams(location.search);
  if(q.get('connect')){const el=document.getElementById('livein'); el.open=true;
-  if(q.get('ws'))document.getElementById('lv_url').value=q.get('ws').includes('://')?q.get('ws'):'ws://'+q.get('ws');
+  // localhost only: a shared link must not be able to aim the page at an arbitrary socket
+  if(q.get('ws')){const w=q.get('ws').includes('://')?q.get('ws'):'ws://'+q.get('ws');
+   try{const h=new URL(w).hostname; if(h==='localhost'||h==='127.0.0.1')document.getElementById('lv_url').value=w;}catch(e){}}
   if(q.get('off'))document.getElementById('lv_off').value=q.get('off'), live.offset=+q.get('off')|0;
   const tryConnect=()=>{if(!live.ws)document.getElementById('lv_btn').onclick();};
   tryConnect(); setInterval(()=>{if(!live.ws)tryConnect();},3000);}}
