@@ -1824,7 +1824,7 @@ function buildWedding(ctx){
  cp.bm.setColorAt(0,c.set(0xf7f5f0)); cp.bm.setColorAt(1,c.set(0x17171b)); cp.bm.setColorAt(2,c.set(0x5a5650));
  for(let i=0;i<3;i++)cp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
  cp.bm.instanceColor.needsUpdate=true; cp.hm.instanceColor.needsUpdate=true; eventGroup.add(cp.bm,cp.hm);
- wedding={cp,y0,uMid,seated:null,t0:Math.random()*10};
+ wedding={cp,y0,uMid,seated:null,t0:Math.random()*10,phase:'couple',hasGroom:true,gone:false,summon:null,cwalk:null};
  // the bride wears a GOWN and a VEIL (Lloyd): a white skirt flaring to the floor, and a
  // translucent cone of tulle draped over the head; both track her down the aisle
  const gown=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.95,14),new THREE.MeshBasicMaterial({color:0xf7f5f0}));
@@ -1861,7 +1861,7 @@ function buildWedding(ctx){
    wcSpots.push([u,d]); k++; continue; }
   _cQ.identity(); _cM.compose(_pV.set(p.x,y0+0.25,p.z),_cQ,{x:1,y:1,z:1}); ch.setMatrixAt(k,_cM);
   _cM.compose(_pV.set(p.x+EVENT.N.inRoom.x*0.185,y0+0.53,p.z+EVENT.N.inRoom.z*0.185),wQ,{x:1,y:1,z:1}); chB.setMatrixAt(k,_cM);
-  if(Math.random()<0.88){ seat.push({x:p.x,z:p.z,ph:Math.random()*6.28,on:true}); colourPerson(gp.bm,gp.hm,occ,c); occ++; }
+  if(Math.random()<0.88){ seat.push({x:p.x,z:p.z,u:u,d:d,gone:false,ph:Math.random()*6.28,on:true}); colourPerson(gp.bm,gp.hm,occ,c); occ++; }
   k++;
  }
  gp.bm.count=occ; gp.hm.count=occ; gp.bm.instanceColor.needsUpdate=true; gp.hm.instanceColor.needsUpdate=true;
@@ -1872,53 +1872,93 @@ function buildWedding(ctx){
  // +inRoom pointed the riders at the back of the hall
  const faceYaw=Math.atan2(-EVENT.N.inRoom.x,-EVENT.N.inRoom.z);
  for(const w of wheelchairs){ w.pause=1e9; w.g.rotation.y=faceYaw; } // seated with the rows, facing the arch
- eventAnim=(dt,t)=>updateWedding(t); updateWedding(0);
+ eventAnim=(dt,t)=>updateWedding(dt,t); updateWedding(0,0);
 }
-function updateWedding(t){
+function updateWedding(dt,t){
  const W=wedding; if(!W)return; const y0=W.y0;
  const jw=cheering(t);
- for(let i=0;i<W.seated.occ;i++){ const s=W.seated.seat[i]; const nod=0.025*Math.sin(t*1.6+s.ph);
+ for(let i=0;i<W.seated.occ;i++){ const s=W.seated.seat[i];
+  if(s.gone){ poseBH(W.seated.bm,W.seated.hm,i,s.x,s.z,-99,-99,1,1); continue; }
+  const nod=0.025*Math.sin(t*1.6+s.ph);
   const jb=jw?0.07*Math.abs(Math.sin(t*Math.PI*2.1+s.ph)):0;
   poseBH(W.seated.bm,W.seated.hm,i,s.x,s.z,y0+0.72+jb,y0+1.18+nod+jb,1,1); }
+ // the summoned pair make their way from their seats to the arch: forward out of the row into
+ // the gap, along it to the aisle, then up to the front -- never through a chair or a neighbour
+ if(W.summon){ let all=true;
+  for(const sm of W.summon){ if(!sm.done){ if(stepAlong(sm,dt,0.9))sm.done=true; else all=false; } }
+  if(all){ W.summon=null; W.phase='couple'; }
+ }
  for(let i=0;i<3;i++){ let fx=W.fixed[i][0], fz=W.fixed[i][1]; const sway=0.02*Math.sin(t*0.7+i*2.1);
   let hide=false;
-  if(W.walk&&i!==2){ // the couple walk the aisle, then OUT through the glass entrance; the
-   // celebrant stays at the arch. They only vanish once the glazing has swallowed them.
+  const sm=W.summon&&W.summon.find(function(s2){return s2.ci===i;});
+  if(sm){ const wp=eventPoint(sm.u,0,sm.d); fx=wp.x; fz=wp.z; }
+  else if(W.walk&&i!==2){ // the couple walk the aisle, then OUT through the glass entrance
    const tw=t-W.walk.t0, off=(i===0?-0.4:0.4);
    if(tw<=20){ const dNow=3.55+(tw/20)*9.9; const wp=eventPoint(W.uMid+off,0,dNow); fx=wp.x; fz=wp.z; }
    else { const q=Math.min(1,(tw-20)/6);
     const uNow=W.uMid+off+(27.6+off-(W.uMid+off))*q, dNow=13.45+2.2*q;
     const wp=eventPoint(uNow,0,dNow); fx=wp.x; fz=wp.z;
     if(dNow>15.02)hide=true;
-    if(tw>27){ W.walk=null; W.gone=true; } }
+    if(tw>27){ W.walk=null; W.gone=true; summonNextCouple(W); } }
   }
-  if(W.gone&&i!==2)hide=true;
+  else if(W.cwalk&&i===2){ // the celebrant walks last, alone
+   const tw=t-W.cwalk.t0;
+   if(tw<=16){ const dNow=2.8+(tw/16)*10.65; const wp=eventPoint(W.uMid,0,dNow); fx=wp.x; fz=wp.z; }
+   else { const q=Math.min(1,(tw-16)/6);
+    const uNow=W.uMid+(27.6-W.uMid)*q, dNow=13.45+2.2*q;
+    const wp=eventPoint(uNow,0,dNow); fx=wp.x; fz=wp.z;
+    if(dNow>15.02)hide=true;
+    if(tw>23){ W.cwalk=null; W.phase='done'; } }
+  }
+  if(!sm){
+   if(W.gone&&i!==2)hide=true;
+   if(!W.hasGroom&&i===1)hide=true;
+  }
+  if(W.phase==='done'&&i===2)hide=true;
   poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.78,hide?-99:y0+1.62,i===0?1.15:1,1);
   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=!hide;
    if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.51,fz); } } }
- // RICE from the crowd (Lloyd): while the couple walk, guests seated by the aisle near them
- // throw handfuls up and over -- each toss starts at a real guest's hands, not in mid-air
+ // RICE only ever leaves a hand that exists: guests still in their seats near the couple, or --
+ // once the rows are empty -- the celebrant at the arch, who throws the last of it
  if(W.walk){
   const p=Math.min(1,(t-W.walk.t0)/20), dNow=3.55+p*9.9;
   if(p<0.97&&t>=(W.walk.nextToss||0)){ W.walk.nextToss=t+0.14+Math.random()*0.28;
    const U=EVENT.N.u, R=EVENT.N.inRoom, O=EVENT.N.origin, cand=[];
-   for(const s of W.seated.seat){ const dx=s.x-O.x, dz=s.z-O.z;
+   for(const s of W.seated.seat){ if(s.gone)continue;
+    const dx=s.x-O.x, dz=s.z-O.z;
     const su=dx*U.x+dz*U.z, sd=dx*R.x+dz*R.z;
     if(Math.abs(su-W.uMid)<2.6&&Math.abs(sd-dNow)<3.2)cand.push(s); }
+   const obs=[]; for(const s2 of W.seated.seat)if(!s2.gone)obs.push([s2.x,s2.z,y0+1.31]);
+   for(let ci=0;ci<2;ci++){ if(ci===1&&!W.hasGroom)continue;
+    const wp2=eventPoint(W.uMid+(ci===0?-0.4:0.4),0,dNow);
+    obs.push([wp2.x,wp2.z,y0+1.74]); }
    if(cand.length){
-    // what the grains can come to rest ON: every seated guest, and the couple themselves
-    const obs=W.seated.seat.map(function(s2){return [s2.x,s2.z,y0+1.31];});
-    for(let ci=0;ci<2;ci++){ const wp2=eventPoint(W.uMid+(ci===0?-0.4:0.4),0,dNow);
-     obs.push([wp2.x,wp2.z,y0+1.74]); }
     // two or three throwers at once -- a corridor of rice, not a lone lob
     const nT2=2+(Math.random()<0.5?1:0);
     for(let k2=0;k2<nT2&&cand.length;k2++){
      const s=cand.splice(Math.floor(Math.random()*cand.length),1)[0];
      const tp=eventPoint(W.uMid+(Math.random()-0.5)*0.9,0,dNow+0.2+Math.random()*1.2);
-     riceToss(s.x,y0+1.45,s.z, tp.x,y0+2.3+Math.random()*0.5,tp.z, y0, obs); } } }
+     riceToss(s.x,y0+1.45,s.z, tp.x,y0+2.3+Math.random()*0.5,tp.z, y0, obs); }
+   } else if(dNow<9&&W.phase!=='done'){
+    const tp=eventPoint(W.uMid+(Math.random()-0.5)*0.9,0,dNow+0.3+Math.random()*0.8);
+    riceToss(W.fixed[2][0],y0+1.45,W.fixed[2][1], tp.x,y0+2.3+Math.random()*0.4,tp.z, y0, obs);
+   } }
  }
  W.seated.bm.instanceMatrix.needsUpdate=true; W.seated.hm.instanceMatrix.needsUpdate=true;
  W.cp.bm.instanceMatrix.needsUpdate=true; W.cp.hm.instanceMatrix.needsUpdate=true;
+}
+// after a couple leaves, two random guests still seated rise and take their place -- one alone
+// if only one remains -- and when the rows are empty the celebrant readies their own walk
+function summonNextCouple(W){
+ const rem=W.seated.seat.filter(function(s){return !s.gone;});
+ if(!rem.length){ W.phase='celebrant-ready'; return; }
+ const path=function(g,off){ const side=g.u<W.uMid?-1:1;
+  return {ci:off<0?0:1,u:g.u,d:g.d,wp:[[g.u,g.d-0.39],[W.uMid+side*0.9,g.d-0.39],[W.uMid+off,3.55]],done:false}; };
+ const a=rem.splice(Math.floor(Math.random()*rem.length),1)[0]; a.gone=true;
+ const entries=[path(a,-0.4)];
+ if(rem.length){ const b=rem.splice(Math.floor(Math.random()*rem.length),1)[0]; b.gone=true;
+  entries.push(path(b,0.4)); W.hasGroom=true; } else { W.hasGroom=false; }
+ W.summon=entries; W.phase='summon'; W.gone=false;
 }
 
 // PARTY (Lloyd, 2026-08-31): a reception -- dance floor mid-hall, dancers bouncing, groups
@@ -2352,10 +2392,14 @@ function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
    'void main(){if(vA<=0.02)discard; vec2 d=gl_PointCoord-0.5; if(dot(d,d)>0.25)discard; gl_FragColor=vec4(0.95,0.92,0.84,1.0);}'});
  addFx(new THREE.Points(g,m),m,9000);
 }
-function fireWeddingWalk(){ if(!wedding)return; confettiUntil=performance.now()/1000+9;
- // no petal rain from nowhere (Lloyd: "floating rice falling down, get rid of that") -- ALL of
- // it comes from the guests' hands as thrown handfuls, in updateWedding
- wedding.walk={t0:performance.now()/1000}; wedding.gone=false;
+function fireWeddingWalk(){ if(!wedding)return;
+ const W=wedding;
+ // every press marries off the NEXT couple; ignored while a walk or the summoning is running,
+ // and the celebrant's own walk is the last thing this button ever does
+ if(W.walk||W.summon||W.cwalk||W.phase==='done'||W.phase==='summon')return;
+ confettiUntil=performance.now()/1000+9;
+ if(W.phase==='celebrant-ready'){ W.cwalk={t0:performance.now()/1000}; return; }
+ W.walk={t0:performance.now()/1000}; W.gone=false;
 }
 let beams=null, beamMats=[], dust=null, dustMat=null, beamLegs=null;
 function collectLegs(){ const legs=[]; if(!hallGroup)return legs;
