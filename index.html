@@ -1727,9 +1727,15 @@ function buildWedding(ctx){
  const ch=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),new THREE.MeshBasicMaterial({color:0xefeee8}),nCh);
  const chB=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.05),new THREE.MeshBasicMaterial({color:0xefeee8}),nCh);
  const wQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone()));
+ // two places in the rows belong to wheelchair users (Lloyd): the chair is left out and the
+ // wheelchair parks IN the row, on the aisle side, facing the arch with everyone else
+ const wcSlots=[[-1,2,0],[1,4,0]], wcSpots=[];
  const gp=peopleMeshes(nCh,0.55); const seat=[]; let k=0, occ=0;
  for(let sblk=-1;sblk<=1;sblk+=2)for(let r=0;r<rows;r++)for(let ci=0;ci<cols;ci++){
   const u=uMid+sblk*(1.35+ci*0.58), d=5.6+r*0.78, p=eventPoint(u,0,d);
+  if(wcSlots.some(x=>x[0]===sblk&&x[1]===r&&x[2]===ci)){ // no chair here: this place is theirs
+   _cM.compose(_pV.set(0,-99,0),_cQ.identity(),{x:0.001,y:0.001,z:0.001}); ch.setMatrixAt(k,_cM); chB.setMatrixAt(k,_cM);
+   wcSpots.push([u,d]); k++; continue; }
   _cQ.identity(); _cM.compose(_pV.set(p.x,y0+0.25,p.z),_cQ,{x:1,y:1,z:1}); ch.setMatrixAt(k,_cM);
   _cM.compose(_pV.set(p.x+EVENT.N.inRoom.x*0.185,y0+0.53,p.z+EVENT.N.inRoom.z*0.185),wQ,{x:1,y:1,z:1}); chB.setMatrixAt(k,_cM);
   if(Math.random()<0.88){ seat.push({x:p.x,z:p.z,ph:Math.random()*6.28,on:true}); colourPerson(gp.bm,gp.hm,occ,c); occ++; }
@@ -1738,8 +1744,9 @@ function buildWedding(ctx){
  gp.bm.count=occ; gp.hm.count=occ; gp.bm.instanceColor.needsUpdate=true; gp.hm.instanceColor.needsUpdate=true;
  wedding.seated={bm:gp.bm,hm:gp.hm,seat,occ};
  eventGroup.add(ch,chB,gp.bm,gp.hm);
- addWheelchairs(ctx,[[uMid-6.1,5.6],[uMid+6.1,7.16]]); // at the ends of the rows, with everyone else
- for(const w of wheelchairs)w.pause=1e9; // nobody circulates during a ceremony
+ addWheelchairs(ctx,wcSpots); // in their own places in the rows
+ const faceYaw=Math.atan2(EVENT.N.inRoom.x,EVENT.N.inRoom.z);
+ for(const w of wheelchairs){ w.pause=1e9; w.g.rotation.y=faceYaw; } // seated with the rows, facing the arch
  eventAnim=(dt,t)=>updateWedding(t); updateWedding(0);
 }
 function updateWedding(t){
