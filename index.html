@@ -2088,37 +2088,33 @@ function updatePartyRig(t){
   h.beamG.quaternion.setFromUnitVectors(_rDown,_rD);
   h.mat.color.setHSL(hue,1,0.6);
  }
- // the scatter lands ON the room's real surfaces: rays are cut in the WALL FRAME (u along the
- // wall, d into the room, the true ceiling height), so a dot sits on a wall, the floor or the
- // ceiling -- never floating inside the axis-aligned box the old code intersected
- {const O=EVENT.N.origin, uMax=EVENT.wallLen-0.05, dMax=14.95, yTop=(CEIL_Y||party.y0+9)-0.05, yBot=party.y0+0.03;
+ // the scatter lands on the room's REAL surfaces: each dot is a raycast against the actual
+ // hall geometry (canopy, folded glazing, brick, columns and all), amortised a handful of
+ // dots per frame inside a time budget. A ray that escapes into the roof void hides its dot
+ // rather than parking it in mid-air -- that is how light works (Lloyd).
+ if(!F.rayTargets){ F.rayTargets=[]; if(hallGroup)F.rayTargets.push(hallGroup); // shafts live in the hall GLB
+  F.rc=new THREE.Raycaster(); F.rc.far=45; F.dirV=new THREE.Vector3(); }
  for(const b of F.balls){
   b.g.rotation.y=t*0.5;
   const pos=b.dots.geometry.attributes.position.array, o=b.g.position;
-  const ou=(o.x-O.x)*U.x+(o.z-O.z)*U.z, od=(o.x-O.x)*R.x+(o.z-O.z)*R.z;
   const ca=Math.cos(t*0.35), sa=Math.sin(t*0.35);
-  for(let i=0;i<b.n;i++){
+  if(b.cursor===undefined){ b.cursor=0; for(let i=0;i<b.n;i++)pos[i*3+1]=-999; }
+  const tb0=performance.now(); let done=0;
+  while(done<16&&performance.now()-tb0<1.2){
+   const i=b.cursor; b.cursor=(b.cursor+1)%b.n; done++;
    const dx0=b.dirs[i*3], dy=b.dirs[i*3+1], dz0=b.dirs[i*3+2];
-   const dx=ca*dx0+sa*dz0, dz=-sa*dx0+ca*dz0;
-   const du=dx*U.x+dz*U.z, dd=dx*R.x+dz*R.z;
-   const tu=du>0?(uMax-ou)/du:du<0?(0.05-ou)/du:1e9;
-   const td=dd>0?(dMax-od)/dd:dd<0?(0.05-od)/dd:1e9;
-   const ty=dy>0?(yTop-o.y)/dy:dy<0?(yBot-o.y)/dy:1e9;
-   let tt=Math.min(tu,td,ty);
-   // a dot that meets a COLUMN on the way stops there -- the light touches whatever
-   // surface is actually first, walls and columns alike
-   {const a2=du*du+dd*dd; if(a2>1e-6)for(let ci=0;ci<EVENT.cols.length;ci++){
-    const cu=EVENT.cols[ci][0]-ou, cd=EVENT.cols[ci][1]-od;
-    const bq=du*cu+dd*cd, c2=cu*cu+cd*cd-0.2;
-    const disc=bq*bq-a2*c2; if(disc<=0)continue;
-    const th=(bq-Math.sqrt(disc))/a2; if(th>0.3&&th<tt)tt=th; }}
-   pos[i*3]=o.x+dx*tt; pos[i*3+1]=o.y+dy*tt; pos[i*3+2]=o.z+dz*tt;
+   F.dirV.set(ca*dx0+sa*dz0, dy, -sa*dx0+ca*dz0);
+   F.rc.set(o,F.dirV);
+   const h=F.rc.intersectObjects(F.rayTargets,true);
+   if(h.length){ const p=h[0].point;
+    pos[i*3]=p.x-F.dirV.x*0.04; pos[i*3+1]=p.y-F.dirV.y*0.04; pos[i*3+2]=p.z-F.dirV.z*0.04; }
+   else pos[i*3+1]=-999;
   }
   b.dots.geometry.attributes.position.needsUpdate=true;
   b.sm.color.setHSL(b.hue||0,0.85,0.75);
   b.glow.material.color.setHSL(b.hue||0,0.9,0.7);
   b.glow.material.opacity=0.12+0.05*Math.sin(t*2.3);
- }}
+ }
  for(const L of F.lasers){
   const pos=L.geo.attributes.position.array;
   for(let i=0;i<L.nR;i++){
