@@ -1913,11 +1913,23 @@ function fireConfetti(){
  const y0=FLOOR_Y||EVENT.N.origin.y, uLo=3, uHi=EVENT.wallLen-3, dHi=14.5, rnd=(a,b)=>a+Math.random()*(b-a);
  {
   const n=5000, pos=new Float32Array(n*3), seed=new Float32Array(n*3), col=new Float32Array(n*3), rest=new Float32Array(n); const c=new THREE.Color();
-  // where a piece comes to rest: the floor, or (in a standing room) on the crowd's heads
-  const md=document.getElementById('eventmode').value, onCrowd=(md==='standing'||md==='party');
-  for(let i=0;i<n;i++){ const pt=eventPoint(rnd(uLo,uHi),0,rnd(1.5,dHi));
+  // a piece lands ON whatever actually stands beneath it -- a head, a cocktail table, a
+  // wheelchair, the stage -- else the floor. Never a probability of thin air (Lloyd saw the
+  // old 45%-at-head-height rule hovering over empty carpet like an invisible box).
+  const cell=0.45, restMap=new Map(), RK=(x,z)=>Math.round(x/cell)*4096+Math.round(z/cell);
+  const put=(x,z,y)=>{const k=RK(x,z); if(!(restMap.get(k)>=y))restMap.set(k,y);};
+  if(crowd)for(let i=0;i<crowd.n;i++){const p=eventPoint(crowd.u[i],0,crowd.d[i]); put(p.x,p.z,y0+1.62*crowd.sc[i]+0.04);}
+  if(party){ for(const s of party.st)put(s.x,s.z,y0+(s.by||0)+1.62*s.sc+0.04);
+   const uMid2=EVENT.wallLen/2;
+   for(let i=0;i<10;i++){const a=i/10*Math.PI*2,p=eventPoint(uMid2+Math.cos(a)*9.5,0,9+Math.sin(a)*6);
+    for(let ox=-1;ox<=1;ox++)for(let oz=-1;oz<=1;oz++)put(p.x+ox*0.28,p.z+oz*0.28,y0+1.08);} }
+  for(const w of wheelchairs)put(w.g.position.x,w.g.position.z,y0+1.34);
+  for(let i=0;i<n;i++){ const u=rnd(uLo,uHi), d=rnd(1.5,dHi), pt=eventPoint(u,0,d);
    pos.set([pt.x,0,pt.z],i*3); seed.set([Math.random(),Math.random(),Math.random()],i*3);
-   rest[i]=(onCrowd&&Math.random()<0.45)?y0+1.5+Math.random()*0.25:y0+0.02;
+   let ry=y0+0.02;
+   if(d<EVENT.stageD+0.1&&Math.abs(u-EVENT.wallLen/2)<EVENT.stageW/2) ry=y0+EVENT.stageH+0.02;
+   const hit=restMap.get(RK(pt.x,pt.z)); if(hit!==undefined&&hit>ry)ry=hit;
+   rest[i]=ry;
    c.setHSL(Math.random(),0.85,0.6); col.set([c.r,c.g,c.b],i*3); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('restY',new THREE.BufferAttribute(rest,1));
   confettiMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},top:{value:y0+11.5}},
