@@ -89,10 +89,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .startlist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
 .startlist li{padding-left:4px}
 .startlist p{margin:3px 0 0;color:var(--dim);font-size:13px;line-height:1.5}
-a.startbtn{display:inline-block;margin-top:6px;background:var(--accent);color:#0e0f11;border:1px solid var(--accent);padding:7px 10px;font:inherit;font-size:13px;font-weight:500;text-decoration:none}
+a.startbtn,button.startbtn{display:inline-block;margin-top:6px;background:var(--accent);color:#0e0f11;border:1px solid var(--accent);padding:7px 10px;font:inherit;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer}
 a.startbtn:link,a.startbtn:visited{color:#0e0f11}
-a.startbtn:hover{background:#d0bd98;border-color:#d0bd98}
-a.startbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+a.startbtn:hover,button.startbtn:hover{background:#d0bd98;border-color:#d0bd98}
+a.startbtn:focus-visible,button.startbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .pmgrid input[type=text]{width:100%}
 .pmgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:8px 0}
 .pmgrid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
@@ -202,8 +202,8 @@ html.embed body,html.embed main{margin:0;padding:0}
        not the mapping controls, and the show file bakes the exact patch this section builds. -->
   <ol class="startlist" id="getstarted">
    <li><b>Install ELM 2026</b><p>ENTTEC's free preview.</p><a class="startbtn" href="https://cdn.enttec.com/elm/releases/ELM-Preview-win-x64-preview-Setup.exe">Download ELM 2026 Preview (Windows)</a></li>
-   <li><b>Download the show file and double-click it</b><p>It opens in ELM with this hall already pixel-mapped to the patch below, lighting running. One file per product option.</p><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">12 V strip, 60 px/m (66 MB)</a> <a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall-neon.elm">24 V Neon Flex S9, 10 px/m (11 MB)</a></li>
-   <li><b>Point ELM at this page</b><p>Open <i>Live input</i> just below, run the little bridge it links, press Connect and allow the browser's local-network prompt. What ELM outputs, these columns show, right here.</p></li>
+   <li><b>Download the show file and double-click it</b><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">12 V strip, 60 px/m (66 MB)</a> <a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall-neon.elm">24 V Neon Flex S9, 10 px/m (11 MB)</a></li>
+   <li><b style="display:block">Point ELM at this page</b><a class="startbtn" href="tools/start-bridge.cmd" download>Start the bridge</a> <button type="button" class="startbtn" id="gs_connect">Connect</button></li>
   </ol>
   <p class="note">Or shape the patch yourself and export it: the grid below drives the CSV downloads, and the table is the patch.</p>
   <div class="pmgrid">
@@ -1391,6 +1391,11 @@ document.getElementById('lv_btn').onclick=()=>{
  ws.onclose=()=>{live.on=false; live.ws=null; document.getElementById('lv_btn').textContent='Connect'; liveStat('not connected (is the bridge running?)');};
  ws.onerror=()=>{liveStat('cannot reach the bridge at '+document.getElementById('lv_url').value);};
 };
+// The Connect in the get-started list is the same connection: it presses the Live-input button and
+// mirrors its label, so the panel below stays the one source of truth for state and status text.
+{const gs=document.getElementById('gs_connect'), lb=document.getElementById('lv_btn');
+ gs.onclick=()=>lb.onclick();
+ new MutationObserver(()=>{gs.textContent=lb.textContent;}).observe(lb,{childList:true});}
 // ?connect=1 auto-connects the live input on load (with optional &ws=host:port), so an agent - or a
 // client's shortcut - can open the page already listening to the bridge instead of being told to
 // find the panel and press Connect. Retries while the bridge comes up. Note this only works on a
