@@ -83,7 +83,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .panel select{height:40px;width:100%}
 .row input[type=range]+span{margin-top:-2px}
 .stat{grid-column:1/-1;color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
-#livein{grid-column:1/-1}
 .note{font-size:13px;color:var(--dim);line-height:1.5;margin:8px 0}
 .note a{color:inherit}
 .startlist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
@@ -205,6 +204,16 @@ html.embed body,html.embed main{margin:0;padding:0}
    <li><b>Download the show file and double-click it</b><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">12 V strip, 60 px/m (66 MB)</a> <a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall-neon.elm">24 V Neon Flex S9, 10 px/m (11 MB)</a></li>
    <li><b style="display:block">Point ELM at this page</b><a class="startbtn" href="tools/start-bridge.cmd" download>Start the bridge</a> <button type="button" class="startbtn" id="gs_connect">Connect</button></li>
   </ol>
+  <!-- Live input lives in this same row: one Pixel mapping entry in the menu, not two. The
+       bridge fields stay for anyone not on ELM (Resolume, MadMapper, a console) or on another
+       port; step 3 above is the same connection. -->
+  <div class="stat" id="lv_stat">not connected</div>
+  <p class="note">Chrome's local-network prompt on Connect is this page reaching the bridge on your own computer: choose Allow. Any Art-Net / sACN sender works, aimed at this computer's IP or the LAN; the table below is the patch it must use.</p>
+  <div class="pmgrid">
+   <label>Bridge <input type="text" id="lv_url" value="ws://localhost:9930"></label>
+   <label>Universe offset (page universe = sender universe + this) <input type="number" id="lv_off" value="0"></label>
+   <label>&nbsp;<button type="button" id="lv_btn" class="sw">Connect</button></label>
+  </div>
   <p class="note">Or shape the patch yourself and export it: the grid below drives the CSV downloads, and the table is the patch.</p>
   <div class="pmgrid">
    <label>Pixels per universe <input type="number" id="pm_ppu" value="128" min="1" max="128"></label>
@@ -221,15 +230,6 @@ html.embed body,html.embed main{margin:0;padding:0}
   </div>
   <div class="stat" id="pm_tot"></div>
   <div class="pmtable"><table id="pm_table"></table></div>
- </details>
- <details class="row" id="livein"><summary>Live input: drive the strips from ELM or any Art-Net / sACN sender</summary>
-  <p class="note">Pixel-map in ELM (or Resolume, MadMapper, a console) and see it here. A browser cannot receive Art-Net, so a small bridge runs on the computer showing this page: <a href="tools/dmx_bridge.js" download>download dmx_bridge.js</a> and <a href="tools/run-bridge.cmd" download>run-bridge.cmd</a> into one folder, double-click run-bridge.cmd (needs <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a>), point the mapper's Art-Net or sACN output at this computer's IP (or broadcast on the LAN), then Connect. Chrome will ask permission for a website to reach a device on your local network: that is this page reaching the bridge on your own computer, choose Allow. The patch in the Pixel map above is the patch the mapper must use: 128 pixels per universe, RGBW, strips in the order of the table.</p>
-  <div class="pmgrid">
-   <label>Bridge <input type="text" id="lv_url" value="ws://localhost:9930"></label>
-   <label>Universe offset (page universe = sender universe + this) <input type="number" id="lv_off" value="0"></label>
-   <label>&nbsp;<button type="button" id="lv_btn" class="sw">Connect</button></label>
-  </div>
-  <div class="stat" id="lv_stat">not connected</div>
  </details>
 </div>
 <script type="module">
@@ -1401,7 +1401,7 @@ document.getElementById('lv_btn').onclick=()=>{
 // find the panel and press Connect. Retries while the bridge comes up. Note this only works on a
 // page served over http (localhost included): from https, browsers block ws:// as mixed content.
 {const q=new URLSearchParams(location.search);
- if(q.get('connect')){const el=document.getElementById('livein'); el.open=true;
+ if(q.get('connect')){const el=document.getElementById('pmap'); el.open=true;
   // localhost only: a shared link must not be able to aim the page at an arbitrary socket
   if(q.get('ws')){const w=q.get('ws').includes('://')?q.get('ws'):'ws://'+q.get('ws');
    try{const h=new URL(w).hostname; if(h==='localhost'||h==='127.0.0.1')document.getElementById('lv_url').value=w;}catch(e){}}
@@ -2976,7 +2976,7 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  const panel=document.getElementById('panel'), stage=document.getElementById('stage');
  const rows=[...panel.children]; // rows AND the loose spec text; everything folds into a category
  const catOf=(row)=>{
-  if(row.id==='pmap'||row.id==='livein')return 'Pixel mapping';
+  if(row.id==='pmap')return 'Pixel mapping';
   if(row.querySelector('#event'))return 'Event';
   if(row.querySelector('#court'))return 'Courtyard';
   if(row.querySelector('#tod'))return 'Day & night';
