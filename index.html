@@ -71,6 +71,11 @@ button.i:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #mark{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #000;margin:-7px 0 0 -7px;pointer-events:none;left:80px;top:80px}
 .swatches{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
 .sw{display:flex;align-items:center;gap:8px;height:40px;padding:0 8px;width:100%;justify-content:flex-start}
+#celebratefab{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:30;
+ background:#1c1e24;color:var(--ink);border:1px solid var(--accent);border-radius:24px;
+ padding:12px 26px;font-size:15px;font-weight:600;letter-spacing:.04em;cursor:pointer;
+ box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#celebratefab:active{transform:translateX(-50%) scale(.96)}
 .sw i{display:inline-block;width:22px;height:22px;border:1px solid #000;flex:none}
 .sw[aria-pressed="true"]{border-color:var(--accent);outline:1px solid var(--accent)}
 input[type=range]{width:100%;accent-color:var(--accent)}
@@ -113,6 +118,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
  <div id="hud" hidden></div>
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
+ <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -964,7 +970,11 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}};
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;},
+ // event-layer debug handles for headless verification
+ get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
+ buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),
+ setCam:(x,y,z,yw,pt)=>{eye.set(x,y,z); yaw=yw; pitch=pt;}};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+(state.system==='neon'?'neon-10':state.density)+'pxm.csv'; a.click();
  document.getElementById('pm_tot').textContent+=' | ELM CSV: '+(csv.split('\n').length-1).toLocaleString()+' pixels';};
@@ -1347,6 +1357,7 @@ function eventMat(night,day){ const m=new THREE.MeshBasicMaterial({color:night})
 function eventClearOfColumns(u,d){ return EVENT.cols.every(c=>Math.hypot(u-c[0],d-c[1])>0.55); }
 function eventPoint(u,y,d){ return EVENT.N.origin.clone().addScaledVector(EVENT.N.u,u).addScaledVector(EVENT.N.inRoom,d).setY(y); }
 function buildEvent(){
+ document.getElementById('celebratefab').hidden=!document.getElementById('event').checked;
  if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;} crowd=null; eventAnim=null; dinner=null; wedding=null; party=null; wheelchairs=[]; eventLitMats=[]; speaker=null; clearFx();
  if(!document.getElementById('event').checked){restoreEventLED(); sceneDirty=true; return;}
  eventGroup=new THREE.Group(); const y0=FLOOR_Y||EVENT.N.origin.y, uMid=EVENT.wallLen/2;
@@ -1449,10 +1460,18 @@ function buildEvent(){
    sb.position.y=0.78; sg.add(sb);
    const sh=new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),new THREE.MeshBasicMaterial({color:SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]}));
    sh.position.y=1.62; sg.add(sh);
-   const mic=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.025,0.24,8),new THREE.MeshBasicMaterial({color:0x0c0c0e}));
-   mic.position.set(0.2,1.36,0.12); mic.rotation.z=-0.5; mic.rotation.x=-0.3; sg.add(mic);
+   // the mic is HELD: a suited arm bends up from the shoulder and the hand keeps the
+   // mic at the mouth, so the pose reads as speaking, not a rod floating at the hip
+   const limb=(a,b,r,col)=>{const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A);
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),8),new THREE.MeshBasicMaterial({color:col}));
+    c.position.copy(A).addScaledVector(d,0.5); c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); sg.add(c); return c;};
+   limb([0.16,1.38,0.02],[0.27,1.26,0.16],0.045,0x14161f);
+   limb([0.27,1.26,0.16],[0.13,1.46,0.20],0.04,0x14161f);
+   const hand=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6),sh.material);
+   hand.position.set(0.13,1.46,0.20); sg.add(hand);
+   limb([0.16,1.42,0.22],[0.04,1.56,0.13],0.022,0x0c0c0e);
    const micTip=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),new THREE.MeshBasicMaterial({color:0x3f3f44}));
-   micTip.position.set(0.26,1.45,0.16); sg.add(micTip);
+   micTip.position.set(0.04,1.56,0.13); sg.add(micTip);
    sg.position.set(px.x,y0+EVENT.stageH,px.z); eventGroup.add(sg);
    const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.35,1.1,8.2,18,1,true),
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
@@ -1482,9 +1501,9 @@ function peopleMeshes(n,bodyLen){ const body=new THREE.CapsuleGeometry(0.16,body
  const r={bm:new THREE.InstancedMesh(body,new THREE.MeshBasicMaterial(),n), hm:new THREE.InstancedMesh(head,new THREE.MeshBasicMaterial(),n)};
  eventLitMats.push(r.bm.material,r.hm.material); return r; }
 const _pV=new THREE.Vector3(), _pS={x:1,y:1,z:1};
-function poseBH(bm,hm,i,x,z,bodyY,headY,scXZ,scY){ _pS.x=scXZ; _pS.y=scY; _pS.z=scXZ; _cQ.identity();
+function poseBH(bm,hm,i,x,z,bodyY,headY,scXZ,scY,bodyStretch){ _pS.x=scXZ; _pS.y=scY*(bodyStretch||1); _pS.z=scXZ; _cQ.identity();
  _cM.compose(_pV.set(x,bodyY,z),_cQ,_pS); bm.setMatrixAt(i,_cM);
- _pS.x=_pS.z=Math.min(scXZ,1.1); _cM.compose(_pV.set(x,headY,z),_cQ,_pS); hm.setMatrixAt(i,_cM); }
+ _pS.x=_pS.z=Math.min(scXZ,1.1); _pS.y=scY; _cM.compose(_pV.set(x,headY,z),_cQ,_pS); hm.setMatrixAt(i,_cM); }
 function colourPerson(bm,hm,i,c){ bm.setColorAt(i,c.setHSL(Math.random(),0.1+Math.random()*0.4,0.06+Math.random()*0.22,THREE.SRGBColorSpace));
  hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)])); }
 
@@ -1527,7 +1546,7 @@ function updateWheelchairs(dt){
   }
   const p=eventPoint(w.u,0,w.d); w.g.position.x=p.x; w.g.position.z=p.z;
   const dirU=w.dirU||0, dirD=w.dirD||0;
-  if(dirU||dirD){ const want=Math.atan2(dirU*EVENT.N.u.x-dirD*EVENT.N.inRoom.x, dirU*EVENT.N.u.z-dirD*EVENT.N.inRoom.z);
+  if(dirU||dirD){ const want=Math.atan2(dirU*EVENT.N.u.x+dirD*EVENT.N.inRoom.x, dirU*EVENT.N.u.z+dirD*EVENT.N.inRoom.z);
    w.g.rotation.y+=(want-w.g.rotation.y)*Math.min(1,dt*3); }
  }
 }
@@ -1647,7 +1666,7 @@ function updateDinner(dt,t,ctx){
    const pr=1-Math.max(0,w.timer)/0.9; setChair(w.i,pr);
    w.u=s.u+Math.cos(s.ang)*0.55*pr; w.d=s.d+Math.sin(s.ang)*0.55*pr;
    const pp=eventPoint(w.u,0,w.d); const bodyY=D.y0+0.72+0.06*pr, headY=D.y0+1.18+0.44*pr;
-   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1);
+   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1,1+0.55*pr);
    if(w.timer<=0){ w.phase='walking';
     const other=D.nav.tables[Math.floor(Math.random()*D.nav.tables.length)];
     const ang=Math.random()*Math.PI*2, tu=other[0]+Math.cos(ang)*1.75, td=other[1]+Math.sin(ang)*1.75;
@@ -1662,13 +1681,15 @@ function updateDinner(dt,t,ctx){
    const pr=Math.max(0,w.timer)/0.9; setChair(w.i,pr);
    w.u=s.u+Math.cos(s.ang)*0.55*pr; w.d=s.d+Math.sin(s.ang)*0.55*pr;
    const pp=eventPoint(w.u,0,w.d); const bodyY=D.y0+0.72+0.06*pr, headY=D.y0+1.18+0.44*pr;
-   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1);
+   poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1,1+0.55*pr);
    if(w.timer<=0){ w.phase='seated'; w.timer=ctx.rnd(15,40); s.away=false; w.u=s.u; w.d=s.d; setChair(w.i,0); }
    continue; }
   if(s.away&&w.phase!=='rise'&&w.phase!=='sit'){ const pp2=eventPoint(w.u,0,w.d);
    const jb=cheering(t)?0.14*Math.abs(Math.sin(t*Math.PI*2.1+w.i)):0;
    const sway=(w.phase==='visiting')?0.025*Math.sin(t*1.1+w.i):0;
-   poseBH(D.bm,D.hm,w.i,pp2.x+sway,pp2.z,D.y0+0.78+jb,D.y0+1.62+jb,1,1); }
+   // the walkers stand at full height, so the seated-length capsule is STRETCHED to meet
+   // the head (unstretched it ends 0.3 m short and the head floats -- Lloyd saw it)
+   poseBH(D.bm,D.hm,w.i,pp2.x+sway,pp2.z,D.y0+0.78+jb,D.y0+1.62+jb,1,1,1.55); }
  }
  for(let i=0;i<D.waiters.st.length;i++){ const st=D.waiters.st[i];
   if(st.serve>0){ st.serve-=dt;
@@ -1720,6 +1741,12 @@ function buildWedding(ctx){
  for(let i=0;i<3;i++)cp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
  cp.bm.instanceColor.needsUpdate=true; cp.hm.instanceColor.needsUpdate=true; eventGroup.add(cp.bm,cp.hm);
  wedding={cp,y0,uMid,seated:null,t0:Math.random()*10};
+ // the bride wears a GOWN and a VEIL (Lloyd): a white skirt flaring to the floor, and a
+ // translucent cone of tulle draped over the head; both track her down the aisle
+ const gown=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.95,14),new THREE.MeshBasicMaterial({color:0xf7f5f0}));
+ const veil=new THREE.Mesh(new THREE.ConeGeometry(0.23,0.62,10,1,true),
+  new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.4,depthWrite:false,side:THREE.DoubleSide}));
+ eventGroup.add(gown,veil); wedding.gown=gown; wedding.veil=veil;
  const bridePos=eventPoint(uMid-0.4,0,3.55), groomPos=eventPoint(uMid+0.4,0,3.55), celPos=eventPoint(uMid,0,2.8);
  wedding.fixed=[[bridePos.x,bridePos.z],[groomPos.x,groomPos.z],[celPos.x,celPos.z]];
  // two blocks of chairs, an aisle between; most seats taken, nobody perfectly still
@@ -1745,7 +1772,9 @@ function buildWedding(ctx){
  wedding.seated={bm:gp.bm,hm:gp.hm,seat,occ};
  eventGroup.add(ch,chB,gp.bm,gp.hm);
  addWheelchairs(ctx,wcSpots); // in their own places in the rows
- const faceYaw=Math.atan2(EVENT.N.inRoom.x,EVENT.N.inRoom.z);
+ // the rows face the arch, which is MINUS inRoom (the chair backs sit on the room side);
+ // +inRoom pointed the riders at the back of the hall
+ const faceYaw=Math.atan2(-EVENT.N.inRoom.x,-EVENT.N.inRoom.z);
  for(const w of wheelchairs){ w.pause=1e9; w.g.rotation.y=faceYaw; } // seated with the rows, facing the arch
  eventAnim=(dt,t)=>updateWedding(t); updateWedding(0);
 }
@@ -1760,7 +1789,8 @@ function updateWedding(t){
    const p=Math.min(1,(t-W.walk.t0)/20); const dNow=3.55+p*9.9;
    const wp=eventPoint(W.uMid+(i===0?-0.4:0.4),0,dNow); fx=wp.x; fz=wp.z;
    if(p>=1&&t-W.walk.t0>24)W.walk=null; }
-  poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,y0+0.78,y0+1.62,i===0?1.15:1,1); }
+  poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,y0+0.78,y0+1.62,i===0?1.15:1,1);
+  if(i===0&&W.gown){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.51,fz); } }
  W.seated.bm.instanceMatrix.needsUpdate=true; W.seated.hm.instanceMatrix.needsUpdate=true;
  W.cp.bm.instanceMatrix.needsUpdate=true; W.cp.hm.instanceMatrix.needsUpdate=true;
 }
@@ -1882,21 +1912,28 @@ function fireConfetti(){
  if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}
  const y0=FLOOR_Y||EVENT.N.origin.y, uLo=3, uHi=EVENT.wallLen-3, dHi=14.5, rnd=(a,b)=>a+Math.random()*(b-a);
  {
-  const n=5000, pos=new Float32Array(n*3), seed=new Float32Array(n*3), col=new Float32Array(n*3); const c=new THREE.Color();
+  const n=5000, pos=new Float32Array(n*3), seed=new Float32Array(n*3), col=new Float32Array(n*3), rest=new Float32Array(n); const c=new THREE.Color();
+  // where a piece comes to rest: the floor, or (in a standing room) on the crowd's heads
+  const md=document.getElementById('eventmode').value, onCrowd=(md==='standing'||md==='party');
   for(let i=0;i<n;i++){ const pt=eventPoint(rnd(uLo,uHi),0,rnd(1.5,dHi));
    pos.set([pt.x,0,pt.z],i*3); seed.set([Math.random(),Math.random(),Math.random()],i*3);
+   rest[i]=(onCrowd&&Math.random()<0.45)?y0+1.5+Math.random()*0.25:y0+0.02;
    c.setHSL(Math.random(),0.85,0.6); col.set([c.r,c.g,c.b],i*3); }
-  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
-  confettiMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},top:{value:y0+11.5},floorY:{value:y0}},
-   vertexShader:'uniform float t,top,floorY; attribute vec3 seed; varying vec3 vC; varying float vAng; varying float vTum;\n'+
-    'void main(){float tt=max(0.0,t-seed.x*1.5); float y=(t<seed.x*1.5)?top:max(floorY+0.02, top-tt*(0.55+seed.y*0.5));\n'+
-    ' vec3 p=vec3(position.x+0.9*sin(t*0.8+seed.z*6.2831+y*0.9),y,position.z+0.9*cos(t*0.7+seed.x*6.2831+y*0.8));\n'+
-    ' vAng=t*(1.0+seed.z*2.5)+seed.x*6.2831; vTum=t*(2.0+seed.y*3.0)+seed.z*6.2831;\n'+
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('restY',new THREE.BufferAttribute(rest,1));
+  confettiMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},top:{value:y0+11.5}},
+   // each piece lands (sway and tumble FREEZE at its landing time), sits a couple of
+   // seconds where it fell, then shrinks away -- never yanked out of the air mid-fall
+   vertexShader:'uniform float t,top; attribute vec3 seed; attribute float restY; varying vec3 vC; varying float vAng; varying float vTum; varying float vFade;\n'+
+    'void main(){float delay=seed.x*1.5; float v=1.3+seed.y*0.9; float tLand=delay+(top-restY)/v;\n'+
+    ' float tt=clamp(t-delay,0.0,tLand-delay); float y=top-tt*v; float tE=min(t,tLand);\n'+
+    ' vec3 p=vec3(position.x+0.9*sin(tE*0.8+seed.z*6.2831+y*0.9),y,position.z+0.9*cos(tE*0.7+seed.x*6.2831+y*0.8));\n'+
+    ' vAng=tE*(1.0+seed.z*2.5)+seed.x*6.2831; vTum=tE*(2.0+seed.y*3.0)+seed.z*6.2831;\n'+
+    ' vFade=1.0-clamp((t-tLand-(2.2+seed.z*1.5))/1.2,0.0,1.0);\n'+
     ' vC=color; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(150.0/max(-mv.z,1.0),3.0,10.0); gl_Position=projectionMatrix*mv;}',
-   fragmentShader:'varying vec3 vC; varying float vAng; varying float vTum;\n'+
+   fragmentShader:'varying vec3 vC; varying float vAng; varying float vTum; varying float vFade;\n'+
     // a rectangle of paper, spun by vAng and seen edge-on twice a turn by vTum: that is the flutter
-    'void main(){vec2 d=gl_PointCoord-0.5; float cs=cos(vAng), sn=sin(vAng); vec2 r=vec2(cs*d.x-sn*d.y, sn*d.x+cs*d.y);\n'+
-    ' float hw=0.40, hh=0.10+0.20*abs(sin(vTum)); if(abs(r.x)>hw||abs(r.y)>hh)discard;\n'+
+    'void main(){if(vFade<=0.01)discard; vec2 d=gl_PointCoord-0.5; float cs=cos(vAng), sn=sin(vAng); vec2 r=vec2(cs*d.x-sn*d.y, sn*d.x+cs*d.y);\n'+
+    ' float hw=0.40*vFade, hh=(0.10+0.20*abs(sin(vTum)))*vFade; if(abs(r.x)>hw||abs(r.y)>hh)discard;\n'+
     ' float sh=0.75+0.25*abs(sin(vTum)); gl_FragColor=vec4(vC*sh,1.0);}',
    vertexColors:true});
   confetti=new THREE.Points(g,confettiMat); confetti.frustumCulled=false; confetti.userData.t0=performance.now()/1000; confettiUntil=performance.now()/1000+11; scene.add(confetti);
@@ -1905,14 +1942,16 @@ function fireConfetti(){
 }
 document.getElementById('event').onchange=buildEvent;
 document.getElementById('eventmode').onchange=buildEvent;
-document.getElementById('confetti').onclick=()=>{
+function fireCelebrate(){
  if(!document.getElementById('event').checked)return;
  const md=document.getElementById('eventmode').value;
  if(md==='standing')fireConfetti();
  else if(md==='dinner')fireChampagne();
  else if(md==='party'){ fireConfetti(); fireBalloons(); fireColdSparks(); }
  else fireWeddingWalk();
-};
+}
+document.getElementById('confetti').onclick=fireCelebrate;
+document.getElementById('celebratefab').onclick=fireCelebrate;
 // a small factory for throwaway particle systems: build, add, and self-remove
 function addFx(obj,mat,ms){ obj.frustumCulled=false; obj.userData.t0=performance.now()/1000; scene.add(obj);
  const f={obj,mat,timer:setTimeout(()=>{scene.remove(obj); fxList=fxList.filter(x=>x!==f);},ms)}; fxList.push(f); return f; }
