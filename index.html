@@ -837,6 +837,14 @@ new GLTFLoader().load('model.glb',g=>{
  // HUD's canopy-underside figure keeps its meaning; the new canopy lives inside hallGroup and
  // stretches with the column-height lever like everything else
  buildProceduralCanopy(g.scene);
+ // The scan never captured the entrance-end wall: raycasts from inside meet NOTHING from floor
+ // to roof at x>=0, so that end read as a huge black hole beside the canopy and the camera flew
+ // straight out of it. A matte near-black cap (the void band's colour) closes the end; it lives
+ // in the GLB group so the column-height lever stretches it with the walls, and it is a collider.
+ {const capM=new THREE.MeshBasicMaterial({color:0x0f0d12, side:THREE.DoubleSide}); capM.name='end-cap';
+  const cap=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
+  cap.rotation.y=-Math.PI/2; cap.position.set(0.3,6.2,0.35);
+  g.scene.add(cap); solids.push(cap);}
  hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
