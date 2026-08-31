@@ -202,7 +202,6 @@ html.embed body,html.embed main{margin:0;padding:0}
    <button type="button" id="pm_csv" class="sw">Download patch CSV (one row per strip)</button>
    <label>ELM up axis <select id="pm_up"><option value="y">Y up (as modelled)</option><option value="z">Z up (swap Y and Z)</option></select></label>
    <label>ELM protocol <select id="pm_proto"><option value="ArtNet">Art-Net (ELM shows universes from 0)</option><option value="sACN">sACN</option></select></label>
-   <label>ELM columns <select id="pm_cols"><option value="manual">x,y,z,protocol,universe,address,type,bits,strip,order,name</option><option value="howto">x,y,z,pixel_type,bit_depth,protocol,universe,start_channel</option></select></label>
    <button type="button" id="pm_elm" class="sw">Download ELM CSV (one row per pixel)</button>
   </div>
   <div class="stat" id="pm_tot"></div>
@@ -243,6 +242,8 @@ const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // stained glass and every coloured patch is a piece of glass the light comes through. So for the
 // glass the house term IS the backlight, the photograph is the transmitted colour, and LED light
 // arriving from below mostly passes on up into the void: it gets LED_GAIN_GLASS of a wall's share.
+// The canopy itself is drawn procedurally (see PROCEDURAL MEASURED-LATTICE CANOPY below) but
+// keeps this exact lighting model: house+day backlight on the glass slabs, LED_GAIN_GLASS from below.
 const HOUSE_LUX=150;        // assumed floor illuminance in the photographs (typical hall house lighting)
 // ENTTEC 8PXA60-RGBW-12V-B pixel strip (SK6805-class, GRBW wire order): 1,088 lm/m at 21.8 W/m,
 // 10 mm wide, 120 deg, black PCB (datasheet ID 5957689, July 2025). The datasheet splits the
@@ -425,6 +426,337 @@ function photoMaterial(src){
   side:THREE.DoubleSide,transparent:!!src.transparent,depthWrite:!src.transparent});
  m.name=src.name; photoMats.push(m); return m;
 }
+// ============ PROCEDURAL MEASURED-LATTICE CANOPY (2026-08-31) ============
+// The baked v25 ceiling stays in the GLB untouched (Lloyd's freeze applies to the bake); the
+// viewer hides that mesh and builds the canopy the dense cloud measured instead (the
+// 2026-08-31 ceiling recon): a square module of 7.4285 x 7.3855 m, one INVERTED square
+// pyramid per cell cut by BOTH diagonals into four planar facets. The 3.7 m grid the photos
+// show is the mullion HALF-period (drawn by the shader, not built); the 5.2 m "node family"
+// is the half-diagonal of the same module. Relief is 860 mm vertex-to-crest (13.9 deg facets;
+// the baked 0.72 m is 140 mm too shallow), the cell borders are 0.45 m ridge ribs with a
+// 30 mm dip down the centreline, and the perimeter lands ON a ridge line with the flat dark
+// void band beyond it (no downturn, no sawtooth: the cloud refutes both).
+// ANCHORING: at load the lattice phase is least-squares fitted so funnel bottoms land on the
+// GLB's own twelve column shaft tops (the cloud puts all 12 columns on funnel bottoms, median
+// 136 mm); the funnel-vertex plane is fitted through those same tops less the 50 mm the bake
+// sinks each cap into the glass, preserving column-head contact and the CEIL_Y readout.
+// APPEARANCE is dalle-de-verre, not leadlight: irregular 100-250 mm slab cells, each one flat
+// colour sampled from the baked ceiling atlas (the huv->uv affine is fitted from the baked
+// mesh's own vertices), quantised and chroma-lifted, set in matte warm-dark webbing (border
+// ribs, both diagonals, the 3.7 m mullion cross, an 8-armed star at the valley hubs, thin
+// slab edges; ~16% coverage). Slabs glow with the house+day backlight; webbing is lit only
+// from below. Bay-by-bay hue zoning is inherited from the atlas, not painted.
+const CANOPY={PU:7.4285, PV:7.3855,             // measured module, along x across the hall
+ RELIEF:0.860, DIP:0.030, RIBH:0.225,           // vertex->crest, rib centre dip, rib half-width
+ HU:[0.975681,0.219196], HV:[-0.219196,0.975681], // hall-frame axes (hall-surfaces.json)
+ CAP_INSET:0.05};                                // the bake sinks the column cap 50 mm into the glass
+let canopy=null;
+function lsq3(S,T){ const M=[[...S[0],T[0]],[...S[1],T[1]],[...S[2],T[2]]];
+ for(let c=0;c<3;c++){ let p=c; for(let r=c+1;r<3;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+  const t=M[c]; M[c]=M[p]; M[p]=t; if(Math.abs(M[c][c])<1e-12)return null;
+  for(let r=0;r<3;r++){ if(r===c)continue; const f=M[r][c]/M[c][c]; for(let k=c;k<4;k++)M[r][k]-=f*M[c][k]; } }
+ return [M[0][3]/M[0][0],M[1][3]/M[1][1],M[2][3]/M[2][2]]; }
+function fitPlaneUV(pts){ const S=[[0,0,0],[0,0,0],[0,0,0]],T=[0,0,0];
+ for(const p of pts){ const r=[1,p.u,p.v]; for(let i=0;i<3;i++){ T[i]+=r[i]*p.y; for(let j=0;j<3;j++)S[i][j]+=r[i]*r[j]; } }
+ return lsq3(S,T); }
+function canopyMaterial(map,affU,affV,latO,latP,rect,deadMap){
+ const m=new THREE.ShaderMaterial({
+  // same uniform names as photoMaterial, so the applyDay loop and the per-frame house/nLights
+  // loop update this material in the same place they update every other photo surface
+  uniforms:{map:{value:map},deadMap:{value:deadMap},house:{value:1},ambient:{value:AMBIENT},day:{value:0},
+   dayGain:{value:dayGainOf('ceiling-glass-procedural')},ledGain:{value:LED_GAIN_GLASS},
+   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},
+   latO:{value:new THREE.Vector2(latO[0],latO[1])},latP:{value:new THREE.Vector2(latP[0],latP[1])},
+   rect:{value:new THREE.Vector4(rect[0],rect[1],rect[2],rect[3])},
+   affU:{value:new THREE.Vector3(affU[0],affU[1],affU[2])},affV:{value:new THREE.Vector3(affV[0],affV[1],affV[2])}},
+  vertexShader:`varying vec3 vPos;
+   void main(){vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
+  fragmentShader:`uniform sampler2D map, deadMap; uniform float house, ambient, ledGain, day, dayGain; uniform int nLights;
+   uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
+   uniform vec2 latO, latP; uniform vec4 rect; uniform vec3 affU, affV;
+   varying vec3 vPos;
+   // deterministic hashes: the slab layout is fixed at build, nothing re-rolls per frame
+   float h12(vec2 p){vec3 q=fract(vec3(p.xyx)*0.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z);}
+   vec2 h22(vec2 p){vec3 q=fract(vec3(p.xyx)*vec3(0.1031,0.1030,0.0973)); q+=dot(q,q.yzx+33.33); return fract((q.xx+q.yz)*q.zy);}
+   void main(){
+    vec2 huv=vec2(dot(vPos.xz,vec2(${CANOPY.HU[0]},${CANOPY.HU[1]})), dot(vPos.xz,vec2(${CANOPY.HV[0]},${CANOPY.HV[1]})));
+    vec3 nrm=normalize(cross(dFdx(vPos),dFdy(vPos)));
+    // LED light from below: the same closed-form vertical-segment integral photoMaterial uses,
+    // accumulated once and shared by the slab (x LED_GAIN_GLASS) and webbing (x 1) terms
+    vec3 led=vec3(0.0);
+    for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
+     vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
+     float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float c=dot(v,v); float e=v.y;
+     float aN=dot(nrm,v); float bN=nrm.y;
+     float t0=0.0, t1=h;
+     if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
+     else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
+     else if(aN<=0.0) t1=t0;
+     float k=(aN-bN*e)/hd2;
+     float g0=(k*(t0+e)-bN)*inversesqrt(max(c+2.0*e*t0+t0*t0,1e-6));
+     float g1=(k*(t1+e)-bN)*inversesqrt(max(c+2.0*e*t1+t1*t1,1e-6));
+     float I=max(g1-g0,0.0)/h;
+     float az=atan(-v.z,-v.x);
+     float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
+     led+=lightCol[i].rgb*(I*blade); }
+    if(huv.x<rect.x-0.001||huv.y<rect.y-0.001||huv.x>rect.z+0.001||huv.y>rect.w+0.001){
+     // beyond the snapped ridge perimeter: the flat dark void band (near-black 10,9,12), lit
+     // the same way the baked flat-ceiling-void is so the two bands read as one surface
+     gl_FragColor=vec4(vec3(0.0030,0.0027,0.0037)*(vec3(house+ambient+day)+led),1.0);
+    } else {
+    vec2 q=(huv-latO)/latP;
+    vec2 r=q-floor(q+0.5);                          // -0.5..0.5, 0 at the funnel bottom
+    vec2 mm=r*latP;                                 // metres from the funnel bottom
+    float aa=max(fwidth(huv.x)+fwidth(huv.y),1e-4);
+    // webbing hierarchy, strongest first (coverage target ~16%)
+    float hub=1.0-smoothstep(0.35,1.5,length(mm));  // 8-armed star convergence at valley hubs
+    float dBord=min((0.5-abs(r.x))*latP.x,(0.5-abs(r.y))*latP.y);
+    float web=1.0-smoothstep(${CANOPY.RIBH}-aa,${CANOPY.RIBH}+aa,dBord);          // cell-border ridge ribs
+    float wCross=0.11*(1.0+1.1*hub);
+    web=max(web,1.0-smoothstep(wCross-aa,wCross+aa,min(abs(mm.x),abs(mm.y))));    // 3.7 m mullion cross
+    float wDiag=0.075*(1.0+1.1*hub);
+    float dDiag=min(abs(mm.x-mm.y),abs(mm.x+mm.y))*0.7071;
+    web=max(web,1.0-smoothstep(wDiag-aa,wDiag+aa,dDiag));                         // both cell diagonals
+    // dalle-de-verre slabs: jittered voronoi at a 0.19 m grid -> 100-250 mm pieces
+    vec2 sp=huv/0.19; vec2 ip=floor(sp), fp=sp-ip;
+    float f1=8.0,f2=8.0; vec2 id=ip;
+    for(int j=-1;j<=1;j++)for(int i2=-1;i2<=1;i2++){
+     vec2 g=vec2(float(i2),float(j)); vec2 o=h22(ip+g);
+     vec2 dd=g+o-fp; float d2=dot(dd,dd);
+     if(d2<f1){f2=f1;f1=d2;id=ip+g;} else if(d2<f2)f2=d2; }
+    float edgeD=(sqrt(f2)-sqrt(f1))*0.19;
+    // when a slab cell falls under a pixel (far, glancing) the voronoi is noise: fade the slab
+    // detail out and let the mip-mapped atlas carry the field, which is also what inherits the
+    // measured bay-by-bay hue zoning at distance
+    float lodT=clamp(aa/0.19-0.35,0.0,1.0), detail=1.0-lodT;
+    web=max(web,0.5*detail*(1.0-smoothstep(0.008,0.022,edgeD)));                  // slab edges, thin
+    vec2 seed=(id+h22(id))*0.19;
+    vec3 samp=texture2D(map,vec2(dot(vec3(seed,1.0),affU),dot(vec3(seed,1.0),affV))).rgb;
+    float mx=max(samp.r,max(samp.g,samp.b)), mn=min(samp.r,min(samp.g,samp.b));
+    float sat=(mx-mn)/max(mx,1e-4);
+    float hA=h12(id*1.7+3.1), hB=h12(id*2.3+7.7);
+    // WHERE to synthesise is not decided here: texture2D on the sRGB atlas returns LINEAR
+    // values, so any per-texel threshold confuses "dark glass in a photographed bay" with
+    // "unphotographed bay" (a linear 0.10 is sRGB ~89, BRIGHTER than the atlas's mean of 74 —
+    // the v1 gate confettied 38-52% of every photographed bay that way). The CPU-built
+    // deadMap (mask block in buildProceduralCanopy) marks the genuinely dead cells; a dark
+    // sample in a live cell is simply dark glass, which is what the photo's own grid lines are.
+    float dz=texture2D(deadMap,(seed-rect.xy)/(rect.zw-rect.xy)).r;
+    vec3 slab; float keepLod=1.0;
+    if(dz>0.5){ keepLod=0.0;                                   // a synthesised bay must NOT fade back to the dark atlas at distance
+     // SYNTHESISED FILL, unphotographed cells (in practice the far-west bay pair; the
+     // far-east grey haze stays photographed — half its texels carry real chroma):
+     // continue the palette at the measured global proportions of the coloured fraction
+     // (red .27, blue .17, magenta .14, orange .12, yellow .11, green .09, violet .07,
+     // cyan .02) with ~10% white ribbons, by deterministic hash
+     slab= hA<0.243?vec3(0.62,0.05,0.06)
+         : hA<0.396?vec3(0.06,0.12,0.55)
+         : hA<0.522?vec3(0.58,0.07,0.42)
+         : hA<0.630?vec3(0.72,0.28,0.05)
+         : hA<0.729?vec3(0.80,0.62,0.07)
+         : hA<0.810?vec3(0.07,0.42,0.12)
+         : hA<0.873?vec3(0.32,0.09,0.50)
+         : hA<0.891?vec3(0.06,0.50,0.55)
+         : vec3(0.90,0.93,0.98);
+    } else if(mx>0.42&&sat<0.34){ slab=vec3(1.08,1.11,1.18); } // pale/achromatic-BRIGHT atlas -> clear-white ribbon glass
+    else {
+     // one flat colour per slab: quantise the LUMINANCE and carry the RAW sample's chroma
+     // vector. Quantising the channels independently at 0.1 steps parked every mid-dark
+     // grey texel on a corner of the (0,0.1)^3 cube — a random vivid hue per slab — and the
+     // chroma lift then repainted the ~54%-grey field as warm confetti that drowned the
+     // measured bay zoning (u23.5 blue). Channel DIFFERENCES are scaled as one vector here,
+     // so a texel's hue family in the render is its family in the atlas, exactly.
+     float l=dot(samp,vec3(0.2126,0.7152,0.0722));
+     // the lift engages only above a saturation floor: a near-neutral texel is dark glass
+     // and stays neutral (promoting faint casts to coloured slabs is what homogenised the
+     // bays); a genuinely coloured texel gets the moderate lift the muted phone atlas needs
+     float lift=1.6*smoothstep(0.12,0.30,sat);
+     slab=clamp(vec3(floor(l*10.0+0.5)/10.0)+(samp-vec3(l))*lift,0.0,1.5);
+    }
+    slab*=1.0-detail*(0.18-0.36*hB);                           // per-slab luminance jitter
+    slab*=1.0-detail*0.45*(1.0-smoothstep(0.0,0.055,edgeD));   // darkened hammer-faceted rim per slab
+    slab=mix(slab,texture2D(map,vec2(dot(vec3(huv,1.0),affU),dot(vec3(huv,1.0),affV))).rgb*1.2,lodT*keepLod);
+    // BACKLIT (Lloyd, 2026-08-28): house+day arrive from ABOVE the glass, so the slabs glow
+    // with that term while the webbing is opaque and sees only the below light. The facet term
+    // makes the four planar facets of a coffer take visibly different backlight.
+    vec3 f3=nrm; if(f3.y<0.0)f3=-f3;
+    float facet=0.72+0.55*clamp(dot(f3,vec3(0.5511,0.7515,0.3507)),0.0,1.0);
+    vec3 Eback=vec3(house+ambient+day*dayGain)*facet+led*ledGain;
+    vec3 Efront=vec3(ambient+0.15*house+0.12*day)+led*0.6;
+    vec3 col=mix(slab*Eback,vec3(0.10,0.058,0.042)*Efront,web); // webbing: matte warm #6a4f45-ish, near-black unlit
+    gl_FragColor=vec4(col,1.0);
+    }
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+   }`,
+  side:THREE.DoubleSide});
+ m.name='ceiling-glass-procedural'; photoMats.push(m); return m;
+}
+function buildProceduralCanopy(root){
+ let baked=null, voidMesh=null; const colPrims=[];
+ root.traverse(o=>{ if(!o.isMesh)return; const nm=(([].concat(o.material))[0].name)||'';
+  if(/^ceiling-glass$/i.test(nm))baked=o;
+  else if(/flat-ceiling-void/i.test(nm))voidMesh=o;
+  else if(/column/i.test(nm))colPrims.push(o); });
+ if(!baked||!baked.material.uniforms||!baked.material.uniforms.map.value){
+  console.warn('canopy: no baked ceiling-glass to build from; the bake stays visible'); return; }
+ const [PUx,PUz]=CANOPY.HU, [PVx,PVz]=CANOPY.HV, PU=CANOPY.PU, PV=CANOPY.PV;
+ const huvOf=(x,z)=>[x*PUx+z*PUz, x*PVx+z*PVz];
+ // 1. the twelve column shaft tops -> lattice phase and the leaning funnel-vertex plane
+ const heads=[];
+ for(const o of colPrims){ const bb=o.geometry.boundingBox; if(!bb)continue;
+  const [u,v]=huvOf((bb.min.x+bb.max.x)/2,(bb.min.z+bb.max.z)/2);
+  let cl=heads.find(h=>Math.hypot(h.u-u,h.v-v)<1.2);
+  if(cl){cl.u=(cl.u*cl.n+u)/(cl.n+1); cl.v=(cl.v*cl.n+v)/(cl.n+1); cl.top=Math.max(cl.top,bb.max.y); cl.n++;}
+  else heads.push({u,v,top:bb.max.y,n:1}); }
+ let anchors=heads.map(h=>({u:h.u,v:h.v,y:h.top-CANOPY.CAP_INSET}));
+ if(anchors.length<6){ // fallback: phase from the baked mesh's own funnel bottoms
+  const pa2=baked.geometry.attributes.position; let ymin=1e9; const nodes=[];
+  for(let i=0;i<pa2.count;i++)ymin=Math.min(ymin,pa2.getY(i));
+  for(let i=0;i<pa2.count;i++){ if(pa2.getY(i)>ymin+0.12)continue; const [u,v]=huvOf(pa2.getX(i),pa2.getZ(i));
+   let c2=nodes.find(n=>Math.hypot(n.u-u,n.v-v)<1.5);
+   if(c2){c2.u=(c2.u*c2.n+u)/(c2.n+1); c2.v=(c2.v*c2.n+v)/(c2.n+1); c2.y=Math.min(c2.y,pa2.getY(i)); c2.n++;}
+   else nodes.push({u,v,y:pa2.getY(i),n:1}); }
+  anchors=nodes; }
+ if(anchors.length<3){ console.warn('canopy: no anchors found; the bake stays visible'); return; }
+ const fitPhase=(vals,P)=>{ let o=vals[0]; for(let t=0;t<4;t++){ let s=0;
+  for(const v of vals)s+=v-P*Math.round((v-o)/P); o=s/vals.length; } return o; };
+ const ou=fitPhase(anchors.map(a=>a.u),PU), ov=fitPhase(anchors.map(a=>a.v),PV);
+ const plane=fitPlaneUV(anchors)||[anchors[0].y,0,0];
+ const planeAt=(u,v)=>plane[0]+plane[1]*u+plane[2]*v;
+ // 2. the atlas affine (an orthographic drop: fitted residual is ~0) and the footprints
+ const pa=baked.geometry.attributes.position, ta=baked.geometry.attributes.uv;
+ const S=[[0,0,0],[0,0,0],[0,0,0]], Tu=[0,0,0], Tv=[0,0,0];
+ let gU0=1e9,gU1=-1e9,gV0=1e9,gV1=-1e9;
+ for(let i=0;i<pa.count;i++){ const [u,v]=huvOf(pa.getX(i),pa.getZ(i)); const r3=[u,v,1];
+  gU0=Math.min(gU0,u); gU1=Math.max(gU1,u); gV0=Math.min(gV0,v); gV1=Math.max(gV1,v);
+  for(let a2=0;a2<3;a2++){ Tu[a2]+=r3[a2]*ta.getX(i); Tv[a2]+=r3[a2]*ta.getY(i);
+   for(let b2=0;b2<3;b2++)S[a2][b2]+=r3[a2]*r3[b2]; } }
+ const affU=lsq3(S,Tu), affV=lsq3(S,Tv);
+ if(!affU||!affV){ console.warn('canopy: atlas affine fit failed; the bake stays visible'); return; }
+ let wU0=gU0-0.7,wU1=gU1+0.7,wV0=gV0-0.7,wV1=gV1+0.7;   // wall line fallback: glass + the 0.6 m inset
+ if(voidMesh&&voidMesh.geometry.attributes.position){ const pw=voidMesh.geometry.attributes.position;
+  wU0=1e9; wU1=-1e9; wV0=1e9; wV1=-1e9;
+  for(let i=0;i<pw.count;i++){ const [u,v]=huvOf(pw.getX(i),pw.getZ(i));
+   wU0=Math.min(wU0,u); wU1=Math.max(wU1,u); wV0=Math.min(wV0,v); wV1=Math.max(wV1,v); } }
+ // 3. snap the perimeter to the nearest ridge line (never past the wall); count falls out
+ const ridge=(x,P,o)=>o+P*(Math.round((x-o)/P-0.5)+0.5);
+ let su0=ridge(gU0,PU,ou); if(su0<wU0-0.02)su0+=PU;
+ let su1=ridge(gU1,PU,ou); if(su1>wU1+0.02)su1-=PU;
+ let sv0=ridge(gV0,PV,ov); if(sv0<wV0-0.02)sv0+=PV;
+ let sv1=ridge(gV1,PV,ov); if(sv1>wV1+0.02)sv1-=PV;
+ // The count that falls out is 7x2 here, not the cloud's 8x2, and that is the extent rule
+ // working, not a hand-forced 7: eight bays at the measured 7.4285 m pitch need 59.4 m and
+ // the GLB's glass spans 53.1 m (54.3 m wall to wall). The cloud itself shows the 8th bay
+ // crossing the model's ASSUMED east closure — the GLB hall is ~3.4 m short of the real one,
+ // a model.glb fault this viewer-side pass must not paper over by squeezing the pitch or
+ // clipping through the east wall (adjudicated 2026-08-31: measured pitch inside the model's
+ // own footprint; the count follows the footprint when a bake moves the closure). The west
+ // snap likewise leaves 1.07 m of old glass footprint as void strip (step 5) because the
+ // only ridge further west lies beyond the wall.
+ const nI=Math.max(1,Math.round((su1-su0)/PU)), nJ=Math.max(1,Math.round((sv1-sv0)/PV));
+ // 4. the lattice mesh: per cell, 4 planar facet triangles to the crest square plus 4 planar
+ //    rib trapezoids falling DIP to the border, all exact (the facets are planar to 89 mm rms
+ //    in the cloud, so more triangles would add nothing but vertices)
+ const hu2=PU/2, hv2=PV/2, a=hu2-CANOPY.RIBH, b=hv2-CANOPY.RIBH;
+ const crest=CANOPY.RELIEF, edge=CANOPY.RELIEF-CANOPY.DIP;
+ const pos=[];
+ const push=(u,v,rel)=>{ pos.push(u*PUx+v*PVx, planeAt(u,v)+rel, u*PUz+v*PVz); };
+ for(let i=0;i<nI;i++)for(let j=0;j<nJ;j++){
+  const cu=su0+PU*(i+0.5), cv=sv0+PV*(j+0.5);
+  const tri=(p1,p2,p3)=>{ push(cu+p1[0],cv+p1[1],p1[2]); push(cu+p2[0],cv+p2[1],p2[2]); push(cu+p3[0],cv+p3[1],p3[2]); };
+  const C=[0,0,0];
+  tri(C,[a,-b,crest],[a,b,crest]);   tri(C,[-a,b,crest],[-a,-b,crest]);   // +u / -u facets
+  tri(C,[a,b,crest],[-a,b,crest]);   tri(C,[-a,-b,crest],[a,-b,crest]);   // +v / -v facets
+  tri([a,-b,crest],[hu2,-hv2,edge],[hu2,hv2,edge]);  tri([a,-b,crest],[hu2,hv2,edge],[a,b,crest]);     // +u rib
+  tri([-a,b,crest],[-hu2,hv2,edge],[-hu2,-hv2,edge]); tri([-a,b,crest],[-hu2,-hv2,edge],[-a,-b,crest]); // -u rib
+  tri([a,b,crest],[hu2,hv2,edge],[-hu2,hv2,edge]);   tri([a,b,crest],[-hu2,hv2,edge],[-a,b,crest]);     // +v rib
+  tri([-a,-b,crest],[-hu2,-hv2,edge],[hu2,-hv2,edge]); tri([-a,-b,crest],[hu2,-hv2,edge],[a,-b,crest]); // -v rib
+ }
+ // 5. where the snap pulled the perimeter inside the old glass footprint, fill out to it with
+ //    flat quads the shader paints as void (the baked flat-ceiling-void band carries on from
+ //    the old footprint to the wall, so together the dark band runs canopy edge -> wall)
+ const strip=(u0,u1,v0,v1)=>{ if(u1-u0<0.02||v1-v0<0.02)return;
+  push(u0,v0,edge); push(u1,v0,edge); push(u1,v1,edge);
+  push(u0,v0,edge); push(u1,v1,edge); push(u0,v1,edge); };
+ const oU0=Math.min(gU0,su0), oU1=Math.max(gU1,su1), oV0=Math.min(gV0,sv0), oV1=Math.max(gV1,sv1);
+ strip(oU0,su0,oV0,oV1); strip(su1,oU1,oV0,oV1); strip(su0,su1,oV0,sv0); strip(su0,su1,sv1,oV1);
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
+ geo.computeBoundingBox(); geo.computeBoundingSphere();
+ const atlas=baked.material.uniforms.map.value;
+ atlas.anisotropy=8; atlas.needsUpdate=true; // the shader leans on the mip chain at glancing angles
+ // 5b. THE DEADNESS MASK — where is the atlas actually unphotographed? Decided on the CPU in
+ // sRGB bytes (the shader sees the atlas LINEARISED, where every per-texel threshold tried
+ // read half the photographed leadlight as dead), one cell per eighth-bay (~0.93 m): a cell
+ // is dead only when its 3x3-cell (~2.8 m) neighbourhood holds essentially no bright
+ // saturated leadlight (under 5% of pixels at sat>0.30 with max channel>90) AND is dark
+ // overall (mean luminance<55). Calibrated on the shipped atlas (fix_calibrate2.py, ceiling
+ // recon scratchpad): the unphotographed far-west pair classifies 71-75% dead, every
+ // photographed bay 0.0-1.5%, the far-east grey haze keeps its real half-chromatic structure.
+ // Computed once at load, deterministic; synthesised fill happens ONLY inside these cells.
+ const NM=8, nMU=nI*NM, nMV=nJ*NM; let deadTex=null, deadN=0, deadMask=null;
+ try{
+  const img=atlas.image, cw=Math.max(1,img.width>>1), ch=Math.max(1,img.height>>1);
+  const cnv=document.createElement('canvas'); cnv.width=cw; cnv.height=ch;
+  const ctx=cnv.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,cw,ch);
+  const px=ctx.getImageData(0,0,cw,ch).data;
+  const cf=new Float32Array(nMU*nMV), ml=new Float32Array(nMU*nMV);
+  const duC=(su1-su0)/nMU, dvC=(sv1-sv0)/nMV;
+  for(let j=0;j<nMV;j++)for(let i=0;i<nMU;i++){
+   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;   // the cell's pixel block, via the fitted affine
+   for(let k=0;k<4;k++){ const u=su0+duC*(i+(k&1)), v=sv0+dvC*(j+(k>>1));
+    const tu=(affU[0]*u+affU[1]*v+affU[2])*cw, tv=(affV[0]*u+affV[1]*v+affV[2])*ch;
+    x0=Math.min(x0,tu); x1=Math.max(x1,tu); y0=Math.min(y0,tv); y1=Math.max(y1,tv); }
+   x0=Math.max(0,Math.round(x0)); x1=Math.min(cw,Math.round(x1));
+   y0=Math.max(0,Math.round(y0)); y1=Math.min(ch,Math.round(y1));
+   let n=0,nc=0,sl=0;
+   for(let y=y0;y<y1;y++){ let o=4*(y*cw+x0);
+    for(let x=x0;x<x1;x++,o+=4){ const r=px[o],g=px[o+1],b=px[o+2];
+     const mxp=r>g?(r>b?r:b):(g>b?g:b), mnp=r<g?(r<b?r:b):(g<b?g:b);
+     if(mxp>90&&(mxp-mnp)*10>mxp*3)nc++;                       // bright AND sat>0.30
+     sl+=0.2126*r+0.7152*g+0.0722*b; n++; } }
+   cf[j*nMU+i]=n?nc/n:0; ml[j*nMU+i]=n?sl/n:0; }
+  const data=new Uint8Array(nMU*nMV*4); deadMask=new Uint8Array(nMU*nMV);
+  for(let j=0;j<nMV;j++)for(let i=0;i<nMU;i++){
+   let scf=0,slm=0;                     // 3x3 neighbourhood sums, edge-clamped
+   for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+    const jj=Math.min(nMV-1,Math.max(0,j+dj)), ii=Math.min(nMU-1,Math.max(0,i+di));
+    scf+=cf[jj*nMU+ii]; slm+=ml[jj*nMU+ii]; }
+   const d=(scf<0.45&&slm<495)?1:0;     // means over 9 cells: chromFrac<0.05 AND lum<55
+   deadMask[j*nMU+i]=d; deadN+=d;
+   const o=4*(j*nMU+i); data[o]=d*255; data[o+3]=255; }
+  deadTex=new THREE.DataTexture(data,nMU,nMV,THREE.RGBAFormat,THREE.UnsignedByteType);
+  deadTex.magFilter=THREE.NearestFilter; deadTex.minFilter=THREE.NearestFilter; deadTex.needsUpdate=true;
+ }catch(err){ console.warn('canopy: deadness mask failed ('+err.message+'); no synthesised fill'); deadTex=null; }
+ if(!deadTex){ deadMask=new Uint8Array(1); deadN=0;            // all-live fallback: photographed bays still read right
+  deadTex=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat,THREE.UnsignedByteType);
+  deadTex.needsUpdate=true; }
+ const mat=canopyMaterial(atlas,affU,affV,[ou,ov],[PU,PV],[su0,sv0,su1,sv1],deadTex);
+ const mesh=new THREE.Mesh(geo,mat); mesh.name='canopy-procedural';
+ root.add(mesh); solids.push(mesh);
+ // 6. the measured hanging element at every column head: a matte near-black shallow drum
+ //    ~0.9 m across, its underside 200-300 mm below the glass vertex (cloud: present at all
+ //    twelve, unidentified; it also hides the 50 mm of cap the bake sinks into the glass)
+ let drums=null;
+ if(heads.length){ const dg=new THREE.CylinderGeometry(0.45,0.42,0.28,20);
+  const dm=new THREE.MeshLambertMaterial({color:0x241a15}); dm.name='canopy-hub-drum';
+  drums=new THREE.InstancedMesh(dg,dm,heads.length);
+  const M4=new THREE.Matrix4();
+  heads.forEach((h,k)=>{ const x=h.u*PUx+h.v*PVx, z=h.u*PUz+h.v*PVz;
+   M4.makeTranslation(x,planeAt(h.u,h.v)-0.10,z); drums.setMatrixAt(k,M4); });
+  root.add(drums); solids.push(drums); }
+ // 7. hide, don't remove, the baked ceiling: layer 2 takes it out of the camera AND out of
+ //    every layer-0 raycast (collision, disco scatter), while CEIL_Y keeps reading its bbox
+ baked.visible=false; baked.layers.set(2);
+ // the old void band stays; nudge it to the same near-black the ring uses (16,14,18 -> 10,9,12)
+ if(voidMesh&&voidMesh.material.uniforms)voidMesh.material.uniforms.tint.value.setRGB(0.59,0.62,0.61);
+ canopy={mesh,drums,fit:{ou,ov,PU,PV,rect:[su0,sv0,su1,sv1],plane,bays:[nI,nJ],anchors:anchors.length,
+  glass:[gU0,gV0,gU1,gV1],affU,affV,dead:{n:deadN,grid:[nMU,nMV],mask:deadMask}}};
+ console.info(`canopy: ${nI}x${nJ} bays at ${PU}x${PV} m, phase (${ou.toFixed(3)},${ov.toFixed(3)}), `+
+  `vertex plane ${plane.map(x=>x.toFixed(5)).join(' ')}, ${pos.length/9} triangles, ${anchors.length} anchors, `+
+  `${deadN}/${nMU*nMV} dead cells`);
+}
 const cam=new THREE.PerspectiveCamera(65,1,0.05,400);
 // start: eye height inside the hall, looking down its length (the hall runs along -x)
 const HOME={eye:[-8,1.6,0.3],yaw:Math.PI,pitch:0};
@@ -453,6 +785,10 @@ new GLTFLoader().load('model.glb',g=>{
  g.scene.traverse(o=>{ if(o.isMesh)solids.push(o); });
  // the canopy underside, reported next to the height so a set value can be sanity-checked
  CEIL_Y=Math.min(...solids.filter(o=>/ceiling/i.test(([].concat(o.material))[0].name||'')).map(o=>o.geometry.boundingBox.min.y));
+ // CEIL_Y above is read off the BAKED ceiling before the procedural canopy hides it, so the
+ // HUD's canopy-underside figure keeps its meaning; the new canopy lives inside hallGroup and
+ // stretches with the column-height lever like everything else
+ buildProceduralCanopy(g.scene);
  hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
@@ -951,14 +1287,18 @@ document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
  const csv=['strip,column,gap,pixels,leds,length_m,direction,controller,output,start_universe,start_channel,end_universe,end_channel']
   .concat(rows.map(e=>[e.strip,e.column,e.gap,e.pixels,e.leds,e.length.toFixed(2),e.dir,e.controller,e.output,e.u0,e.ch0,e.u1,e.ch1].join(','))).join('\n');
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-pixel-map.csv'; a.click();};
-// ---- ELM export. ENTTEC LED Mapper's 3D stage imports a CSV with one row per LED:
-// x,y,z,pixel_type,bit_depth,protocol,universe,start_channel (mm, 1-based universe and channel;
-// support.enttec.com/dmx-software/elm/how-to-create-and-import-a-3d-shape-csv-into-elm). Every
-// PIXEL of the current design becomes a row at its true position in the hall, patched exactly as
-// the table above, so what ELM drives is what the live input here shows.
+// ---- ELM export. ELM 2026's 3D stages > Import from CSV takes one row per LED, and the file IS
+// the patch: ELM never re-addresses an imported rig. Eight columns are required —
+// x,y,z,protocol,universe,address,type,bits — and strip/order/name are optional but carried here
+// so ELM draws the runs in wiring order instead of guessing them from address jumps. Positions in
+// mm; ELM has no unit and rescales the whole rig on import. Every PIXEL of the current design
+// becomes a row at its true position in the hall, patched exactly as the table above, so what ELM
+// drives is what the live input here shows. Verified end to end against ELM 2026 Preview on
+// 2026-08-31: 73,536 LEDs, no errors, Locate LED probes at universes 0 / 300 / 600 land where the
+// file puts them.
 function elmCsv(){
  if(!P.runs.length||!P.pos)return '';
- const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value, manual=document.getElementById('pm_cols').value==='manual';
+ const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value;
  // ELM shows Art-Net universes from 0 and sACN from 1 (user manual, Import a 3D stage from CSV), and
  // the file carries the number as ELM shows it; the bridge maps Art-Net wire universe 0 to page 1
  const uOff=proto==='ArtNet'?-1:0;
@@ -969,16 +1309,15 @@ function elmCsv(){
  const rows=Array.from(acc.values()).sort((a,b)=>a.u-b.u||a.c-b.c);
  // centred on the hall in plan, floor at zero, so the stage in ELM sits at its origin
  let cx=0,cz=0,y0=Infinity; for(const e of rows){cx+=e.x/e.n; cz+=e.z/e.n; y0=Math.min(y0,e.y/e.n);} cx/=rows.length; cz/=rows.length;
- const lines=[manual?'x,y,z,protocol,universe,address,type,bits,strip,order,name':'x,y,z,pixel_type,bit_depth,protocol,universe,start_channel'];
+ const lines=['x,y,z,protocol,universe,address,type,bits,strip,order,name'];
  for(const e of rows){const x=(e.x/e.n-cx)*1000, y=(e.y/e.n-y0)*1000, z=(e.z/e.n-cz)*1000; const xyz=x.toFixed(1)+','+(zup?z:y).toFixed(1)+','+(zup?y:z).toFixed(1);
-  lines.push(manual?xyz+','+proto+','+(e.u+uOff)+','+e.c+',RGBW,8,'+e.strip+','+e.order+','+e.name
-                   :xyz+',RGBW,8,'+(proto==='ArtNet'?'Art-Net':proto)+','+(e.u+uOff)+','+e.c);}
+  lines.push(xyz+','+proto+','+(e.u+uOff)+','+e.c+',RGBW,8,'+e.strip+','+e.order+','+e.name);}
  return lines.join('\n');
 }
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;},
+window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
  // event-layer debug handles for headless verification
  get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
  buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),
@@ -2615,7 +2954,7 @@ requestAnimationFrame(frame);
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
-<tr><td>Ceiling</td><td>Faceted glass canopy, backlit by the house lights above it; each funnel bottoms out on a column head, ridges midway between the columns</td></tr>
+<tr><td>Ceiling</td><td>Faceted glass canopy drawn procedurally over the measured lattice (7.43 &times; 7.39 m inverted-pyramid coffers, 860 mm deep, 13.9&deg; facets, 0.45 m ridge ribs, phase-locked to the twelve column heads), dalle-de-verre slab glass coloured from the photographed atlas, backlit by the house lights above it; each funnel bottoms out on a column head, ridges midway between the columns</td></tr>
 <tr><td>Removed</td><td>People, couches, stage lights</td></tr>
 <tr><td>File</td><td>model.glb, 8.4 MB (hall only; the strips come from runs.json)</td></tr>
 </table>
