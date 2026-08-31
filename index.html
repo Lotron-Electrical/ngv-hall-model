@@ -202,7 +202,7 @@ html.embed body,html.embed main{margin:0;padding:0}
        not the mapping controls, and the show file bakes the exact patch this section builds. -->
   <ol class="startlist" id="getstarted">
    <li><b>Install ELM 2026</b><p>ENTTEC's free preview.</p><a class="startbtn" href="https://cdn.enttec.com/elm/releases/ELM-Preview-win-x64-preview-Setup.exe">Download ELM 2026 Preview (Windows)</a></li>
-   <li><b>Download the show file and double-click it</b><p>It opens in ELM with this hall already pixel-mapped to the patch below, lighting running.</p><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">ngv-gandel-hall.elm (66 MB)</a></li>
+   <li><b>Download the show file and double-click it</b><p>It opens in ELM with this hall already pixel-mapped to the patch below, lighting running. One file per product option.</p><a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall.elm">12 V strip, 60 px/m (66 MB)</a> <a class="startbtn" href="https://github.com/lotron-electrical/ngv-hall-model/releases/latest/download/ngv-gandel-hall-neon.elm">24 V Neon Flex S9, 10 px/m (11 MB)</a></li>
    <li><b>Point ELM at this page</b><p>Open <i>Live input</i> just below, run the little bridge it links, press Connect and allow the browser's local-network prompt. What ELM outputs, these columns show, right here.</p></li>
   </ol>
   <p class="note">Or shape the patch yourself and export it: the grid below drives the CSV downloads, and the table is the patch.</p>
@@ -2971,6 +2971,7 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  const panel=document.getElementById('panel'), stage=document.getElementById('stage');
  const rows=[...panel.children]; // rows AND the loose spec text; everything folds into a category
  const catOf=(row)=>{
+  if(row.id==='pmap'||row.id==='livein')return 'Pixel mapping';
   if(row.querySelector('#event'))return 'Event';
   if(row.querySelector('#court'))return 'Courtyard';
   if(row.querySelector('#tod'))return 'Day & night';
@@ -2980,7 +2981,7 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  };
  const catOfAny=(el)=>el.classList&&el.classList.contains('row')?catOf(el):'Lighting & LEDs';
  const specEls=rows.filter(el=>!(el.classList&&el.classList.contains('row')));
- const order=['Event','Day & night','Lighting & LEDs','Columns','Courtyard','Camera'];
+ const order=['Event','Day & night','Lighting & LEDs','Pixel mapping','Columns','Courtyard','Camera'];
  const cats=new Map(order.map(n=>[n,[]]));
  for(const r of rows)cats.get(catOfAny(r)).push(r);
  for(const n of order){ const d=document.createElement('details'); const sm=document.createElement('summary');
