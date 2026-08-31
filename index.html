@@ -1309,14 +1309,15 @@ const EVENT={N:{origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new TH
  // the twelve column feet in this wall frame (u along the wall, d into the room), measured from
  // runs.json; the stage depth stays inside the d=3.66 shaft face and the guests keep clear of all
  cols:[[7.71,3.82],[7.53,11.41],[14.94,3.86],[14.88,11.29],[22.3,3.86],[22.17,11.33],[29.67,3.77],[29.96,11.15],[37.18,3.84],[36.82,11.52],[44.54,3.80],[44.23,11.27]]};
-let eventGroup=null, confetti=null, confettiMat=null, crowd=null, eventAnim=null;
+let eventGroup=null, confetti=null, confettiMat=null, crowd=null, eventAnim=null, confettiUntil=0, wheelchairs=[];
+function cheering(t){ return t<confettiUntil ? 1 : 0; }
 // skin tones, the range people actually come in, deep to pale (sRGB hex; SKIN is taken by the collision margin)
 const SKIN_TONES=['#3b2219','#5c3a21','#7b4b2a','#8d5524','#a0662c','#c68642','#d9975f','#e0ac69','#f1c27d','#ffdbac','#ffe4c4'];
 function eventMat(night,day){ const m=new THREE.MeshBasicMaterial({color:night}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); return m; }
 function eventClearOfColumns(u,d){ return EVENT.cols.every(c=>Math.hypot(u-c[0],d-c[1])>0.55); }
 function eventPoint(u,y,d){ return EVENT.N.origin.clone().addScaledVector(EVENT.N.u,u).addScaledVector(EVENT.N.inRoom,d).setY(y); }
 function buildEvent(){
- if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;} crowd=null; eventAnim=null; dinner=null; wedding=null; party=null;
+ if(eventGroup){scene.remove(eventGroup); eventGroup=null;} if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;} crowd=null; eventAnim=null; dinner=null; wedding=null; party=null; wheelchairs=[];
  if(!document.getElementById('event').checked){sceneDirty=true; return;}
  eventGroup=new THREE.Group(); const y0=FLOOR_Y||EVENT.N.origin.y, uMid=EVENT.wallLen/2;
  const basis=new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate());
@@ -1362,13 +1363,18 @@ function buildEvent(){
    knots:[]};
   for(let k=0;k<26;k++){ let ku=rnd(uLo+2,uHi-2), kd=rnd(dLo+1,dHi-1); if(eventClearOfColumns(ku,kd))crowd.knots.push([ku,kd]); }
   const knotOf=()=>crowd.knots[Math.floor(Math.random()*crowd.knots.length)];
-  crowd.newTarget=(i)=>{ const kn=knotOf(); for(let t=0;t<8;t++){ const uu=kn[0]+rnd(-3,3), dd=kn[1]+rnd(-3,3);
-   if(uu>uLo&&uu<uHi&&dd>dLo&&dd<dHi&&eventClearOfColumns(uu,dd)){crowd.tu[i]=uu; crowd.td[i]=dd; return;} }
+  crowd.kn=new Int16Array(n);
+  crowd.newTarget=(i)=>{ if(Math.random()<0.25)crowd.kn[i]=Math.floor(Math.random()*crowd.knots.length); // mostly stay with your circle
+   const kn=crowd.knots[crowd.kn[i]];
+   for(let t=0;t<8;t++){ const ang=rnd(0,Math.PI*2), rad=rnd(0.8,1.6); // a RING position, not a random point
+    const uu=kn[0]+Math.cos(ang)*rad, dd=kn[1]+Math.sin(ang)*rad;
+    if(uu>uLo&&uu<uHi&&dd>dLo&&dd<dHi&&eventClearOfColumns(uu,dd)){crowd.tu[i]=uu; crowd.td[i]=dd; return;} }
    crowd.tu[i]=crowd.u[i]; crowd.td[i]=crowd.d[i]; };
   for(let i=0;i<n;i++){
    let uu=rnd(uLo,uHi), dd=rnd(dLo,dHi); for(let tries=0;tries<8&&!eventClearOfColumns(uu,dd);tries++){uu=rnd(uLo,uHi); dd=rnd(dLo,dHi);}
    crowd.u[i]=uu; crowd.d[i]=dd; crowd.sc[i]=rnd(0.85,1.12); crowd.wide[i]=rnd(0.8,1.45);
-   crowd.spd[i]=rnd(0.3,0.75); crowd.pause[i]=rnd(0,10); crowd.yaw[i]=rnd(0,Math.PI*2); crowd.newTarget(i);
+   crowd.spd[i]=rnd(0.3,0.75); crowd.pause[i]=rnd(0,10); crowd.yaw[i]=rnd(0,Math.PI*2);
+   crowd.kn=crowd.kn||new Int16Array(n); crowd.kn[i]=Math.floor(Math.random()*crowd.knots.length); crowd.newTarget(i);
    bm.setColorAt(i,c.setHSL(rnd(0,1),rnd(0.1,0.45),rnd(0.06,0.28),THREE.SRGBColorSpace));
    hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
   }
@@ -1376,7 +1382,7 @@ function buildEvent(){
   bm.instanceColor.needsUpdate=true; eventGroup.add(bm,hm); updateCrowd(0);
 
   addWheelchairs(ctx,[[ctx.uLo+4.5,ctx.dLo+3.2],[ctx.uMid+6,ctx.dHi-2.4],[ctx.uHi-5,ctx.dLo+5.5]]);
-  eventAnim=(dt,t)=>updateCrowd(dt);
+  eventAnim=(dt,t)=>updateCrowd(dt,t);
  } else if(mode==='dinner') buildDinner(ctx);
  else if(mode==='wedding') buildWedding(ctx);
  else buildParty(ctx);
@@ -1412,7 +1418,22 @@ function addWheelchair(x,z,y0,c){
  eventGroup.add(g); return g;
 }
 function addWheelchairs(ctx,spots){ const c=new THREE.Color();
- for(const [u,d] of spots){ const p=eventPoint(u,0,d); addWheelchair(p.x,p.z,ctx.y0,c); } }
+ for(const [u,d] of spots){ const p=eventPoint(u,0,d);
+  const g=addWheelchair(p.x,p.z,ctx.y0,c);
+  wheelchairs.push({g,ctx,u,d,tu:u,td:d,pause:5+Math.random()*15,spd:0.45+Math.random()*0.2}); } }
+function updateWheelchairs(dt){
+ for(const w of wheelchairs){
+  if(w.pause>0){ w.pause-=dt; continue; }
+  const du=w.tu-w.u, dd=w.td-w.d, dist=Math.hypot(du,dd);
+  if(dist<0.2){ w.pause=w.ctx.rnd(8,25);
+   for(let tr=0;tr<8;tr++){ const nu=w.u+w.ctx.rnd(-5,5), nd=w.d+w.ctx.rnd(-4,4);
+    if(nu>w.ctx.uLo&&nu<w.ctx.uHi&&nd>w.ctx.dLo&&nd<w.ctx.dHi&&eventClearOfColumns(nu,nd)){w.tu=nu; w.td=nd; break;} } }
+  else { const st=Math.min(dist,w.spd*dt); w.u+=du/dist*st; w.d+=dd/dist*st;
+   const p=eventPoint(w.u,0,w.d); w.g.position.x=p.x; w.g.position.z=p.z;
+   const want=Math.atan2(du*EVENT.N.u.x-dd*EVENT.N.inRoom.x, du*EVENT.N.u.z-dd*EVENT.N.inRoom.z);
+   w.g.rotation.y+=(want-w.g.rotation.y)*Math.min(1,dt*3); }
+ }
+}
 
 // DINNER (Lloyd, 2026-08-31): most people seated, moving slightly, food and a drink in front of
 // each; waiters circling with trays; a few guests up, visiting another table, then going back.
@@ -1471,7 +1492,8 @@ function updateDinner(dt,t,ctx){
  for(let i=0;i<D.nG;i++){ const s=D.seat[i]; if(s.away)continue;
   // eating and talking: a slow lean, a nod toward the plate, never still
   const lean=0.03*Math.sin(t*0.8+s.ph), nod=0.03*Math.sin(t*1.9+s.ph*1.7);
-  poseBH(D.bm,D.hm,i,s.x+lean*0.5,s.z+lean*0.3,y0+0.72,y0+1.18+nod,1,1);
+  const jb=cheering(t)?0.07*Math.abs(Math.sin(t*Math.PI*2.1+s.ph)):0;
+  poseBH(D.bm,D.hm,i,s.x+lean*0.5,s.z+lean*0.3,y0+0.72+jb,y0+1.18+nod+jb,1,1);
  }
  for(const w of D.wander){ const s=D.seat[w.i];
   w.timer-=dt;
@@ -1483,7 +1505,7 @@ function updateDinner(dt,t,ctx){
   else if(w.phase==='returning'){ const dx=w.tx-w.x, dz=w.tz-w.z, dist=Math.hypot(dx,dz);
    if(dist<0.12){ w.phase='seated'; w.timer=ctx.rnd(15,40); s.away=false; w.x=s.x; w.z=s.z; }
    else { const st=Math.min(dist,0.7*dt); w.x+=dx/dist*st; w.z+=dz/dist*st; } }
-  if(s.away)poseBH(D.bm,D.hm,w.i,w.x,w.z,y0+0.78,y0+1.62,1,1);
+  if(s.away){ const jb=cheering(t)?0.14*Math.abs(Math.sin(t*Math.PI*2.1+w.i)):0; poseBH(D.bm,D.hm,w.i,w.x,w.z,y0+0.78+jb,y0+1.62+jb,1,1); }
  }
  for(let i=0;i<D.waiters.st.length;i++){ const st=D.waiters.st[i];
   if(st.pause>0)st.pause-=dt;
@@ -1542,8 +1564,10 @@ function buildWedding(ctx){
 }
 function updateWedding(t){
  const W=wedding; if(!W)return; const y0=W.y0;
+ const jw=cheering(t);
  for(let i=0;i<W.seated.occ;i++){ const s=W.seated.seat[i]; const nod=0.025*Math.sin(t*1.6+s.ph);
-  poseBH(W.seated.bm,W.seated.hm,i,s.x,s.z,y0+0.72,y0+1.18+nod,1,1); }
+  const jb=jw?0.07*Math.abs(Math.sin(t*Math.PI*2.1+s.ph)):0;
+  poseBH(W.seated.bm,W.seated.hm,i,s.x,s.z,y0+0.72+jb,y0+1.18+nod+jb,1,1); }
  for(let i=0;i<3;i++){ const f=W.fixed[i]; const sway=0.02*Math.sin(t*0.7+i*2.1);
   poseBH(W.cp.bm,W.cp.hm,i,f[0]+sway,f[1],y0+0.78,y0+1.62,i===0?1.15:1,1); }
  W.seated.bm.instanceMatrix.needsUpdate=true; W.seated.hm.instanceMatrix.needsUpdate=true;
@@ -1589,24 +1613,33 @@ function buildParty(ctx){
 function updateParty(t){
  const P=party; if(!P)return; const y0=P.y0;
  for(let i=0;i<P.st.length;i++){ const s=P.st[i];
-  const bounce=s.amp*Math.abs(Math.sin(t*Math.PI*s.tempo+s.ph)), sway=0.06*Math.sin(t*1.3+s.ph);
+  const bounce=(s.amp+(cheering(t)?0.1:0))*Math.abs(Math.sin(t*Math.PI*s.tempo+s.ph)), sway=0.06*Math.sin(t*1.3+s.ph);
   poseBH(P.bm,P.hm,i,s.x+sway*0.5,s.z+sway*0.4,y0+0.78*s.sc+bounce,y0+1.62*s.sc+bounce*1.15,s.sc*s.wide,s.sc); }
  P.bm.instanceMatrix.needsUpdate=true; P.hm.instanceMatrix.needsUpdate=true;
 }
-// each frame the crowd takes a step: walk to your knot, stand a while, pick another
+// each frame the crowd takes a step: drift to your circle, stand and talk, drift on.
+// People form RINGS around a knot (that is what a conversation looks like from above), walk with
+// a little wander in the path, sway while they talk, and jump while the confetti falls.
 const _cM=new THREE.Matrix4(), _cQ=new THREE.Quaternion(), _cUp=new THREE.Vector3(0,1,0);
-function updateCrowd(dt){
- if(!crowd)return; const {bm,hm,n,y0}=crowd;
+function updateCrowd(dt,t){
+ if(!crowd)return; const {bm,hm,n,y0}=crowd; t=t||performance.now()/1000; const jump=cheering(t);
  for(let i=0;i<n;i++){
   let du=crowd.tu[i]-crowd.u[i], dd=crowd.td[i]-crowd.d[i]; const dist=Math.hypot(du,dd);
-  if(crowd.pause[i]>0){ crowd.pause[i]-=dt; crowd.yaw[i]+=dt*0.15*Math.sin(i+performance.now()/4000); }
-  else if(dist<0.15){ crowd.pause[i]=2+Math.random()*9; if(Math.random()<0.4)crowd.newTarget(i); }
-  else { const step=Math.min(dist,crowd.spd[i]*dt); crowd.u[i]+=du/dist*step; crowd.d[i]+=dd/dist*step;
-   const want=Math.atan2(-(du/dist),(dd/dist)); crowd.yaw[i]+=(want-crowd.yaw[i])*Math.min(1,dt*4); }
-  const pos=eventPoint(crowd.u[i],0,crowd.d[i]); const sc=crowd.sc[i], wide=crowd.wide[i];
-  _cQ.setFromAxisAngle(_cUp,crowd.yaw[i]);
-  _cM.compose(pos.set(pos.x,y0+0.78*sc,pos.z),_cQ,{x:sc*wide,y:sc,z:sc*wide}); bm.setMatrixAt(i,_cM);
-  _cM.compose(pos.set(pos.x,y0+1.62*sc,pos.z),_cQ,{x:sc,y:sc,z:sc}); hm.setMatrixAt(i,_cM);
+  let sway=0, bob=0;
+  if(crowd.pause[i]>0){ crowd.pause[i]-=dt;
+   sway=0.025*Math.sin(t*1.1+i*1.7); bob=0.012*Math.sin(t*2.1+i*2.6); // weight shifts, talking
+  }
+  else if(dist<0.18){ crowd.pause[i]=4+Math.random()*14; if(Math.random()<0.3)crowd.newTarget(i); }
+  else { const ease=Math.min(1,dist/1.2)* (0.55+0.45*Math.sin(Math.min(Math.PI,t*2+i))); // no hard starts
+   const step=Math.min(dist,crowd.spd[i]*dt*(0.6+0.4*ease));
+   crowd.u[i]+=du/dist*step; crowd.d[i]+=dd/dist*step;
+   sway=0.06*Math.sin(t*2.4+i*1.3); // gait
+  }
+  if(jump)bob+=0.13*Math.abs(Math.sin(t*Math.PI*2.1+i*0.9));
+  const pos=eventPoint(crowd.u[i]+sway*0.3,0,crowd.d[i]+sway*0.2); const sc=crowd.sc[i], wide=crowd.wide[i];
+  _cQ.identity();
+  _cM.compose(_pV.set(pos.x,y0+0.78*sc+bob,pos.z),_cQ,{x:sc*wide,y:sc,z:sc*wide}); bm.setMatrixAt(i,_cM);
+  _cM.compose(_pV.set(pos.x,y0+1.62*sc+bob*1.1,pos.z),_cQ,{x:sc,y:sc,z:sc}); hm.setMatrixAt(i,_cM);
  }
  bm.instanceMatrix.needsUpdate=true; hm.instanceMatrix.needsUpdate=true;
 }
@@ -1623,12 +1656,18 @@ function fireConfetti(){
    c.setHSL(Math.random(),0.85,0.6); col.set([c.r,c.g,c.b],i*3); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
   confettiMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},top:{value:y0+11.5},floorY:{value:y0}},
-   vertexShader:'uniform float t,top,floorY; attribute vec3 seed; varying vec3 vC;\n'+
-    'void main(){float h=top-floorY; float y=max(floorY+0.02, top-max(0.0,t)*(1.1+seed.y*0.8)); y=(t<seed.x*1.5)?top:max(floorY+0.02, top-(t-seed.x*1.5)*(1.1+seed.y*0.8)); vec3 p=vec3(position.x+0.6*sin(t*0.7+seed.z*6.2831+y*0.8),y,position.z+0.6*cos(t*0.6+seed.x*6.2831+y*0.7));\n'+
-    ' vC=color; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(110.0/max(-mv.z,1.0),2.0,7.0); gl_Position=projectionMatrix*mv;}',
-   fragmentShader:'varying vec3 vC; void main(){vec2 d=gl_PointCoord-0.5; if(abs(d.x)+abs(d.y)>0.5)discard; gl_FragColor=vec4(vC,1.0);}',
+   vertexShader:'uniform float t,top,floorY; attribute vec3 seed; varying vec3 vC; varying float vAng; varying float vTum;\n'+
+    'void main(){float tt=max(0.0,t-seed.x*1.5); float y=(t<seed.x*1.5)?top:max(floorY+0.02, top-tt*(0.55+seed.y*0.5));\n'+
+    ' vec3 p=vec3(position.x+0.9*sin(t*0.8+seed.z*6.2831+y*0.9),y,position.z+0.9*cos(t*0.7+seed.x*6.2831+y*0.8));\n'+
+    ' vAng=t*(1.0+seed.z*2.5)+seed.x*6.2831; vTum=t*(2.0+seed.y*3.0)+seed.z*6.2831;\n'+
+    ' vC=color; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(150.0/max(-mv.z,1.0),3.0,10.0); gl_Position=projectionMatrix*mv;}',
+   fragmentShader:'varying vec3 vC; varying float vAng; varying float vTum;\n'+
+    // a rectangle of paper, spun by vAng and seen edge-on twice a turn by vTum: that is the flutter
+    'void main(){vec2 d=gl_PointCoord-0.5; float cs=cos(vAng), sn=sin(vAng); vec2 r=vec2(cs*d.x-sn*d.y, sn*d.x+cs*d.y);\n'+
+    ' float hw=0.40, hh=0.10+0.20*abs(sin(vTum)); if(abs(r.x)>hw||abs(r.y)>hh)discard;\n'+
+    ' float sh=0.75+0.25*abs(sin(vTum)); gl_FragColor=vec4(vC*sh,1.0);}',
    vertexColors:true});
-  confetti=new THREE.Points(g,confettiMat); confetti.frustumCulled=false; confetti.userData.t0=performance.now()/1000; scene.add(confetti);
+  confetti=new THREE.Points(g,confettiMat); confetti.frustumCulled=false; confetti.userData.t0=performance.now()/1000; confettiUntil=performance.now()/1000+11; scene.add(confetti);
   clearTimeout(fireConfetti.timer); fireConfetti.timer=setTimeout(()=>{if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}},18000);
  }
 }
@@ -1723,7 +1762,7 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  syncSpec(); document.getElementById('hudb').addEventListener('click',()=>setTimeout(syncSpec,0));
 }
 let last=performance.now();
-function frame(now){ if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
+function frame(now){ if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo)logo.rotateY(Math.min(0.1,(now-last)/1000)*2*Math.PI/45); // one turn every 45 s
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
