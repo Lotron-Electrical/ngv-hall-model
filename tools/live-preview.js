@@ -18,7 +18,7 @@ const { spawn } = require('child_process');
 
 const args = Object.fromEntries(process.argv.slice(2).map((a, i, all) => a.startsWith('--') ? [a.slice(2), (all[i + 1] === undefined || all[i + 1].startsWith('--')) ? true : all[i + 1]] : []).filter(x => x.length));
 const WS = +(args.ws || 9930), HTTP = +(args.http || 8877);
-const FPS = +(args.fps || 20), UNIVERSES = String(args.universes || '1-608');
+const FPS = +(args.fps || 40), UNIVERSES = String(args.universes || '1-608');
 const ROOT = path.join(__dirname, '..');
 const PAGE = `http://127.0.0.1:${HTTP}/index.html?connect=1&ws=localhost:${WS}`;
 const ELM_DOWNLOAD = 'https://cdn.enttec.com/elm/releases/ELM-Preview-win-x64-preview-Setup.exe';
