@@ -144,7 +144,6 @@ html.embed body,html.embed main{margin:0;padding:0}
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
  <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
- <button type="button" id="tourfab">&#9654; Start tour</button>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -866,7 +865,7 @@ new GLTFLoader().load('model.glb',g=>{
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
- hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
+ hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildPortal();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -1609,7 +1608,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3143,28 +3142,155 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     poseAt(at,T.clone().setY(T.y+4)); }},
  ]; }
 function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
- document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('tourfab').hidden=true; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('tourfab').hidden=false; }
+ document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
+function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0); }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
  if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
-document.getElementById('tourfab').onclick=startTour;
 // Before anyone touches anything the view is not a still: the camera drifts slowly up and down
 // the middle of the hall (Lloyd, 2026-09-01), easing in from the home pose once the model is up.
 // The first key, drag, touch or phone-remote nudge ends it for good; the tour takes over from it.
 let idle=true, idleT0=null, idleFrom=null;
-function idleStep(now){ if(!hallGroup)return;
+function idleStep(now){ if(!hallGroup||!portal)return;
  if(idleT0===null){ idleT0=now; idleFrom=eye.clone(); }
- const t=now-idleT0, uM=EVENT.wallLen/2;
- const u=uM+18.5*Math.sin(t*2*Math.PI/150), ahead=u+8*Math.cos(t*2*Math.PI/150)+0.001;   // one lap every 150 s
- const at=EP(u,1.65,7.6+0.6*Math.sin(t*0.21)), look=EP(ahead,1.45+0.15*Math.sin(t*0.17),7.6);
+ const t=now-idleT0, C=portal.centre;
+ // a slow orbit round the object, eight and a half metres out, breathing up and down a little
+ const a=t*2*Math.PI/70, r=8.5;
+ const at=C.clone().add(V3(Math.cos(a)*r,0.2+0.6*Math.sin(t*0.23),Math.sin(a)*r));
  if(t<5){ const q=smooth(t/5); at.copy(idleFrom.clone().lerp(at,q)); }
- poseAt(at,look); sceneDirty=true; }
+ poseAt(at,C.clone().setY(C.y-0.2)); sceneDirty=true; }
 
+// ============ THE OBJECT (Lloyd, 2026-09-01) ============
+// In the middle of the hall, before the tour: a stained-glass tesseract, a dodecahedron inside a
+// dodecahedron with the corners tied, turning against each other, and between them an infinity
+// mirror of the same shape receding inward. It floats, it shimmers, a fine spray lifts off it, a
+// spotlight falls on it from the canopy, and it stands on a neon portal cut into the floor.
+// ENTER THE FUTURE hangs above it, always facing the camera. Clicking or tapping the object
+// starts the tour. It lives only while no tour and no event is running.
+let portal=null;
+const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP;
+ void main(){ vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position; gl_Position=projectionMatrix*viewMatrix*w; }`;
+const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; varying vec3 vN; varying vec3 vW; varying vec3 vP;
+ vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+ void main(){
+  // one colour per pane: the pane's normal picks the hue, so every facet is its own glass
+  float h=fract(atan(vN.z,vN.x)/6.2832+vN.y*0.35+hueShift+t*0.02);
+  vec3 c=hsv(h,0.95,1.0);
+  vec3 V=normalize(cameraPosition-vW); float fr=pow(1.0-abs(dot(V,vN)),2.0);
+  // the shimmer: a slow sheet of light passing through the pane, plus a fine glitter
+  float sheen=0.5+0.5*sin(dot(vP,vec3(2.1,3.3,1.7))*2.0+t*1.6);
+  float glit=pow(0.5+0.5*sin(dot(vP,vec3(17.0,23.0,11.0))+t*4.0),24.0);
+  vec3 col=c*(0.55+0.45*sheen)+vec3(1.0)*(fr*0.6+glit*0.8);
+  gl_FragColor=vec4(col,(0.5+0.35*fr)*gain);
+ }`;
+const PORTAL_FRAG=`uniform float t; varying vec2 vUv;
+ vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+ void main(){
+  vec2 p=(vUv-0.5)*2.0; float r=length(p); if(r>1.0)discard;
+  float a=atan(p.y,p.x);
+  // mirror fold: six-fold kaleidoscope, so the pattern reflects itself round the ring
+  float seg=3.14159/3.0; a=abs(mod(a+t*0.05,seg)-seg*0.5);
+  // the tunnel: rings that fall inward forever, log-spaced so the far ones crowd the centre
+  float z=fract(log(r+0.02)*1.4-t*0.45);
+  // a little fractal: fold the point through itself a few times for the filigree
+  vec2 q=vec2(cos(a),sin(a))*r*2.0; float f=0.0;
+  for(int i=0;i<4;i++){ q=abs(q)/dot(q,q)-vec2(0.9,0.55); f+=exp(-6.0*abs(length(q)-0.7)); }
+  float ring=smoothstep(0.0,0.08,z)*smoothstep(0.35,0.12,z);
+  float hue=fract(z*0.6+a/3.14159+t*0.08);
+  vec3 col=hsv(hue,0.9,1.0)*(ring*1.4+f*0.35)+vec3(0.1,0.0,0.2)*f;
+  // the lip: a hard neon rim, and everything dims into the black at the very centre
+  float rim=smoothstep(0.90,0.96,r)*smoothstep(1.0,0.985,r);
+  col+=hsv(fract(t*0.1),0.8,1.0)*rim*2.0;
+  float mirror=pow(0.5+0.5*sin(a*6.0+r*30.0-t*2.0),8.0)*0.5;
+  col+=vec3(mirror);
+  float fade=smoothstep(0.0,0.25,r);
+  gl_FragColor=vec4(col*fade,1.0);
+ }`;
+const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
+ void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
+  vA=(1.0-k)*smoothstep(0.0,0.15,k); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.8+1.2*vA)*(40.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
+const SPRAY_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.1,length(d)); gl_FragColor=vec4(0.85,0.92,1.0,m*vA*0.2); }`;
+// the spotlight's visible cone: bright at the lamp, gone at the floor, soft at the edge
+const CONE_FRAG=`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){
+ vec3 V=normalize(cameraPosition-vW); float edge=pow(abs(dot(V,vN)),1.5);
+ float a=(1.0-vUv.y)*(1.0-vUv.y)*0.12*edge; gl_FragColor=vec4(1.0,0.97,0.9,a); }`;
+function buildPortal(){
+ if(portal){ scene.remove(portal.group); portal=null; }
+ const uM=EVENT.wallLen/2, C=EP(uM,3.3,7.6);
+ const g=new THREE.Group(); g.position.copy(C);
+ const glassMat=(shift,gain)=>new THREE.ShaderMaterial({uniforms:{t:{value:0},hueShift:{value:shift},gain:{value:gain}},vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,
+  transparent:true,depthWrite:false,side:THREE.DoubleSide});
+ const outerG=new THREE.DodecahedronGeometry(1.35,0), innerG=new THREE.DodecahedronGeometry(0.72,0);
+ const outer=new THREE.Mesh(outerG,glassMat(0,1)), inner=new THREE.Mesh(innerG,glassMat(0.5,1));
+ const lead=(geo,col,op,add)=>new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false}));
+ outer.add(lead(outerG,0x05050a,0.9,false)); outer.add(lead(outerG,0xffffff,0.35,true));
+ inner.add(lead(innerG,0x05050a,0.9,false)); inner.add(lead(innerG,0xffffff,0.45,true));
+ // the tesseract's struts: every corner of the outer shell tied to the matching corner inside
+ const uniq=geo=>{ const seen=new Map(); const pos=geo.attributes.position; for(let i=0;i<pos.count;i++){ const v=new THREE.Vector3().fromBufferAttribute(pos,i); const k=v.toArray().map(x=>x.toFixed(3)).join(','); if(!seen.has(k))seen.set(k,v); } return [...seen.values()]; };
+ const oc=uniq(outerG), ic=uniq(innerG); const strut=new Float32Array(oc.length*6);
+ oc.forEach((v,i)=>{ const w=ic[i]||v.clone().multiplyScalar(0.72/1.35); strut.set([v.x,v.y,v.z,w.x,w.y,w.z],i*6); });
+ const strutG=new THREE.BufferGeometry(); strutG.setAttribute('position',new THREE.BufferAttribute(strut,3));
+ const struts=new THREE.LineSegments(strutG,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false}));
+ // the infinity mirror: the outer shell again and again, each copy smaller and fainter, the way
+ // a lit frame repeats between two facing mirrors; they turn a touch out of step so the depth reads
+ const mirror=new THREE.Group(); const shells=[];
+ for(let i=1;i<=6;i++){ const k=Math.pow(0.86,i); const sh=new THREE.Mesh(outerG,glassMat(i*0.07,0.35*Math.pow(0.62,i))); sh.scale.setScalar(k);
+  sh.add(lead(outerG,0xffffff,0.4*Math.pow(0.7,i),true)); mirror.add(sh); shells.push(sh); }
+ const body=new THREE.Group(); body.add(outer,mirror,inner,struts); g.add(body);
+ // the spray: a fine mist lifting off the shell, like the drift off a waterfall
+ const n=380, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);
+ for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
+ const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(pos,3)); sg.setAttribute('dir',new THREE.BufferAttribute(dir,3)); sg.setAttribute('phase',new THREE.BufferAttribute(ph,1));
+ const sprayMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:SPRAY_VERT,fragmentShader:SPRAY_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const spray=new THREE.Points(sg,sprayMat); spray.frustumCulled=false; g.add(spray);
+ // the portal in the floor
+ const floorY=FLOOR_Y||EVENT.N.origin.y;
+ const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:PORTAL_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const disc=new THREE.Mesh(new THREE.CircleGeometry(4.2,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
+ // the spotlight: a lamp under the canopy aimed at the object, and its cone made visible
+ const lampY=(isFinite(CEIL_Y)&&CEIL_Y>C.y?CEIL_Y:C.y+8)-0.4;
+ const spot=new THREE.SpotLight(0xfff4e0,60,lampY-floorY+2,0.20,0.5,1.2); spot.position.set(0,lampY-C.y,0); spot.target.position.set(0,0,0); g.add(spot); g.add(spot.target);
+ const coneH=lampY-C.y+2.2, coneR=Math.tan(0.20)*coneH;
+ const coneMat=new THREE.ShaderMaterial({uniforms:{},vertexShader:`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){ vUv=uv; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:CONE_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const cone=new THREE.Mesh(new THREE.ConeGeometry(coneR,coneH,48,1,true),coneMat); cone.position.y=lampY-C.y-coneH/2; g.add(cone);
+ // the words above it
+ const words=new THREE.Group(); words.position.y=2.6; g.add(words);
+ const addWords=(font)=>{ const tg=new TextGeometry('ENTER THE FUTURE',{font,size:0.42,height:0.06,curveSegments:3,bevelEnabled:false});
+  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-(b.min.y+b.max.y)/2,-0.03);
+  const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+  const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
+  const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=0.1; halo2.scale.set(1.12,1.4,2.4);
+  words.add(core,halo,halo2); };
+ if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
+ scene.add(g);
+ portal={group:g,centre:C,body,outer,inner,shells,spray,disc,words,mats:[outer.material,inner.material,sprayMat,portalMat,...shells.map(x=>x.material)],hit:[outer,inner,disc]};
+}
+function portalStep(now){ const P=portal; if(!P)return;
+ P.group.visible=!tour&&!document.getElementById('event').checked; if(!P.group.visible)return;
+ for(const m of P.mats)m.uniforms.t.value=now;
+ P.body.position.y=0.25*Math.sin(now*0.9);                       // the float
+ P.outer.rotation.set(now*0.17,now*0.23,now*0.11); P.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
+ P.shells.forEach((sh,i)=>sh.rotation.set(now*0.17+i*0.05,now*0.23-i*0.06,now*0.11+i*0.04));   // the mirror copies lag a little
+ const pulse=0.53+0.08*Math.sin(now*0.7); P.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
+ P.spray.position.y=P.body.position.y;
+ P.words.position.y=2.6+0.5*P.body.position.y; P.words.rotation.y=Math.atan2(eye.x-P.group.position.x,eye.z-P.group.position.z);
+ sceneDirty=true; }
+// click or tap the object: the tour begins
+const portalRay=new THREE.Raycaster();
+function portalHit(cx,cy){ if(!portal||!portal.group.visible)return false; const r=cv.getBoundingClientRect();
+ portalRay.setFromCamera(new THREE.Vector2(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1),cam);
+ return portalRay.intersectObjects(portal.hit,false).length>0; }
+let tapAt=null;
+cv.addEventListener('click',e=>{ if(portalHit(e.clientX,e.clientY))startTour(); });
+cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.clientX,y:t.clientY,t:performance.now(),id:t.identifier}; },{passive:true});
+cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
+ if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))startTour(); tapAt=null; });
 
-function frame(now){ if(tour)tourStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
