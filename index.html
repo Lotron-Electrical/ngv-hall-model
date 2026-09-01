@@ -3262,7 +3262,7 @@ let titles=null, titleGlint=null, titleShimmer=null, titleGlass=null; const titl
 // VORONOI STAINED GLASS for text (Lloyd): a mosaic of little coloured panes in dark lead over
 // the letters, lit from behind with a slow sweep; noDepth for the titles, which draw over
 // everything, depth-tested for the finale's line in the court
-function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.2}},transparent:true,depthWrite:false,depthTest:!noDepth,
+function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.42}},transparent:true,depthWrite:false,depthTest:!noDepth,
    vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
    fragmentShader:`uniform float t; uniform float op; uniform float cell; varying vec3 vP; varying vec3 vN;
     vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
@@ -3271,9 +3271,10 @@ function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{va
      vec2 q=vP.xy/cell; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
      float edge=sqrt(d2)-sqrt(d1);
-     float lead=smoothstep(0.04,0.13,edge);                       // 0 on the lead line, 1 in the pane
-     vec3 c=hsv(fract(h2(id).x+t*0.01),0.9,1.0);
-     float lit=0.55+0.45*sin(vP.x*1.4-t*0.9+h2(id).y*2.0);          // the light behind, sweeping along
+     float lead=smoothstep(0.025,0.07,edge);                      // 0 on the lead line, 1 in the pane
+     vec3 c=hsv(fract(h2(id).x+t*0.01),0.85,1.0);
+     float px=(id.x+h2(id).x)*cell;                                 // the pane's seed: one flat colour per pane (very low poly, Lloyd)
+     float lit=0.55+0.45*sin(px*1.4-t*0.9+h2(id).y*2.0);            // the light behind, sweeping pane by pane
      float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
      vec3 col=mix(vec3(0.05,0.04,0.05),c*(0.55+0.45*lit),lead)*side;
      gl_FragColor=vec4(col,op); }`});; }
@@ -3299,9 +3300,10 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
  const geo=(text,st)=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:st?0.12:0.05,curveSegments:4,bevelEnabled:!!st,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2}); tg.computeBoundingBox(); return tg; };
  // drawn last with no depth test, so a column between the eye and the line never hides it (Lloyd)
  const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false,depthTest:false,toneMapped:false})); m.material.userData.base=op; m.renderOrder=990; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
- // a row that starts with '~' comes in a word at a time (Lloyd, the banquet's line)
+ // a row that starts with '~' comes in a word at a time; the count runs on across rows, so
+ // a title with '~' on every row comes in one word after another top to bottom (Lloyd, the banquet, V4)
  const rows=key.split(' / ').map(r=>{ r=r.trim(); const stg=r.startsWith('~'); if(stg)r=r.slice(1).trim(); const st=/^\*(.*)\*$/.exec(r); return {stained:!!st,stagger:stg,parts:stg?r.split(/\s+/):(st?st[1]:r).split('|').map(x=>x.trim()).filter(Boolean)}; }).filter(r=>r.parts.length);
- const g=new THREE.Group(); const mats=[]; const lineH=0.34*1.6, gap=0.12; let W=0;
+ const g=new THREE.Group(); const mats=[]; const lineH=0.34*1.6, gap=0.12; let W=0, wi=0;
  rows.forEach((row,ri)=>{ const y=(rows.length-1)/2*lineH-ri*lineH; const tgs=row.parts.map(p=>geo(p,row.stained));
   // the parts laid along one baseline, a word space between, the whole centred; a second part
   // (the word "light") carries the glint
@@ -3310,7 +3312,7 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
   tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
    if(row.stained){ const core=new THREE.Mesh(tg,titleGlass); core.renderOrder=990; g.add(core); g.userData.glass=true;
     g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); const sh=new THREE.Mesh(tg,titleShimmer); sh.renderOrder=991; g.add(sh); g.userData.shimmer=true; }
-   else { const n0=mats.length; g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); if(row.stagger)for(let q=n0;q<mats.length;q++)mats[q].userData.delay=j*0.45; }
+   else { const n0=mats.length; g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); if(row.stagger){ for(let q=n0;q<mats.length;q++)mats[q].userData.delay=wi*0.45; wi++; } }
    if(j>0&&!row.stagger){ titleGlint.uniforms.cx.value=x+w/2; const gm=new THREE.Mesh(tg,titleGlint); gm.renderOrder=991; g.add(gm); g.userData.glint=true; }
    x+=w+gap; }); });
  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); titleGroups.set(key,g); return g; }
@@ -3357,8 +3359,8 @@ function gandelBuild(L){ if(gandelText||!buildCourt.font)return; if(!TX1('finale
 function gandelTopBuild(L){ if(gandelTop||!buildCourt.font)return;
  // (Lloyd, V2) GANDEL HALL, large, in Voronoi stained glass, above BROUGHT TO LIGHT BY; in the
  // court group like the tag, facing the hall, placed by finaleStep
-  // (Lloyd, finale V3) low poly: the panes nearly a letter tall, so the words read
- gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*0.9; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
+  // (Lloyd, finale V3, then V4) very low poly: panes bigger than a letter, one flat colour each
+ gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*1.6; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
  tg2.computeBoundingBox(); const b2=tg2.boundingBox; tg2.translate(-(b2.min.x+b2.max.x)/2,-b2.min.y,-0.06); tg2.computeVertexNormals();
  gandelTop=new THREE.Mesh(tg2,gandelTopMat); gandelTop.visible=false; gandelTop.quaternion.copy(turntable.quaternion); court.add(gandelTop); }
 function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L);
@@ -3416,7 +3418,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A unique space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11.0]],"banquet":[["Where / ~Rich history and modern tradition / Come together",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.5,8.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.5,8.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;

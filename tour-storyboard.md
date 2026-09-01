@@ -137,7 +137,12 @@ Come together
 
 More variety in clothes. Big hats, long flowing dresses. Not everyone with gold necklaces. Have everybody be unique. Also
 
-V4 (draft):
+V4 (sent 01/09/2026 22:39:47):
+[shot 3, 3.0 s] 
+
+Every word should fade in
+
+V5 (draft):
 
 
 ---
@@ -210,10 +215,14 @@ Start the camera high up and follow the confetti falling down, to finish at the 
 V2 (sent 01/09/2026 22:22:14):
 the text gets washed out against the confetti. Maybe drop the camera lower, so the confetti is above the text at the start
 
-V3 (draft):
+V3 (sent 01/09/2026 22:42:32):
 [shot 5, 11.3 s] 
 
 Fade out at the end of this clip
+[shot 5, 9.1 s] This is when the text should appear, not before
+
+V4 (draft):
+
 
 ---
 
