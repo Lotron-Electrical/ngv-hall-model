@@ -2351,17 +2351,29 @@ function buildDinner(ctx){
   bg.visible=false; eventGroup.add(bg); dinner.waiters.bottles.push(bg); }
  // (Lloyd, V3) a string quartet in front of the stage, in shot 2's frame: two violins, a viola
  // and a cello on chairs in a shallow arc, facing the room, bows going
- { const qU=[25.4,26.4,27.4,28.4], qD=[4.95,4.75,4.75,4.95], S1={x:1,y:1,z:1}; const qp=peopleMeshes(4,0.55); const qc=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),4);
+ // (Lloyd, V4) the quartet plays ON the stage, 0.6 m up, near its front on the right of the
+ // screen, in shot 2's frame; the instruments are built properly below
+ { const qU=[20.2,21.2,22.2,23.2], qD=[2.4,2.2,2.2,2.4], dy=EVENT.stageH, S1={x:1,y:1,z:1}; const qp=peopleMeshes(4,0.55); const qc=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),4);
   const wood=new THREE.MeshBasicMaterial({color:0x7a4322}), dark=new THREE.MeshBasicMaterial({color:0x2a1608}), hair=new THREE.MeshBasicMaterial({color:0xe8e2d0});
   const yaw=Math.atan2(EVENT.N.inRoom.x,EVENT.N.inRoom.z); dinner.quartet={bm:qp.bm,hm:qp.hm,st:[]};
-  for(let i=0;i<4;i++){ const p=eventPoint(qU[i],0,qD[i]); _cQ.identity(); _cM.compose(_pV.set(p.x,y0+0.25,p.z),_cQ,S1); qc.setMatrixAt(i,_cM);
+  for(let i=0;i<4;i++){ const p=eventPoint(qU[i],0,qD[i]); _cQ.identity(); _cM.compose(_pV.set(p.x,y0+dy+0.25,p.z),_cQ,S1); qc.setMatrixAt(i,_cM);
    // white dinner jackets: concert black vanished against the stage front from shot 2's spot
    qp.bm.setColorAt(i,c.set(0xe8e4dc)); qp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
-   const cello=i===3, viola=i===2, g=new THREE.Group(); g.position.set(p.x,y0,p.z); g.rotation.y=yaw; eventGroup.add(g);
-   const body=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),wood); const neck=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),dark); const bowG=new THREE.Group(); const bow=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),hair);
-   if(cello){ body.scale.set(0.2,0.34,0.09); body.position.set(0.05,0.62,0.3); neck.scale.set(0.04,0.55,0.03); neck.position.set(0.05,1.05,0.28); bowG.position.set(0.18,0.75,0.36); bow.scale.set(0.5,0.012,0.012); bow.position.x=0.2; }
-   else { const sc=viola?1.15:1; body.scale.set(0.11*sc,0.17*sc,0.04); body.position.set(-0.16,1.03,0.2); body.rotation.z=0.5; neck.scale.set(0.35*sc,0.025,0.02); neck.position.set(-0.36,1.13,0.2); neck.rotation.z=0.5; bowG.position.set(-0.1,1.06,0.24); bow.scale.set(0.012,0.45,0.012); bow.position.y=-0.1; bow.rotation.z=-0.3; }
-   bowG.add(bow); g.add(body,neck,bowG); dinner.quartet.st.push({i,x:p.x,z:p.z,cello,bow:bowG,ph:Math.random()*6.28}); }
+   const cello=i===3, viola=i===2, g=new THREE.Group(); g.position.set(p.x,y0+dy,p.z); g.rotation.y=yaw; eventGroup.add(g);
+   // (Lloyd, V4) the instruments, more like the real things: two bouts with a waist, a dark
+   // fingerboard to a scroll, the bow with its frog; the cello upright on its endpin between the
+   // knees, the violins and viola under the chin pointing out to the left; a music stand each
+   const mk=(geo,mat,sx,sy,sz,x,y,z,rz,rx)=>{ const m=new THREE.Mesh(geo,mat); m.scale.set(sx,sy,sz); m.position.set(x,y,z); if(rz)m.rotation.z=rz; if(rx)m.rotation.x=rx; return m; };
+   const SPH=new THREE.SphereGeometry(1,12,9), BOX=new THREE.BoxGeometry(1,1,1), CYL=new THREE.CylinderGeometry(1,1,1,10);
+   const bowG=new THREE.Group(), inst=new THREE.Group(); g.add(inst,bowG);
+   if(cello){ inst.position.set(0.06,0,0.34); inst.rotation.x=-0.18;
+    inst.add(mk(SPH,wood,0.2,0.24,0.1,0,0.55,0), mk(SPH,wood,0.17,0.2,0.1,0,0.86,0), mk(BOX,dark,0.05,0.7,0.03,0,1.2,0.04), mk(SPH,dark,0.04,0.05,0.04,0,1.58,0.04), mk(CYL,dark,0.008,0.5,0.008,0,0.22,0), mk(BOX,dark,0.13,0.02,0.02,0,0.7,0.09));
+    bowG.position.set(0.2,0.8,0.42); bowG.add(mk(BOX,hair,0.62,0.012,0.012,0.2,0,0), mk(BOX,dark,0.03,0.03,0.02,-0.08,0,0)); }
+   else { const sc=viola?1.15:1; inst.position.set(-0.12,1.02,0.2); inst.rotation.z=0.5; inst.rotation.y=-0.35;
+    inst.add(mk(SPH,wood,0.11*sc,0.13*sc,0.035,0,-0.06*sc,0), mk(SPH,wood,0.09*sc,0.1*sc,0.035,0,0.1*sc,0), mk(BOX,dark,0.025,0.34*sc,0.015,0,0.27*sc,0.02), mk(SPH,dark,0.03,0.03,0.03,0,0.45*sc,0.02), mk(BOX,dark,0.06,0.015,0.01,0,-0.03,0.04));
+    bowG.position.set(-0.1,1.06,0.24); bowG.add(mk(BOX,hair,0.012,0.5,0.012,0,-0.12,0,-0.3), mk(BOX,dark,0.02,0.03,0.03,0.04,0.1,0,-0.3)); }
+   g.add(mk(CYL,dark,0.012,0.9,0.012,-0.05,0.45,0.62), mk(BOX,dark,0.34,0.26,0.01,-0.05,1.0,0.62,0,-0.4));
+   dinner.quartet.st.push({i,x:p.x,z:p.z,dy,cello,bow:bowG,ph:Math.random()*6.28}); }
   qp.bm.instanceColor.needsUpdate=true; qp.hm.instanceColor.needsUpdate=true; for(const m of [qc,qp.bm,qp.hm]){ m.frustumCulled=false; eventGroup.add(m); } }
  eventGroup.add(tm,lm,cm,pm,fm,km,bk,bm,hm,wt.bm,wt.hm,tray);
  addWheelchairs(ctx,[[lanesU[1],lanesD[0]],[lanesU[cols-2],lanesD[1]]]);
@@ -2401,7 +2413,7 @@ function updateDinner(dt,t,ctx){
   const gb=D.glassBase[i]; if(gb&&(sq>0||s.sipWas)){ s.sipWas=sq>0; _cQ.identity(); _cM.compose(_pV.set(gb[0]+(s.x-gb[0])*0.85*sq,gb[1]+0.42*sq,gb[2]+(s.z-gb[2])*0.85*sq),_cQ,{x:1,y:1,z:1}); D.km.setMatrixAt(i,_cM); D.km.instanceMatrix.needsUpdate=true; }
  }
  if(D.quartet)for(const q of D.quartet.st){ const sw=Math.sin(t*(q.cello?2.2:2.9)+q.ph); if(q.cello)q.bow.rotation.y=0.5*sw; else q.bow.rotation.x=0.45*sw;
-  poseBH(D.quartet.bm,D.quartet.hm,q.i,q.x,q.z,y0+0.72,y0+1.18+0.02*Math.sin(t*1.3+q.ph),1,1); }
+  poseBH(D.quartet.bm,D.quartet.hm,q.i,q.x,q.z,y0+q.dy+0.72,y0+q.dy+1.18+0.02*Math.sin(t*1.3+q.ph),1,1); }
  if(D.quartet){ D.quartet.bm.instanceMatrix.needsUpdate=true; D.quartet.hm.instanceMatrix.needsUpdate=true; }
  // movers keep a personal bubble: any two closer than half a metre are pushed apart, so nobody
  // ever walks through anybody
@@ -3633,7 +3645,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   {celebrate:true,dur:26.5, cam:k=>{ const tw=k*26.5, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5));
     // (Lloyd, V3) no sculpture outside the glass in this shot
-    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); if(court)court.visible=false; }},
+    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); if(court)court.visible=false;
+    confettiUntil=Math.max(confettiUntil,performance.now()/1000+0.3); }},   /* (Lloyd, V5) the guests keep jumping the whole walk */
   // the finale (Lloyd's storyboard): out through the doorway to the sculpture, the marks rise into
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
@@ -4143,9 +4156,12 @@ function buildPortal(){
    vec3 c=mix(vec3(1.0,0.98,0.94),hsv(fract(vP.x*0.16+t*0.07)),0.4);
    // dimmer (Lloyd: the shimmer was over-exposed)
    gl_FragColor=vec4(c*g*0.4,1.0); }`});
+ // (Lloyd) the name above the object is the Voronoi stained glass the titles and the finale use
+ const wordsGlass=makeGlassMat(false); wordsGlass.uniforms.cell.value=0.5;
  const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
-   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:2.2,emissive:0x3c4250}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+   if(chrome)tg.computeVertexNormals();
+   const core=new THREE.Mesh(tg,chrome?wordsGlass:new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
@@ -4166,7 +4182,7 @@ function buildPortal(){
   if(addWords.regular)cueText(addWords.regular); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json',f=>{ addWords.regular=f; cueText(f); }); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
- portal={group:g,centre:C,body,outer,inner,spray,disc,suck,cone,spot,holeR:1.69,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
+ portal={group:g,centre:C,body,outer,inner,spray,disc,suck,cone,spot,holeR:1.69,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat,wordsGlass],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
  Q.group.visible=!tour&&!document.getElementById('event').checked&&!roamed;

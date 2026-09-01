@@ -114,8 +114,11 @@ V4 (sent 01/09/2026 22:57:03):
 
 A place for community
 
-V5 (draft):
+V5 (sent 01/09/2026 23:26:44):
 [shot 2, 4.7 s] the string quartet should be on stage. Improve their models as well to be more accurate
+
+V6 (draft):
+
 
 ---
 
@@ -160,7 +163,10 @@ V5 (sent 01/09/2026 22:56:01):
 
 More variety in all the extravagant clothing the guests are wearing. Also more food and drink. A proper banquet
 
-V6 (draft):
+V6 (sent 01/09/2026 23:29:11):
+[shot 3, 2.2 s] more lavish and detailed banquet. larger types of food. more variety. also instead of the white tablecloth sides, use a light purple
+
+V7 (draft):
 
 
 ---
@@ -332,8 +338,11 @@ No logos outside for this scene
 V4 (sent 01/09/2026 22:59:23):
 [shot 8, 11.0 s] the rice is phasing through the floor. It should be landing on the floor and staying through the scene
 
-V5 (draft):
+V5 (sent 01/09/2026 23:26:53):
 [shot 8, 6.2 s] the crowd should keep jumping through the scene
+
+V6 (draft):
+
 
 ---
 
@@ -373,8 +382,11 @@ Try to get the enttec and shadow av logos roughly the same size. Maybe make the 
 V4 (sent 01/09/2026 22:44:30):
 The entrance through the glass isn't cut out through the glass walls like this in real life. Each glass window has a door at the bottom of it. Just open one of those doors and walk through it. Don't cut through the wall like this
 
-V5 (draft):
+V5 (sent 01/09/2026 23:26:59):
 The dark blue in gandel hall doesn't contrast well on the black, use different colours
+
+V6 (draft):
+
 
 ---
 
