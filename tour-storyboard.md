@@ -293,7 +293,10 @@ the rice should be landing on the floor and not disappearing right away.  Also, 
 V2 (sent 01/09/2026 22:23:22):
 the rice is phasing through the floor. It should land on the floor and stay during the scene
 
-V3 (draft):
+V3 (sent 01/09/2026 22:45:06):
+No logos outside for this scene
+
+V4 (draft):
 
 
 ---
@@ -331,7 +334,10 @@ Dark enttec letters should be white so they contrast on the black background.
 
 Try to get the enttec and shadow av logos roughly the same size. Maybe make the shadow av owl smaller
 
-V4 (draft):
+V4 (sent 01/09/2026 22:44:30):
+The entrance through the glass isn't cut out through the glass walls like this in real life. Each glass window has a door at the bottom of it. Just open one of those doors and walk through it. Don't cut through the wall like this
+
+V5 (draft):
 
 
 ---

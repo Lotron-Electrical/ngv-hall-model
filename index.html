@@ -3418,7 +3418,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.5,8.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",9.1,13.6]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
@@ -3475,7 +3475,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // crowd below to the stage as it lands, and the last 5 s are the hold as before
   {celebrate:true,dur:14, cam:k=>{ const s=k*14, q=smooth(Math.min(1,s/9)), w=0.06*Math.sin(k*Math.PI*2)*q;
     // (Lloyd, V4) lower start, 6 m, so the paper is above the text as it comes in
-    poseAt(EP(uM+8+w*8,2.4+3.6*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate')); veil(1-smooth(Math.min(1,s/1.5))); }},
+    // (Lloyd, V5) the text waits until 9.1 s (its times in titles.json) and the shot fades out at the end
+    poseAt(EP(uM+8+w*8,2.4+3.6*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate')); veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-12.5)/1.5)))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way
   {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6);
