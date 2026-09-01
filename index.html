@@ -2297,11 +2297,14 @@ function updateBanquet(dt,t){
 }
 function buildDinner(ctx){
  const {y0,uLo,uHi,dLo,dHi,rnd}=ctx; const c=new THREE.Color();
- const rows=3, cols=8, nT=rows*cols, seats=10, nG=nT*seats;
+ // (Lloyd, shot 2 V8) two more tables in the lane the camera looks down (u 18.9), in the
+ // second and third rows (the first would sit in shot 2's carpet hold), so the left of a wide
+ // picture is not bare carpet; that lane is no longer walked
+ const rows=3, cols=8, nT=rows*cols+2, seats=10, nG=nT*seats;
  const uStep=(uHi-uLo-4)/(cols-1), dRow=[6.9,10.1,13.3];
  // corridors: a vertical lane between each pair of table columns (and the two ends), and a
  // horizontal lane through each row gap; the rings reach radius 1.25, the gaps are 0.7+
- const lanesU=[uLo+0.9]; for(let i=0;i<cols-1;i++)lanesU.push(uLo+2+uStep*(i+0.5)); lanesU.push(uHi-0.9);
+ const lanesU=[uLo+0.9]; for(let i=0;i<cols-1;i++)lanesU.push(uLo+2+uStep*(i+0.5)); lanesU.push(uHi-0.9); lanesU.splice(3,1);   /* the u 18.9 lane holds tables now */
  const lanesD=[8.5,11.7,14.9];
  const tm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.9,0.9,0.04,24),eventMat(0xe9e6df,0xf4f2ec),nT);
  const lm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06,0.08,0.72,8),eventMat(0x4a4a4a,0x6a6a6a),nT);
@@ -2315,8 +2318,9 @@ function buildDinner(ctx){
  dinner={bm,hm,fm,km,nG,y0,seat:[],hasFood:[],foodBase:[],glassBase:[],wander:[],waiters:null,quartet:null,chair:[],cm,bk,
   nav:{tables:[],lanesU,lanesD}};
  let k=0;
- for(let r=0;r<rows;r++)for(let cix=0;cix<cols;cix++){
-  const i=r*cols+cix, u=uLo+2+uStep*cix, d=dRow[r]; dinner.nav.tables.push([u,d]);
+ const TP=[]; for(let r=0;r<rows;r++)for(let cix=0;cix<cols;cix++)TP.push([uLo+2+uStep*cix,dRow[r]]); for(const d of dRow.slice(1))TP.push([18.9,d]);
+ for(let i=0;i<TP.length;i++){
+  const [u,d]=TP[i]; dinner.nav.tables.push([u,d]);
   const pos=eventPoint(u,0,d);
   _cQ.identity(); _cM.compose(_pV.set(pos.x,y0+0.74,pos.z),_cQ,{x:1,y:1,z:1}); tm.setMatrixAt(i,_cM);
   _cM.compose(_pV.set(pos.x,y0+0.36,pos.z),_cQ,{x:1,y:1,z:1}); lm.setMatrixAt(i,_cM);
