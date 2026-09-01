@@ -137,7 +137,7 @@ function wireScrub(box){ clearInterval(scrubTimer); const fr=[...box.querySelect
   ta.value=(ta.value.trim()?ta.value.replace(/\\s*$/,'')+'\\n':'')+'[shot '+s.shot+', '+(s.k*s.dur).toFixed(1)+' s] '; ta.dispatchEvent(new Event('input')); ta.scrollIntoView({block:'center',behavior:'smooth'}); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }); }
 // Generate waits for a pending save, sends, then reloads the page so the round files itself and
 // a fresh box appears
-document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }
+document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]:not(.old)'); if(!t.value.trim()){ t.focus(); return; }
  b.disabled=true; b.textContent='Sending…'; clearTimeout(timers[k]); await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,text:t.value})});
  const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Not sent: nothing new in the box'; setTimeout(()=>{ b.textContent='Generate'; },4000); return; } location.reload(); }); });
 document.querySelectorAll('.line input').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, idx=+t.dataset.idx, id='tx-'+k+'-'+idx, st=document.getElementById(id); st.textContent='…'; clearTimeout(timers[id]);
