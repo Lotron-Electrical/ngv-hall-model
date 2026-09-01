@@ -112,7 +112,7 @@ V4 (sent 01/09/2026 22:57:03):
 A place for community
 
 V5 (draft):
-
+[shot 2, 4.7 s] the string quartet should be on stage. Improve their models as well to be more accurate
 
 ---
 
@@ -239,7 +239,10 @@ Fade out at the end of this clip
 V4 (sent 01/09/2026 22:54:30):
 [shot 5, 2.3 s] the text should appear now, and be in the centre of the screen
 
-V5 (draft):
+V5 (sent 01/09/2026 23:09:55):
+[shot 5, 10.9 s] keep the people jumping excitedly during this scene
+
+V6 (draft):
 
 
 ---
@@ -295,7 +298,7 @@ V2 (sent 01/09/2026 22:47:37):
 The bride needs a proper veil, and then there should be a scene where they turn to each other, the veil is lifted and they kiss. The groom holds onto the bride and dips her
 
 V3 (draft):
-
+[shot 7, 3.0 s] the veil should not be a cone. It should have a smooth top
 
 ---
 

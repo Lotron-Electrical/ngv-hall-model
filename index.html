@@ -3156,6 +3156,14 @@ function fireColdSparks(){ const y0=FLOOR_Y||EVENT.N.origin.y; const uMid=EVENT.
 // WEDDING: the couple walk down the aisle and white petals rain over it
 // one handful of rice: thrown from a guest's hands, ballistic over the aisle, and it lies on the
 // runner where it fell. The couple walk through a corridor of these.
+// THE FLOOR'S OWN HEIGHT (Lloyd, shot 8 V4): the photographed carpet is not flat, it sits 6 to
+// 12 cm proud of the floor datum from place to place, so anything laid "on the floor" at one
+// offset sinks into it somewhere. The floor is a few hundred triangles of the scan, so a ray
+// straight down at the spot, against those meshes alone, is cheap and exact
+let floorMeshes=null; const _fRay=new THREE.Raycaster(), _fO=new THREE.Vector3(), _fD=new THREE.Vector3(0,-1,0);
+function floorAtXZ(x,z){ if(!floorMeshes){ if(!hallGroup)return FLOOR_Y+0.08; floorMeshes=[]; hallGroup.updateWorldMatrix(true,true);
+  hallGroup.traverse(o=>{ if(!o.isMesh||/column/i.test(o.name))return; o.geometry.computeBoundingBox(); const bb=o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld); if(bb.min.y>=FLOOR_Y-0.1&&bb.max.y<=FLOOR_Y+0.4)floorMeshes.push(o); }); }
+ _fO.set(x,FLOOR_Y+2,z); _fRay.set(_fO,_fD); const h=_fRay.intersectObjects(floorMeshes,false)[0]; return h?h.point.y:FLOOR_Y+0.08; }
 function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
  const n=90, pos=new Float32Array(n*3), vel=new Float32Array(n*3), lf=new Float32Array(n*2), hit=new Float32Array(n*4);
  for(let i=0;i<n;i++){
@@ -3169,8 +3177,10 @@ function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
   // so nothing ever rests on a head that then walks away and leaves it hanging in the air
   // (Lloyd's invisible boxes: the old cell map also caught grains in the air beside a head)
   // (Lloyd, V2) 6 cm up: the runner and the carpet's own rise took the grains at 2 cm
-  const ry=yf+0.06;
-  let tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8, th=tl+1, hx=0, hy=0, hz=0;
+  // (Lloyd, V4) on the carpet where it actually is: the photographed floor sits 6 to 12 cm
+  // proud of the datum and is not flat, so the grain's own landing spot is asked (floorAtXZ)
+  let ry=yf+0.10, tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8, th=tl+1, hx=0, hy=0, hz=0;
+  ry=floorAtXZ(sx+vx*tl,sz+vz*tl)+0.03; tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8;
   if(obs&&obs.length){
    let ppy=sy;
    for(let mt=0.03;mt<tl;mt+=0.03){
@@ -3549,7 +3559,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
