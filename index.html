@@ -3198,7 +3198,7 @@ function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour();
  // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
  document.getElementById('celebratefab').hidden=true; }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
- if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
+ if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
 // Before anyone touches anything the view is not a still: the camera drifts slowly up and down
 // the middle of the hall (Lloyd, 2026-09-01), easing in from the home pose once the model is up.
@@ -3211,6 +3211,10 @@ let idle=!new URLSearchParams(location.search).has('still'), idleT0=null, idleFr
 // so the glide up to the orbit is seen, not spent behind the black (Lloyd: it was better when the
 // camera started at the end of the hall and flew up into its orbit)
 let entered=false;
+// SHOT REVIEW (Lloyd's storyboard tool): ?shot=N opens straight on to tour shot N (1-based) and
+// plays it on a loop, no veil and no sound gesture, so one camera path can be watched on its own
+const SHOT=+new URLSearchParams(location.search).get('shot')||0;
+function playShot(){ idle=false; entered=true; if(!tour)startTour(); const T=tour; if(!T)return; T.i=SHOT-2; tourNext(performance.now()/1000); }
 let idleA0=0;
 // the columns' feet in the floor plane (world x,z), read once from the hall
 let colXZ=null; function columnsXZ(){ if(colXZ)return colXZ; colXZ=[]; for(const {mesh:m} of columnMeshes){ m.geometry.computeBoundingBox(); const b=m.geometry.boundingBox; const v=m.localToWorld(new THREE.Vector3((b.min.x+b.max.x)/2,0,(b.min.z+b.max.z)/2)); colXZ.push([v.x,v.z]); } return colXZ; }
@@ -3731,7 +3735,7 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  // is what looked glitched; then the picture fades in
  // once drawn, the veil offers Enter Gandel Hall (Lloyd): that tap is the gesture the browser
  // wants for sound, so the music starts as the hall fades in
- if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; document.getElementById('loader').classList.add('ready'); }
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
