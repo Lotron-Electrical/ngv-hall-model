@@ -19,7 +19,8 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 .ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
 /* phones: the row spans the view, one gap between buttons and the same gap to either edge, every
    button the same width (Lloyd, 2026-09-01: they ran off the left edge and sat unevenly) */
-@media (max-width:640px){.ctl{left:10px;right:10px;gap:10px} .ctl button{flex:1 1 0;padding:6px 4px;min-width:0}}
+@media (max-width:640px){.ctl{left:10px;right:10px;gap:10px} .ctl button{flex:1 1 0;padding:6px 3px;min-width:0;font-size:11px;line-height:1.15;
+  display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;padding:6px 2px}}
 .ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
 .ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
 /* bottom-left and small, so the stats never sit over the menu buttons along the top */
