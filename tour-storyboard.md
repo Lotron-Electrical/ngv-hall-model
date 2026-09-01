@@ -63,7 +63,10 @@ V5 (sent 01/09/2026 22:52:32):
 
 The Gandel hall text should be much larger. Same width as the text line below it
 
-V6 (draft):
+V6 (sent 01/09/2026 23:14:05):
+Try a new generation of the gandel hall text here
+
+V7 (draft):
 
 
 ---
@@ -297,8 +300,11 @@ and to celebrate love
 V2 (sent 01/09/2026 22:47:37):
 The bride needs a proper veil, and then there should be a scene where they turn to each other, the veil is lifted and they kiss. The groom holds onto the bride and dips her
 
-V3 (draft):
-[shot 7, 3.0 s] the veil should not be a cone. It should have a smooth top
+V3 (sent 01/09/2026 23:13:22):
+[shot 7, 3.0 s] the veil should not be a cone. It should have a smooth top on the brides head. Then is opened up. Then when they lean to kiss, they don't clip into each other
+
+V4 (draft):
+
 
 ---
 
