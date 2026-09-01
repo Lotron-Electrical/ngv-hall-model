@@ -415,15 +415,16 @@ function photoMaterial(src){
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
   uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
-   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex}},
+   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)}},   // hole: x,z,radius,on. The void's bowl cuts through the carpet
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
    void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
-   uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
+   uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
    varying vec2 vUv; varying vec3 vPos;
    void main(){
+    if(hole.w>0.5&&distance(vPos.xz,hole.xy)<hole.z)discard;   // the void's bowl sits in a hole in the floor
     vec3 albedo=texture2D(map,vUv).rgb*tint;
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
@@ -3362,15 +3363,24 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
 const SUCK_VERT=`attribute float a0; attribute float r0; attribute float phase; uniform float t; varying float vA;
  // a vacuum (Lloyd, 2026-09-01): a mote creeps at first, then rushes, spinning faster the closer
  // it gets, the way water goes down a drain, and is taken at the LIP, dipping under the rim
- void main(){ float k=fract(t*0.1+phase); float pull=pow(k,2.2); float r=mix(r0,1.58,pull);
-  float an=a0+3.2*(r0/r-1.0)+k*0.6;
-  float y=0.05+0.10*sin(k*3.14159)-0.5*smoothstep(0.93,1.0,k);
-  vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.2,k)*(1.0-smoothstep(0.94,1.0,k));
+ // (Lloyd: sucked in more) the mote crosses the lip and keeps going, down into the bowl and
+ // nearly to the centre, spinning up all the way
+ void main(){ float k=fract(t*0.1+phase); float pull=pow(k,2.4); float r=mix(r0,0.35,pull);
+  float an=a0+4.5*(r0/max(r,0.6)-1.0)+k*0.6;
+  float y=0.05+0.10*sin(k*3.14159)-0.45*smoothstep(0.78,1.0,k);
+  vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.2,k)*(1.0-smoothstep(0.9,1.0,k));
   vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=min(4.0,(0.35+0.5*vA)*(38.0/-mv.z)); gl_Position=projectionMatrix*mv; }`;
 const SUCK_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.05,length(d)); gl_FragColor=vec4(0.62,0.28,1.0,m*vA*0.3); }`;
-const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
- void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
-  vA=(1.0-k)*smoothstep(0.0,0.15,k); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=min(5.0,(0.8+1.2*vA)*(40.0/-mv.z)); gl_Position=projectionMatrix*mv; }`;
+const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; uniform float voidY; varying float vA;
+ // (Lloyd) the spray lifts off the shell for the first third of its life, then falls and is drawn
+ // down into the void with the motes, spiralling in to the lip and under it
+ void main(){ float k=fract(t*0.07+phase); float k1=0.35;
+  vec3 lift=position+dir*(0.2+min(k,k1)*1.6)+vec3(0.0,min(k,k1)*min(k,k1)*1.2,0.0);
+  float q=smoothstep(k1,1.0,k), pull=q*q; float a0=atan(lift.z,lift.x), r0=length(lift.xz);
+  float r=mix(r0,0.5,pull), an=a0+3.0*pull*pull+q*0.8;
+  float y=mix(lift.y,voidY+0.08,smoothstep(0.0,1.0,q))-0.4*smoothstep(0.9,1.0,k);
+  vec3 p=k<k1?lift:vec3(cos(an)*r,y,sin(an)*r);
+  vA=smoothstep(0.0,0.1,k)*(1.0-smoothstep(0.92,1.0,k)); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=min(5.0,(0.8+1.2*vA)*(40.0/-mv.z)); gl_Position=projectionMatrix*mv; }`;
 const SPRAY_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.1,length(d)); gl_FragColor=vec4(0.85,0.92,1.0,m*vA*0.2); }`;
 // the spotlight's visible cone: bright at the lamp, gone at the floor, soft at the edge
 const CONE_FRAG=`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){
@@ -3445,13 +3455,19 @@ function buildPortal(){
  const n=110, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);   // Lloyd, phone: far too many at 380
  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
  const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(pos,3)); sg.setAttribute('dir',new THREE.BufferAttribute(dir,3)); sg.setAttribute('phase',new THREE.BufferAttribute(ph,1));
- const sprayMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:SPRAY_VERT,fragmentShader:SPRAY_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const sprayMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},voidY:{value:-2}},vertexShader:SPRAY_VERT,fragmentShader:SPRAY_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  const spray=new THREE.Points(sg,sprayMat); spray.frustumCulled=false; g.add(spray);
  // the portal in the floor
  const floorY=FLOOR_Y||EVENT.N.origin.y;
  const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},centre:{value:new THREE.Vector3(C.x,floorY+0.14,C.z)}},vertexShader:`varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vW=(modelMatrix*vec4(position,1.0)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.0); }`,
-  fragmentShader:PORTAL_FRAG,depthWrite:false});   // opaque: the void paints OVER the carpet, it does not add to it
- const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
+  fragmentShader:PORTAL_FRAG,depthWrite:false,side:THREE.DoubleSide});   // opaque: the void paints OVER the carpet, it does not add to it
+ // a shallow bowl, a tenth of its radius deep at the middle (Lloyd: very subtle, like 10%), its uv laid out like the flat disc's so the star field reads the same
+ const bowl=(()=>{ const R=1.7, rings=24, segs=96, pos=[], uv=[], idx=[]; for(let i=0;i<=rings;i++){ const r=R*i/rings, y=-0.17*(1-(r/R)*(r/R)); for(let j=0;j<=segs;j++){ const a=j/segs*Math.PI*2, x=Math.cos(a)*r, z=Math.sin(a)*r; pos.push(x,y,z); uv.push((x/R+1)/2,(z/R+1)/2); } }
+  for(let i=0;i<rings;i++)for(let j=0;j<segs;j++){ const a=i*(segs+1)+j, b=a+segs+1; idx.push(a,b,a+1,a+1,b,b+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
+ const disc=new THREE.Mesh(bowl,portalMat);
+ for(const m of photoMats)if(/floor/i.test(m.name||''))m.uniforms.hole.value.set(C.x,C.z,1.69,1);   // cut the carpet under it
+ disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
  const sn=80, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
  for(let i=0;i<sn;i++){ sa[i]=Math.random()*Math.PI*2; sr[i]=1.9+Math.random()*2.6; sph[i]=Math.random(); }
@@ -3492,7 +3508,7 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  Q.body.position.y=0.25*Math.sin(now*0.9);                       // the float
  Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
  const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
- Q.spray.position.y=Q.body.position.y;
+ Q.spray.position.y=Q.body.position.y; Q.spray.material.uniforms.voidY.value=Q.disc.position.y-Q.body.position.y;   // the void, seen from the spray's frame
  Q.words.position.y=2.6+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
  // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
  // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
