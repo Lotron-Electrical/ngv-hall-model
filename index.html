@@ -2147,8 +2147,10 @@ function buildBanquet(ctx){
   poseBH(bm,hm,k,sp.x,sp.z,y0+0.72,y0+1.2,1,1); colourPerson(bm,hm,k,c);
   // (Lloyd, V2) a modern royal banquet: jewel-toned gowns and dress, deep and saturated, not
   // the muted everyday colours the other events wear
-  bm.setColorAt(k,c.setHSL(Math.random(),0.75+Math.random()*0.25,0.22+Math.random()*0.2,THREE.SRGBColorSpace));
-  seatList.push({k,x:sp.x,z:sp.z,s,ph:Math.random()*6.28,mode:Math.random()<0.5?'eat':'chat',next:2+Math.random()*5,crown:Math.random()<0.35});
+  // (Lloyd, V3) everybody unique: jewel gowns, dark suits, pastels, brights, black and white; a
+  // gold collar on some, a crown on a few, a big hat on some, a long flowing dress on some
+  { const st=Math.random(), h=Math.random(); if(st<0.3)c.setHSL(h,0.75+Math.random()*0.25,0.22+Math.random()*0.2,THREE.SRGBColorSpace); else if(st<0.5)c.setHSL(h,0.15,0.07+Math.random()*0.07,THREE.SRGBColorSpace); else if(st<0.7)c.setHSL(h,0.4,0.6+Math.random()*0.15,THREE.SRGBColorSpace); else if(st<0.85)c.setHSL(h,0.95,0.5,THREE.SRGBColorSpace); else c.setHSL(0,0,Math.random()<0.5?0.04:0.92,THREE.SRGBColorSpace); bm.setColorAt(k,c); }
+  { const crown=Math.random()<0.15; seatList.push({k,x:sp.x,z:sp.z,s,ph:Math.random()*6.28,mode:Math.random()<0.5?'eat':'chat',next:2+Math.random()*5,crown,collar:Math.random()<0.4,hat:!crown&&Math.random()<0.25,dress:Math.random()<0.35,hue:Math.random()}); }
   const pp=eventPoint(u,0,d+s*(W/2-0.25)); _cQ.identity(); _cM.compose(_pV.set(pp.x,y0+TOP+0.012,pp.z),_cQ,S1); pm.setMatrixAt(k,_cM);
   _cM.compose(_pV.set(pp.x,y0+TOP+0.045,pp.z),_cQ,{x:1,y:0.5,z:1}); fm.setMatrixAt(k,_cM); fm.setColorAt(k,c.setHSL(0.06+Math.random()*0.07,0.5,0.22+Math.random()*0.15,THREE.SRGBColorSpace));
   const kp=eventPoint(u+0.25,0,d+s*(W/2-0.45)); _cM.compose(_pV.set(kp.x,y0+TOP+0.06,kp.z),_cQ,S1); km.setMatrixAt(k,_cM); km.setColorAt(k,c.set(DRINKS[Math.floor(Math.random()*4)]));
@@ -2160,8 +2162,15 @@ function buildBanquet(ctx){
  const crn=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09,0.075,0.07,8,1,true),new THREE.MeshBasicMaterial({color:0xe6c35c,side:THREE.DoubleSide}),seatList.length);
  const jew=new THREE.InstancedMesh(new THREE.SphereGeometry(0.018,6,4),new THREE.MeshBasicMaterial({color:0xe03050}),seatList.length);
  const qF=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2);
- seatList.forEach((g,i)=>{ _cM.compose(_pV.set(g.x,y0+1.0,g.z),qF,S1); col.setMatrixAt(i,_cM);
-  _cQ.identity(); if(g.crown){ _cM.compose(_pV.set(g.x,y0+1.3,g.z),_cQ,S1); crn.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x,y0+1.345,g.z),_cQ,S1); jew.setMatrixAt(i,_cM); }
+ const hb=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.26,0.26,0.012,14),new THREE.MeshBasicMaterial(),seatList.length);
+ const hc=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1,0.11,0.13,10),new THREE.MeshBasicMaterial(),seatList.length);
+ const dr=new THREE.InstancedMesh(new THREE.ConeGeometry(0.4,0.6,12),new THREE.MeshBasicMaterial(),seatList.length);
+ seatList.forEach((g,i)=>{ _cQ.identity();
+  if(g.collar){ _cM.compose(_pV.set(g.x,y0+1.0,g.z),qF,S1); col.setMatrixAt(i,_cM); } else { _cM.compose(_pV.set(0,-99,0),_cQ,TINY); col.setMatrixAt(i,_cM); }
+  if(g.hat){ c.setHSL(g.hue,0.6,0.35,THREE.SRGBColorSpace); hb.setColorAt(i,c); hc.setColorAt(i,c); _cM.compose(_pV.set(g.x,y0+1.3,g.z),_cQ,S1); hb.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x,y0+1.37,g.z),_cQ,S1); hc.setMatrixAt(i,_cM); }
+  else { _cM.compose(_pV.set(0,-99,0),_cQ,TINY); hb.setMatrixAt(i,_cM); hc.setMatrixAt(i,_cM); }
+  if(g.dress){ bm.getColorAt(g.k,c); dr.setColorAt(i,c); _cM.compose(_pV.set(g.x,y0+0.3,g.z),_cQ,S1); dr.setMatrixAt(i,_cM); } else { _cM.compose(_pV.set(0,-99,0),_cQ,TINY); dr.setMatrixAt(i,_cM); }
+  if(g.crown){ _cM.compose(_pV.set(g.x,y0+1.3,g.z),_cQ,S1); crn.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x,y0+1.345,g.z),_cQ,S1); jew.setMatrixAt(i,_cM); }
   else { _cM.compose(_pV.set(0,-99,0),_cQ,TINY); crn.setMatrixAt(i,_cM); jew.setMatrixAt(i,_cM); } });
  // (Lloyd, V2) wait staff: two a side in the lane behind the chairs, walking the table with a
  // tray and stepping in to a place to serve, then on to the next
@@ -2170,9 +2179,10 @@ function buildBanquet(ctx){
  const wst=[]; for(let i=0;i<nW;i++){ wt.bm.setColorAt(i,c.set(0x14141a)); wt.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
   const s=i<2?-1:1; wst.push({s,u:u0+2+Math.random()*(L-4),dir:i%2?1:-1,spd:0.75+Math.random()*0.2,serve:0,next:2+Math.random()*4,lean:0}); }
  wt.bm.instanceColor.needsUpdate=true; wt.hm.instanceColor.needsUpdate=true;
- banquet={y0,d,W,u0,u1,bm,hm,seat:seatList,col,crn,jew,qF,wt,tray,cup,wst};
+ hb.instanceColor.needsUpdate=true; hc.instanceColor.needsUpdate=true; dr.instanceColor.needsUpdate=true;
+ banquet={y0,d,W,u0,u1,bm,hm,seat:seatList,col,crn,jew,hb,hc,dr,qF,wt,tray,cup,wst};
  eventAnim=(dt,t)=>updateBanquet(dt,t);
- for(const m of [col,crn,jew,wt.bm,wt.hm,tray,cup]){ m.frustumCulled=false; eventGroup.add(m); }
+ for(const m of [col,crn,jew,hb,hc,dr,wt.bm,wt.hm,tray,cup]){ m.frustumCulled=false; eventGroup.add(m); }
  // down the middle: flowers every two metres (a vase, greenery, a head of blooms), a candle between
  const nF=Math.floor(L/2), vm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05,0.07,0.22,10),eventMat(0xcfd6dc,0xe8edf0),nF);
  const gm=new THREE.InstancedMesh(new THREE.SphereGeometry(0.16,8,6),eventMat(0x2f5a2a,0x4b7d40),nF);
@@ -2200,9 +2210,10 @@ function updateBanquet(dt,t){
   if(g.mode==='eat'){ const e=Math.max(0,Math.sin(t*1.4+g.ph)); dx=-R.x*g.s*0.10*e; dz=-R.z*g.s*0.10*e; hy=-0.07*e; }
   else { const sw=Math.sin(t*0.9+g.ph); dx=U.x*0.07*sw; dz=U.z*0.07*sw; lean=0.02*Math.sin(t*1.7+g.ph); }
   poseBH(B.bm,B.hm,g.k,g.x+dx*0.35,g.z+dz*0.35,y0+0.72+jb,y0+1.2+hy+jb+lean,1,1);
-  _cM.compose(_pV.set(g.x+dx*0.35,y0+1.0+jb,g.z+dz*0.35),B.qF,S1); B.col.setMatrixAt(i,_cM);
+  if(g.collar){ _cM.compose(_pV.set(g.x+dx*0.35,y0+1.0+jb,g.z+dz*0.35),B.qF,S1); B.col.setMatrixAt(i,_cM); }
+  if(g.hat){ _cQ.identity(); _cM.compose(_pV.set(g.x+dx,y0+1.3+hy+jb+lean,g.z+dz),_cQ,S1); B.hb.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x+dx,y0+1.37+hy+jb+lean,g.z+dz),_cQ,S1); B.hc.setMatrixAt(i,_cM); }
   if(g.crown){ _cQ.identity(); _cM.compose(_pV.set(g.x+dx,y0+1.3+hy+jb+lean,g.z+dz),_cQ,S1); B.crn.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x+dx,y0+1.345+hy+jb+lean,g.z+dz),_cQ,S1); B.jew.setMatrixAt(i,_cM); } });
- B.bm.instanceMatrix.needsUpdate=true; B.hm.instanceMatrix.needsUpdate=true; B.col.instanceMatrix.needsUpdate=true; B.crn.instanceMatrix.needsUpdate=true; B.jew.instanceMatrix.needsUpdate=true;
+ B.bm.instanceMatrix.needsUpdate=true; B.hm.instanceMatrix.needsUpdate=true; B.col.instanceMatrix.needsUpdate=true; B.crn.instanceMatrix.needsUpdate=true; B.jew.instanceMatrix.needsUpdate=true; B.hb.instanceMatrix.needsUpdate=true; B.hc.instanceMatrix.needsUpdate=true;
  B.wst.forEach((w,i)=>{
   if(w.serve>0){ w.serve-=dt; w.lean=Math.min(1,w.lean+dt*2); } else { w.lean=Math.max(0,w.lean-dt*2); w.next-=dt; if(w.next<=0){ w.serve=2.2; w.next=3+Math.random()*4; }
    if(w.lean<=0){ w.u+=w.dir*w.spd*dt; if(w.u>B.u1-1){ w.u=B.u1-1; w.dir=-1; } if(w.u<B.u0+1){ w.u=B.u0+1; w.dir=1; } } }
@@ -2229,7 +2240,7 @@ function buildDinner(ctx){
  const km=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035,0.03,0.1,10),new THREE.MeshBasicMaterial(),nG);
  const {bm,hm}=peopleMeshes(nG,0.55);
  const DRINKS=[0x6e1b28,0xe8d9a0,0xd28a2c,0xdfe8ea];
- dinner={bm,hm,fm,nG,y0,seat:[],hasFood:[],foodBase:[],wander:[],waiters:null,chair:[],cm,bk,
+ dinner={bm,hm,fm,km,nG,y0,seat:[],hasFood:[],foodBase:[],glassBase:[],wander:[],waiters:null,quartet:null,chair:[],cm,bk,
   nav:{tables:[],lanesU,lanesD}};
  let k=0;
  for(let r=0;r<rows;r++)for(let cix=0;cix<cols;cix++){
@@ -2246,7 +2257,7 @@ function buildDinner(ctx){
     _cQ.identity(); _cM.compose(_pV.set(0,-99,0),_cQ,{x:0.001,y:0.001,z:0.001});
     cm.setMatrixAt(k,_cM); bk.setMatrixAt(k,_cM); pm.setMatrixAt(k,_cM); fm.setMatrixAt(k,_cM); km.setMatrixAt(k,_cM);
     bm.setMatrixAt(k,_cM); hm.setMatrixAt(k,_cM);
-    dinner.foodBase.push([0,-99,0]); dinner.hasFood.push(false);
+    dinner.foodBase.push([0,-99,0]); dinner.hasFood.push(false); dinner.glassBase.push([0,-99,0]);
     dinner.seat.push({u:su,d:sd,x:sp.x,z:sp.z,tab:i,ang:a,ph:0,away:false,skip:true});
     k++; continue; }
    // the chair's back stands on its outward side, square to the table
@@ -2263,7 +2274,7 @@ function buildDinner(ctx){
    fm.setColorAt(k,c.setHSL(0.06+Math.random()*0.07,0.5,0.22+Math.random()*0.15,THREE.SRGBColorSpace));
    const kp=eventPoint(u+Math.cos(a+0.28)*0.55,0,d+Math.sin(a+0.28)*0.55);
    _cM.compose(_pV.set(kp.x,y0+0.82,kp.z),_cQ,{x:1,y:1,z:1}); km.setMatrixAt(k,_cM);
-   km.setColorAt(k,c.set(DRINKS[Math.floor(Math.random()*DRINKS.length)]));
+   km.setColorAt(k,c.set(DRINKS[Math.floor(Math.random()*DRINKS.length)])); dinner.glassBase.push([kp.x,y0+0.82,kp.z]);
    dinner.seat.push({u:su,d:sd,x:sp.x,z:sp.z,tab:i,ang:a,ph:Math.random()*6.28,away:false});
    colourPerson(bm,hm,k,c); k++;
   }
@@ -2271,9 +2282,10 @@ function buildDinner(ctx){
  fm.instanceColor.needsUpdate=true; km.instanceColor.needsUpdate=true;
  bm.instanceColor.needsUpdate=true; hm.instanceColor.needsUpdate=true;
  // guests who get up: they route lane-to-lane to another table's edge, visit, and route home
- const picks=new Set(); let guard=0; while(picks.size<6&&guard++<400){ const j=Math.floor(Math.random()*nG); if(!dinner.seat[j].skip)picks.add(j); }
+ // (Lloyd, V3) livelier: fourteen guests up and about, not six, and not seated for long
+ const picks=new Set(); let guard=0; while(picks.size<14&&guard++<400){ const j=Math.floor(Math.random()*nG); if(!dinner.seat[j].skip)picks.add(j); }
  for(const i of picks){ const st=dinner.seat[i];
-  dinner.wander.push({i,phase:'seated',timer:rnd(4,20),u:st.u,d:st.d,wp:[],spd:0.7}); }
+  dinner.wander.push({i,phase:'seated',timer:rnd(1,12),u:st.u,d:st.d,wp:[],spd:0.7}); }
  // waiters: black uniforms, trays, and a service run each -- an empty place gets a plate put
  // down, a finished place gets its plate picked up
  const wt=peopleMeshes(6,1.05); const tray=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.22,0.012,16),new THREE.MeshBasicMaterial({color:0xd8d8dc}),6);
@@ -2293,6 +2305,20 @@ function buildDinner(ctx){
   const foil=new THREE.Mesh(new THREE.CylinderGeometry(0.017,0.017,0.055,8),new THREE.MeshBasicMaterial({color:0xd8b64a}));
   foil.position.y=0.365; bg.add(foil);
   bg.visible=false; eventGroup.add(bg); dinner.waiters.bottles.push(bg); }
+ // (Lloyd, V3) a string quartet in front of the stage, in shot 2's frame: two violins, a viola
+ // and a cello on chairs in a shallow arc, facing the room, bows going
+ { const qU=[25.4,26.4,27.4,28.4], qD=[4.95,4.75,4.75,4.95], S1={x:1,y:1,z:1}; const qp=peopleMeshes(4,0.55); const qc=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),4);
+  const wood=new THREE.MeshBasicMaterial({color:0x7a4322}), dark=new THREE.MeshBasicMaterial({color:0x2a1608}), hair=new THREE.MeshBasicMaterial({color:0xe8e2d0});
+  const yaw=Math.atan2(EVENT.N.inRoom.x,EVENT.N.inRoom.z); dinner.quartet={bm:qp.bm,hm:qp.hm,st:[]};
+  for(let i=0;i<4;i++){ const p=eventPoint(qU[i],0,qD[i]); _cQ.identity(); _cM.compose(_pV.set(p.x,y0+0.25,p.z),_cQ,S1); qc.setMatrixAt(i,_cM);
+   // white dinner jackets: concert black vanished against the stage front from shot 2's spot
+   qp.bm.setColorAt(i,c.set(0xe8e4dc)); qp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
+   const cello=i===3, viola=i===2, g=new THREE.Group(); g.position.set(p.x,y0,p.z); g.rotation.y=yaw; eventGroup.add(g);
+   const body=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),wood); const neck=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),dark); const bowG=new THREE.Group(); const bow=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),hair);
+   if(cello){ body.scale.set(0.2,0.34,0.09); body.position.set(0.05,0.62,0.3); neck.scale.set(0.04,0.55,0.03); neck.position.set(0.05,1.05,0.28); bowG.position.set(0.18,0.75,0.36); bow.scale.set(0.5,0.012,0.012); bow.position.x=0.2; }
+   else { const sc=viola?1.15:1; body.scale.set(0.11*sc,0.17*sc,0.04); body.position.set(-0.16,1.03,0.2); body.rotation.z=0.5; neck.scale.set(0.35*sc,0.025,0.02); neck.position.set(-0.36,1.13,0.2); neck.rotation.z=0.5; bowG.position.set(-0.1,1.06,0.24); bow.scale.set(0.012,0.45,0.012); bow.position.y=-0.1; bow.rotation.z=-0.3; }
+   bowG.add(bow); g.add(body,neck,bowG); dinner.quartet.st.push({i,x:p.x,z:p.z,cello,bow:bowG,ph:Math.random()*6.28}); }
+  qp.bm.instanceColor.needsUpdate=true; qp.hm.instanceColor.needsUpdate=true; for(const m of [qc,qp.bm,qp.hm]){ m.frustumCulled=false; eventGroup.add(m); } }
  eventGroup.add(tm,lm,cm,pm,fm,km,bk,bm,hm,wt.bm,wt.hm,tray);
  addWheelchairs(ctx,[[lanesU[1],lanesD[0]],[lanesU[cols-2],lanesD[1]]]);
  eventAnim=(dt,t)=>updateDinner(dt,t,ctx);
@@ -2322,8 +2348,17 @@ function updateDinner(dt,t,ctx){
   // a table that just took the champagne spray jumps around harder than the rest -- they are wet
   const wet=D.wetTabs&&(D.wetTabs.get(s.tab)||0)>t;
   const jb=wet?0.13*Math.abs(Math.sin(t*Math.PI*2.9+s.ph)):(cheering(t)?0.07*Math.abs(Math.sin(t*Math.PI*2.1+s.ph)):0);
-  poseBH(D.bm,D.hm,i,s.x+lean*0.5,s.z+lean*0.3,y0+0.72+jb,y0+1.18+nod+jb,1,1);
+  // (Lloyd, V3) eating and drinking: the head dips to the plate now and then, and every so often
+  // the glass comes up to the mouth and back to the table
+  const eat=Math.max(0,Math.sin(t*0.9+s.ph*2.3))*(Math.sin(s.ph*5.1)>0?1:0); const R=EVENT.N.u, dxp=Math.cos(s.ang), dzp=Math.sin(s.ang);
+  if(!s.sip&&Math.random()<dt/22)s.sip=t; let sq=0; if(s.sip){ const q=(t-s.sip)/1.8; if(q>=1)s.sip=0; else sq=Math.sin(q*Math.PI); }
+  const inx=-(EVENT.N.u.x*dxp+EVENT.N.inRoom.x*dzp), inz=-(EVENT.N.u.z*dxp+EVENT.N.inRoom.z*dzp);
+  poseBH(D.bm,D.hm,i,s.x+lean*0.5+inx*0.08*eat,s.z+lean*0.3+inz*0.08*eat,y0+0.72+jb,y0+1.18+nod+jb-0.06*eat+0.03*sq,1,1);
+  const gb=D.glassBase[i]; if(gb&&(sq>0||s.sipWas)){ s.sipWas=sq>0; _cQ.identity(); _cM.compose(_pV.set(gb[0]+(s.x-gb[0])*0.85*sq,gb[1]+0.42*sq,gb[2]+(s.z-gb[2])*0.85*sq),_cQ,{x:1,y:1,z:1}); D.km.setMatrixAt(i,_cM); D.km.instanceMatrix.needsUpdate=true; }
  }
+ if(D.quartet)for(const q of D.quartet.st){ const sw=Math.sin(t*(q.cello?2.2:2.9)+q.ph); if(q.cello)q.bow.rotation.y=0.5*sw; else q.bow.rotation.x=0.45*sw;
+  poseBH(D.quartet.bm,D.quartet.hm,q.i,q.x,q.z,y0+0.72,y0+1.18+0.02*Math.sin(t*1.3+q.ph),1,1); }
+ if(D.quartet){ D.quartet.bm.instanceMatrix.needsUpdate=true; D.quartet.hm.instanceMatrix.needsUpdate=true; }
  // movers keep a personal bubble: any two closer than half a metre are pushed apart, so nobody
  // ever walks through anybody
  const movers=[...D.wander.filter(w=>D.seat[w.i].away&&w.phase!=='rise'&&w.phase!=='sit'),...D.waiters.st,...wheelchairs];
@@ -2359,7 +2394,7 @@ function updateDinner(dt,t,ctx){
    w.u=s.u+Math.cos(s.ang)*0.55*pr; w.d=s.d+Math.sin(s.ang)*0.55*pr;
    const pp=eventPoint(w.u,0,w.d); const bodyY=D.y0+0.72+0.06*pr, headY=D.y0+1.18+0.44*pr;
    poseBH(D.bm,D.hm,w.i,pp.x,pp.z,bodyY,headY,1,1,1+0.55*pr);
-   if(w.timer<=0){ w.phase='seated'; w.timer=ctx.rnd(15,40); s.away=false; w.u=s.u; w.d=s.d; setChair(w.i,0); }
+   if(w.timer<=0){ w.phase='seated'; w.timer=ctx.rnd(6,20); s.away=false; w.u=s.u; w.d=s.d; setChair(w.i,0); }
    continue; }
   if(s.away&&w.phase!=='rise'&&w.phase!=='sit'){ const pp2=eventPoint(w.u,0,w.d);
    const jb=cheering(t)?0.14*Math.abs(Math.sin(t*Math.PI*2.1+w.i)):0;
@@ -3068,7 +3103,8 @@ function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
   // meets one it glances off (a little of its forward motion kept) and drops from there,
   // so nothing ever rests on a head that then walks away and leaves it hanging in the air
   // (Lloyd's invisible boxes: the old cell map also caught grains in the air beside a head)
-  const ry=yf+0.02;
+  // (Lloyd, V2) 6 cm up: the runner and the carpet's own rise took the grains at 2 cm
+  const ry=yf+0.06;
   let tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8, th=tl+1, hx=0, hy=0, hz=0;
   if(obs&&obs.length){
    let ppy=sy;
@@ -3224,7 +3260,7 @@ let titles=null, titleGlint=null, titleShimmer=null, titleGlass=null; const titl
 // VORONOI STAINED GLASS for text (Lloyd): a mosaic of little coloured panes in dark lead over
 // the letters, lit from behind with a slow sweep; noDepth for the titles, which draw over
 // everything, depth-tested for the finale's line in the court
-function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.11}},transparent:true,depthWrite:false,depthTest:!noDepth,
+function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.2}},transparent:true,depthWrite:false,depthTest:!noDepth,
    vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
    fragmentShader:`uniform float t; uniform float op; uniform float cell; varying vec3 vP; varying vec3 vN;
     vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
@@ -3233,7 +3269,7 @@ function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{va
      vec2 q=vP.xy/cell; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
      float edge=sqrt(d2)-sqrt(d1);
-     float lead=smoothstep(0.07,0.2,edge);                       // 0 on the lead line, 1 in the pane
+     float lead=smoothstep(0.04,0.13,edge);                       // 0 on the lead line, 1 in the pane
      vec3 c=hsv(fract(h2(id).x+t*0.01),0.9,1.0);
      float lit=0.55+0.45*sin(vP.x*1.4-t*0.9+h2(id).y*2.0);          // the light behind, sweeping along
      float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
@@ -3261,7 +3297,8 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
  const geo=(text,st)=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:st?0.12:0.05,curveSegments:4,bevelEnabled:!!st,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2}); tg.computeBoundingBox(); return tg; };
  // drawn last with no depth test, so a column between the eye and the line never hides it (Lloyd)
  const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false,depthTest:false,toneMapped:false})); m.material.userData.base=op; m.renderOrder=990; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
- const rows=key.split(' / ').map(r=>{ r=r.trim(); const st=/^\*(.*)\*$/.exec(r); return {stained:!!st,parts:(st?st[1]:r).split('|').map(x=>x.trim()).filter(Boolean)}; }).filter(r=>r.parts.length);
+ // a row that starts with '~' comes in a word at a time (Lloyd, the banquet's line)
+ const rows=key.split(' / ').map(r=>{ r=r.trim(); const stg=r.startsWith('~'); if(stg)r=r.slice(1).trim(); const st=/^\*(.*)\*$/.exec(r); return {stained:!!st,stagger:stg,parts:stg?r.split(/\s+/):(st?st[1]:r).split('|').map(x=>x.trim()).filter(Boolean)}; }).filter(r=>r.parts.length);
  const g=new THREE.Group(); const mats=[]; const lineH=0.34*1.6, gap=0.12; let W=0;
  rows.forEach((row,ri)=>{ const y=(rows.length-1)/2*lineH-ri*lineH; const tgs=row.parts.map(p=>geo(p,row.stained));
   // the parts laid along one baseline, a word space between, the whole centred; a second part
@@ -3271,8 +3308,8 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
   tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
    if(row.stained){ const core=new THREE.Mesh(tg,titleGlass); core.renderOrder=990; g.add(core); g.userData.glass=true;
     g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); const sh=new THREE.Mesh(tg,titleShimmer); sh.renderOrder=991; g.add(sh); g.userData.shimmer=true; }
-   else { g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); }
-   if(j>0){ titleGlint.uniforms.cx.value=x+w/2; const gm=new THREE.Mesh(tg,titleGlint); gm.renderOrder=991; g.add(gm); g.userData.glint=true; }
+   else { const n0=mats.length; g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); if(row.stagger)for(let q=n0;q<mats.length;q++)mats[q].userData.delay=j*0.45; }
+   if(j>0&&!row.stagger){ titleGlint.uniforms.cx.value=x+w/2; const gm=new THREE.Mesh(tg,titleGlint); gm.renderOrder=991; g.add(gm); g.userData.glint=true; }
    x+=w+gap; }); });
  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); titleGroups.set(key,g); return g; }
 // s: seconds into the shot; spec: [[text, from, to], ...]; the lines ride TITLE_D metres ahead of
@@ -3281,7 +3318,7 @@ function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titl
  const hf=2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect), vw=2*TITLE_D*Math.tan(hf/2);
  const fwd=look.clone().sub(at).setY(0).normalize(); const on=new Set();
  for(const [text,t0,t1] of spec){ const g=titleGroup(text); if(!g)continue; const t=s-t0; let f=0; if(t>0&&s<t1)f=Math.min(1,t/0.6,(t1-s)/0.6); if(f<=0)continue; on.add(g); g.visible=true;
-  for(const m of g.userData.mats)m.opacity=m.userData.base*f; if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f; if(g.userData.glass)titleGlass.uniforms.op.value=f;
+  for(const m of g.userData.mats)m.opacity=m.userData.base*Math.min(f,m.userData.delay?Math.max(0,Math.min(1,(t-m.userData.delay)/0.6)):1); if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f; if(g.userData.glass)titleGlass.uniforms.op.value=f;
   g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));
   g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }
  if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }
@@ -3317,8 +3354,8 @@ function gandelBuild(L){ if(gandelText||!buildCourt.font)return;
  gandelText=new THREE.Mesh(tg,gandelMat); gandelText.position.set(0,0.3,0); gandelText.visible=false; turntable.add(gandelText);
  // (Lloyd, V2) GANDEL HALL, large, in Voronoi stained glass, above BROUGHT TO LIGHT BY; in the
  // court group like the tag, facing the hall, placed by finaleStep
-  // the panes a third of a letter tall, whatever the size
- gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*0.3; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
+  // (Lloyd, V4) low poly: the panes half a letter tall, whatever the size, so the words read
+ gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*0.5; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
  tg2.computeBoundingBox(); const b2=tg2.boundingBox; tg2.translate(-(b2.min.x+b2.max.x)/2,-b2.min.y,-0.06); tg2.computeVertexNormals();
  gandelTop=new THREE.Mesh(tg2,gandelTopMat); gandelTop.visible=false; gandelTop.quaternion.copy(turntable.quaternion); court.add(gandelTop); }
 function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L);
@@ -3375,7 +3412,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A unique space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11.0]],"party":[["A place to have fun",2,8]],"party-celebrate":[["and celebrate amongst friends",1.5,7.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["A place to celebrate love",2,8]],"finale":[["GANDEL HALL 2026",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A unique space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11.0]],"banquet":[["Where / ~Rich history and modern tradition / Come together",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.5,8.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["GANDEL HALL 2026",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
@@ -3419,7 +3456,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     veil(smooth(Math.max(0,Math.min(1,(s-11.5)/1.5)))); if(court)court.visible=false; }},
   // (Lloyd's storyboard, shot 3) the banquet: fade in, a slow travel down the table at 1.9 m
   // over the guests' heads, looking along it, fade out
-  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55));
+  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55)); titlesNow(s,TX('banquet'));
     veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-14.5)/1.5)))); }},
   // (Lloyd's notes) the party: from the floor at the hall's end, round the room on a long curve
   // and rising all the way, to end high up facing the crowd in the middle; never a blank wall
@@ -3431,7 +3468,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // and comes down with it over 9 s to the old hold by the glass; the look settles from the
   // crowd below to the stage as it lands, and the last 5 s are the hold as before
   {celebrate:true,dur:14, cam:k=>{ const s=k*14, q=smooth(Math.min(1,s/9)), w=0.06*Math.sin(k*Math.PI*2)*q;
-    poseAt(EP(uM+8+w*8,2.4+7.4*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate')); veil(1-smooth(Math.min(1,s/1.5))); }},
+    // (Lloyd, V4) lower start, 6 m, so the paper is above the text as it comes in
+    poseAt(EP(uM+8+w*8,2.4+3.6*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate')); veil(1-smooth(Math.min(1,s/1.5))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way
   {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6);

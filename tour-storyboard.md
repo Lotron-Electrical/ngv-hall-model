@@ -68,7 +68,7 @@ V5 (draft):
 
 Duration 13 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, then pans up over 5 s (double ease) by pitch only, the yaw held down the hall as shot 1 left it, so there is no spin. From 5.6 s the camera lifts slowly from 0.9 m to 2.6 m while the look pans across the room to its centre `(uM, 1.0, 9.5)`, over 6.4 s. "A space for community." floats over the dinner from 5.5 s to 11 s; the shot fades to black over 11.5 s to 13 s and ends. The courtyard is hidden for this shot: plain glass, nothing outside. The house light comes up over 2.5 s at the start, so the carpet's brightness eases in from shot 1.
+Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, then pans up over 5 s (double ease) by pitch only, the yaw held down the hall as shot 1 left it, so there is no spin. From 5.6 s the camera lifts slowly from 0.9 m to 2.6 m while the look pans across the room to its centre `(uM, 1.0, 9.5)`, over 6.4 s. "A space for community." floats over the dinner from 5.5 s to 11 s; the shot fades to black over 11.5 s to 13 s and ends. The courtyard is hidden for this shot: plain glass, nothing outside. The house light comes up over 2.5 s at the start, so the carpet's brightness eases in from shot 1. The dinner is lively: fourteen guests up and about visiting other tables, everyone eating (heads to the plate) and drinking (the glass comes up), and a string quartet in white jackets plays in front of the stage, dead ahead as the camera comes up.
 
 | start | middle | end |
 |---|---|---|
@@ -109,7 +109,7 @@ V4 (draft):
 ## 3. Banquet
 <!-- shot: banquet -->
 
-Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides in jewel-toned finery with gold collars, a crown on a third of them, eating and chatting; four waiters walk the lanes behind the chairs with trays and step in to serve).
+Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides, everybody unique: jewel gowns, dark suits, pastels, brights, black and white, gold collars on some, big hats on some, crowns on a few, long flowing dresses on some, eating and chatting; four waiters walk the lanes behind the chairs with trays and step in to serve). "Where / Rich history and modern tradition / Come together" floats ahead from 2.5 s to 13.5 s, centred, the middle row coming in a word at a time.
 
 Fades in from black over 1.5 s. Travels slowly along the table from `(uM-18, 1.9, 7.55)` to `(uM+12, 1.9, 7.55)`, just over the guests' heads, looking along the table 7 m ahead. Fades to black over the last 1.5 s.
 
@@ -183,7 +183,7 @@ V3 (draft):
 
 Duration 14 s. Celebrate fires at the start.
 
-Starts high under the canopy at `(uM+8, 9.8, 10.5)`, in the band the confetti leaves from, looking down on the crowd at `(uM, 1.2, 8.5)`, and comes down with the paper over 9 s (eased) to the hold at `(uM+8, 2.4, 13)` by the glass, looking back across at `(uM, 2.5, 5)`; holds there for the last 5 s. The cold sparks jet 1.5x higher. Fades in from black over 1.5 s. "and celebrate amongst friends" floats ahead from 1.5 s to 7.5 s.
+Starts at `(uM+8, 6.0, 10.5)`, under the falling paper so it is above the text, looking down on the crowd at `(uM, 1.2, 8.5)`, and comes down with the paper over 9 s (eased) to the hold at `(uM+8, 2.4, 13)` by the glass, looking back across at `(uM, 2.5, 5)`; holds there for the last 5 s. The cold sparks jet 1.5x higher. Fades in from black over 1.5 s. "and celebrate amongst friends" floats ahead from 1.5 s to 7.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -211,7 +211,9 @@ V2 (sent 01/09/2026 22:22:14):
 the text gets washed out against the confetti. Maybe drop the camera lower, so the confetti is above the text at the start
 
 V3 (draft):
+[shot 5, 11.3 s] 
 
+Fade out at the end of this clip
 
 ---
 
@@ -235,6 +237,12 @@ Text:
 
 V2.
 Make sure the text isn't blocked by the columns
+
+V2 (sent 01/09/2026 22:28:49):
+Fade in at the start of this clip
+
+V3 (draft):
+
 
 ---
 
@@ -273,8 +281,11 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 V1 (sent earlier):
 the rice should be landing on the floor and not disappearing right away.  Also, it seems that it's sticking to invisible boxes on top of people. It should fall realistically
 
-V2 (draft):
+V2 (sent 01/09/2026 22:23:22):
 the rice is phasing through the floor. It should land on the floor and stay during the scene
+
+V3 (draft):
+
 
 ---
 
@@ -302,7 +313,16 @@ The final scene should have a completely black background. Also, have the logos 
 
 Gandel Hall in large Voronoi Stained glass text above the brought to light by
 
-V3 (draft):
+V3 (sent 01/09/2026 22:26:39):
+Remove gandel hall 2026
+
+Then, the voronoi gandel hall text at the top should be low poly voronoi effect so it is easier to read. Right now it is too detailed. Then also make sure the text is level, and facing the camera.
+
+Dark enttec letters should be white so they contrast on the black background.
+
+Try to get the enttec and shadow av logos roughly the same size. Maybe make the shadow av owl smaller
+
+V4 (draft):
 
 
 ---
