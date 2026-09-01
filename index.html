@@ -18,6 +18,10 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #loader.ready i{display:none}
 #loader.ready button{display:block}
 #loader.ready{pointer-events:auto}
+/* the two buttons that come up on the finale's rest (Lloyd): Free roam, Start again */
+#restbtns{position:absolute;left:0;right:0;bottom:12%;display:none;gap:14px;justify-content:center;z-index:5}
+#restbtns.up{display:flex}
+#restbtns button{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader i{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -147,7 +151,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="roam">Free roam</button></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="roam">Free roam</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -3142,7 +3146,7 @@ function fireConfetti(){
   clearTimeout(fireConfetti.timer); fireConfetti.timer=setTimeout(()=>{if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}},18000);
  }
 }
-const leaveRest=()=>{ tourDone=false; if(restFinale){ restFinale=false; if(finale)finaleEnd(); } };
+const leaveRest=()=>{ tourDone=false; if(restFinale){ restFinale=false; restHide(); if(finale)finaleEnd(); } };
 document.getElementById('event').onchange=()=>{ leaveRest(); buildEvent(); };
 document.getElementById('eventmode').onchange=()=>{ leaveRest(); buildEvent(); };
 function fireCelebrate(){
@@ -3758,7 +3762,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; tourDone=false; restFinale=false; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ if(tour)tourDone=true; /* Stop tour leaves no Celebrate button either (Lloyd) */ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
@@ -3767,7 +3771,15 @@ function stopTour(){ if(tour)tourDone=true; /* Stop tour leaves no Celebrate but
 // triangle on black, BROUGHT TO LIGHT BY and GANDEL HALL above; restFinale keeps the finale
 // alive and frame() holds it at its rest time until something else starts
 let restFinale=false; const FIN_REST=()=>finaleTotal()-FIN.fade-FIN.hold*0.5;
-function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; if(!TOURQ)restFinale=true; stopTour(); if(TOURQ)startTour(); return; }
+// (Lloyd) a few seconds into the rest two buttons come up: Free roam, and Start again, which
+// is the moment after Enter Gandel Hall: no event, the object back in the hall, the orbit
+const restBtns=document.getElementById('restbtns'); let restTimer=null;
+function restShow(){ clearTimeout(restTimer); restTimer=setTimeout(()=>{ if(restFinale)restBtns.classList.add('up'); },3500); }
+function restHide(){ clearTimeout(restTimer); restBtns.classList.remove('up'); }
+function restLeave(){ restFinale=false; tourDone=false; restHide(); if(finale)finaleEnd(); const ev=document.getElementById('event'); if(ev.checked){ ev.checked=false; buildEvent(); } home(); }
+document.getElementById('restagain').onclick=()=>{ restLeave(); entered=true; idle=true; idleT0=null; fabSync(); };
+document.getElementById('restroam').onclick=()=>{ restLeave(); roamed=false; roamStart(); };
+function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; if(!TOURQ){ restFinale=true; restShow(); } stopTour(); if(TOURQ)startTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
