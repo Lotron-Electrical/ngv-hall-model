@@ -3665,7 +3665,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // is carpet only (the stage edge at d 3.3 and the guests from d 5.4 both fall outside it);
   // shot 2 holds that carpet for 0.6 s from the same spot, then pans up and the
   // dinner is revealed, "A space for community" floating over it
-  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+14.9*q, d=7.6-2.7*q, dk=smooth(Math.max(0,(k-0.8)/0.2)); const at=EP(u,1.7-0.8*dk,d), ahead=EP(u+18,1.5,d), down=EP(u+0.05,0.0,d);
+  // (Lloyd, V8) the tour opens with the house lights at 0, whatever they were before
+  {mode:null, house:0, dur:16, cam:k=>{ const q=smooth(k), u=4+14.9*q, d=7.6-2.7*q, dk=smooth(Math.max(0,(k-0.8)/0.2)); const at=EP(u,1.7-0.8*dk,d), ahead=EP(u+18,1.5,d), down=EP(u+0.05,0.0,d);
     poseAt(at,ahead.clone().lerp(down,dk)); titleStep(k*16,at,ahead,TX('rainbow-columns')); }},
   // (Lloyd, V3) the pan up takes 5 s with a double ease, and the courtyard is simply hidden for
   // this shot: plain glass, nothing outside it
@@ -3730,7 +3731,10 @@ function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour();
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
- const h0=lit.house; if('mode' in sg)setEvent(sg.mode); if(lit.house!==h0){ houseRamp={from:h0,to:lit.house,t0:now,dur:2.5}; lit.house=h0; } if(sg.celebrate)fireCelebrate(); sg.cam(0);
+ const h0=lit.house; if('mode' in sg)setEvent(sg.mode); if(lit.house!==h0){ houseRamp={from:h0,to:lit.house,t0:now,dur:2.5}; lit.house=h0; }
+ // a segment with its own house level starts on it, no ramp (shot 1 opens at 0, Lloyd V8)
+ if('house' in sg){ houseRamp=null; lit.house=sg.house; const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%'; }
+ if(sg.celebrate)fireCelebrate(); sg.cam(0);
  // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
  fabSync(); }
 let houseRamp=null;
