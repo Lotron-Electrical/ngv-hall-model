@@ -3147,18 +3147,36 @@ function setEvent(mode){ const ev=document.getElementById('event'), md=document.
 // down the hall, one after another: "A unique space", "Carefully crafted over decades", "Is brought
 // to light". Set in the same white face as "The Future", each faces the eye and rides six metres
 // ahead of it, fading in and out over 0.6 s
-const TITLES=['A unique space','Carefully crafted over decades','Is brought to light'];
-let titles=null;
+// (Lloyd, second round) the glow held down to one faint halo; each line is scaled to fit the
+// width of the picture at its distance, so it fits a phone; and "light" carries a glint that
+// sweeps the word smoothly, a sine, never a step
+const TITLES=['A unique space','Carefully crafted over decades',['Is brought to','light']];
+const TITLE_D=6;   // metres ahead of the eye
+let titles=null, titleGlint=null;
 function buildTitles(){ if(titles||!buildCourt.font)return; titles=new THREE.Group(); titles.visible=false; scene.add(titles);
- for(const text of TITLES){ const g=new THREE.Group(); const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:0.05,curveSegments:4});
-  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-(b.min.y+b.max.y)/2,0);
-  const mats=[]; const mk=(op,sc)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:op>=1,toneMapped:false})); m.material.userData.base=op; if(sc)m.scale.set(...sc); mats.push(m.material); g.add(m); };
-  mk(1,null); mk(0.22,[1.05,1.18,1.6]); mk(0.1,[1.12,1.4,2.4]); g.userData.mats=mats; g.visible=false; titles.add(g); } }
+ titleGlint=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cx:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
+  vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`uniform float t; uniform float op; uniform float cx; varying vec3 vP;
+   void main(){ float x=vP.x-cx-sin(t*0.8)*0.7; float g=exp(-x*x*7.0); gl_FragColor=vec4(vec3(1.0,0.98,0.9)*g*0.55*op,1.0); }`});
+ const geo=text=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:0.05,curveSegments:4}); tg.computeBoundingBox(); return tg; };
+ const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:op>=1,toneMapped:false})); m.material.userData.base=op; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
+ for(const item of TITLES){ const parts=Array.isArray(item)?item:[item]; const g=new THREE.Group(); const mats=[]; const tgs=parts.map(geo);
+  // the parts laid along one baseline, a word space between, the whole centred
+  const all=geo(parts.join(' ')).boundingBox, yOff=-(all.min.y+all.max.y)/2, gap=0.12;
+  const W=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(parts.length-1)*gap; let x=-W/2;
+  tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
+   g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats));
+   if(j>0){ titleGlint.uniforms.cx.value=x+w/2; g.add(new THREE.Mesh(tg,titleGlint)); g.userData.glint=true; }
+   x+=w+gap; });
+  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); } }
 // s: seconds into the shot; each line holds 4.4 s, the next starting as the last goes
-function titleStep(s,at,fwd){ buildTitles(); if(!titles)return; titles.visible=true;
+function titleStep(s,at,fwd){ buildTitles(); if(!titles)return; titles.visible=true; titleGlint.uniforms.t.value=s;
+ // the width of the picture at the titles' distance, from the lens and the screen's shape
+ const hf=2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect), vw=2*TITLE_D*Math.tan(hf/2);
  titles.children.forEach((g,i)=>{ const t=s-i*4.4; let f=0; if(t>0&&t<4.4)f=Math.min(1,t/0.6,(4.4-t)/0.6); g.visible=f>0; if(!g.visible)return;
-  for(const m of g.userData.mats)m.opacity=m.userData.base*f;
-  g.position.copy(at).addScaledVector(fwd,6).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }); }
+  for(const m of g.userData.mats)m.opacity=m.userData.base*f; if(g.userData.glint)titleGlint.uniforms.op.value=f;
+  g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));
+  g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }); }
 function titlesOff(){ if(titles)titles.visible=false; }
 function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  const fly=(h,d0,d1,look)=>glide(EP(4,h,d0),EP(45.5,h,d1),EP(22,look,d0),EP(60,look,d1));
