@@ -1744,7 +1744,6 @@ function buildCourt(){
   tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(turntable.position).y+=tagY; tag.quaternion.copy(turntable.quaternion); tag.userData.baseY=tag.position.y; court.add(tag); };
  // Lotron at the front of the turntable, facing the hall at the start of every turn
  logo.position.set(0,0,ringR); turntable.add(logo);
- if(buildCourt.font)addTag(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addTag(f);});
  for(const m of logo.children)solids.push(m);
  // the two delivery partners share Lotron's turntable: the job is a joint venture, so the court
  // says so, and one sculpture says it better than three. Each is built the same way as the
