@@ -117,7 +117,7 @@ Text "A place to have fun"
 
 Duration 14 s. Celebrate fires at the start.
 
-Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`. Fades in from black over 1.5 s. "and celebrate amongst friends" floats ahead from 1.5 s to 7.5 s.
+Starts high under the canopy at `(uM+8, 9.8, 10.5)`, in the band the confetti leaves from, looking down on the crowd at `(uM, 1.2, 8.5)`, and comes down with the paper over 9 s (eased) to the hold at `(uM+8, 2.4, 13)` by the glass, looking back across at `(uM, 2.5, 5)`; holds there for the last 5 s. The cold sparks jet 1.5x higher. Fades in from black over 1.5 s. "and celebrate amongst friends" floats ahead from 1.5 s to 7.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -179,13 +179,13 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 
 Duration 26.5 s. Celebrate fires at the start and the couple begin to walk: 20 s up the aisle, then 6 s across to the glass.
 
-The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a little ahead of them (1.3 m high). When they turn for the glass the camera cuts the corner.
+The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a little ahead of them (1.3 m high). When they turn for the glass the camera cuts the corner. The rice falls on its own arc and lies on the floor where it lands for the rest of the walk; a grain that meets a head glances off it and drops from there.
 
 | start | middle | end |
 |---|---|---|
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
-**Notes:** the rice should be landing on the floor and not disappearing right away.
+**Notes:** the rice should be landing on the floor and not disappearing right away.  Also, it seems that it's sticking to invisible boxes on top of people. It should fall realistically
 
 ---
 

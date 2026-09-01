@@ -2567,15 +2567,14 @@ function updateWedding(dt,t){
     const dx=s.x-O.x, dz=s.z-O.z;
     const su=dx*U.x+dz*U.z, sd=dx*R.x+dz*R.z;
     if(Math.abs(su-W.uMid)<2.6&&Math.abs(sd-dNow)<3.2)cand.push(s); }
-   // what stands under the rice, as a height map (one cell per head), same idea as the
-   // confetti's restMap -- a grain lands on a head only if its arc actually meets one
-   const cell=0.4, rmap=new Map(), RK=(x,z)=>Math.round(x/cell)*4096+Math.round(z/cell);
-   const put=(x,z,yv)=>{const k=RK(x,z); if(!(rmap.get(k)>=yv))rmap.set(k,yv);};
-   for(const s2 of W.seated.seat)if(!s2.gone)put(s2.x,s2.z,y0+1.31);
+   // what stands under the rice: every head as a point, its top and its radius. A grain rests
+   // on a head only where its arc meets that head; the old 40 cm cell map caught grains in
+   // the air beside a head as well (Lloyd's invisible boxes), so it is gone
+   const obs=[];
+   for(const s2 of W.seated.seat)if(!s2.gone)obs.push({x:s2.x,z:s2.z,y:y0+1.31,r:0.13});
    for(let ci=0;ci<2;ci++){ if(ci===1&&!W.hasGroom)continue;
     const wp2=eventPoint(W.uMid+(ci===0?-0.4:0.4),0,dNow);
-    put(wp2.x,wp2.z,y0+1.74); }
-   const obs={map:rmap,RK};
+    obs.push({x:wp2.x,z:wp2.z,y:y0+1.74,r:0.13}); }
    if(cand.length){
     // two or three throwers at once -- a corridor of rice, not a lone lob
     const nT2=2+(Math.random()<0.5?1:0);
@@ -3051,52 +3050,55 @@ function fireColdSparks(){ const y0=FLOOR_Y||EVENT.N.origin.y; const uMid=EVENT.
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(seed,3));
   const m=new THREE.ShaderMaterial({uniforms:{t:{value:0}},
    vertexShader:'uniform float t; attribute vec3 seed; varying float vA;\n'+
-    'void main(){float life=1.3+seed.z*0.7; float tt=mod(t+seed.x*life,life); float a=seed.y*6.2831;\n'+
-    ' vec3 p=position+vec3(cos(a)*0.5*tt, (7.5+seed.z*2.5)*tt-9.8*tt*tt, sin(a)*0.5*tt);\n'+
+    'void main(){float life=1.6+seed.z*0.85; float tt=mod(t+seed.x*life,life); float a=seed.y*6.2831;\n'+
+    // (Lloyd, V3) 1.5x higher: peak height goes with the square of the launch speed
+    ' vec3 p=position+vec3(cos(a)*0.5*tt, (9.2+seed.z*3.1)*tt-9.8*tt*tt, sin(a)*0.5*tt);\n'+
     ' vA=(t<8.0)?(1.0-tt/life):0.0; vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(46.0/max(-mv.z,1.0),1.0,3.0); gl_Position=projectionMatrix*mv;}',
    fragmentShader:'varying float vA; void main(){vec2 d=gl_PointCoord-0.5; if(dot(d,d)>0.25||vA<=0.0)discard; gl_FragColor=vec4(1.0,0.98,0.9,1.0);}',
    transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
   addFx(new THREE.Points(g,m),m,9000); }
 }
 // WEDDING: the couple walk down the aisle and white petals rain over it
-// one handful of rice: thrown from a guest's hands, ballistic over the aisle, a short lie on the
-// runner, then gone. The couple walk through a corridor of these.
+// one handful of rice: thrown from a guest's hands, ballistic over the aisle, and it lies on the
+// runner where it fell. The couple walk through a corridor of these.
 function riceToss(ox,oy,oz,tx,ty,tz,yf,obs){
- const n=90, pos=new Float32Array(n*3), vel=new Float32Array(n*3), lf=new Float32Array(n*2);
+ const n=90, pos=new Float32Array(n*3), vel=new Float32Array(n*3), lf=new Float32Array(n*2), hit=new Float32Array(n*4);
  for(let i=0;i<n;i++){
   const sx=ox+(Math.random()-0.5)*0.16, sy=oy+(Math.random()-0.5)*0.1, sz=oz+(Math.random()-0.5)*0.16;
   const T=0.5+Math.random()*0.3;
   const vx=(tx-sx)/T+(Math.random()-0.5)*0.8, vz=(tz-sz)/T+(Math.random()-0.5)*0.8;
   const vy=(ty-sy)/T+4.9*T+(Math.random()-0.5)*0.6;
   pos.set([sx,sy,sz],i*3); vel.set([vx,vy,vz],i*3);
-  // where does this grain actually come DOWN? March its own arc against the height map:
-  // it rests on a head or the couple only when the falling path meets one, else the floor.
-  // (The old landing-point box test re-solved the flight time after raising the height,
-  // which froze grains mid-air over empty carpet -- the invisible box.)
-  let ry=yf+0.02;
-  let tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8;
-  if(obs){
+  // every grain ends on the floor. March its arc against the heads: where the falling path
+  // meets one it glances off (a little of its forward motion kept) and drops from there,
+  // so nothing ever rests on a head that then walks away and leaves it hanging in the air
+  // (Lloyd's invisible boxes: the old cell map also caught grains in the air beside a head)
+  const ry=yf+0.02;
+  let tl=(vy+Math.sqrt(Math.max(0,vy*vy-19.6*(ry-sy))))/9.8, th=tl+1, hx=0, hy=0, hz=0;
+  if(obs&&obs.length){
    let ppy=sy;
    for(let mt=0.03;mt<tl;mt+=0.03){
     const px=sx+vx*mt, py=sy+vy*mt-4.9*mt*mt, pz=sz+vz*mt;
-    if(py<ppy){ // falling: land only by CROSSING a head top from above -- a grain that
-     // drifts into the cell at chest height passes by (the capsule is thinner than the cell)
-     const h=obs.map.get(obs.RK(px,pz));
-     if(h!==undefined&&ppy>h+0.02&&py<=h+0.02){ ry=h+0.02; tl=mt; break; } }
+    if(py<ppy){ // falling: a hit is CROSSING a head top from above, within the head
+     let o2=null; for(const o of obs){ if(ppy>o.y+0.02&&py<=o.y+0.02){ const dx=px-o.x, dz=pz-o.z; if(dx*dx+dz*dz<o.r*o.r){ o2=o; break; } } }
+     if(o2){ th=mt; hx=px; hy=o2.y+0.02; hz=pz; tl=th+Math.sqrt(Math.max(0,hy-ry)/4.9); break; } }
     ppy=py; }
   }
-  lf.set([tl,2.5+Math.random()*1.5],i*2);
+  hit.set([hx,hy,hz,th],i*4);
+  // (Lloyd) the grains lie where they fell for the whole walk, not a few seconds
+  lf.set([tl,40+Math.random()*10],i*2);
  }
  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
- g.setAttribute('vel',new THREE.BufferAttribute(vel,3)); g.setAttribute('lf',new THREE.BufferAttribute(lf,2));
+ g.setAttribute('vel',new THREE.BufferAttribute(vel,3)); g.setAttribute('lf',new THREE.BufferAttribute(lf,2)); g.setAttribute('hit',new THREE.BufferAttribute(hit,4));
  const m=new THREE.ShaderMaterial({uniforms:{t:{value:0}},
-  vertexShader:'uniform float t; attribute vec3 vel; attribute vec2 lf; varying float vA;\n'+
-   'void main(){float tt=min(t,lf.x); vec3 p=position+vel*tt+vec3(0.0,-4.9,0.0)*tt*tt;\n'+
-   ' vA=1.0-clamp((t-lf.x-lf.y)/1.0,0.0,1.0);\n'+
+  // two arcs: the throw, and after a head (hit.w is when) the drop from that head
+  vertexShader:'uniform float t; attribute vec3 vel; attribute vec2 lf; attribute vec4 hit; varying float vA;\n'+
+   'void main(){float tt=min(t,lf.x); vec3 p; if(tt<hit.w){ p=position+vel*tt+vec3(0.0,-4.9,0.0)*tt*tt; } else { float t2=tt-hit.w; p=hit.xyz+vec3(vel.x,0.0,vel.z)*0.15*t2+vec3(0.0,-4.9,0.0)*t2*t2; }\n'+
+   ' vA=1.0-clamp((t-lf.x-lf.y)/3.0,0.0,1.0);\n'+
    ' vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=clamp(70.0/max(-mv.z,1.0),1.5,3.5)*max(vA,0.001); gl_Position=projectionMatrix*mv;}',
   fragmentShader:'varying float vA;\n'+
    'void main(){if(vA<=0.02)discard; vec2 d=gl_PointCoord-0.5; if(dot(d,d)>0.25)discard; gl_FragColor=vec4(0.95,0.92,0.84,1.0);}'});
- addFx(new THREE.Points(g,m),m,9000);
+ addFx(new THREE.Points(g,m),m,55000);
 }
 function fireWeddingWalk(){ if(!wedding)return;
  const W=wedding;
@@ -3355,7 +3357,11 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     poseAt(EP(uM+16*Math.cos(a),2.0+4.2*q,9.5+3.4*Math.sin(a)),C); titlesNow(k*16,[['A place to have fun',2,8]]);
     // (Lloyd, V2, V3) fades in from the banquet and out to the celebrate, 1.5 s each
     veil(Math.max(1-smooth(Math.min(1,k*16/1.5)),smooth(Math.max(0,(k*16-14.5)/1.5)))); }},
-  {celebrate:true,dur:14, cam:k=>{ hold(uM+8,2.4,13,uM,2.5,5)(k); titlesNow(k*14,[['and celebrate amongst friends',1.5,7.5]]); veil(1-smooth(Math.min(1,k*14/1.5))); }},
+  // (Lloyd, V3) the celebrate starts high under the canopy, in the band the paper leaves from,
+  // and comes down with it over 9 s to the old hold by the glass; the look settles from the
+  // crowd below to the stage as it lands, and the last 5 s are the hold as before
+  {celebrate:true,dur:14, cam:k=>{ const s=k*14, q=smooth(Math.min(1,s/9)), w=0.06*Math.sin(k*Math.PI*2)*q;
+    poseAt(EP(uM+8+w*8,2.4+7.4*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,[['and celebrate amongst friends',1.5,7.5]]); veil(1-smooth(Math.min(1,s/1.5))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way
   {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6);
