@@ -127,7 +127,7 @@ function wireScrub(box){ clearInterval(scrubTimer); const fr=[...box.querySelect
  sk.addEventListener('input',()=>{ const s=st(); if(!s)return; const now=Date.now(); if(now-lastSeek<250)return; lastSeek=now; seek(sk.value/1000*s.total); });
  sk.addEventListener('change',()=>{ const s=st(); if(!s)return; drag=false; seek(sk.value/1000*s.total); });
  nt.addEventListener('click',()=>{ const s=st(); if(!s)return; for(const c of ctl())c.pause(); const pb=document.querySelector('button.play[data-shot="'+s.shot+'"]'); if(!pb)return; const ta=document.querySelector('textarea[data-key="'+pb.dataset.key+'"]:not(.old)'); if(!ta)return;
-  ta.value=(ta.value.trim()?ta.value.replace(/\s*$/,'')+'\n':'')+'[shot '+s.shot+', '+(s.k*s.dur).toFixed(1)+' s] '; ta.dispatchEvent(new Event('input')); ta.scrollIntoView({block:'center',behavior:'smooth'}); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }); }
+  ta.value=(ta.value.trim()?ta.value.replace(/\\s*$/,'')+'\\n':'')+'[shot '+s.shot+', '+(s.k*s.dur).toFixed(1)+' s] '; ta.dispatchEvent(new Event('input')); ta.scrollIntoView({block:'center',behavior:'smooth'}); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }); }
 // Generate waits for a pending save, sends, then reloads the page so the round files itself and
 // a fresh box appears
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }
