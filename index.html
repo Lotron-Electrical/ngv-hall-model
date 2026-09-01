@@ -1807,7 +1807,7 @@ function buildCourt(){
  // graphite rather than the brand white: the paving is pale, and white letters on it in daylight
  // read as nothing at all. Graphite holds on the paving AND against the night sky behind it.
  // the silver is pushed back a hair in the depth buffer so the ink standing on it never fights it
- const inkMat=new THREE.MeshBasicMaterial({color:0x15171b}), silverMat=new THREE.MeshBasicMaterial({color:0xd4d8de,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:2}),
+ const inkMat=new THREE.MeshBasicMaterial({color:0x15171b}), silverMat=(court.userData.silver=new THREE.MeshBasicMaterial({color:0xd4d8de,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:2})),
        graphiteMat=(court.userData.graphite=new THREE.MeshBasicMaterial({color:0x23272e})), blueMat=new THREE.MeshBasicMaterial({color:0x15a6df});
  partners=[
   // ENTTEC a third of a turn round, its own two blue letters kept
@@ -3609,7 +3609,11 @@ function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.pos
  if(wedding){ wedding.fin=null; wedding.gone=true; }
  finaleLights(false); finale=null; }
 // the world off (the court's paving, the hall, the sky) and back on
-function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark; if(court&&court.userData.graphite)court.userData.graphite.color.set(dark?0xffffff:0x23272e); /* ENTTEC's graphite letters white on the black (Lloyd) */ if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
+function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark;
+ // (Lloyd, V11) the whites on the black were too hard: ENTTEC, ELECTRICAL, Shadow AV's silver and the
+ // line above all drop to a soft light grey while the world is black, and come back after
+ const soft=0xcfd0cc; if(court&&court.userData.graphite)court.userData.graphite.color.set(dark?soft:0x23272e); /* ENTTEC's graphite letters light on the black (Lloyd) */
+ if(logo&&logo.children[1])logo.children[1].material.color.set(dark?soft:0xf4f4f2); if(court&&court.userData.silver)court.userData.silver.color.set(dark?0xb8bcc2:0xd4d8de); if(tag&&tag.children[0])tag.children[0].material.color.set(dark?0xdcdcd8:0xffffff); if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
 // s: seconds into the shot
 // (Lloyd, V4) the finale is the couple's exit: the camera follows the bride and groom out
 // through the door, right up on their backs so they fill the frame in the doorway, then they
