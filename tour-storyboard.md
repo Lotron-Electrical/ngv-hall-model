@@ -44,6 +44,9 @@ Also make sure the text fits on the phone as well
 V3.
 At the end, smoothly transition the brightness of the carpet into the next scene
 
+V2 (draft):
+
+
 ---
 
 ## 2. Dinner
@@ -74,6 +77,9 @@ The frosted glass is too frosted. Maybe instead, we have normal glass, and no sc
 
 At the starts the camera turns too fast. Smooth/ease that turn considerably or remove it.
 
+V2 (draft):
+
+
 ---
 
 ## 3. Banquet
@@ -92,6 +98,14 @@ V1 (sent earlier):
 Add a new event type - Banquet.
 
 Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
+
+V2 (sent 01/09/2026 21:13:51):
+Add a new event type - Banquet.
+
+Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
+
+V3 (draft):
+
 
 ---
 

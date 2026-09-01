@@ -12,7 +12,7 @@ header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 #flash{position:absolute;inset:0 0 44px 0;background:#fff;opacity:0;pointer-events:none;z-index:5}
-#loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
+#loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
 #loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
 #loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader.ready i{display:none}
@@ -147,7 +147,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="roam">Free roam</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -3411,6 +3411,25 @@ let idle=!new URLSearchParams(location.search).has('still'), idleT0=null, idleFr
 // so the glide up to the orbit is seen, not spent behind the black (Lloyd: it was better when the
 // camera started at the end of the hall and flew up into its orbit)
 let entered=false;
+// FREE ROAM (Lloyd): the veil's other door. No tour: the object and its name shrink and sink
+// into the void over 4 s, the void closes over the next 1.5 s, then the house lights come up to
+// full over 3.5 s while the columns fade to warm white over 6 s, and the hall is left to walk.
+// The object does not come back.
+let roam=null, roamed=false;
+const ROAM={sink:4,close:1.5,house:3.5,warm:6};
+function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false; roam={t0:performance.now()/1000,phase:0}; fabSync(); }
+function roamStep(now){ const R=roam, Q=portal; if(!R||!Q)return; const s=now-R.t0;
+ if(s<ROAM.sink){ const q=smooth(s/ROAM.sink); Q.body.scale.setScalar(1-q); Q.body.position.y=Q.body.position.y*(1-q)+Q.disc.position.y*q; Q.words.scale.setScalar(1-q); Q.words.position.y=3.1*(1-q)+Q.body.position.y;
+  if(Q.words.userData.cueGroup)Q.words.userData.cueGroup.visible=false; Q.spray.visible=false; return; }
+ Q.body.visible=false; Q.words.visible=false;
+ const s2=s-ROAM.sink;
+ if(s2<ROAM.close){ const q=smooth(s2/ROAM.close); Q.disc.scale.setScalar(1-q); Q.suck.visible=false; Q.cone.visible=false; Q.spot.intensity=60*(1-q);
+  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR*(1-q); return; }
+ if(R.phase<2){ R.phase=2; roamed=true; R.h0=lit.house; for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR; state.layers.push({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}}); }
+ const s3=s2-ROAM.close, qh=smooth(Math.min(1,s3/ROAM.house)), qw=smooth(Math.min(1,s3/ROAM.warm));
+ lit.house=R.h0+(1-R.h0)*qh; const W=state.layers[state.layers.length-1]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
+ if(s3>=ROAM.warm){ state.layers=[{name:'Warm white',on:true,anim:'solid',speed:0,opacity:1,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}}]; state.sel=0; lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';} paintUI(); roam=null; }
+}
 // the Celebrate button is up only with an event loaded, inside the hall, and nothing playing:
 // not before the Enter tap, not on the fly-in, not in the tour or a shot (Lloyd: it was stuck
 // floating). Every path that changes one of those calls this.
@@ -3615,7 +3634,7 @@ let boom=null, approach=null;
 // THE TAP (Lloyd): tapping the object does not start the tour outright. The camera turns to it and
 // drifts in slowly, the view widening and the chord building on the way, until it touches the
 // shell and the touch does the rest. Reset view cancels it.
-function approachStart(){ if(approach||boom||tour||!portal)return; idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
+function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return; idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
  // the drift is a spiral: the angle swings early onto the nearest line that meets the object without
  // passing through a column, while the radius closes slowly
  // the look is carried from where it was (Lloyd: no jump): yaw and pitch blend onto the object over
@@ -3872,10 +3891,10 @@ function buildPortal(){
   if(addWords.regular)cueText(addWords.regular); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json',f=>{ addWords.regular=f; cueText(f); }); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
- portal={group:g,centre:C,body,outer,inner,spray,disc,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
+ portal={group:g,centre:C,body,outer,inner,spray,disc,suck,cone,spot,holeR:1.69,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
- Q.group.visible=!tour&&!document.getElementById('event').checked;
+ Q.group.visible=!tour&&!document.getElementById('event').checked&&!roamed;
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
  for(const m of Q.mats)m.uniforms.t.value=now;
@@ -3886,7 +3905,7 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  Q.spray.position.y=Q.body.position.y; Q.spray.material.uniforms.voidY.value=Q.disc.position.y-Q.body.position.y;   // the void, seen from the spray's frame
  Q.words.position.y=3.1+Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
  // the cue rides the float: outer shell 1.35 to a vertex, pulse 1.06, then a gap of ~0.4 to the arrow's tip
- if(Q.words.userData.cueGroup){ const c=Q.words.userData.cueGroup; c.visible=!approach&&!boom; c.position.y=Q.body.position.y+1.9; c.rotation.y=Q.words.rotation.y; Q.words.userData.arrow.position.y=0.015*Math.sin(now*2.0); }
+ if(Q.words.userData.cueGroup){ const c=Q.words.userData.cueGroup; c.visible=!approach&&!boom&&!roam&&!roamed; c.position.y=Q.body.position.y+1.9; c.rotation.y=Q.words.rotation.y; Q.words.userData.arrow.position.y=0.015*Math.sin(now*2.0); }
  // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
  // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
  if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
@@ -3916,7 +3935,7 @@ cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.cl
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
  if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }
@@ -3951,6 +3970,7 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
 document.getElementById('enter').onclick=()=>{ entered=true; fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); };
+document.getElementById('roam').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); roamStart(); };
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>
