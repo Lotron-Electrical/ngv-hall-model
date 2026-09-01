@@ -209,7 +209,7 @@ html.embed body,html.embed main{margin:0;padding:0}
   <label style="color:var(--dim);font-size:12px">Sculpture width <input type="range" id="logoh" min="6" max="30" step="0.5" value="18"> <span id="logohval">22</span> m</label></div>
  <div class="row"><label>Event<button type="button" class="i" data-tip="The hall as the client runs it on an event night: a stage against the wall opposite the glass with the projector screen above it, and the room set STANDING (about a thousand people) or DINNER (round tables of ten). Confetti falls from the ceiling. All of it is a proposal layer; sizes are typical, not measured.">!</button></label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="event"> Event on</label>
-  <select id="eventmode" style="min-width:120px"><option value="standing">Standing, ~1,000</option><option value="dinner">Dinner, tables of 10</option><option value="wedding">Wedding</option><option value="party">Party / reception</option></select>
+  <select id="eventmode" style="min-width:120px"><option value="standing">Standing, ~1,000</option><option value="dinner">Dinner, tables of 10</option><option value="banquet">Banquet, one long table</option><option value="wedding">Wedding</option><option value="party">Party / reception</option></select>
   <button type="button" id="confetti" class="sw">Celebrate!</button></div>
  <div class="row"><label for="tod">Time of day<button type="button" class="i" data-tip="Daylight comes down through the polycarbonate roof over the canopy void and lights the stained glass from above, and in through the glazed wall (the direct beam in the morning, with its rays and dust). At night the sky is black and the house lights carry the room. The photographs on the walls were shot by day, so daylight LIFTS them; night is the house lights and the LEDs alone. No sun position or shadows: this is diffuse daylight, a proposal aid, not a lighting calculation.">!</button></label>
   <input type="range" id="tod" min="0" max="24" step="0.25" value="21" style="flex:1;min-width:140px"><span id="todval" style="color:var(--dim);font-size:13px">21:00</span>
@@ -1892,6 +1892,8 @@ const EVENT_LED={
  wedding:{house:0.5,level:0.8,layers:[{name:'Champagne',on:true,anim:'wave',speed:0.14,opacity:1,blend:'add',A:{h:44,s:0.14,v:1},B:{h:48,s:0.4,v:0.75}}]},
  party:{house:0.15,level:1,layers:[{name:'Chase',on:true,anim:'chaseup',speed:0.85,opacity:1,blend:'add',A:{h:315,s:1,v:1},B:{h:230,s:1,v:0.9}},
   {name:'Strobe sparkle',on:true,anim:'sparkle',speed:0.9,opacity:0.7,blend:'add',A:{h:0,s:0,v:1},B:{h:0,s:0,v:0}}]}};
+// the banquet is lit as the dinner is
+EVENT_LED.banquet=EVENT_LED.dinner;
 function applyEventLED(mode){
  if(!eventSavedLED)eventSavedLED={layers:JSON.parse(JSON.stringify(state.layers)),sel:state.sel,level:state.level,house:lit.house};
  const pr=EVENT_LED[mode]; state.layers=JSON.parse(JSON.stringify(pr.layers)); state.sel=0; state.level=pr.level;
@@ -1931,7 +1933,7 @@ function buildEvent(){
    buildEvent[key]=new THREE.CanvasTexture(cv); buildEvent[key].colorSpace=THREE.SRGBColorSpace; } return buildEvent[key]; }
  const _md=document.getElementById('eventmode').value;
  const projTex=_md==='wedding'?textTex('congratsTex',g=>{g.fillStyle='#e8c76a'; g.font='italic 700 100px Georgia,serif'; g.fillText('Congratulations!',512,302);})
-  :_md==='dinner'?textTex('dinnerTex',g=>{g.fillStyle='#e8c76a'; g.font='italic 600 88px Georgia,serif'; g.fillText('Welcome',512,240);
+  :(_md==='dinner'||_md==='banquet')?textTex('dinnerTex',g=>{g.fillStyle='#e8c76a'; g.font='italic 600 88px Georgia,serif'; g.fillText('Welcome',512,240);
     g.fillStyle='#cfc9b8'; g.font='300 44px Georgia,serif'; g.fillText('to this evening\u2019s gala dinner',512,360);})
   :_md==='party'?textTex('partyTex',g=>{const gr=g.createLinearGradient(0,150,0,450); gr.addColorStop(0,'#ff2fa8'); gr.addColorStop(1,'#28c7ec');
     g.fillStyle=gr; g.font='900 150px Arial Black,Arial,sans-serif'; g.fillText("LET'S DANCE",512,302);})
@@ -1947,7 +1949,7 @@ function buildEvent(){
  // (Lloyd, 2026-08-31: "no need for the ones on the sides")
  {const md=document.getElementById('eventmode').value;
   const BANNER={standing:['#e4312b','#f28c1e','#f2d21e','#2bb84a','#28c7ec','#4152c0','#a93ad8'],
-   dinner:['#f4c069','#c4622a','#5e1c14'], wedding:['#fbf8f1','#efdcae','#d9b872'], party:['#ff2fa8','#8a3cff','#2440d8']}[md];
+   dinner:['#f4c069','#c4622a','#5e1c14'], banquet:['#f4c069','#c4622a','#5e1c14'], wedding:['#fbf8f1','#efdcae','#d9b872'], party:['#ff2fa8','#8a3cff','#2440d8']}[md];
   const key='banner_'+md;
   if(!buildEvent[key]){ const cv=document.createElement('canvas'); cv.width=64; cv.height=512; const g=cv.getContext('2d');
    const gr=g.createLinearGradient(0,0,0,512); BANNER.forEach((c,i)=>gr.addColorStop(i/(BANNER.length-1),c));
@@ -2084,6 +2086,7 @@ function buildEvent(){
    speaker.pool.position.set(fp.x,y0s+sH+0.02,fp.z);
   };
  } else if(mode==='dinner') buildDinner(ctx);
+ else if(mode==='banquet') buildBanquet(ctx);
  else if(mode==='wedding') buildWedding(ctx);
  else buildParty(ctx);
  scene.add(eventGroup);
@@ -2162,6 +2165,58 @@ function dinnerRoute(fu,fd,tu,td){ const nav=dinner.nav;
  const lu1=nearestOf(nav.lanesU,fu), lu2=nearestOf(nav.lanesU,tu), ld=nearestOf(nav.lanesD,(fd+td)/2);
  const wp=[[lu1,fd]]; if(lu1!==lu2){ wp.push([lu1,ld],[lu2,ld]); } wp.push([lu2,td],[tu,td]);
  return wp; }
+// BANQUET (Lloyd's storyboard, shot 3): one long table down the spine of the hall, laid for a
+// feast: an ivory cloth draped to the floor in pleats, a burgundy runner along the top and a gold
+// hem, a plate, food and a glass at every place, flowers and candles down the middle, and guests
+// seated both sides. A still scene: nobody gets up.
+function buildBanquet(ctx){
+ const {y0,uLo,uHi}=ctx; const c=new THREE.Color(); const S1={x:1,y:1,z:1}, TINY={x:0.001,y:0.001,z:0.001};
+ // the spine: midway between the two column rows (d 3.8 and 11.3), so no leg meets a column
+ const d=7.55, u0=uLo+3, u1=uHi-3, L=u1-u0, W=1.6, TOP=0.76, uc=(u0+u1)/2;
+ const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate()));
+ const put=(mesh,u,y,dd)=>{ const p=eventPoint(u,0,dd); mesh.position.set(p.x,y0+y,p.z); mesh.quaternion.copy(q); mesh.frustumCulled=false; eventGroup.add(mesh); return mesh; };
+ put(new THREE.Mesh(new THREE.BoxGeometry(L,0.05,W),eventMat(0xe9e4d6,0xf6f2e8)),uc,TOP-0.025,d);
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.3,TOP-0.08,W+0.3),eventMat(0xe4ddcc,0xf3eee2)),uc,(TOP-0.08)/2+0.08,d);
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.32,0.012,0.5),eventMat(0x5a1220,0x7a1c30)),uc,TOP+0.006,d);
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.34,0.06,W+0.34),eventMat(0xb08a2e,0xd4aa45)),uc,0.12,d);
+ // the pleats: a half-round fold every 35 cm along both long sides
+ const nP=Math.floor(L/0.35)*2, pl=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.07,0.09,TOP-0.16,8),eventMat(0xd9d2c0,0xece6d8),nP);
+ let k=0; for(let s=-1;s<=1;s+=2)for(let i=0;i<nP/2;i++){ const p=eventPoint(u0+0.2+i*0.35,0,d+s*(W/2+0.15)); _cQ.identity(); _cM.compose(_pV.set(p.x,y0+(TOP-0.16)/2+0.08,p.z),_cQ,S1); pl.setMatrixAt(k++,_cM); }
+ // the places, every 90 cm on both sides: a chair, a guest, a plate, food, a glass
+ const pitch=0.9, per=Math.floor((L-0.6)/pitch), nG=per*2;
+ const cm=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),nG);
+ const bk=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.05),eventMat(0x2e2b28,0x4e4a46),nG);
+ const pm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.13,0.13,0.015,14),new THREE.MeshBasicMaterial({color:0xf2f0ea}),nG);
+ const fm=new THREE.InstancedMesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial(),nG);
+ const km=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035,0.03,0.1,10),new THREE.MeshBasicMaterial(),nG);
+ const {bm,hm}=peopleMeshes(nG,0.55); const DRINKS=[0x6e1b28,0xe8d9a0,0xd28a2c,0xdfe8ea];
+ k=0;
+ for(let s=-1;s<=1;s+=2)for(let i=0;i<per;i++){ const u=u0+0.6+i*pitch, sd=d+s*(W/2+0.45);
+  // a place that would meet a column is simply not set
+  if(!EVENT.cols.every(cc=>Math.hypot(u-cc[0],sd-cc[1])>0.65)){ _cQ.identity(); _cM.compose(_pV.set(0,-99,0),_cQ,TINY); for(const m of [cm,bk,pm,fm,km,bm,hm])m.setMatrixAt(k,_cM); k++; continue; }
+  const sp=eventPoint(u,0,sd);
+  _cM.compose(_pV.set(sp.x,y0+0.25,sp.z),q,S1); cm.setMatrixAt(k,_cM);
+  const bp=eventPoint(u,0,sd+s*0.2); _cM.compose(_pV.set(bp.x,y0+0.75,bp.z),q,S1); bk.setMatrixAt(k,_cM);
+  poseBH(bm,hm,k,sp.x,sp.z,y0+0.72,y0+1.2,1,1); colourPerson(bm,hm,k,c);
+  const pp=eventPoint(u,0,d+s*(W/2-0.25)); _cQ.identity(); _cM.compose(_pV.set(pp.x,y0+TOP+0.012,pp.z),_cQ,S1); pm.setMatrixAt(k,_cM);
+  _cM.compose(_pV.set(pp.x,y0+TOP+0.045,pp.z),_cQ,{x:1,y:0.5,z:1}); fm.setMatrixAt(k,_cM); fm.setColorAt(k,c.setHSL(0.06+Math.random()*0.07,0.5,0.22+Math.random()*0.15,THREE.SRGBColorSpace));
+  const kp=eventPoint(u+0.25,0,d+s*(W/2-0.45)); _cM.compose(_pV.set(kp.x,y0+TOP+0.06,kp.z),_cQ,S1); km.setMatrixAt(k,_cM); km.setColorAt(k,c.set(DRINKS[Math.floor(Math.random()*4)]));
+  k++; }
+ for(const m of [fm,km,bm,hm])m.instanceColor.needsUpdate=true;
+ // down the middle: flowers every two metres (a vase, greenery, a head of blooms), a candle between
+ const nF=Math.floor(L/2), vm=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05,0.07,0.22,10),eventMat(0xcfd6dc,0xe8edf0),nF);
+ const gm=new THREE.InstancedMesh(new THREE.SphereGeometry(0.16,8,6),eventMat(0x2f5a2a,0x4b7d40),nF);
+ const bl=new THREE.InstancedMesh(new THREE.SphereGeometry(0.06,7,5),new THREE.MeshBasicMaterial(),nF*7), BLOOM=[0xf2f2f2,0xe94b6a,0xf7a8c1,0xf3d24a,0xffffff,0xd9435a];
+ const cdl=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.02,0.02,0.24,8),eventMat(0xf3e7c4,0xfaf3dc),nF);
+ const fl=new THREE.InstancedMesh(new THREE.SphereGeometry(0.02,6,4),new THREE.MeshBasicMaterial({color:0xffd27a}),nF);
+ let b=0; for(let i=0;i<nF;i++){ const u=u0+1+i*2, p=eventPoint(u,0,d); _cQ.identity();
+  _cM.compose(_pV.set(p.x,y0+TOP+0.11,p.z),_cQ,S1); vm.setMatrixAt(i,_cM);
+  _cM.compose(_pV.set(p.x,y0+TOP+0.3,p.z),_cQ,S1); gm.setMatrixAt(i,_cM);
+  for(let j=0;j<7;j++){ const a=j/7*Math.PI*2, r=j?0.11:0; const bp=eventPoint(u+Math.cos(a)*r,0,d+Math.sin(a)*r); _cM.compose(_pV.set(bp.x,y0+TOP+0.36+(j?0:0.06),bp.z),_cQ,S1); bl.setMatrixAt(b,_cM); bl.setColorAt(b,c.set(BLOOM[Math.floor(Math.random()*BLOOM.length)])); b++; }
+  const cp=eventPoint(u+1,0,d); _cM.compose(_pV.set(cp.x,y0+TOP+0.12,cp.z),_cQ,S1); cdl.setMatrixAt(i,_cM); _cM.compose(_pV.set(cp.x,y0+TOP+0.26,cp.z),_cQ,S1); fl.setMatrixAt(i,_cM); }
+ bl.instanceColor.needsUpdate=true;
+ for(const m of [pl,cm,bk,pm,fm,km,bm,hm,vm,gm,bl,cdl,fl]){ m.frustumCulled=false; eventGroup.add(m); }
+}
 function buildDinner(ctx){
  const {y0,uLo,uHi,dLo,dHi,rnd}=ctx; const c=new THREE.Color();
  const rows=3, cols=8, nT=rows*cols, seats=10, nG=nT*seats;
@@ -2911,7 +2966,7 @@ function fireCelebrate(){
  if(!document.getElementById('event').checked)return;
  const md=document.getElementById('eventmode').value;
  if(md==='standing')fireConfetti();
- else if(md==='dinner')fireChampagne();
+ else if(md==='dinner'||md==='banquet')fireChampagne();
  else if(md==='party'){ fireConfetti(); fireBalloons(); fireColdSparks(); }
  else fireWeddingWalk();
 }
@@ -3290,13 +3345,16 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {mode:'dinner', dur:16, cam:k=>{ const s=k*16, q=smooth(k); const at=EP(18.9+5.1*q,0.9+1.7*q,4.9+0.3*q), centre=EP(uM,1.0,9.5), down=EP(18.95,0.0,4.9);
     poseAt(at,down.lerp(centre,smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))))); titleStep(s,at,centre,[['A space for community.',5.5,11.0]]);
     if(court)court.visible=false; }},
-  {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
+  // (Lloyd's storyboard, shot 3) the banquet: fade in, a slow travel down the table at 1.9 m
+  // over the guests' heads, looking along it, fade out
+  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55));
+    veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-14.5)/1.5)))); }},
   // (Lloyd's notes) the party: from the floor at the hall's end, round the room on a long curve
   // and rising all the way, to end high up facing the crowd in the middle; never a blank wall
   {mode:'party',  dur:16, cam:k=>{ const q=smooth(k), a=Math.PI-q*Math.PI*0.58, C=EP(uM,1.2,9.5);
-    poseAt(EP(uM+16*Math.cos(a),2.0+4.2*q,9.5+3.4*Math.sin(a)),C); titlesNow(k*16,[['A place to come together',2,8]]);
-    // (Lloyd, V2) fades out over the last 1.5 s; the celebrate fades in from it
-    veil(smooth(Math.max(0,(k*16-14.5)/1.5))); }},
+    poseAt(EP(uM+16*Math.cos(a),2.0+4.2*q,9.5+3.4*Math.sin(a)),C); titlesNow(k*16,[['A place to have fun',2,8]]);
+    // (Lloyd, V2, V3) fades in from the banquet and out to the celebrate, 1.5 s each
+    veil(Math.max(1-smooth(Math.min(1,k*16/1.5)),smooth(Math.max(0,(k*16-14.5)/1.5)))); }},
   {celebrate:true,dur:14, cam:k=>{ hold(uM+8,2.4,13,uM,2.5,5)(k); titlesNow(k*14,[['and celebrate amongst friends',1.5,7.5]]); veil(1-smooth(Math.min(1,k*14/1.5))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way

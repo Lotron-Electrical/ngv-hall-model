@@ -70,11 +70,11 @@ At the starts the camera turns too fast. Smooth/ease that turn considerably or r
 
 ---
 
-## 3. Dinner celebrate
+## 3. Banquet
 
-Duration 11 s. Celebrate fires at the start (the dinner lighting moment).
+Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides).
 
-Hold at `(uM-7, 2.1, 13)`, by the glass, looking across the room at `(uM+2, 1.0, 6)`.
+Fades in from black over 1.5 s. Travels slowly along the table from `(uM-18, 1.9, 7.55)` to `(uM+12, 1.9, 7.55)`, just over the guests' heads, looking along the table 7 m ahead. Fades to black over the last 1.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -90,7 +90,7 @@ Which is a long rectangular table going down the spine of the hall long ways. Ha
 
 Duration 16 s. Event: `party`.
 
-From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long curve (16 m along, 3.4 m across) and rising all the way, to end high up at `(28.4, 6.2, 12.8)` facing the crowd in the centre `(uM, 1.2, 9.5)`. Faces the centre throughout. "A place to come together" floats ahead from 2 s to 8 s. Fades to black over the last 1.5 s.
+From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long curve (16 m along, 3.4 m across) and rising all the way, to end high up at `(28.4, 6.2, 12.8)` facing the crowd in the centre `(uM, 1.2, 9.5)`. Faces the centre throughout. Fades in from black over 1.5 s. "A place to have fun" floats ahead from 2 s to 8 s. Fades to black over the last 1.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -108,6 +108,8 @@ Fade out at the end
 V3.
 
 Fade in at the start of the shot.
+
+Text "A place to have fun"
 
 ---
 
@@ -132,6 +134,10 @@ V2.
 Fade in at the start.
 
 Also, the text was blocked by the columns
+
+V3.
+
+Start the camera high up and follow the confetti falling down, to finish at the end point of this current shot. Also, make the cold sparks go 1.5x higher
 
 ---
 
@@ -165,12 +171,7 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 |---|---|---|
 | ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
-**Notes:** Text:
-"A place to celebrate love" 
-
-V2.
-
-Make sure the text isn't blocked by columns
+**Notes:**
 
 ---
 
@@ -184,7 +185,7 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 |---|---|---|
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
-**Notes:** this clip is missing the event
+**Notes:** the rice should be landing on the floor and not disappearing right away.
 
 ---
 
