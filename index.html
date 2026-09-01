@@ -844,7 +844,13 @@ new GLTFLoader().load('model.glb',g=>{
  {const capM=new THREE.MeshBasicMaterial({color:0x0f0d12, side:THREE.DoubleSide}); capM.name='end-cap';
   const cap=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
   cap.rotation.y=-Math.PI/2; cap.position.set(0.3,6.2,0.35);
-  g.scene.add(cap); solids.push(cap);}
+  g.scene.add(cap); solids.push(cap);
+  // The far end (x=-60) has a floor-to-roof slit at z~3 between the back wall and the stair
+  // structure: rays from inside meet nothing at all there, and from outside it reads as a hole
+  // into the hall (Lloyd, 2026-09-01). Same cap, just behind the back wall.
+  const cap2=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
+  cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
+  g.scene.add(cap2); solids.push(cap2);}
  hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
@@ -1697,11 +1703,14 @@ function buildCourt(){
  // The slider is the WIDTH of LOTRON; the letters, the gap and ELECTRICAL keep the PNG's proportions.
  const W=parseFloat(document.getElementById('logoh').value);
  const [lx0,ly0,lx1,ly1]=LOGO.lotron_box, [ex0,ey0,ex1,ey1]=LOGO.electrical_box;
- const sc=W/(lx1-lx0), depth=Math.max(0.6,W*0.05);
+ // deep enough to be a solid object, not a sign: edge-on it still has a body (Lloyd, 2026-09-01)
+ const sc=W/(lx1-lx0), depth=Math.max(1.5,W*0.12);
  const svg=(dstr)=>`<svg xmlns="http://www.w3.org/2000/svg"><path d="${dstr}" fill-rule="evenodd"/></svg>`;
  const build=(dstr)=>{ const shapes=SVGLoader.createShapes(new SVGLoader().parse(svg(dstr)).paths[0]);
   const g=new THREE.ExtrudeGeometry(shapes,{depth:depth/sc,bevelEnabled:true,bevelThickness:6,bevelSize:6,bevelSegments:2,curveSegments:4});
-  g.scale(sc,-sc,sc); g.computeVertexNormals(); return g; };
+  // the y flip (SVG is y-down) mirrors the mesh, which turns every face inside out; flipping z as
+  // well restores the winding, and the translate puts the extrusion back at 0..depth
+  g.scale(sc,-sc,-sc); g.translate(0,0,depth); g.computeVertexNormals(); return g; };
  // shared origin: the PNG's LOTRON box centre at x, its bottom line of ELECTRICAL at the plinth
  const cx=(lx0+lx1)/2, baseY=ey1;
  const gL=build(LOGO.lotron), gE=build(LOGO.electrical);
@@ -1725,7 +1734,7 @@ function buildCourt(){
  // ELECTRICAL, a plain bold face, cap height about a third of LOTRON's, sitting one gap above it.
  // It HOVERS above the sculpture and GLOWS (Lloyd): a bright white face with a soft additive halo
  // (the same letters, slightly inflated, blended in), bobbing gently in frame().
- const tagSize=H*0.34, tagY=top+H*1.1;
+ const tagSize=H*0.34; let tagY=top+H*1.1;   // raised again below, once the partners' heights are known
  const addTag=(font)=>{ if(!logo)return; const tg=new TextGeometry('BROUGHT TO LIGHT BY',{font,size:tagSize,height:depth*0.4,curveSegments:3,bevelEnabled:false});
   tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2, -(b.min.y+b.max.y)/2, -depth*0.2); tg.computeVertexNormals();
   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
@@ -1755,22 +1764,28 @@ function buildCourt(){
   for(const {g,mat,lift} of gs){
    g.translate(-(box.min.x+box.max.x)/2, -box.min.y, lift*depth);  // centred, standing on the plinth
    g.scale(k,k,1); g.computeVertexNormals();   // fit in the plane only: the depth stays Lotron's, in metres
-   const m=new THREE.Mesh(g,mat); grp.add(m); solids.push(m);
+   const m=new THREE.Mesh(g,mat); m.frustumCulled=false; grp.add(m); solids.push(m);
   }
+  grp.userData.top=(box.max.y-box.min.y)*k;
   // on the shared turntable, a third of a turn round from Lotron, facing outward
   grp.position.set(Math.sin(angle)*ringR,0,Math.cos(angle)*ringR); grp.rotation.y=angle;
   turntable.add(grp); return grp;
  };
  // graphite rather than the brand white: the paving is pale, and white letters on it in daylight
  // read as nothing at all. Graphite holds on the paving AND against the night sky behind it.
- const inkMat=new THREE.MeshBasicMaterial({color:0x15171b}), silverMat=new THREE.MeshBasicMaterial({color:0xd4d8de}),
+ // the silver is pushed back a hair in the depth buffer so the ink standing on it never fights it
+ const inkMat=new THREE.MeshBasicMaterial({color:0x15171b}), silverMat=new THREE.MeshBasicMaterial({color:0xd4d8de,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:2}),
        graphiteMat=new THREE.MeshBasicMaterial({color:0x23272e}), blueMat=new THREE.MeshBasicMaterial({color:0x15a6df});
  partners=[
   // ENTTEC a third of a turn round, its own two blue letters kept
   partner([{d:PARTNER_LOGOS.enttec.white,mat:graphiteMat},{d:PARTNER_LOGOS.enttec.blue,mat:blueMat}], 2*Math.PI/3),
   // Shadow AV on the last third: the silhouette in silver, the ink standing proud of it so the owl reads
-  partner([{d:PARTNER_LOGOS.shadow.body,mat:silverMat},{d:PARTNER_LOGOS.shadow.ink,mat:inkMat,lift:0.35}], -2*Math.PI/3)
+  partner([{d:PARTNER_LOGOS.shadow.body,mat:silverMat},{d:PARTNER_LOGOS.shadow.ink,mat:inkMat,lift:0.5}], -2*Math.PI/3)
  ];
+ // the tag hovers clear of the TALLEST mark on the turntable, not just Lotron (Lloyd: it must not
+ // intersect any logo as they come round)
+ tagY=Math.max(tagY, Math.max(...partners.map(p=>p.userData.top))+H*0.8);
+ if(buildCourt.font)addTag(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addTag(f);});
  court.visible=document.getElementById('court').checked;
  scene.add(court);
 }
