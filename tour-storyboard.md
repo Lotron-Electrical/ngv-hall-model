@@ -106,7 +106,12 @@ After the text disappears, then fade out and end the shot
 V3 (sent 01/09/2026 22:18:39):
 Make the scene more lively. People moving around, chatting, mingling and eating and drinking. Also have a string quartet playing in frame
 
-V4 (draft):
+V4 (sent 01/09/2026 22:57:03):
+[shot 2, 8.3 s] 
+
+A place for community
+
+V5 (draft):
 
 
 ---
@@ -147,8 +152,13 @@ V4 (sent 01/09/2026 22:39:47):
 
 Every word should fade in
 
-V5 (draft):
-[shot 3, 0.7 s]
+V5 (sent 01/09/2026 22:56:01):
+[shot 3, 0.7 s] 
+
+More variety in all the extravagant clothing the guests are wearing. Also more food and drink. A proper banquet
+
+V6 (draft):
+
 
 ---
 
@@ -258,7 +268,10 @@ Make sure the text isn't blocked by the columns
 V2 (sent 01/09/2026 22:28:49):
 Fade in at the start of this clip
 
-V3 (draft):
+V3 (sent 01/09/2026 23:01:33):
+[shot 6, 6.4 s]
+
+V4 (draft):
 
 
 ---
@@ -307,8 +320,11 @@ the rice is phasing through the floor. It should land on the floor and stay duri
 V3 (sent 01/09/2026 22:45:06):
 No logos outside for this scene
 
-V4 (draft):
+V4 (sent 01/09/2026 22:59:23):
+[shot 8, 11.0 s] the rice is phasing through the floor. It should be landing on the floor and staying through the scene
 
+V5 (draft):
+[shot 8, 6.2 s] the crowd should keep jumping through the scene
 
 ---
 

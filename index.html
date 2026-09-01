@@ -2153,7 +2153,7 @@ function buildBanquet(ctx){
   // (Lloyd, V3) everybody unique: jewel gowns, dark suits, pastels, brights, black and white; a
   // gold collar on some, a crown on a few, a big hat on some, a long flowing dress on some
   { const st=Math.random(), h=Math.random(); if(st<0.3)c.setHSL(h,0.75+Math.random()*0.25,0.22+Math.random()*0.2,THREE.SRGBColorSpace); else if(st<0.5)c.setHSL(h,0.15,0.07+Math.random()*0.07,THREE.SRGBColorSpace); else if(st<0.7)c.setHSL(h,0.4,0.6+Math.random()*0.15,THREE.SRGBColorSpace); else if(st<0.85)c.setHSL(h,0.95,0.5,THREE.SRGBColorSpace); else c.setHSL(0,0,Math.random()<0.5?0.04:0.92,THREE.SRGBColorSpace); bm.setColorAt(k,c); }
-  { const crown=Math.random()<0.15; seatList.push({k,x:sp.x,z:sp.z,s,ph:Math.random()*6.28,mode:Math.random()<0.5?'eat':'chat',next:2+Math.random()*5,crown,collar:Math.random()<0.4,hat:!crown&&Math.random()<0.25,dress:Math.random()<0.35,hue:Math.random()}); }
+  { const crown=Math.random()<0.15; seatList.push({k,x:sp.x,z:sp.z,u,sd,s,cape:Math.random()<0.25,sash:Math.random()<0.33,brooch:Math.random()<0.33,ph:Math.random()*6.28,mode:Math.random()<0.5?'eat':'chat',next:2+Math.random()*5,crown,collar:Math.random()<0.4,hat:!crown&&Math.random()<0.25,dress:Math.random()<0.35,hue:Math.random()}); }
   const pp=eventPoint(u,0,d+s*(W/2-0.25)); _cQ.identity(); _cM.compose(_pV.set(pp.x,y0+TOP+0.012,pp.z),_cQ,S1); pm.setMatrixAt(k,_cM);
   _cM.compose(_pV.set(pp.x,y0+TOP+0.045,pp.z),_cQ,{x:1,y:0.5,z:1}); fm.setMatrixAt(k,_cM); fm.setColorAt(k,c.setHSL(0.06+Math.random()*0.07,0.5,0.22+Math.random()*0.15,THREE.SRGBColorSpace));
   const kp=eventPoint(u+0.25,0,d+s*(W/2-0.45)); _cM.compose(_pV.set(kp.x,y0+TOP+0.06,kp.z),_cQ,S1); km.setMatrixAt(k,_cM); km.setColorAt(k,c.set(DRINKS[Math.floor(Math.random()*4)]));
@@ -2199,6 +2199,42 @@ function buildBanquet(ctx){
   const cp=eventPoint(u+1,0,d); _cM.compose(_pV.set(cp.x,y0+TOP+0.12,cp.z),_cQ,S1); cdl.setMatrixAt(i,_cM); _cM.compose(_pV.set(cp.x,y0+TOP+0.26,cp.z),_cQ,S1); fl.setMatrixAt(i,_cM); }
  bl.instanceColor.needsUpdate=true;
  for(const m of [pl,cm,bk,pm,fm,km,bm,hm,vm,gm,bl,cdl,fl]){ m.frustumCulled=false; eventGroup.add(m); }
+
+ // (Lloyd, V5) A PROPER BANQUET. More at every place: a bread roll, a side dish, a water glass;
+ // and down the middle between the flowers and candles, a candelabra, a bowl of fruit, a roast
+ // on a platter and a pair of bottles, in turn. More on the guests: a cape over the shoulders on
+ // a quarter, a bright sash across the chest on a third, a gold brooch on a third
+ const nS=seatList.length, mk=(geo,mat,n)=>{ const m=new THREE.InstancedMesh(geo,mat,n); m.frustumCulled=false; eventGroup.add(m); return m; };
+ const roll=mk(new THREE.SphereGeometry(0.045,8,6),new THREE.MeshBasicMaterial({color:0xc9954a}),nS);
+ const sdd=mk(new THREE.CylinderGeometry(0.07,0.07,0.03,10),new THREE.MeshBasicMaterial(),nS);
+ const wat=mk(new THREE.CylinderGeometry(0.028,0.028,0.11,8),new THREE.MeshBasicMaterial({color:0xdfe8ea,transparent:true,opacity:0.7}),nS);
+ const cape=mk(new THREE.ConeGeometry(0.3,0.36,12,1,true),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),nS);
+ const sash=mk(new THREE.BoxGeometry(0.07,0.62,0.02),new THREE.MeshBasicMaterial(),nS);
+ const bro=mk(new THREE.SphereGeometry(0.025,6,4),GOLD,nS);
+ const qS=q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),0.6));
+ seatList.forEach((g,i)=>{ const pt=(du,dd,y)=>{ const p=eventPoint(g.u+du,0,g.sd-g.s*dd); return _pV.set(p.x,y0+y,p.z); }; _cQ.identity();
+  _cM.compose(pt(-0.28,0.78,TOP+0.04),_cQ,S1); roll.setMatrixAt(i,_cM);
+  _cM.compose(pt(0.32,0.92,TOP+0.015),_cQ,S1); sdd.setMatrixAt(i,_cM); sdd.setColorAt(i,c.setHSL(0.2+Math.random()*0.2,0.55,0.32,THREE.SRGBColorSpace));
+  _cM.compose(pt(0.12,1.0,TOP+0.055),_cQ,S1); wat.setMatrixAt(i,_cM);
+  const off=_pV.set(0,-99,0);
+  if(g.cape){ c.setHSL((g.hue+0.5)%1,0.7,0.3,THREE.SRGBColorSpace); cape.setColorAt(i,c); _cM.compose(_pV.set(g.x,y0+0.96,g.z),_cQ,S1); } else _cM.compose(off,_cQ,TINY); cape.setMatrixAt(i,_cM);
+  if(g.sash){ c.setHSL((g.hue+0.33)%1,0.9,0.5,THREE.SRGBColorSpace); sash.setColorAt(i,c); _cM.compose(pt(0,0.16,0.86),qS,S1); } else _cM.compose(_pV.set(0,-99,0),_cQ,TINY); sash.setMatrixAt(i,_cM);
+  if(g.brooch){ _cM.compose(pt(0.07,0.17,1.06),_cQ,S1); } else _cM.compose(_pV.set(0,-99,0),_cQ,TINY); bro.setMatrixAt(i,_cM); });
+ sdd.instanceColor.needsUpdate=true; cape.instanceColor.needsUpdate=true; sash.instanceColor.needsUpdate=true;
+ Object.assign(banquet,{cape,sash,bro,qS});
+ { const nC=Math.max(1,Math.floor((L-2)/2)), stem=mk(new THREE.CylinderGeometry(0.02,0.06,0.3,8),GOLD,nC), arm=mk(new THREE.BoxGeometry(0.3,0.02,0.02),GOLD,nC), cnd=mk(new THREE.CylinderGeometry(0.014,0.014,0.16,6),new THREE.MeshBasicMaterial({color:0xf6ecd2}),nC*3), flm=mk(new THREE.SphereGeometry(0.018,6,4),new THREE.MeshBasicMaterial({color:0xffd27a}),nC*3);
+  const bowl=mk(new THREE.SphereGeometry(0.17,10,6,0,Math.PI*2,Math.PI/2,Math.PI/2),new THREE.MeshBasicMaterial({color:0xd9b14a,side:THREE.DoubleSide}),nC), fruit=mk(new THREE.SphereGeometry(0.05,7,5),new THREE.MeshBasicMaterial(),nC*6);
+  const plat=mk(new THREE.CylinderGeometry(0.24,0.24,0.02,14),new THREE.MeshBasicMaterial({color:0xe8e8ee}),nC), roast=mk(new THREE.SphereGeometry(0.13,8,6),new THREE.MeshBasicMaterial({color:0x7a3c18}),nC), btl=mk(new THREE.CylinderGeometry(0.035,0.04,0.3,8),new THREE.MeshBasicMaterial({color:0x1e3b22}),nC*2);
+  const FRUIT=[0xd42b2b,0xf2c12e,0x8fbf3a,0xe07a1f,0x6a2c8a,0xf0d99a]; let fi=0, ci=0, bi=0;
+  for(let i=0;i<nC;i++){ const u=u0+2+i*2, kind=i%4, p=eventPoint(u,0,d); _cQ.identity(); const at=(y,uu,dd)=>{ const pp=uu===undefined?p:eventPoint(uu,0,dd); return _pV.set(pp.x,y0+TOP+y,pp.z); }; const hid=_cM.compose(_pV.set(0,-99,0),_cQ,TINY).clone();
+   stem.setMatrixAt(i,hid); arm.setMatrixAt(i,hid); bowl.setMatrixAt(i,hid); plat.setMatrixAt(i,hid); roast.setMatrixAt(i,hid);
+   for(let j=0;j<3;j++){ cnd.setMatrixAt(i*3+j,hid); flm.setMatrixAt(i*3+j,hid); } for(let j=0;j<6;j++)fruit.setMatrixAt(i*6+j,hid); btl.setMatrixAt(i*2,hid); btl.setMatrixAt(i*2+1,hid);
+   if(kind===0){ _cM.compose(at(0.16),_cQ,S1); stem.setMatrixAt(i,_cM); _cM.compose(at(0.31),q,S1); arm.setMatrixAt(i,_cM);
+    for(let j=0;j<3;j++){ _cM.compose(at(0.4,u+(j-1)*0.14,d),_cQ,S1); cnd.setMatrixAt(i*3+j,_cM); _cM.compose(at(0.5,u+(j-1)*0.14,d),_cQ,S1); flm.setMatrixAt(i*3+j,_cM); } }
+   else if(kind===1){ _cM.compose(at(0.12),_cQ,S1); bowl.setMatrixAt(i,_cM); for(let j=0;j<6;j++){ const a=j/6*Math.PI*2, r=j<5?0.08:0; _cM.compose(at(0.16+(j<5?0:0.07),u+Math.cos(a)*r,d+Math.sin(a)*r),_cQ,S1); fruit.setMatrixAt(i*6+j,_cM); fruit.setColorAt(i*6+j,c.set(FRUIT[j])); } }
+   else if(kind===2){ _cM.compose(at(0.02),_cQ,S1); plat.setMatrixAt(i,_cM); _cM.compose(at(0.09),_cQ,{x:1.5,y:0.8,z:1}); roast.setMatrixAt(i,_cM); }
+   else { _cM.compose(at(0.16,u-0.12,d+0.1),_cQ,S1); btl.setMatrixAt(i*2,_cM); _cM.compose(at(0.16,u+0.12,d-0.1),_cQ,S1); btl.setMatrixAt(i*2+1,_cM); } }
+  fruit.instanceColor.needsUpdate=true; }
 }
 // BANQUET, alive (Lloyd, V2): every guest is eating (the head dips to the plate and comes back,
 // again and again) or chatting (leaning to a neighbour, swaying with the talk), and swaps
@@ -2214,9 +2250,14 @@ function updateBanquet(dt,t){
   else { const sw=Math.sin(t*0.9+g.ph); dx=U.x*0.07*sw; dz=U.z*0.07*sw; lean=0.02*Math.sin(t*1.7+g.ph); }
   poseBH(B.bm,B.hm,g.k,g.x+dx*0.35,g.z+dz*0.35,y0+0.72+jb,y0+1.2+hy+jb+lean,1,1);
   if(g.collar){ _cM.compose(_pV.set(g.x+dx*0.35,y0+1.0+jb,g.z+dz*0.35),B.qF,S1); B.col.setMatrixAt(i,_cM); }
+  // the cape, sash and brooch ride the body (Lloyd, V5)
+  if(g.cape){ _cQ.identity(); _cM.compose(_pV.set(g.x+dx*0.35,y0+0.96+jb,g.z+dz*0.35),_cQ,S1); B.cape.setMatrixAt(i,_cM); }
+  if(g.sash||g.brooch){ const f=eventPoint(g.u,0,g.sd-g.s*0.16), f2=eventPoint(g.u+0.07,0,g.sd-g.s*0.17); _cQ.identity();
+   if(g.sash){ _cM.compose(_pV.set(f.x+dx*0.35,y0+0.86+jb,f.z+dz*0.35),B.qS,S1); B.sash.setMatrixAt(i,_cM); }
+   if(g.brooch){ _cM.compose(_pV.set(f2.x+dx*0.35,y0+1.06+jb,f2.z+dz*0.35),_cQ,S1); B.bro.setMatrixAt(i,_cM); } }
   if(g.hat){ _cQ.identity(); _cM.compose(_pV.set(g.x+dx,y0+1.3+hy+jb+lean,g.z+dz),_cQ,S1); B.hb.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x+dx,y0+1.37+hy+jb+lean,g.z+dz),_cQ,S1); B.hc.setMatrixAt(i,_cM); }
   if(g.crown){ _cQ.identity(); _cM.compose(_pV.set(g.x+dx,y0+1.3+hy+jb+lean,g.z+dz),_cQ,S1); B.crn.setMatrixAt(i,_cM); _cM.compose(_pV.set(g.x+dx,y0+1.345+hy+jb+lean,g.z+dz),_cQ,S1); B.jew.setMatrixAt(i,_cM); } });
- B.bm.instanceMatrix.needsUpdate=true; B.hm.instanceMatrix.needsUpdate=true; B.col.instanceMatrix.needsUpdate=true; B.crn.instanceMatrix.needsUpdate=true; B.jew.instanceMatrix.needsUpdate=true; B.hb.instanceMatrix.needsUpdate=true; B.hc.instanceMatrix.needsUpdate=true;
+ B.bm.instanceMatrix.needsUpdate=true; B.hm.instanceMatrix.needsUpdate=true; B.col.instanceMatrix.needsUpdate=true; if(B.cape){ B.cape.instanceMatrix.needsUpdate=true; B.sash.instanceMatrix.needsUpdate=true; B.bro.instanceMatrix.needsUpdate=true; } B.crn.instanceMatrix.needsUpdate=true; B.jew.instanceMatrix.needsUpdate=true; B.hb.instanceMatrix.needsUpdate=true; B.hc.instanceMatrix.needsUpdate=true;
  B.wst.forEach((w,i)=>{
   if(w.serve>0){ w.serve-=dt; w.lean=Math.min(1,w.lean+dt*2); } else { w.lean=Math.max(0,w.lean-dt*2); w.next-=dt; if(w.next<=0){ w.serve=2.2; w.next=3+Math.random()*4; }
    if(w.lean<=0){ w.u+=w.dir*w.spd*dt; if(w.u>B.u1-1){ w.u=B.u1-1; w.dir=-1; } if(w.u<B.u0+1){ w.u=B.u0+1; w.dir=1; } } }
@@ -2500,9 +2541,10 @@ function buildWedding(ctx){
  // the bride wears a GOWN and a VEIL (Lloyd): a white skirt flaring to the floor, and a
  // translucent cone of tulle draped over the head; both track her down the aisle
  const gown=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.95,14),new THREE.MeshBasicMaterial({color:0xf7f5f0}));
- const veil=new THREE.Mesh(new THREE.ConeGeometry(0.23,0.62,10,1,true),
+ // (Lloyd, V2) a proper veil: full and long, from a crown above the head down to the waist
+ const veil=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.95,12,1,true),
   new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.4,depthWrite:false,side:THREE.DoubleSide}));
- eventGroup.add(gown,veil); wedding.gown=gown; wedding.veil=veil;
+ eventGroup.add(gown,veil); wedding.gown=gown; wedding.veil=veil; gown.matrixAutoUpdate=false; veil.matrixAutoUpdate=false;
  const bridePos=eventPoint(uMid-0.4,0,3.55), groomPos=eventPoint(uMid+0.4,0,3.55), celPos=eventPoint(uMid,0,2.8);
  wedding.fixed=[[bridePos.x,bridePos.z],[groomPos.x,groomPos.z],[celPos.x,celPos.z]];
  // two blocks of chairs, an aisle between; most seats taken, nobody perfectly still
@@ -2587,12 +2629,29 @@ function updateWedding(dt,t){
    if(W.gone&&i!==2)hide=true;
    if(!W.hasGroom&&i===1)hide=true;
   }
+  // THE CEREMONY (Lloyd, shot 7): from 6 s they turn and step in to each other, the veil is
+  // lifted back, they kiss, and the groom dips the bride; everyone upright again by the end. The
+  // tilt is a turn about the feet, toward +u for a positive angle
+  let tiltA=0, vLift=0;
+  if(W.cer!=null&&!W.walk&&!sm&&!W.gone&&i!==2){ const ce=W.cer, U=EVENT.N.u, side=i===0?-1:1, cl=(a,b)=>Math.max(0,Math.min(1,(ce-a)/(b-a)));
+   const turn=smooth(cl(6,7.5)), kiss=smooth(cl(9.5,10.7)), dip=smooth(cl(10.7,12.0))*(1-smooth(cl(13.0,13.9))); vLift=smooth(cl(7.8,9.3));
+   const step=0.15*turn+0.12*dip+(i===1?0.22*dip:0);
+   fx-=side*U.x*step; fz-=side*U.z*step;
+   tiltA=i===0?(0.15*kiss-0.55*dip):(-0.15*kiss-0.4*dip); }
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
   poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.78,hide?-99:y0+1.62,i===0?1.15:1,1);
   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=!hide;
-   if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.51,fz); } } }
+   if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.55,fz); W.gown.updateMatrix(); W.veil.updateMatrix(); } }
+  if(tiltA||vLift){ const U=EVENT.N.u, ax=new THREE.Vector3(0,1,0).cross(U).normalize(), pv=new THREE.Vector3(fx+sway,y0,fz);
+   const TR=new THREE.Matrix4().makeTranslation(pv.x,pv.y,pv.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,tiltA)).multiply(new THREE.Matrix4().makeTranslation(-pv.x,-pv.y,-pv.z));
+   if(tiltA){ W.cp.bm.getMatrixAt(i,_cM); _cM.premultiply(TR); W.cp.bm.setMatrixAt(i,_cM); W.cp.hm.getMatrixAt(i,_cM); _cM.premultiply(TR); W.cp.hm.setMatrixAt(i,_cM); }
+   if(i===0&&W.gown&&!hide){ W.gown.updateMatrix(); W.gown.matrix.premultiply(TR);
+    // the veil lifted: swung back over the head about its crown, away from the groom
+    const cr=new THREE.Vector3(fx+sway,y0+2.02,fz), VR=new THREE.Matrix4().makeTranslation(cr.x,cr.y,cr.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,0.85*vLift)).multiply(new THREE.Matrix4().makeTranslation(-cr.x,-cr.y,-cr.z));
+    W.veil.updateMatrix(); W.veil.matrix.premultiply(VR).premultiply(TR); } }
+ }
  // RICE only ever leaves a hand that exists: guests still in their seats near the couple, or --
  // once the rows are empty -- the celebrant at the arch, who throws the last of it
  if(W.walk){
@@ -3308,11 +3367,17 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
  // a title with '~' on every row comes in one word after another top to bottom (Lloyd, the banquet, V4)
  const rows=key.split(' / ').map(r=>{ r=r.trim(); const stg=r.startsWith('~'); if(stg)r=r.slice(1).trim(); const st=/^\*(.*)\*$/.exec(r); return {stained:!!st,stagger:stg,parts:stg?r.split(/\s+/):(st?st[1]:r).split('|').map(x=>x.trim()).filter(Boolean)}; }).filter(r=>r.parts.length);
  const g=new THREE.Group(); const mats=[]; const lineH=0.34*1.6, gap=0.12; let W=0, wi=0;
- rows.forEach((row,ri)=>{ const y=(rows.length-1)/2*lineH-ri*lineH; const tgs=row.parts.map(p=>geo(p,row.stained));
+ // (Lloyd, shot 1 V5) a stained-glass row is set as wide as the widest plain row of the title,
+ // its letters and its panes scaled up together; the rows stack by their own heights
+ const built=rows.map(row=>{ const tgs=row.parts.map(p=>geo(p,row.stained)); const all=geo(row.parts.join(' '),row.stained); const Wr=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(row.parts.length-1)*gap; return {row,tgs,all,Wr,f:1}; });
+ const Wplain=Math.max(0,...built.filter(b=>!b.row.stained).map(b=>b.Wr));
+ for(const b of built)if(b.row.stained&&Wplain>0){ b.f=Wplain/b.Wr; for(const tg of [...b.tgs,b.all]){ tg.scale(b.f,b.f,1); tg.computeBoundingBox(); } b.Wr=Wplain; titleGlass.uniforms.cell.value=0.42*b.f; }
+ let yTop=built.reduce((a,b)=>a+lineH*b.f,0)/2;
+ built.forEach(({row,tgs,all:allG,Wr,f},ri)=>{ const hr=lineH*f, y=yTop-hr/2; yTop-=hr;
   // the parts laid along one baseline, a word space between, the whole centred; a second part
   // (the word "light") carries the glint
-  const all=geo(row.parts.join(' '),row.stained).boundingBox, yOff=y-(all.min.y+all.max.y)/2;
-  const Wr=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(row.parts.length-1)*gap; W=Math.max(W,Wr); let x=-Wr/2;
+  const all=allG.boundingBox, yOff=y-(all.min.y+all.max.y)/2;
+  W=Math.max(W,Wr); let x=-Wr/2;
   tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
    if(row.stained){ const core=new THREE.Mesh(tg,titleGlass); core.renderOrder=990; g.add(core); g.userData.glass=true;
     g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); const sh=new THREE.Mesh(tg,titleShimmer); sh.renderOrder=991; g.add(sh); g.userData.shimmer=true; }
@@ -3322,13 +3387,14 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); titleGroups.set(key,g); return g; }
 // s: seconds into the shot; spec: [[text, from, to], ...]; the lines ride TITLE_D metres ahead of
 // the eye towards `look`, scaled to fit the picture's width there, fading 0.6 s in and out
-function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titleGlint)titleGlint.uniforms.t.value=s; if(titleShimmer)titleShimmer.uniforms.t.value=s; if(titleGlass)titleGlass.uniforms.t.value=s;
+function titleStep(s,at,look,spec,yOff=0.35){ if(!titles&&!buildCourt.font)return; if(titleGlint)titleGlint.uniforms.t.value=s; if(titleShimmer)titleShimmer.uniforms.t.value=s; if(titleGlass)titleGlass.uniforms.t.value=s;
  const hf=2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect), vw=2*TITLE_D*Math.tan(hf/2);
  const fwd=look.clone().sub(at).setY(0).normalize(); const on=new Set();
  for(const [text,t0,t1] of spec){ const g=titleGroup(text); if(!g)continue; const t=s-t0; let f=0; if(t>0&&s<t1)f=Math.min(1,t/0.6,(t1-s)/0.6); if(f<=0)continue; on.add(g); g.visible=true;
   for(const m of g.userData.mats)m.opacity=m.userData.base*Math.min(f,m.userData.delay?Math.max(0,Math.min(1,(t-m.userData.delay)/0.6)):1); if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f; if(g.userData.glass)titleGlass.uniforms.op.value=f;
   g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));
-  g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }
+  if(yOff===0){ g.position.copy(at).addScaledVector(look.clone().sub(at).normalize(),TITLE_D); g.quaternion.copy(cam.quaternion); }   /* mid-picture whatever the pitch (Lloyd, shot 5) */
+  else { g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+yOff); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); } }
  if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }
 function titlesOff(){ if(titles)for(const g of titles.children)g.visible=false; }
 // THE DOOR (Lloyd, finale V4): the glass wall is not cut open; every window has a door at its
@@ -3483,7 +3549,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",9.1,13.6]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community.",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
@@ -3493,7 +3559,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  // the couple's timetable, mirrored from updateWedding: 20 s up the aisle, 6 s across to the glass
  const couple=tw=>{ if(tw<=20)return {u:uM,d:3.55+(tw/20)*9.9}; const q=Math.min(1,(tw-20)/6); return {u:uM+(27.6-uM)*q,d:13.45+2.2*q}; };
  // a shot's title lines, placed from the pose just set: ahead of the eye along its look
- const titlesNow=(s,spec)=>titleStep(s,eye,eye.clone().add(fwd()),spec);
+ const titlesNow=(s,spec,yOff)=>titleStep(s,eye,eye.clone().add(fwd()),spec,yOff);
  // the black veil, set straight (no transition): 0 clear, 1 black
  const veil=op=>{ const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=op; };
  const withTitles=(f,dur,spec)=>k=>{ f(k); titlesNow(k*dur,spec); };
@@ -3540,13 +3606,14 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // crowd below to the stage as it lands, and the last 5 s are the hold as before
   {celebrate:true,dur:14, cam:k=>{ const s=k*14, q=smooth(Math.min(1,s/9)), w=0.06*Math.sin(k*Math.PI*2)*q;
     // (Lloyd, V4) lower start, 6 m, so the paper is above the text as it comes in
-    // (Lloyd, V5) the text waits until 9.1 s (its times in titles.json) and the shot fades out at the end
-    poseAt(EP(uM+8+w*8,2.4+3.6*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate')); veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-12.5)/1.5)))); }},
+    // (Lloyd, V5, V6) the text from 2.3 s (its times in titles.json), centred; the shot fades out at the end
+    poseAt(EP(uM+8+w*8,2.4+3.6*(1-q),13-2.5*(1-q)),EP(uM,2.5-1.3*(1-q),5+3.5*(1-q))); titlesNow(s,TX('party-celebrate'),0);   /* centred in the picture (Lloyd, V6) */ veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-12.5)/1.5)))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way
   {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6);
     poseAt(EP(uM+9*Math.cos(a),2.0+0.6*q,1.6+9*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(1-smooth(Math.min(1,k*16/1.5))); }},   /* (Lloyd, V2) fades in from black */
-  {mode:'wedding',dur:14, cam:withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.6,5.2),EP(uM,1.5,3.5),EP(uM,1.6,3.0)),14,TX('wedding-aisle'))},
+  // (Lloyd, V2) the ceremony plays to the shot's clock: the turn, the veil, the kiss, the dip
+  {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   {celebrate:true,dur:26.5, cam:k=>{ const tw=k*26.5, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5));
     // (Lloyd, V3) no sculpture outside the glass in this shot
@@ -3561,7 +3628,7 @@ function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.h
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
  if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); if(TOURQ)startTour(); return; }
- const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(court)court.visible=document.getElementById('court').checked;
+ const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
  const h0=lit.house; if('mode' in sg)setEvent(sg.mode); if(lit.house!==h0){ houseRamp={from:h0,to:lit.house,t0:now,dur:2.5}; lit.house=h0; } if(sg.celebrate)fireCelebrate(); sg.cam(0);
