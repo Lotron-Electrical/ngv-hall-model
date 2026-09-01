@@ -341,7 +341,10 @@ V4 (sent 01/09/2026 22:59:23):
 V5 (sent 01/09/2026 23:26:53):
 [shot 8, 6.2 s] the crowd should keep jumping through the scene
 
-V6 (draft):
+V6 (sent 01/09/2026 23:31:45):
+[shot 8, 11.3 s] the people should keep jumping during this scene. Also it should cut a bit earlier and go into the next scene. Fade out
+
+V7 (draft):
 
 
 ---
@@ -386,7 +389,9 @@ V5 (sent 01/09/2026 23:26:59):
 The dark blue in gandel hall doesn't contrast well on the black, use different colours
 
 V6 (draft):
+Door should open outwards. Also move the glass door more to its left. Right now it's clipping into the metal pilon. Also, no logos should be visible outside, they should only appear once the camera pans back off the grooms back.
 
+Actually an even better transition is that the camera flies into the back of the groom, which fills the frame completely, it then fades to black and then in the next clip that's where the screen is black and then the logos come in from the top and show the final logo scene.
 
 ---
 
