@@ -3318,12 +3318,14 @@ function buildPortal(){
  const cone=new THREE.Mesh(new THREE.ConeGeometry(coneR,coneH,48,1,true),coneMat); cone.position.y=lampY-C.y-coneH/2; g.add(cone);
  // the words above it
  const words=new THREE.Group(); words.position.y=2.6; g.add(words);
- const addWords=(font)=>{ const tg=new TextGeometry('Enter The Future of Gandel Hall',{font,size:0.36,height:0.06,curveSegments:3,bevelEnabled:false});
-  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-(b.min.y+b.max.y)/2,-0.03);
-  const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
-  const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
-  const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=0.1; halo2.scale.set(1.12,1.4,2.4);
-  words.add(core,halo,halo2); };
+ // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
+ const addWords=(font)=>{ const line=(text,size,y)=>{ const tg=new TextGeometry(text,{font,size,height:0.06,curveSegments:3,bevelEnabled:false});
+   tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
+   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
+   const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=0.1; halo2.scale.set(1.12,1.4,2.4);
+   words.add(core,halo,halo2); };
+  line('Enter The Future',0.42,0.3); line('Gandel Hall',0.42,-0.3); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
  portal={group:g,centre:C,body,outer,inner,spray,disc,words,mats:[inner.material,sprayMat,portalMat,suckMat],hit:[...mirrors,inner,disc]};
