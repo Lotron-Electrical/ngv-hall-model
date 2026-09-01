@@ -3298,9 +3298,18 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     poseAt(at,ahead.clone().lerp(down,dk)); titleStep(k*16,at,ahead,TX('rainbow-columns')); }},
   // (Lloyd, V3) the pan up takes 5 s with a double ease, and the courtyard is simply hidden for
   // this shot: plain glass, nothing outside it
-  {mode:'dinner', dur:16, cam:k=>{ const s=k*16, q=smooth(k); const at=EP(18.9+5.1*q,0.9+1.7*q,4.9+0.3*q), centre=EP(uM,1.0,9.5), down=EP(18.95,0.0,4.9);
-    poseAt(at,down.lerp(centre,smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))))); titleStep(s,at,centre,TX('dinner'));
-    if(court)court.visible=false; }},
+  // (Lloyd, V2) no spin: the pan up is PITCH ONLY, the yaw held down the hall as shot 1 left it
+  // (lerping the look from straight down to the room's centre swung the yaw through the
+  // vertical, which read as a spin); then, from 5.6 s, the camera lifts slowly from 0.9 m to
+  // 2.6 m while the yaw pans across the room to the centre; the text goes at 11 s, the shot
+  // fades to black over 11.5 to 13 s and ends there
+  {mode:'dinner', dur:13, cam:k=>{ const s=k*13, U=EVENT.N.u, R=EVENT.N.inRoom;
+    const q1=smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))), q2=smooth(Math.max(0,Math.min(1,(s-5.6)/6.4)));
+    const at=EP(18.9,0.9+1.7*q2,4.9), cu=uM-18.9, cd=9.5-4.9, t1=Math.atan2(cd,cu), a=t1*q2;
+    const p0=-1.50, p1=-0.09, p2=Math.atan2(1.0-2.6,Math.hypot(cu,cd)), p=p0+(p1-p0)*q1+(p2-p1)*q2;
+    const h=U.clone().multiplyScalar(Math.cos(a)).addScaledVector(R,Math.sin(a));
+    poseAt(at,at.clone().addScaledVector(h,5*Math.cos(p)).add(new THREE.Vector3(0,5*Math.sin(p),0))); titleStep(s,at,at.clone().addScaledVector(h,5),TX('dinner'));
+    veil(smooth(Math.max(0,Math.min(1,(s-11.5)/1.5)))); if(court)court.visible=false; }},
   // (Lloyd's storyboard, shot 3) the banquet: fade in, a slow travel down the table at 1.9 m
   // over the guests' heads, looking along it, fade out
   {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55));

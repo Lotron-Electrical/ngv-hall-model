@@ -44,7 +44,15 @@ Also make sure the text fits on the phone as well
 V3.
 At the end, smoothly transition the brightness of the carpet into the next scene
 
-V2 (draft):
+V2 (sent 01/09/2026 22:05:32):
+[shot 1, 10.1 s] 
+
+Gandel Hall
+Is brought to light
+
+(Gandel Hall on the line above) Gandel Hall should also be stained glass text effect
+
+V3 (draft):
 
 
 ---
@@ -52,9 +60,9 @@ V2 (draft):
 ## 2. Dinner
 <!-- shot: dinner -->
 
-Duration 16 s. Event: `dinner` (tables set).
+Duration 13 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up slowly over 5 s (double ease) to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community." floats over the dinner from 5.5 s to 11 s. The courtyard is hidden for this shot: plain glass, nothing outside. The house light comes up over 2.5 s at the start, so the carpet's brightness eases in from shot 1.
+Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, then pans up over 5 s (double ease) by pitch only, the yaw held down the hall as shot 1 left it, so there is no spin. From 5.6 s the camera lifts slowly from 0.9 m to 2.6 m while the look pans across the room to its centre `(uM, 1.0, 9.5)`, over 6.4 s. "A space for community." floats over the dinner from 5.5 s to 11 s; the shot fades to black over 11.5 s to 13 s and ends. The courtyard is hidden for this shot: plain glass, nothing outside. The house light comes up over 2.5 s at the start, so the carpet's brightness eases in from shot 1.
 
 | start | middle | end |
 |---|---|---|
@@ -77,7 +85,14 @@ The frosted glass is too frosted. Maybe instead, we have normal glass, and no sc
 
 At the starts the camera turns too fast. Smooth/ease that turn considerably or remove it.
 
-V2 (draft):
+V2 (sent 01/09/2026 22:03:22):
+[shot 2, 1.2 s] 
+
+Do not spin the camera here. Pan it back up smoothly, and then slowly lift the camera and pan across the room slowly
+[shot 2, 11.2 s] 
+After the text disappears, then fade out and end the shot
+
+V3 (draft):
 
 
 ---
