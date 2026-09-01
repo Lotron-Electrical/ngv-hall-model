@@ -1609,7 +1609,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3299,7 +3299,7 @@ function buildPortal(){
  const ledRun=(segs,parent)=>{ const n=segs.length*EDGE_PX, pos=new Float32Array(n*3), col=new Float32Array(n*3);
   segs.forEach(([a,b],i)=>{ for(let j=0;j<EDGE_PX;j++){ const t=(j+0.5)/EDGE_PX; pos.set([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t],(i*EDGE_PX+j)*3); } });
   const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(pos,3)); gg.setAttribute('color',new THREE.BufferAttribute(col,3));
-  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.16,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.075,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   m.frustumCulled=false; m.layers.enable(1); parent.add(m); return m; };
  const segsOf=geo=>{ const e=new THREE.EdgesGeometry(geo).attributes.position, out=[]; for(let i=0;i<e.count;i+=2)out.push([new THREE.Vector3().fromBufferAttribute(e,i),new THREE.Vector3().fromBufferAttribute(e,i+1)]); return out; };
  // a hair inside the mirror planes, so the strips sit in front of the glass and not in it
@@ -3335,8 +3335,9 @@ function buildPortal(){
  // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
  const shimmerMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader:`uniform float t; varying vec3 vP; void main(){ float g=pow(0.5+0.5*sin(vP.x*2.2-t*2.6),18.0); float g2=pow(0.5+0.5*sin(vP.x*5.0+vP.y*3.0+t*1.7),40.0);
-   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*(g*1.1+g2*0.7),1.0); }`});
+  // one broad glint crossing the name every few seconds, smooth (Lloyd: the first cut jittered)
+  fragmentShader:`uniform float t; varying vec3 vP; void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
+   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*g*0.9,1.0); }`});
  const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
    const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:3.2,emissive:0x5a6070}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
@@ -3348,22 +3349,24 @@ function buildPortal(){
  scene.add(g);
  portal={group:g,centre:C,body,outer,inner,spray,disc,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
 }
-function portalStep(now){ const P=portal; if(!P)return;
- P.group.visible=!tour&&!document.getElementById('event').checked; if(!P.group.visible)return;
- for(const m of P.mats)m.uniforms.t.value=now;
- P.body.position.y=0.25*Math.sin(now*0.9);                       // the float
- P.outer.rotation.set(now*0.17,now*0.23,now*0.11); P.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
- const pulse=0.53+0.08*Math.sin(now*0.7); P.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
- P.spray.position.y=P.body.position.y;
- P.words.position.y=2.6+0.5*P.body.position.y; P.words.rotation.y=Math.atan2(eye.x-P.group.position.x,eye.z-P.group.position.z);
- // the strips: run 0's pixels, in order, stretched along each edge, colours inverted
+function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
+ Q.group.visible=!tour&&!document.getElementById('event').checked; if(!Q.group.visible)return;
+ for(const m of Q.mats)m.uniforms.t.value=now;
+ Q.body.position.y=0.25*Math.sin(now*0.9);                       // the float
+ Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
+ const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
+ Q.spray.position.y=Q.body.position.y;
+ Q.words.position.y=2.6+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
+ // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
+ // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
  if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
   if(G.runOf!==P){ G.runOf=P; G.runIdx=[]; for(let k=0;k<P.n;k++)if(P.run[k]===0)G.runIdx.push(k); G.runIdx.sort((x,y)=>P.pi[x]-P.pi[y]); }
   const a=pix.instanceColor.array, L=G.runIdx.length;
-  if(L){ for(const m of G.leds){ const c=m.geometry.attributes.color.array, n=c.length/3;
-   for(let i=0;i<n;i++){ const k=G.runIdx[Math.min(L-1,Math.floor(((i%G.edgePx)+0.5)/G.edgePx*L))]*3;
-    c[i*3]=1-Math.min(1,a[k]); c[i*3+1]=1-Math.min(1,a[k+1]); c[i*3+2]=1-Math.min(1,a[k+2]); }
-   m.geometry.attributes.color.needsUpdate=true; } } }
+  if(L){ let mx=1e-4; for(const k of G.runIdx){ mx=Math.max(mx,a[k*3],a[k*3+1],a[k*3+2]); }
+   for(const m of G.leds){ const c=m.geometry.attributes.color.array, n=c.length/3;
+    for(let i=0;i<n;i++){ const k=G.runIdx[Math.min(L-1,Math.floor(((i%G.edgePx)+0.5)/G.edgePx*L))]*3;
+     c[i*3]=1-Math.min(1,a[k]/mx); c[i*3+1]=1-Math.min(1,a[k+1]/mx); c[i*3+2]=1-Math.min(1,a[k+2]/mx); }
+    m.geometry.attributes.color.needsUpdate=true; } } }
  sceneDirty=true; }
 
 // click or tap the object: the tour begins
