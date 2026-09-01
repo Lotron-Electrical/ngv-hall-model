@@ -3524,7 +3524,10 @@ function buildPortal(){
     // at a grazing angle the Reflector's oblique clip plane degenerates and the pane drew a frame
     // of rubbish before it was culled. graze is set per frame from the view angle.
     m.material.uniforms.graze={value:1};
-    m.material.fragmentShader=m.material.fragmentShader.replace('uniform vec3 color;','uniform vec3 color; uniform float graze;').replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.6*graze )');
+    // every bounce is dimmed by a plain multiply, 0.68, not the Reflector's overlay (an overlay
+    // leaves anything already near white untouched, and the strips are): the twelve panes summed
+    // their saturated strips to white over the bounces (Lloyd: the inside white, over-exposed)
+    m.material.fragmentShader=m.material.fragmentShader.replace('uniform vec3 color;','uniform vec3 color; uniform float graze;').replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'base.rgb*0.68, 0.6*graze )');
     m.material.transparent=true; m.material.depthWrite=false;
     // the mirror pass sees no sky: inside a mirror box there is nothing but the box, so the
     // background is black for the duration and the hall's own sky is put back afterwards
@@ -3699,9 +3702,8 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  const done=()=>{ cam.fov=fov0; cam.updateProjectionMatrix(); requestAnimationFrame(frame); };
  if(wk>0&&!boom&&eye.distanceTo(portal.centre)<1.55)boomStart(now/1000);
  if(boom){ if(boomRender(now/1000)){ done(); return; } }
- if(wk>0){ const a=wk*wk; if(Math.random()<a*0.2){ done(); return; }   // a dropped frame: the picture holds
-  if(Math.random()<a*0.03){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); done(); return; }   // the shutter
-  warpShake(wk,now/1000); warpRender(wk); }
+ // no dropped frames and no shutter frames on the way in (Lloyd: no flashing is allowed)
+ if(wk>0){ warpShake(wk,now/1000); warpRender(wk); }
  else R.render(scene,cam);
  // the veil (Lloyd): a spinner on black until the hall, the strips and the object all exist and
  // thirty frames have drawn, since the first frames compile shaders and the strips settle, which
