@@ -11,6 +11,7 @@ main{max-width:960px;margin:0 auto;padding:0 0 48px}
 header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+#sndhint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:13px;padding:6px 12px;border-radius:999px;pointer-events:none;z-index:4;letter-spacing:.02em}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 #stage:fullscreen{height:100vh}
@@ -137,7 +138,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="sndhint" hidden>&#128266; Click anywhere for sound</div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -3331,7 +3332,11 @@ for(const ev of ['pointerdown','pointerup','keydown','touchstart','touchend','cl
 // above then starts it. On the proposal page the frame carries allow="autoplay" for the same reason.
 { let inView=false; const want=()=>{ sndInit(); if(!SND.ctx)return; if(inView&&!document.hidden){ if(SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); } else if(SND.ctx.state==='running')SND.ctx.suspend(); };
   new IntersectionObserver(es=>{ inView=es.some(e=>e.isIntersecting); want(); },{threshold:0.3}).observe(stage);
-  document.addEventListener('visibilitychange',want); addEventListener('load',want); }
+  document.addEventListener('visibilitychange',want); addEventListener('load',want);
+  // a browser will not start sound on a page that has not been clicked or keyed: say so, quietly,
+  // until the context is running (Lloyd: the sounds don't start when the page loads)
+  const hint=document.getElementById('sndhint'); if(TOUCH)hint.innerHTML='&#128266; Tap anywhere for sound';
+  setInterval(()=>{ hint.hidden=!(SND.on&&SND.ctx&&SND.ctx.state!=='running'&&inView); },500); }
 document.getElementById('sound').onchange=e=>{ SND.on=e.target.checked; if(SND.master)SND.master.gain.setTargetAtTime(SND.on?0.6:0,SND.ctx.currentTime,0.1); };
 // THE TOUCH (Lloyd): the eye reaching the shell sets the scene off, a flash of white and the picture
 // folded into a spinning kaleidoscope, and then the tour begins on its own
@@ -3543,7 +3548,7 @@ function buildPortal(){
   fragmentShader:CONE_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  const cone=new THREE.Mesh(new THREE.ConeGeometry(coneR,coneH,48,1,true),coneMat); cone.position.y=lampY-C.y-coneH/2; g.add(cone);
  // the words above it
- const words=new THREE.Group(); words.position.y=2.6; g.add(words);
+ const words=new THREE.Group(); words.position.y=3.1; g.add(words);
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
  // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, driven
  // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
@@ -3568,8 +3573,10 @@ function buildPortal(){
   // the cue (Lloyd): under the name, "Tap to begin" on a phone and "Click to begin" on a computer,
   // with an arrow pointing down at the object. It goes away once the approach has begun.
   // Lloyd: thinner and smaller than the name, and never hidden behind the object, so the cue is
-  // set in the regular face, small and shallow, and drawn without a depth test on top of everything
-  const cueMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,depthTest:false,depthWrite:false});
+  // set in the regular face, small and shallow
+  // (Lloyd: it showed through a column) so it is depth-tested like everything else; the whole word
+  // block sits high enough that the arrow's tip clears the top of the object at the top of its float
+  const cueMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
   const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.16,4),cueMat); arrow.rotation.x=Math.PI; arrow.position.y=-1.15; arrow.renderOrder=20; words.add(arrow);
   words.userData.cue=[arrow]; words.userData.arrow=arrow;
   const cueText=f=>{ const tg=new TextGeometry(TOUCH?'Tap to begin':'Click to begin',{font:f,size:0.14,height:0.012,curveSegments:4,bevelEnabled:false}); tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-0.85-(b.min.y+b.max.y)/2,-0.03);
@@ -3585,11 +3592,12 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  if(!Q.group.visible)return;
  for(const m of Q.mats)m.uniforms.t.value=now;
  Q.body.position.y=0.25*Math.sin(now*0.9);                       // the float
+ { const want=hover&&!approach&&!boom?1:0; Q.hov=(Q.hov||0)+(want-(Q.hov||0))*0.12; Q.body.scale.setScalar(1+Q.hov*(0.03+0.03*Math.sin((now-hoverT0)*1.6))); }   // the pulse under the mouse
  Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
  const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
  Q.spray.position.y=Q.body.position.y; Q.spray.material.uniforms.voidY.value=Q.disc.position.y-Q.body.position.y;   // the void, seen from the spray's frame
- Q.words.position.y=2.6+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
- if(Q.words.userData.cue){ const on=!approach&&!boom; for(const o of Q.words.userData.cue)o.visible=on; Q.words.userData.arrow.position.y=-1.15+0.06*Math.sin(now*3.0); }
+ Q.words.position.y=3.1+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
+ if(Q.words.userData.cue){ const on=!approach&&!boom; for(const o of Q.words.userData.cue)o.visible=on; Q.words.userData.arrow.position.y=-1.15+0.015*Math.sin(now*2.0); }
  // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
  // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
  if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
@@ -3607,7 +3615,10 @@ const portalRay=new THREE.Raycaster();
 function portalHit(cx,cy){ if(!portal||!portal.group.visible)return false; const r=cv.getBoundingClientRect();
  portalRay.setFromCamera(new THREE.Vector2(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1),cam);
  return portalRay.intersectObjects(portal.hit,false).length>0; }
-let tapAt=null;
+let tapAt=null, hover=false, hoverT0=0;
+// on a computer the object pulses a little under the mouse, and the cursor becomes a hand (Lloyd)
+cv.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse')return; const h=portalHit(e.clientX,e.clientY); if(h!==hover){ hover=h; hoverT0=performance.now()/1000; } cv.style.cursor=h?'pointer':''; });
+cv.addEventListener('pointerleave',()=>{ hover=false; cv.style.cursor=''; });
 cv.addEventListener('click',e=>{ if(portalHit(e.clientX,e.clientY))approachStart(); });
 cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.clientX,y:t.clientY,t:performance.now(),id:t.identifier}; },{passive:true});
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
