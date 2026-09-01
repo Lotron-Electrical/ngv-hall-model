@@ -12,6 +12,10 @@ header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
+#loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
+#loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
+#loader i{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 #stage:fullscreen{height:100vh}
 #cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
@@ -137,7 +141,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -879,7 +883,7 @@ new GLTFLoader().load('model.glb',g=>{
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
- ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
+ ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.'; document.getElementById('loader').classList.add('gone');});
 
 // ============ LED strips, built live from runs.json ============
 // Each run is a polyline up the shaft in one fin gap (already at its standoff). The strip is a
@@ -3314,7 +3318,10 @@ function sndStep(now,k){ const c=SND.ctx; if(!c||c.state!=='running')return; con
   const o=c.createOscillator(); o.frequency.value=f; const g=c.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.012+Math.random()*0.01,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+2.5+Math.random()*2);
   const dry=c.createGain(); dry.gain.value=0.3; o.connect(g); g.connect(SND.verb); g.connect(dry); dry.connect(SND.master); o.start(t); o.stop(t+5); }
  // the chord: partial i comes in once the nearness has passed its own threshold, the whole thing
- // swells with it, and every partial climbs a fifth on the way in so the chord rises as it fills
+ // swells with it, and every partial climbs a fifth on the way in so the chord rises as it fills.
+ // From the boom to the tour the chord is the boom's to fade (k is null): a per-frame target on
+ // the same gain fought the boom's ramp and crackled (Lloyd: the sound glitches in the kaleidoscope)
+ if(k===null)return;
  SND.chordGain.gain.setTargetAtTime(0.16*k,t,0.3);
  const N=SND.parts.length; for(const p of SND.parts){ const on=Math.max(0,Math.min(1,(k-p.i/N)*N*0.9)); p.g.gain.setTargetAtTime(on*(p.i<2?0.4:0.6/(p.i+1)),t,0.4); p.o.frequency.setTargetAtTime(110*p.h*(1+0.5*k*k),t,0.5); }
  SND.riser.g.gain.setTargetAtTime(0.25*k*k,t,0.3); SND.riser.o.frequency.setTargetAtTime(220*Math.pow(4,k),t,0.3); }
@@ -3345,12 +3352,15 @@ let boom=null, approach=null;
 function approachStart(){ if(approach||boom||tour||!portal)return; idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
  // the drift is a spiral: the angle swings early onto the nearest line that meets the object without
  // passing through a column, while the radius closes slowly
- approach={from:eye.clone(),a0:Math.atan2(eye.z-C.z,eye.x-C.x),a1:clearRadial(C,r0,eye.y),r0,t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(C)/0.9)}; noclip=true; }
+ // the look is carried from where it was (Lloyd: no jump): yaw and pitch blend onto the object over
+ // the first two seconds, and the idle lens opening eases shut in frame() rather than snapping
+ approach={from:eye.clone(),a0:Math.atan2(eye.z-C.z,eye.x-C.x),a1:clearRadial(C,r0,eye.y),r0,t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(C)/0.9),yaw0:yaw,pitch0:pitch}; noclip=true; }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
- poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C); }
+ poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C);
+ const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b; }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
@@ -3572,13 +3582,15 @@ function buildPortal(){
   // with an arrow pointing down at the object. It goes away once the approach has begun.
   // Lloyd: thinner and smaller than the name, and never hidden behind the object, so the cue is
   // set in the regular face, small and shallow
-  // (Lloyd: it showed through a column) so it is depth-tested like everything else; the whole word
-  // block sits high enough that the arrow's tip clears the top of the object at the top of its float
+  // (Lloyd: it showed through a column) so it is depth-tested like everything else.
+  // Lloyd: the cue is attached to the object and floats up and down with it, a gap between the two,
+  // so it lives in its own group that portalStep() carries at the object's height plus CUE_UP
   const cueMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
-  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.16,4),cueMat); arrow.rotation.x=Math.PI; arrow.position.y=-1.15; arrow.renderOrder=20; words.add(arrow);
-  words.userData.cue=[arrow]; words.userData.arrow=arrow;
-  const cueText=f=>{ const tg=new TextGeometry(TOUCH?'Tap to begin':'Click to begin',{font:f,size:0.14,height:0.012,curveSegments:4,bevelEnabled:false}); tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-0.85-(b.min.y+b.max.y)/2,-0.03);
-   const m=new THREE.Mesh(tg,cueMat); m.renderOrder=20; words.add(m); words.userData.cue.push(m); };
+  const cue=new THREE.Group(); g.add(cue); words.userData.cueGroup=cue;
+  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.16,4),cueMat); arrow.rotation.x=Math.PI; arrow.renderOrder=20; cue.add(arrow);
+  words.userData.arrow=arrow;
+  const cueText=f=>{ const tg=new TextGeometry(TOUCH?'Tap to begin':'Click to begin',{font:f,size:0.14,height:0.012,curveSegments:4,bevelEnabled:false}); tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,0.3-(b.min.y+b.max.y)/2,-0.03);
+   const m=new THREE.Mesh(tg,cueMat); m.renderOrder=20; cue.add(m); };
   if(addWords.regular)cueText(addWords.regular); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json',f=>{ addWords.regular=f; cueText(f); }); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
@@ -3594,8 +3606,9 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
  const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
  Q.spray.position.y=Q.body.position.y; Q.spray.material.uniforms.voidY.value=Q.disc.position.y-Q.body.position.y;   // the void, seen from the spray's frame
- Q.words.position.y=3.1+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
- if(Q.words.userData.cue){ const on=!approach&&!boom; for(const o of Q.words.userData.cue)o.visible=on; Q.words.userData.arrow.position.y=-1.15+0.015*Math.sin(now*2.0); }
+ Q.words.position.y=3.1+Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
+ // the cue rides the float: outer shell 1.35 to a vertex, pulse 1.06, then a gap of ~0.4 to the arrow's tip
+ if(Q.words.userData.cueGroup){ const c=Q.words.userData.cueGroup; c.visible=!approach&&!boom; c.position.y=Q.body.position.y+1.9; c.rotation.y=Q.words.rotation.y; Q.words.userData.arrow.position.y=0.015*Math.sin(now*2.0); }
  // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
  // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
  if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
@@ -3636,16 +3649,22 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  resolveMove();
  animate(now/1000); govern(now);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f));
- const wk=WARP.k=warpK(); sndStep(now/1000,boom?1:wk);
+ const wk=WARP.k=warpK(); sndStep(now/1000,boom?null:wk);
+ // the orbit's opened lens eases shut when the orbit ends, instead of snapping (Lloyd: the tap jumped)
+ lensOpen+=((idle?(TOUCH?24:18):0)-lensOpen)*Math.min(1,dt*2.5); const fov0=cam.fov; cam.fov=Math.min(100,fov0+lensOpen); cam.updateProjectionMatrix();
+ const done=()=>{ cam.fov=fov0; cam.updateProjectionMatrix(); requestAnimationFrame(frame); };
  if(wk>0&&!boom&&eye.distanceTo(portal.centre)<1.55)boomStart(now/1000);
- if(boom){ if(boomRender(now/1000)){ requestAnimationFrame(frame); return; } }
- if(wk>0){ const a=wk*wk; if(Math.random()<a*0.2){ requestAnimationFrame(frame); return; }   // a dropped frame: the picture holds
-  if(Math.random()<a*0.03){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); requestAnimationFrame(frame); return; }   // the shutter
+ if(boom){ if(boomRender(now/1000)){ done(); return; } }
+ if(wk>0){ const a=wk*wk; if(Math.random()<a*0.2){ done(); return; }   // a dropped frame: the picture holds
+  if(Math.random()<a*0.03){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); done(); return; }   // the shutter
   warpShake(wk,now/1000); warpRender(wk); }
- else if(idle){   // the orbit is as wide as the room allows, so the lens opens instead: words and void both in frame (Lloyd)
-  const keep=cam.fov; cam.fov=Math.min(100,keep+(TOUCH?24:18)); cam.updateProjectionMatrix(); R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); }
  else R.render(scene,cam);
- requestAnimationFrame(frame);}
+ // the veil (Lloyd): a spinner on black until the hall, the strips and the object all exist and
+ // thirty frames have drawn, since the first frames compile shaders and the strips settle, which
+ // is what looked glitched; then the picture fades in
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; document.getElementById('loader').classList.add('gone'); }
+ done();}
+let loaderUp=true, readyFrames=0, lensOpen=0;
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>
