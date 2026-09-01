@@ -3170,9 +3170,11 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  ]; }
 function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ boom=null; if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
+function stopTour(){ boom=null; if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('celebratefab').hidden=!document.getElementById('event').checked; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
- const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0); }
+ const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0);
+ // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
+ document.getElementById('celebratefab').hidden=true; }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
  if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
@@ -3285,7 +3287,7 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
  const th=Math.tan(cam.fov*Math.PI/360)*cam.aspect, base=2*Math.atan(th), ang=angOv||(base+k*(2*Math.PI-base));
  if(!angOv&&ang<WARP_SW){   // still narrow enough for a perspective camera: sharpest, and no cube pass at all (Lloyd: the cube map was a blur up close)
   const keep=cam.fov; cam.fov=2*Math.atan(Math.tan(ang/2)/cam.aspect)*180/Math.PI; cam.updateProjectionMatrix();
-  R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); return; }
+  R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); W.stale=true; return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
  W.n++;
  if(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
@@ -3301,8 +3303,10 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
  // cube pass is six more renders of the hall; early in the widening the eye moves slowly and the
  // fisheye edge shows little of it, so a cube a few frames old is not seen
  const every=Math.max(W.half?2:1,k<0.5?3:k<0.8?2:1);
- if(W.n%every===0){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
-  try{ W.cube.update(R,scene); } finally{ reflecting=false; } }
+ // the first cube frame after the perspective pass always refreshes: the cube it would otherwise
+ // show is the warm-up one from the end of the hall (Lloyd: a brief flash before the FOV change)
+ if(W.stale||W.n%every===0){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
+  try{ W.cube.update(R,scene); } finally{ reflecting=false; W.stale=false; } }
  // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
  const u=W.quad.material.uniforms;
  u.ang.value=ang; u.tanh.value=Math.tan(WARP_SW/2); u.mixf.value=angOv?1:Math.min(1,(ang-WARP_SW)/0.6); u.aspect.value=cam.aspect;
@@ -3393,7 +3397,8 @@ function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noc
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
-const BOOM_T={kal:5.0,iris:1.2,hold:0.25};
+// the kaleidoscope runs 2.5 s (Lloyd: it went on too long, half of the 5 it was)
+const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
 function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; setTimeout(()=>{ f.style.background='#fff'; },2000); })); return false; }
