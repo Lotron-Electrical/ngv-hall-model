@@ -429,11 +429,8 @@ function photoMaterial(src){
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
    varying vec2 vUv; varying vec3 vPos;
    void main(){
-    float hd=distance(vPos.xz,hole.xy);
-    if(hole.w>0.5&&hd<hole.z)discard;   // the void's bowl sits in a hole in the floor
+    if(hole.w>0.5&&distance(vPos.xz,hole.xy)<hole.z)discard;   // the void's bowl sits in a hole in the floor
     vec3 albedo=texture2D(map,vUv).rgb*tint;
-    // the void's purple lip carried out onto the carpet, fading over half a metre (Lloyd: blend the edges)
-    float lip=hole.w>0.5?smoothstep(hole.z+0.55,hole.z,hd):0.0;
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
@@ -459,7 +456,7 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    gl_FragColor=vec4(albedo*E+vec3(0.55,0.2,1.0)*lip*lip*0.32,alpha);
+    gl_FragColor=vec4(albedo*E,alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
@@ -3430,10 +3427,10 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
    float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
    col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
   col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
-  // the purple lip blends both ways (Lloyd): a broad soft glow that fades down into the bowl and,
-  // on the carpet side, is carried on by the floor shader's matching glow
-  float rim=smoothstep(0.62,1.0,r);
-  col+=vec3(0.55,0.2,1.0)*rim*rim*0.5;
+  // the purple lip, soft on both sides and no halo (Lloyd): it fades in from the bowl and out
+  // again at the carpet's edge, dim
+  float rim=smoothstep(0.93,0.985,r)*smoothstep(1.0,0.99,r);
+  col+=vec3(0.55,0.2,1.0)*rim*0.2;
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
