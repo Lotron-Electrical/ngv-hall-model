@@ -3570,7 +3570,7 @@ function buildPortal(){
   // Lloyd: thinner and smaller than the name, and never hidden behind the object, so the cue is
   // set in the regular face, small and shallow, and drawn without a depth test on top of everything
   const cueMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,depthTest:false,depthWrite:false});
-  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.11,0.26,4),cueMat); arrow.rotation.x=Math.PI; arrow.position.y=-1.15; arrow.renderOrder=20; words.add(arrow);
+  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.16,4),cueMat); arrow.rotation.x=Math.PI; arrow.position.y=-1.15; arrow.renderOrder=20; words.add(arrow);
   words.userData.cue=[arrow]; words.userData.arrow=arrow;
   const cueText=f=>{ const tg=new TextGeometry(TOUCH?'Tap to begin':'Click to begin',{font:f,size:0.14,height:0.012,curveSegments:4,bevelEnabled:false}); tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-0.85-(b.min.y+b.max.y)/2,-0.03);
    const m=new THREE.Mesh(tg,cueMat); m.renderOrder=20; words.add(m); words.userData.cue.push(m); };
