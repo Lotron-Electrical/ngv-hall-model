@@ -17,7 +17,7 @@ The tour runs straight after the kaleidoscope. Total length about 173 s.
 
 Duration 16 s. Event: none (the columns run rainbow).
 
-Fly from `(4, 1.7, 7.6)` to `(16, 1.7, 4.5)`: down the hall at head height, drifting across from the object's line to the wall-side lane (clear of the tables), looking ahead. Three title lines float 6 m ahead of the camera, one after another (4.4 s each): "A unique space", "Carefully crafted over decades", "Is brought to light". Over the last 3 s the camera tilts down to the carpet just ahead `(17.5, 0, 4.5)`.
+Fly from `(4, 1.7, 7.6)` to `(18.9, 0.9, 4.9)`: down the hall at head height, drifting across from the object's line to the wall-side lane (clear of the tables), looking ahead. Three title lines float 6 m ahead of the camera, one after another (4.4 s each): "A unique space", "Carefully crafted over decades", "Is brought to light". Over the last 3 s the camera drops to 0.9 m and tilts straight down to the carpet at its feet, midway between two columns and two tables, so the frame is carpet only.
 
 | start | middle | end |
 |---|---|---|
@@ -44,13 +44,16 @@ Also make sure the text fits on the phone as well
 
 Duration 16 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(16, 1.7, 4.5)` looking down at the carpet, with the dinner already set. Pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)`, then pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout.
+Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community" floats over the dinner from 3.4 s to 9 s.
 
 | start | middle | end |
 |---|---|---|
 | ![](storyboard/seg02a.jpg) | ![](storyboard/seg02b.jpg) | ![](storyboard/seg02c.jpg) |
 
-**Notes:** This dinner scene at the start is rendered wrong. Don't render the dinner event unique to this shot. Just render it normally as it would be for an event. When the camera pans up from the last shot it should be facing the centre of the room, not the wall.
+**Notes:** Make sure the carpet is fully in view and matches the starting point from the end of the last clip. So that the dinner is fully revealed.
+
+Text:
+A space for community
 
 ---
 
@@ -78,7 +81,10 @@ Fly from `(4, 2.2, 9)` to `(45.5, 2.2, 6)`: down the hall from the glass side in
 |---|---|---|
 | ![](storyboard/seg04a.jpg) | ![](storyboard/seg04b.jpg) | ![](storyboard/seg04c.jpg) |
 
-**Notes:**
+**Notes:** Text
+A place to come together
+
+Camera path, do not finish facing a blank wall. It would be better if it panned up and smoothly orbited around to end with a shot high up facing the crowd in the centre of the room
 
 ---
 
@@ -92,7 +98,11 @@ Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`.
 |---|---|---|
 | ![](storyboard/seg05a.jpg) | ![](storyboard/seg05b.jpg) | ![](storyboard/seg05c.jpg) |
 
-**Notes:**
+**Notes:** Text:
+
+and celebrate amongst friends
+
+Also, in this clip, the party scene wasn't visible
 
 ---
 
@@ -106,7 +116,10 @@ Fly from `(4, 2.1, 6.5)` to `(45.5, 2.1, 8.5)`: down the hall near the middle li
 |---|---|---|
 | ![](storyboard/seg06a.jpg) | ![](storyboard/seg06b.jpg) | ![](storyboard/seg06c.jpg) |
 
-**Notes:**
+**Notes:** The camera should be facing the stage and stay facing the speaker as it does a semi-circle orbit
+
+Text:
+"A space for people to share their stories"
 
 ---
 
@@ -120,7 +133,7 @@ Hold at `(uM-6, 2.3, 13)`, by the glass, looking across at `(uM, 2.0, 6)`.
 |---|---|---|
 | ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
-**Notes:**
+**Notes:** This clip currently shows no event
 
 ---
 
@@ -134,7 +147,8 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 |---|---|---|
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
-**Notes:**
+**Notes:** Text:
+"A place to
 
 ---
 

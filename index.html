@@ -3150,34 +3150,40 @@ function setEvent(mode){ const ev=document.getElementById('event'), md=document.
 // (Lloyd, second round) the glow held down to one faint halo; each line is scaled to fit the
 // width of the picture at its distance, so it fits a phone; and "light" carries a glint that
 // sweeps the word smoothly, a sine, never a step
-const TITLES=['A unique space','Carefully crafted over decades',['Is brought to','light']];
+// (Lloyd, third round) any shot can carry lines: a shot passes its own list of [text, from, to]
+// in seconds, and each line's group is built once and kept by its text
 const TITLE_D=6;   // metres ahead of the eye
-let titles=null, titleGlint=null;
-function buildTitles(){ if(titles||!buildCourt.font)return; titles=new THREE.Group(); titles.visible=false; scene.add(titles);
- titleGlint=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cx:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
-  vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader:`uniform float t; uniform float op; uniform float cx; varying vec3 vP;
-   void main(){ float x=vP.x-cx-sin(t*0.8)*0.7; float g=exp(-x*x*7.0); gl_FragColor=vec4(vec3(1.0,0.98,0.9)*g*0.55*op,1.0); }`});
+let titles=null, titleGlint=null; const titleGroups=new Map();
+function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.has(key))return titleGroups.get(key);
+ if(!buildCourt.font)return null;
+ if(!titles){ titles=new THREE.Group(); scene.add(titles);
+  titleGlint=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cx:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
+   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+   fragmentShader:`uniform float t; uniform float op; uniform float cx; varying vec3 vP;
+    void main(){ float x=vP.x-cx-sin(t*0.8)*0.7; float g=exp(-x*x*7.0); gl_FragColor=vec4(vec3(1.0,0.98,0.9)*g*0.55*op,1.0); }`}); }
  const geo=text=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:0.05,curveSegments:4}); tg.computeBoundingBox(); return tg; };
  const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:op>=1,toneMapped:false})); m.material.userData.base=op; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
- for(const item of TITLES){ const parts=Array.isArray(item)?item:[item]; const g=new THREE.Group(); const mats=[]; const tgs=parts.map(geo);
-  // the parts laid along one baseline, a word space between, the whole centred
-  const all=geo(parts.join(' ')).boundingBox, yOff=-(all.min.y+all.max.y)/2, gap=0.12;
-  const W=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(parts.length-1)*gap; let x=-W/2;
-  tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
-   g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats));
-   if(j>0){ titleGlint.uniforms.cx.value=x+w/2; g.add(new THREE.Mesh(tg,titleGlint)); g.userData.glint=true; }
-   x+=w+gap; });
-  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); } }
-// s: seconds into the shot; each line holds 4.4 s, the next starting as the last goes
-function titleStep(s,at,fwd){ buildTitles(); if(!titles)return; titles.visible=true; titleGlint.uniforms.t.value=s;
- // the width of the picture at the titles' distance, from the lens and the screen's shape
+ const parts=[].concat(item); const g=new THREE.Group(); const mats=[]; const tgs=parts.map(geo);
+ // the parts laid along one baseline, a word space between, the whole centred; a second part
+ // (the word "light") carries the glint
+ const all=geo(parts.join(' ')).boundingBox, yOff=-(all.min.y+all.max.y)/2, gap=0.12;
+ const W=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(parts.length-1)*gap; let x=-W/2;
+ tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
+  g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats));
+  if(j>0){ titleGlint.uniforms.cx.value=x+w/2; g.add(new THREE.Mesh(tg,titleGlint)); g.userData.glint=true; }
+  x+=w+gap; });
+ g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); titleGroups.set(key,g); return g; }
+// s: seconds into the shot; spec: [[text, from, to], ...]; the lines ride TITLE_D metres ahead of
+// the eye towards `look`, scaled to fit the picture's width there, fading 0.6 s in and out
+function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titleGlint)titleGlint.uniforms.t.value=s;
  const hf=2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect), vw=2*TITLE_D*Math.tan(hf/2);
- titles.children.forEach((g,i)=>{ const t=s-i*4.4; let f=0; if(t>0&&t<4.4)f=Math.min(1,t/0.6,(4.4-t)/0.6); g.visible=f>0; if(!g.visible)return;
+ const fwd=look.clone().sub(at).setY(0).normalize(); const on=new Set();
+ for(const [text,t0,t1] of spec){ const g=titleGroup(text); if(!g)continue; const t=s-t0; let f=0; if(t>0&&s<t1)f=Math.min(1,t/0.6,(t1-s)/0.6); if(f<=0)continue; on.add(g); g.visible=true;
   for(const m of g.userData.mats)m.opacity=m.userData.base*f; if(g.userData.glint)titleGlint.uniforms.op.value=f;
   g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));
-  g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }); }
-function titlesOff(){ if(titles)titles.visible=false; }
+  g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }
+ if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }
+function titlesOff(){ if(titles)for(const g of titles.children)g.visible=false; }
 function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  const fly=(h,d0,d1,look)=>glide(EP(4,h,d0),EP(45.5,h,d1),EP(22,look,d0),EP(60,look,d1));
  const hold=(u,h,d,lu,lh,ld)=>k=>{ const w=0.06*Math.sin(k*Math.PI*2); poseAt(EP(u+w*8,h,d),EP(lu,lh,ld)); };
@@ -3191,10 +3197,15 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // (Lloyd, second round) shot 1 drifts across to the wall-side lane (d 4.5, clear of the tables)
   // and looks down there, so shot 2's pan up comes up on the room's centre, not on guests at the
   // lens and the far wall; shot 2 then pushes slowly in on the dinner, facing the centre throughout
-  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+12*q, d=7.6-3.1*q; const at=EP(u,1.7,d), ahead=EP(u+18,1.5,d), down=EP(u+1.5,0.0,d);
-    const dk=smooth(Math.max(0,(k-0.8)/0.2)); poseAt(at,ahead.lerp(down,dk)); titleStep(k*16,at,EVENT.N.u); }},
-  {mode:'dinner', dur:16, cam:k=>{ const q=smooth(k); const at=EP(16+8*q,1.7+0.9*q,4.5+0.5*q), centre=EP(uM,1.0,9.5), down=EP(17.5,0.0,4.5);
-    poseAt(at,down.lerp(centre,smooth(Math.min(1,k*16/2.5)))); }},
+  // (Lloyd, third round) the look down is straight down, the eye dropping to 0.9 m, at (18.9, 4.9):
+  // midway between the columns at u 14.9 and 22.3 and the tables at u 16.1 and 21.7, so the frame
+  // is carpet only (the stage edge at d 3.3 and the guests from d 5.4 both fall outside it);
+  // shot 2 holds that carpet for 0.6 s from the same spot, then pans up and the
+  // dinner is revealed, "A space for community" floating over it
+  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+14.9*q, d=7.6-2.7*q, dk=smooth(Math.max(0,(k-0.8)/0.2)); const at=EP(u,1.7-0.8*dk,d), ahead=EP(u+18,1.5,d), down=EP(u+0.05,0.0,d);
+    poseAt(at,ahead.clone().lerp(down,dk)); titleStep(k*16,at,ahead,[['A unique space',0,4.4],['Carefully crafted over decades',4.4,8.8],[['Is brought to','light'],8.8,13.2]]); }},
+  {mode:'dinner', dur:16, cam:k=>{ const s=k*16, q=smooth(k); const at=EP(18.9+5.1*q,0.9+1.7*q,4.9+0.3*q), centre=EP(uM,1.0,9.5), down=EP(18.95,0.0,4.9);
+    poseAt(at,down.lerp(centre,smooth(Math.max(0,Math.min(1,(s-0.6)/2.5))))); titleStep(s,at,centre,[['A space for community',3.4,9.0]]); }},
   {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
   {mode:'party',  dur:16, cam:fly(2.2,9,6,1.2)},
   {celebrate:true,dur:14, cam:hold(uM+8,2.4,13,uM,2.5,5)},
