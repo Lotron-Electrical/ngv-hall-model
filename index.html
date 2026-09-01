@@ -3671,7 +3671,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   // (Lloyd, V6) the shot cuts at 23 s, fading out over its last 1.5 s, and the finale fades in
-  {celebrate:true,dur:23, cam:k=>{ const tw=k*23, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-21.5)/1.5))));
+  // (Lloyd, V8) the shot ends at 10.4 s, mid-aisle, fading out over its last 1.5 s into the finale
+  {celebrate:true,dur:10.4, cam:k=>{ const tw=k*10.4, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-8.9)/1.5))));
     // (Lloyd, V3) no sculpture outside the glass in this shot
     const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); if(court)court.visible=false;
     confettiUntil=Math.max(confettiUntil,performance.now()/1000+0.3); }},   /* (Lloyd, V5) the guests keep jumping the whole walk */
