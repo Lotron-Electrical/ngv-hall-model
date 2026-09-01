@@ -150,7 +150,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 <div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="roam">Free roam</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
- <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
+ <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
  <div id="hud" hidden></div>
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
@@ -1564,7 +1564,8 @@ function moveStick(st){knob.style.transform=`translate(${st.dx*0.6}px,${st.dy*0.
 function hideStick(){pad.style.display='none';}
 function fwd(){return new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));}
 function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
-document.getElementById('rst').onclick=()=>{stopTour(); idle=false; home();};
+// the Reset view button is gone (Lloyd, 2026-09-02); the guard keeps the wiring harmless
+{ const r=document.getElementById('rst'); if(r)r.onclick=()=>{stopTour(); idle=false; home();}; }
 document.getElementById('full').onclick=()=>{(document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen()).catch(()=>{});};
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---- solid walls. Every mesh of the hall is a collider: one ray from where the eye WAS to
@@ -4253,8 +4254,9 @@ function buildPortal(){
    tg.computeBoundingBox(); let b=tg.boundingBox; const w0=b.max.x-b.min.x; if(target){ const sc=target/w0; tg.scale(sc,sc,1); tg.computeBoundingBox(); b=tg.boundingBox; } tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
    if(chrome)tg.computeVertexNormals();
    const core=new THREE.Mesh(tg,chrome?wordsGlass:new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
-   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
-   const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
+   // (Lloyd, 2026-09-02) less glow: the halos are fainter and hug the letters closer
+   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.06:0.12,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.04,1.12,1.4);
+   const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.03:0.05; halo2.scale.set(1.08,1.25,1.8);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); return b.max.x-b.min.x; };
   const wB=line('Brought to light',0.42,-0.3,false); line('Gandel Hall',0.42,0.36,true,wB);
   // the cue (Lloyd): under the name, "Tap to begin" on a phone and "Click to begin" on a computer,
@@ -4276,7 +4278,8 @@ function buildPortal(){
  portal={group:g,centre:C,body,outer,inner,spray,disc,suck,cone,spot,holeR:1.69,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat,wordsGlass],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
- Q.group.visible=!tour&&!document.getElementById('event').checked&&!roamed;
+ // once a tour has run (even stopped in its first shot) the tesseract does not come back (Lloyd)
+ Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed;
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
  for(const m of Q.mats)m.uniforms.t.value=now;
