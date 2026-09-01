@@ -272,6 +272,7 @@ hint.innerHTML = COARSE
  : 'FLY &middot; WASD move while you <b>hold the left mouse to look</b> &middot; Space/C up-down &middot; Shift fast &middot; Alt slow &middot; wheel = speed &middot; <a href="model.glb" download>Download the GLB</a>';
 const R=new THREE.WebGLRenderer({canvas:cv,antialias:true}); R.setPixelRatio(Math.min(devicePixelRatio,2)); R.outputColorSpace=THREE.SRGBColorSpace; R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.0;
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+let finaleDark=false; const SKY_BLACK=new THREE.Color(0x000000);   // the finale's last scene is on black (Lloyd)
 scene.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.04).texture;
 const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // ---- lighting model. The photographs are albedo x house light at the exposure they were shot
@@ -416,7 +417,7 @@ function applyDay(hour){
  const hh=Math.floor(hour)%24, mm=Math.round((hour%1)*60);
  document.getElementById('todval').textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
  for(const m of photoMats){m.uniforms.day.value=lit.day; m.uniformsNeedUpdate=true;}
- scene.background=SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
+ scene.background=finaleDark?SKY_BLACK:SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
  if(typeof updateBeams==='function')updateBeams(hour);
  for(const grp of [typeof court!=='undefined'?court:null, typeof eventGroup!=='undefined'?eventGroup:null]) if(grp)grp.traverse(o=>{ if(o.isMesh&&o.material.userData&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
  sceneDirty=true;
@@ -1761,7 +1762,7 @@ function buildCourt(){
   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xfff6dc,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   halo.scale.set(1.06,1.18,1.6); const halo2=halo.clone(); halo2.scale.set(1.14,1.4,2.4); halo2.material=halo.material.clone(); halo2.material.opacity=0.1;
   // in the court group, not the logo group: it faces the glass and does not turn with the letters (Lloyd)
-  tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(turntable.position).y+=tagY; tag.quaternion.copy(turntable.quaternion); tag.userData.baseY=tag.position.y; court.add(tag); };
+  tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(turntable.position).y+=tagY; tag.quaternion.copy(turntable.quaternion); tag.userData.baseY=tag.position.y; tag.userData.size=tagSize; court.add(tag); };
  // Lotron at the front of the turntable, facing the hall at the start of every turn
  logo.position.set(0,0,ringR); turntable.add(logo);
  for(const m of logo.children)solids.push(m);
@@ -3220,6 +3221,24 @@ function setEvent(mode){ const ev=document.getElementById('event'), md=document.
 // in seconds, and each line's group is built once and kept by its text
 const TITLE_D=6;   // metres ahead of the eye
 let titles=null, titleGlint=null, titleShimmer=null, titleGlass=null; const titleGroups=new Map();
+// VORONOI STAINED GLASS for text (Lloyd): a mosaic of little coloured panes in dark lead over
+// the letters, lit from behind with a slow sweep; noDepth for the titles, which draw over
+// everything, depth-tested for the finale's line in the court
+function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.11}},transparent:true,depthWrite:false,depthTest:!noDepth,
+   vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+   fragmentShader:`uniform float t; uniform float op; uniform float cell; varying vec3 vP; varying vec3 vN;
+    vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
+    vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+    void main(){
+     vec2 q=vP.xy/cell; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
+     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
+     float edge=sqrt(d2)-sqrt(d1);
+     float lead=smoothstep(0.07,0.2,edge);                       // 0 on the lead line, 1 in the pane
+     vec3 c=hsv(fract(h2(id).x+t*0.01),0.9,1.0);
+     float lit=0.55+0.45*sin(vP.x*1.4-t*0.9+h2(id).y*2.0);          // the light behind, sweeping along
+     float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
+     vec3 col=mix(vec3(0.05,0.04,0.05),c*(0.55+0.45*lit),lead)*side;
+     gl_FragColor=vec4(col,op); }`});; }
 // a title: rows split on ' / ' (top row first); a row wrapped in *...* is set in stained glass,
 // a Voronoi of coloured panes in dark lead with the object's rainbow glint crossing it (Lloyd, shot 1: "Gandel Hall"
 // above "Is brought to light"); '|' in a row marks the word that carries the white glint
@@ -3238,23 +3257,7 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
     void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
     vec3 c=mix(vec3(1.0,0.98,0.94),hsv(fract(vP.x*0.16+t*0.07)),0.4);
     gl_FragColor=vec4(c*g*0.4*op,1.0); }`});
-  // (Lloyd, V3) the stained-glass row IS stained glass: a Voronoi of little panes over the
-  // letters, each its own colour, dark lead between them, lit from behind with a slow sweep
-  titleGlass=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1}},transparent:true,depthWrite:false,depthTest:false,
-   vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-   fragmentShader:`uniform float t; uniform float op; varying vec3 vP; varying vec3 vN;
-    vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
-    vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
-    void main(){
-     vec2 q=vP.xy/0.11; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
-     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
-     float edge=sqrt(d2)-sqrt(d1);
-     float lead=smoothstep(0.07,0.2,edge);                       // 0 on the lead line, 1 in the pane
-     vec3 c=hsv(fract(h2(id).x+t*0.01),0.9,1.0);
-     float lit=0.55+0.45*sin(vP.x*1.4-t*0.9+h2(id).y*2.0);          // the light behind, sweeping along
-     float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
-     vec3 col=mix(vec3(0.05,0.04,0.05),c*(0.55+0.45*lit),lead)*side;
-     gl_FragColor=vec4(col,op); }`}); }
+  titleGlass=makeGlassMat(true); }
  const geo=(text,st)=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:st?0.12:0.05,curveSegments:4,bevelEnabled:!!st,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2}); tg.computeBoundingBox(); return tg; };
  // drawn last with no depth test, so a column between the eye and the line never hides it (Lloyd)
  const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false,depthTest:false,toneMapped:false})); m.material.userData.base=op; m.renderOrder=990; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
@@ -3289,12 +3292,18 @@ function titlesOff(){ if(titles)for(const g of titles.children)g.visible=false; 
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
 const FIN={walk:8, rise:8, flat:5, hold:4, fade:2};   // seconds per phase
+// (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
+// the hall and the sky go, through a short dip to black
+let gandelTop=null, gandelTopMat=null;
 let finale=null, gandelText=null, gandelMat=null;
 const finaleTotal=()=>FIN.walk+FIN.rise+FIN.flat+FIN.hold+FIN.fade;
 // the triangle in the turntable's own frame (+z faces the hall; seen from the hall, +x is left)
 function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partners.map(p=>p.userData.top));
  // the year sits at the foot (0.3 up, 0.6 H tall), the partners clear of it, Lotron clear of them
- const yBot=0.3+0.45*H+1.0, yTop=yBot+pt+1.2, dx=W*0.55; return {H,W,T,yTop,yBot,dx,top:yTop+T,tagY:yTop+T+H*0.5,wTot:1.8*W}; }
+ // (Lloyd, V2) closer together: the partners nearer the middle and Lotron nearer them; and the
+ // big GANDEL HALL above the tag, its height in the framing
+ const yBot=0.3+0.45*H+1.0, yTop=yBot+pt+0.5, dx=W*0.45, tagY=yTop+T+H*0.5, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*0.35, gH=H*0.95;
+ return {H,W,T,yTop,yBot,dx,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.8*W}; }
 function gandelBuild(L){ if(gandelText||!buildCourt.font)return;
  gandelMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:0},x0:{value:0},x1:{value:1}},transparent:true,depthWrite:false,toneMapped:false,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -3305,7 +3314,13 @@ function gandelBuild(L){ if(gandelText||!buildCourt.font)return;
  const tg=new TextGeometry(TX1('finale','GANDEL HALL 2026'),{font:buildCourt.font,size:L.H*0.6,height:0.08,curveSegments:3,bevelEnabled:false});
  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,0,0); tg.computeBoundingBox();
  gandelMat.uniforms.x0.value=tg.boundingBox.min.x; gandelMat.uniforms.x1.value=tg.boundingBox.max.x;
- gandelText=new THREE.Mesh(tg,gandelMat); gandelText.position.set(0,0.3,0); gandelText.visible=false; turntable.add(gandelText); }
+ gandelText=new THREE.Mesh(tg,gandelMat); gandelText.position.set(0,0.3,0); gandelText.visible=false; turntable.add(gandelText);
+ // (Lloyd, V2) GANDEL HALL, large, in Voronoi stained glass, above BROUGHT TO LIGHT BY; in the
+ // court group like the tag, facing the hall, placed by finaleStep
+  // the panes a third of a letter tall, whatever the size
+ gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*0.3; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
+ tg2.computeBoundingBox(); const b2=tg2.boundingBox; tg2.translate(-(b2.min.x+b2.max.x)/2,-b2.min.y,-0.06); tg2.computeVertexNormals();
+ gandelTop=new THREE.Mesh(tg2,gandelTopMat); gandelTop.visible=false; gandelTop.quaternion.copy(turntable.quaternion); court.add(gandelTop); }
 function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L);
  const home=o=>({p:o.position.clone(),r:o.rotation.y,s:o.scale.clone()});
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=0;
@@ -3313,7 +3328,10 @@ function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.le
  finale={L,homes:new Map([[logo,home(logo)],...partners.map(p=>[p,home(p)])]),yaw:turntable.rotation.y,scale:turntable.scale.x,tagY:tag?tag.userData.baseY:0,f}; }
 // everything back where the court had it (the tour's end, or the tool looping the shot)
 function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.position.copy(h.p); o.rotation.y=h.r; o.scale.copy(h.s); }
- turntable.rotation.y=finale.yaw; turntable.scale.setScalar(finale.scale); if(tag)tag.userData.baseY=finale.tagY; for(const m of glazingMats)m.uniforms.door.value.x=0; if(gandelText)gandelText.visible=false; finale=null; }
+ turntable.rotation.y=finale.yaw; turntable.scale.setScalar(finale.scale); if(tag){ tag.userData.baseY=finale.tagY; tag.scale.setScalar(1); } for(const m of glazingMats)m.uniforms.door.value.x=0; if(gandelText)gandelText.visible=false; if(gandelTop)gandelTop.visible=false;
+ finaleLights(false); finale=null; }
+// the world off (the court's paving, the hall, the sky) and back on
+function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark; if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
 // s: seconds into the shot
 function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=finale, L=F.L, y0=COURT.origin.y;
  // seen from the hall, -x is the left: ENTTEC there, Shadow AV on the right
@@ -3328,14 +3346,22 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  for(const [o,h] of F.homes){ const t=targets.get(o); if(!t)continue; o.position.set(h.p.x+(t[0]-h.p.x)*rk,h.p.y+(t[1]-h.p.y)*rk,h.p.z+(t[2]-h.p.z)*rk);
   let dr=-h.r; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); o.rotation.y=h.r+dr*rk; }
  { let dy=turntable.userData.yaw0-F.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); turntable.rotation.y=F.yaw+dy*rk; }
- if(tag)tag.userData.baseY=F.tagY+(turntable.position.y+L.tagY*sf-F.tagY)*rk;
+ // the tag shrinks with the turntable too (a phone), so the line above never sits on it
+ if(tag){ tag.userData.baseY=F.tagY+(turntable.position.y+L.tagY*sf-F.tagY)*rk; tag.scale.setScalar(1+(sf-1)*rk); }
  // the flattening: the depth of every mark goes to nothing, and the year comes up beneath
  const fk=smooth(Math.max(0,Math.min(1,(s-FIN.walk-FIN.rise)/FIN.flat)));
  for(const [o,h] of F.homes){ if(targets.has(o))o.scale.set(h.s.x,h.s.y,h.s.z*(1-0.99*fk)); }
  if(gandelText){ gandelText.visible=fk>0; gandelMat.uniforms.op.value=Math.min(1,fk*1.5); gandelMat.uniforms.t.value=s; }
+ if(gandelTop){ gandelTop.visible=fk>0; gandelTopMat.uniforms.op.value=Math.min(1,fk*1.5); gandelTopMat.uniforms.t.value=s;
+  // above the tag, whose letters do not shrink with the turntable on a phone: its height is
+  // taken as it is, the rest scaled
+  gandelTop.position.copy(turntable.position); gandelTop.position.y+=L.gBot*sf; gandelTop.scale.setScalar(sf); }
+ // the dip to black as the flattening begins, and the world gone when it comes back
+ const tB=FIN.walk+FIN.rise, dip=s<tB?Math.max(0,(s-(tB-0.6))/0.6):Math.max(0,1-(s-tB)/0.8);
+ finaleLights(s>=tB);
  // the fade to black at the end
  const fd=Math.max(0,Math.min(1,(s-FIN.walk-FIN.rise-FIN.flat-FIN.hold)/FIN.fade));
- if(fd>0)F.f.style.opacity=fd;
+ F.f.style.opacity=Math.max(fd,smooth(Math.min(1,dip)));
  // the camera: through the doorway at head height to a spot in the court, then back and up to
  // frame the whole triangle from D out, D from its height and the picture's width
  const wk=smooth(Math.min(1,s/FIN.walk)), bk=smooth(Math.max(0,Math.min(1,(s-FIN.walk)/FIN.rise)));
@@ -3349,7 +3375,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A unique space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11.0]],"party":[["A place to have fun",2,8]],"party-celebrate":[["and celebrate amongst friends",1.5,7.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["A place to celebrate love",2,8]],"finale":[["GANDEL HALL 2026",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A unique space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A space for community.",5.5,11.0]],"party":[["A place to have fun",2,8]],"party-celebrate":[["and celebrate amongst friends",1.5,7.5]],"standing":[["A space for people to share their stories",2,8]],"wedding-aisle":[["A place to celebrate love",2,8]],"finale":[["GANDEL HALL 2026",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;

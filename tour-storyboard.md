@@ -55,7 +55,10 @@ Is brought to light
 V3 (sent 01/09/2026 22:12:00):
 Gandel Hall text should be voronoi stained glass
 
-V4 (draft):
+V4 (sent 01/09/2026 22:17:42):
+The gandel hall text is too hard to read. Too detailed. Make it low poly stained glass
+
+V5 (draft):
 
 
 ---
@@ -95,7 +98,10 @@ Do not spin the camera here. Pan it back up smoothly, and then slowly lift the c
 [shot 2, 11.2 s] 
 After the text disappears, then fade out and end the shot
 
-V3 (draft):
+V3 (sent 01/09/2026 22:18:39):
+Make the scene more lively. People moving around, chatting, mingling and eating and drinking. Also have a string quartet playing in frame
+
+V4 (draft):
 
 
 ---
@@ -122,12 +128,17 @@ V2 (sent 01/09/2026 22:07:39):
 
 Have everyone wearing extravagant clothing. Like a modern royal banquet. Wait staff serving food and drinks. Everybody at the table eating or chatting to each other and having a good time
 
-V3 (draft):
+V3 (sent 01/09/2026 22:20:18):
 Text (all centre aligned)
 
-A place where (line break)
+Where
 Rich history and modern tradition (Each word fades in one after the other) (Line break)
 Come together
+
+More variety in clothes. Big hats, long flowing dresses. Not everyone with gold necklaces. Have everybody be unique. Also
+
+V4 (draft):
+
 
 ---
 
@@ -159,7 +170,10 @@ Fade in at the start of the shot.
 
 Text "A place to have fun"
 
-V2 (draft):
+V2 (sent 01/09/2026 22:21:10):
+A place to have fun!
+
+V3 (draft):
 
 
 ---
@@ -192,6 +206,12 @@ Also, the text was blocked by the columns
 V3.
 
 Start the camera high up and follow the confetti falling down, to finish at the end point of this current shot. Also, make the cold sparks go 1.5x higher
+
+V2 (sent 01/09/2026 22:22:14):
+the text gets washed out against the confetti. Maybe drop the camera lower, so the confetti is above the text at the start
+
+V3 (draft):
+
 
 ---
 
@@ -230,7 +250,10 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 | ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
 **Notes:**
-V1 (draft):
+V1 (sent 01/09/2026 22:22:51):
+and to celebrate love
+
+V2 (draft):
 
 
 ---
@@ -250,6 +273,9 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 V1 (sent earlier):
 the rice should be landing on the floor and not disappearing right away.  Also, it seems that it's sticking to invisible boxes on top of people. It should fall realistically
 
+V2 (draft):
+the rice is phasing through the floor. It should land on the floor and stay during the scene
+
 ---
 
 ## 9. The finale: out to the courtyard
@@ -257,7 +283,7 @@ the rice should be landing on the floor and not disappearing right away.  Also, 
 
 Duration 27 s (walk 8, rise 8, flatten 5, hold 4, fade 2). The tour ends here; the picture fades back in on the free view.
 
-Walks at head height through a doorway cut in the glass on the court's axis, out to 6 m into the court, looking at the sculpture. Then the camera drifts back and up to frame the whole triangle while the three marks rise off the turntable and align facing the hall: Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them. The triangle flattens from 3D to 2D and GANDEL HALL 2026 comes up beneath it in shimmering rainbow; holds 4 s; fades to black.
+Walks at head height through a doorway cut in the glass on the court's axis, out to 6 m into the court, looking at the sculpture. Then the camera drifts back and up to frame the whole triangle while the three marks rise off the turntable and align facing the hall: Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them. The triangle flattens from 3D to 2D and GANDEL HALL 2026 comes up beneath it in shimmering rainbow; holds 4 s; fades to black. (Lloyd, V2) As the flattening begins the picture dips to black and comes back with the court, the hall and the sky gone: the marks alone on black. The partners sit closer together and Lotron closer above them. GANDEL HALL, large, in Voronoi stained glass, stands above BROUGHT TO LIGHT BY.
 
 | start | middle | end |
 |---|---|---|
@@ -268,6 +294,16 @@ V1 (sent earlier):
 This should walk through a doorway cut out in the glass.
 
 Then It should be the final shot where all three of the logos rise up from the platform and align themselves into a triangle shape. Lotron on top, enttec bottom left and shadow av bottom right. With the brought to light by text above them, and then slowly it flattens from 3d to 2d and has text "Gandel Hall 2026" at the bottom in shimmering rainbow and then it holds for a few seconds and fades out.
+
+V2 (sent 01/09/2026 22:16:12):
+[shot 9, 17.7 s] 
+
+The final scene should have a completely black background. Also, have the logos closer together.
+
+Gandel Hall in large Voronoi Stained glass text above the brought to light by
+
+V3 (draft):
+
 
 ---
 

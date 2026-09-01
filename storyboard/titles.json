@@ -25,7 +25,7 @@
  ],
  "party": [
   [
-   "A place to have fun",
+   "A place to have fun!",
    2,
    8
   ]
@@ -46,7 +46,7 @@
  ],
  "wedding-aisle": [
   [
-   "A place to celebrate love",
+   "and to celebrate love",
    2,
    8
   ]
@@ -54,6 +54,13 @@
  "finale": [
   [
    "GANDEL HALL 2026",
+   0,
+   0
+  ]
+ ],
+ "finale-top": [
+  [
+   "GANDEL HALL",
    0,
    0
   ]
