@@ -3323,7 +3323,9 @@ function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime;
  const g=c.createGain(); g.gain.setValueAtTime(0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+3); n.connect(lp); lp.connect(g); g.connect(SND.master); g.connect(SND.verb); n.start(t); n.stop(t+3);
  const o=c.createOscillator(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(28,t+1.5); const og=c.createGain(); og.gain.setValueAtTime(0.7,t); og.gain.exponentialRampToValueAtTime(0.001,t+2.5); o.connect(og); og.connect(SND.master); o.start(t); o.stop(t+2.5);
  SND.chordGain.gain.cancelScheduledValues(t); SND.chordGain.gain.setValueAtTime(0.5,t); SND.chordGain.gain.exponentialRampToValueAtTime(0.001,t+3); }
-for(const ev of ['pointerdown','keydown','touchstart'])addEventListener(ev,()=>{ sndInit(); if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume(); },{passive:true});
+// every gesture that a browser counts as user activation: on Android Chrome a touch's pointerdown
+// and touchstart do NOT count, touchend and click do (Lloyd: the sound isn't starting on the phone)
+for(const ev of ['pointerdown','pointerup','keydown','touchstart','touchend','click'])addEventListener(ev,()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); },{passive:true,capture:true});
 // (Lloyd) the music starts as soon as the viewer scrolls into view, and stops when it scrolls out.
 // A browser that refuses sound before a gesture leaves the context suspended; the first tap or key
 // above then starts it. On the proposal page the frame carries allow="autoplay" for the same reason.
