@@ -2,7 +2,7 @@
 
 One block per camera path in the tour, in the order they play. Each block has three frames (start, middle, end), the timing, what the camera does, and a **Notes** line for you. Write anything under **Notes**; leave the rest alone and I will read the notes back and change the code to match.
 
-The tour runs straight after the kaleidoscope. Total length about 173 s.
+The tour runs straight after the kaleidoscope. Total length about 174 s.
 
 **How to read the positions.** Every camera point is written as `(u, h, d)` in hall metres:
 - `u` runs along the hall, 0 at the screen-wall end, `uM` is the middle of the hall (about 26).
@@ -53,7 +53,11 @@ Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpe
 **Notes:** Make sure the carpet is fully in view and matches the starting point from the end of the last clip. So that the dinner is fully revealed.
 
 Text:
-A space for community
+A space for community.
+
+V2.
+
+the glass walls should be fully frosted here so we can't see the logo sculptures outside
 
 ---
 
@@ -86,6 +90,10 @@ A place to come together
 
 Camera path, do not finish facing a blank wall. It would be better if it panned up and smoothly orbited around to end with a shot high up facing the crowd in the centre of the room
 
+V2.
+
+Fade out at the end
+
 ---
 
 ## 5. Party celebrate
@@ -102,7 +110,13 @@ Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`. 
 
 and celebrate amongst friends
 
-Also, in this clip, the party scene wasn't visible
+Also, in this clip, the party scene wasn't visible.
+
+V2.
+
+Fade in at the start.
+
+Also, the text was blocked by the columns
 
 ---
 
@@ -121,6 +135,9 @@ A half circle round the speaker on the stage `(uM, 1.9, 1.6)`, 9 m out, from `(u
 Text:
 "A space for people to share their stories"
 
+V2.
+Make sure the text isn't blocked by the columns
+
 ---
 
 ## 7. Standing celebrate
@@ -133,7 +150,7 @@ Hold at `(uM-6, 2.3, 13)`, by the glass, looking across at `(uM, 2.0, 6)`.
 |---|---|---|
 | ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
-**Notes:** This clip currently shows no event
+**Notes:** We don't need this clip
 
 ---
 
@@ -148,7 +165,11 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
 **Notes:** Text:
-"A place to celebrate love"
+"A place to celebrate love" 
+
+V2.
+
+Make sure the text isn't blocked by columns
 
 ---
 
@@ -166,11 +187,11 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 
 ---
 
-## 10. Out to the courtyard
+## 10. The finale: out to the courtyard
 
-Duration 9 s. No event change.
+Duration 27 s (walk 8, rise 8, flatten 5, hold 4, fade 2). The tour ends here; the picture fades back in on the free view.
 
-Glide from `(26.6, 1.9, 12.6)` inside the glass out to 14 m in front of the sculpture, 3 m up, looking at the sculpture (4.5 m up it).
+Walks at head height through a doorway cut in the glass on the court's axis, out to 6 m into the court, looking at the sculpture. Then the camera drifts back and up to frame the whole triangle while the three marks rise off the turntable and align facing the hall: Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them. The triangle flattens from 3D to 2D and GANDEL HALL 2026 comes up beneath it in shimmering rainbow; holds 4 s; fades to black.
 
 | start | middle | end |
 |---|---|---|
@@ -179,20 +200,6 @@ Glide from `(26.6, 1.9, 12.6)` inside the glass out to 14 m in front of the scul
 **Notes:** This should walk through a doorway cut out in the glass.
 
 Then It should be the final shot where all three of the logos rise up from the platform and align themselves into a triangle shape. Lotron on top, enttec bottom left and shadow av bottom right. With the brought to light by text above them, and then slowly it flattens from 3d to 2d and has text "Gandel Hall 2026" at the bottom in shimmering rainbow and then it holds for a few seconds and fades out.
-
----
-
-## 11. Round the sculpture
-
-Duration 22 s. The tour ends here and the camera is handed back.
-
-A slow quarter-turn round the sculpture on a 15 m circle, 3.2 m up, looking at it (4 m up).
-
-| start | middle | end |
-|---|---|---|
-| ![](storyboard/seg11a.jpg) | ![](storyboard/seg11b.jpg) | ![](storyboard/seg11c.jpg) |
-
-**Notes:** this final clip isn't needed
 
 ---
 
