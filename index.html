@@ -3219,9 +3219,9 @@ function setEvent(mode){ const ev=document.getElementById('event'), md=document.
 // (Lloyd, third round) any shot can carry lines: a shot passes its own list of [text, from, to]
 // in seconds, and each line's group is built once and kept by its text
 const TITLE_D=6;   // metres ahead of the eye
-let titles=null, titleGlint=null, titleShimmer=null; const titleGroups=new Map();
+let titles=null, titleGlint=null, titleShimmer=null, titleGlass=null; const titleGroups=new Map();
 // a title: rows split on ' / ' (top row first); a row wrapped in *...* is set in stained glass,
-// the object's name's chrome with the rainbow glint crossing it (Lloyd, shot 1: "Gandel Hall"
+// a Voronoi of coloured panes in dark lead with the object's rainbow glint crossing it (Lloyd, shot 1: "Gandel Hall"
 // above "Is brought to light"); '|' in a row marks the word that carries the white glint
 function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.has(key))return titleGroups.get(key);
  if(!buildCourt.font)return null;
@@ -3237,7 +3237,24 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
     vec3 hsv(float h){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return mix(vec3(1.0),clamp(p-1.0,0.0,1.0),0.85); }
     void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
     vec3 c=mix(vec3(1.0,0.98,0.94),hsv(fract(vP.x*0.16+t*0.07)),0.4);
-    gl_FragColor=vec4(c*g*0.4*op,1.0); }`}); }
+    gl_FragColor=vec4(c*g*0.4*op,1.0); }`});
+  // (Lloyd, V3) the stained-glass row IS stained glass: a Voronoi of little panes over the
+  // letters, each its own colour, dark lead between them, lit from behind with a slow sweep
+  titleGlass=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1}},transparent:true,depthWrite:false,depthTest:false,
+   vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+   fragmentShader:`uniform float t; uniform float op; varying vec3 vP; varying vec3 vN;
+    vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
+    vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+    void main(){
+     vec2 q=vP.xy/0.11; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
+     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
+     float edge=sqrt(d2)-sqrt(d1);
+     float lead=smoothstep(0.07,0.2,edge);                       // 0 on the lead line, 1 in the pane
+     vec3 c=hsv(fract(h2(id).x+t*0.01),0.9,1.0);
+     float lit=0.55+0.45*sin(vP.x*1.4-t*0.9+h2(id).y*2.0);          // the light behind, sweeping along
+     float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
+     vec3 col=mix(vec3(0.05,0.04,0.05),c*(0.55+0.45*lit),lead)*side;
+     gl_FragColor=vec4(col,op); }`}); }
  const geo=(text,st)=>{ const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:st?0.12:0.05,curveSegments:4,bevelEnabled:!!st,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2}); tg.computeBoundingBox(); return tg; };
  // drawn last with no depth test, so a column between the eye and the line never hides it (Lloyd)
  const mesh=(tg,op,sc,mats)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false,depthTest:false,toneMapped:false})); m.material.userData.base=op; m.renderOrder=990; if(sc)m.scale.set(...sc); mats.push(m.material); return m; };
@@ -3249,7 +3266,7 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
   const all=geo(row.parts.join(' '),row.stained).boundingBox, yOff=y-(all.min.y+all.max.y)/2;
   const Wr=tgs.reduce((a,tg)=>a+(tg.boundingBox.max.x-tg.boundingBox.min.x),0)+(row.parts.length-1)*gap; W=Math.max(W,Wr); let x=-Wr/2;
   tgs.forEach((tg,j)=>{ const b=tg.boundingBox, w=b.max.x-b.min.x; tg.translate(x-b.min.x,yOff,0);
-   if(row.stained){ const core=new THREE.Mesh(tg,new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:2.2,emissive:0x3c4250,transparent:true,opacity:1,depthWrite:false,depthTest:false})); core.material.userData.base=1; core.renderOrder=990; mats.push(core.material); g.add(core);
+   if(row.stained){ const core=new THREE.Mesh(tg,titleGlass); core.renderOrder=990; g.add(core); g.userData.glass=true;
     g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); const sh=new THREE.Mesh(tg,titleShimmer); sh.renderOrder=991; g.add(sh); g.userData.shimmer=true; }
    else { g.add(mesh(tg,1,null,mats)); g.add(mesh(tg,0.08,[1.04,1.14,1.5],mats)); }
    if(j>0){ titleGlint.uniforms.cx.value=x+w/2; const gm=new THREE.Mesh(tg,titleGlint); gm.renderOrder=991; g.add(gm); g.userData.glint=true; }
@@ -3257,11 +3274,11 @@ function titleGroup(item){ const key=[].concat(item).join('|'); if(titleGroups.h
  g.userData.mats=mats; g.userData.w=W; g.visible=false; titles.add(g); titleGroups.set(key,g); return g; }
 // s: seconds into the shot; spec: [[text, from, to], ...]; the lines ride TITLE_D metres ahead of
 // the eye towards `look`, scaled to fit the picture's width there, fading 0.6 s in and out
-function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titleGlint)titleGlint.uniforms.t.value=s; if(titleShimmer)titleShimmer.uniforms.t.value=s;
+function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titleGlint)titleGlint.uniforms.t.value=s; if(titleShimmer)titleShimmer.uniforms.t.value=s; if(titleGlass)titleGlass.uniforms.t.value=s;
  const hf=2*Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect), vw=2*TITLE_D*Math.tan(hf/2);
  const fwd=look.clone().sub(at).setY(0).normalize(); const on=new Set();
  for(const [text,t0,t1] of spec){ const g=titleGroup(text); if(!g)continue; const t=s-t0; let f=0; if(t>0&&s<t1)f=Math.min(1,t/0.6,(t1-s)/0.6); if(f<=0)continue; on.add(g); g.visible=true;
-  for(const m of g.userData.mats)m.opacity=m.userData.base*f; if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f;
+  for(const m of g.userData.mats)m.opacity=m.userData.base*f; if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f; if(g.userData.glass)titleGlass.uniforms.op.value=f;
   g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));
   g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }
  if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }
