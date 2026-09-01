@@ -96,12 +96,12 @@ button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.
 .round{border-top:1px solid #2a2a2a;padding:8px 0 2px}.round span{color:#888;font-size:12px;margin-left:6px}textarea.old{min-height:60px;margin-top:4px;color:#ccc;background:#111;border-color:#333}
 .tx{margin:0 0 10px;border:1px solid #3a3320;border-radius:6px;padding:8px 10px;background:#1a1810}.tx b{font-size:13px;color:#dc9}.line{display:flex;gap:8px;align-items:center;margin-top:6px}.line input{flex:1;background:#0d0d0d;color:#fff;border:1px solid #554;border-radius:6px;padding:8px 10px;font:inherit;min-width:0}.line input:focus{outline:none;border-color:#dc9}.line span{color:#887;font-size:12px;white-space:nowrap}.line i{font-style:normal}
 #pub{position:sticky;top:8px;float:right;background:#3a2e10;border-color:#a80;margin-left:8px}
-.clip{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}.clip iframe{border:0;border-radius:4px;background:#000;display:block}.clip .pc{flex:1;aspect-ratio:16/9;min-width:0}.clip .ph{width:26%;aspect-ratio:9/19}
+.clip{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}.scrub{flex-basis:100%;display:flex;gap:8px;align-items:center}.scrub input{flex:1;min-width:0}.scrub .tm{color:#aaa;font-size:13px;white-space:nowrap}.scrub .pp{min-width:72px}.clip iframe{border:0;border-radius:4px;background:#000;display:block}.clip .pc{flex:1;aspect-ratio:16/9;min-width:0}.clip .ph{width:26%;aspect-ratio:9/19}
 @media(max-width:700px){.clip{flex-wrap:wrap}.clip .pc,.clip .ph{width:100%}}
 .req{font-size:12px;font-weight:400;color:#111;background:#8c8;border-radius:10px;padding:1px 9px;margin-left:8px;vertical-align:middle;display:none}.req.queued{display:inline;background:#ec5}.req.working{display:inline;background:#8bf}.req.done{display:inline;background:#8c8}
 @media(max-width:700px){.row{flex-wrap:wrap}.row img{width:100%}}</style>
 <main><button id="pub" type="button">Publish text</button><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to. The Text lines are what the shot shows: edit them, Play clip shows the change at once, and Publish text puts it on the live page.</div>
-<section id="s-all"><h2>The whole tour</h2><p>Every shot in order, on a loop, as the tour plays it.</p><div class="clip" id="clip-all"></div><div class="btns"><button class="play" data-shot="all" data-key="all">Play the whole tour</button></div></section>${cards}</main>
+<section id="s-all"><h2>The whole tour</h2><p>Every shot in order, on a loop, as the tour plays it. Pause, drag the slider to any moment, and Note here drops the shot and the second into that shot's box.</p><div class="clip" id="clip-all"></div><div class="btns"><button class="play" data-shot="all" data-key="all">Play the whole tour</button></div></section>${cards}</main>
 <script>
 const timers={};
 document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, n=+t.dataset.n||0, id=k+(n?'-'+n:''), st=document.getElementById('st-'+id); st.textContent='…'; clearTimeout(timers[id]);
@@ -110,7 +110,24 @@ document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()
 document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click',()=>{ const box=document.getElementById('clip-'+b.dataset.key); const open=box.querySelector('iframe');
  document.querySelectorAll('.clip').forEach(c=>{ c.innerHTML=''; }); document.querySelectorAll('button.play').forEach(x=>x.textContent='Play clip');
  if(open)return; // the same shot twice, side by side: the computer's frame and a phone's (Lloyd)
- const src=b.dataset.shot==='all'?'/viewer.html?embed=1&tour=1':'/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'; b.textContent='Stop clip'; }); });
+ const src=b.dataset.shot==='all'?'/viewer.html?embed=1&tour=1':'/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'+
+  '<div class="scrub"><button type="button" class="pp">Pause</button><input type="range" class="sk" min="0" max="1000" value="0"><span class="tm">…</span><button type="button" class="note">Note here</button></div>';
+ wireScrub(box); b.textContent='Stop clip'; }); });
+// pause, scrub and note (Lloyd): both frames are driven together through the viewer's tourCtl.
+// Note here pauses and drops "[shot N, 12.3 s]" into that shot's box, ready to type after
+let scrubTimer=null;
+function wireScrub(box){ clearInterval(scrubTimer); const fr=[...box.querySelectorAll('iframe')], pp=box.querySelector('.pp'), sk=box.querySelector('.sk'), tm=box.querySelector('.tm'), nt=box.querySelector('.note');
+ const ctl=()=>fr.map(f=>{ try{ return f.contentWindow.tourCtl; }catch(e){ return null; } }).filter(Boolean);
+ const st=()=>{ const c=ctl()[0]; return c&&c.state(); };
+ let drag=false, lastSeek=0;
+ const seek=t=>{ for(const c of ctl())c.seek(t); };
+ scrubTimer=setInterval(()=>{ const s=st(); if(!s){ tm.textContent='loading…'; return; } if(!drag)sk.value=Math.round(s.t/s.total*1000); tm.textContent='shot '+s.shot+' · '+(s.k*s.dur).toFixed(1)+' / '+s.dur.toFixed(1)+' s'+(s.total!==s.dur?' · '+s.t.toFixed(1)+' / '+s.total.toFixed(1)+' s':''); pp.textContent=s.paused?'Play':'Pause'; },200);
+ pp.addEventListener('click',()=>{ const s=st(); if(!s)return; for(const c of ctl())s.paused?c.play():c.pause(); });
+ sk.addEventListener('pointerdown',()=>{ drag=true; }); sk.addEventListener('pointerup',()=>{ drag=false; });
+ sk.addEventListener('input',()=>{ const s=st(); if(!s)return; const now=Date.now(); if(now-lastSeek<250)return; lastSeek=now; seek(sk.value/1000*s.total); });
+ sk.addEventListener('change',()=>{ const s=st(); if(!s)return; drag=false; seek(sk.value/1000*s.total); });
+ nt.addEventListener('click',()=>{ const s=st(); if(!s)return; for(const c of ctl())c.pause(); const pb=document.querySelector('button.play[data-shot="'+s.shot+'"]'); if(!pb)return; const ta=document.querySelector('textarea[data-key="'+pb.dataset.key+'"]:not(.old)'); if(!ta)return;
+  ta.value=(ta.value.trim()?ta.value.replace(/\s*$/,'')+'\n':'')+'[shot '+s.shot+', '+(s.k*s.dur).toFixed(1)+' s] '; ta.dispatchEvent(new Event('input')); ta.scrollIntoView({block:'center',behavior:'smooth'}); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }); }
 // Generate waits for a pending save, sends, then reloads the page so the round files itself and
 // a fresh box appears
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }

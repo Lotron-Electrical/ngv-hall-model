@@ -3328,7 +3328,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
@@ -3341,10 +3341,27 @@ function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour();
  // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
  fabSync(); }
 let houseRamp=null;
-function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
+function tourStep(now){ const T=tour; if(!T)return; if(tourPaused){ tourShift(now-T.pausedAt); T.pausedAt=now; } const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
  if(houseRamp){ const q=Math.min(1,(now-houseRamp.t0)/houseRamp.dur); lit.house=houseRamp.from+(houseRamp.to-houseRamp.from)*smooth(q); if(q>=1)houseRamp=null; }
  if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
+// PAUSE AND SCRUB (Lloyd, for the storyboard tool): the tour's clocks are shifted as one, so a
+// pause holds the camera, the paper, the rice and the walk together, and a seek lands mid-shot
+// with the event built and everything time-based wound to that moment. window.tourCtl is what
+// the tool's page drives across the iframe.
+let tourPaused=false;
+function tourShift(d){ const T=tour; if(!T)return; T.t0+=d; if(confetti)confetti.userData.t0+=d; for(const f of fxList)f.obj.userData.t0+=d; if(wedding){ if(wedding.walk)wedding.walk.t0+=d; if(wedding.cwalk)wedding.cwalk.t0+=d; } if(houseRamp)houseRamp.t0+=d; }
+function tourSeek(t){ const T=tour; if(!T)return; let i=0, acc=0; while(i<T.segs.length-1&&t>=acc+T.segs[i].dur){ acc+=T.segs[i].dur; i++; }
+ if(SHOT){ i=SHOT-1; acc=0; } const k=Math.max(0,Math.min(0.995,(t-acc)/T.segs[i].dur));
+ let m=null; for(let j=0;j<=i;j++)if('mode' in T.segs[j])m=T.segs[j].mode; const ev=document.getElementById('event'), md=document.getElementById('eventmode'); if(ev.checked!==!!m||(m&&md.value!==m))setEvent(m);
+ if(finale&&i!==T.segs.length-1)finaleEnd();
+ const now=performance.now()/1000; T.i=i-1; tourNext(now); tourShift(-k*T.segs[i].dur); if(tourPaused)T.pausedAt=now; sceneDirty=true; }
+window.tourCtl={
+ pause(){ if(!tour)return; tourPaused=true; tour.pausedAt=performance.now()/1000; },
+ play(){ tourPaused=false; },
+ seek(t){ tourSeek(t); },
+ state(){ const T=tour; if(!T||T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i], k=Math.max(0,Math.min(1,(performance.now()/1000-T.t0)/sg.dur));
+  return {shot:T.i+1,k,dur:sg.dur,t:SHOT?k*sg.dur:acc+k*sg.dur,total:SHOT?sg.dur:T.segs.reduce((a,s)=>a+s.dur,0),paused:tourPaused}; } };
 // Before anyone touches anything the view is not a still: the camera drifts slowly up and down
 // the middle of the hall (Lloyd, 2026-09-01), easing in from the home pose once the model is up.
 // The first key, drag, touch or phone-remote nudge ends it for good; the tour takes over from it.
