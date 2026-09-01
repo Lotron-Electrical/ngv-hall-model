@@ -99,12 +99,7 @@ Add a new event type - Banquet.
 
 Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
 
-V2 (sent 01/09/2026 21:13:51):
-Add a new event type - Banquet.
-
-Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
-
-V3 (draft):
+V2 (draft):
 
 
 ---
@@ -136,6 +131,9 @@ V3.
 Fade in at the start of the shot.
 
 Text "A place to have fun"
+
+V2 (draft):
+
 
 ---
 
