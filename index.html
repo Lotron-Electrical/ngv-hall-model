@@ -3734,12 +3734,12 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // 2.6 m while the yaw pans across the room to the centre; the text goes at 11 s, the shot
   // fades to black over 11.5 to 13 s and ends there
   {mode:'dinner', dur:13, cam:k=>{ const s=k*13, U=EVENT.N.u, R=EVENT.N.inRoom;
-    const q1=smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))), q2=smooth(Math.max(0,Math.min(1,(s-5.6)/6.4)));
+    const q1=smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))), q2=smooth(Math.max(0,Math.min(1,(s-5.6)/8.0)));   /* (V12, Lloyd) the lift is still going as the black lands: nobody sees the camera stop */
     // (Lloyd, V9) up from the carpet the look goes RIGHT first, to the quartet on the stage
     // (5.6 to 8 s), barely rests, then swings LEFT across to the tables and the room's centre
-    // (8.3 to 11.8 s; V11, Lloyd: it lingered on the quartet too long); the lift runs underneath as before
+    // (from 8.3 s, still swinging as the shot fades; V11: sooner off the quartet, V12: never seen stopping); the lift runs underneath as before
     const at=EP(18.9,0.9+1.7*q2,4.9), cu=uM-18.9, cd=9.5-4.9, t1=Math.atan2(cd,cu), aq=Math.atan2(2.3-4.9,21.7-18.9);
-    const qa=smooth(Math.max(0,Math.min(1,(s-5.6)/2.4))), qb=smooth(Math.max(0,Math.min(1,(s-8.3)/3.5))), a=aq*qa*(1-qb)+t1*qb;
+    const qa=smooth(Math.max(0,Math.min(1,(s-5.6)/2.4))), qb=smooth(Math.max(0,Math.min(1,(s-8.3)/5.0))), a=aq*qa*(1-qb)+t1*qb;
     const p0=-1.50, p1=-0.09, p2=Math.atan2(1.0-2.6,Math.hypot(cu,cd)), p=p0+(p1-p0)*q1+(p2-p1)*q2;
     const h=U.clone().multiplyScalar(Math.cos(a)).addScaledVector(R,Math.sin(a));
     poseAt(at,at.clone().addScaledVector(h,5*Math.cos(p)).add(new THREE.Vector3(0,5*Math.sin(p),0))); titleStep(s,at,at.clone().addScaledVector(h,5),TX('dinner'));
