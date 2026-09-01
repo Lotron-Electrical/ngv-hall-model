@@ -2053,6 +2053,8 @@ function peopleMeshes(n,bodyLen){ const body=new THREE.CapsuleGeometry(0.16,body
  r.bm.frustumCulled=false; r.hm.frustumCulled=false;
  eventLitMats.push(r.bm.material,r.hm.material); return r; }
 const _pV=new THREE.Vector3(), _pS={x:1,y:1,z:1};
+// the wedding couple's head heights: the bride shorter than the groom (Lloyd, shot 7 V7)
+const HB=1.49, HG=1.62;
 function poseBH(bm,hm,i,x,z,bodyY,headY,scXZ,scY,bodyStretch){ _pS.x=scXZ; _pS.y=scY*(bodyStretch||1); _pS.z=scXZ; _cQ.identity();
  _cM.compose(_pV.set(x,bodyY,z),_cQ,_pS); bm.setMatrixAt(i,_cM);
  _pS.x=_pS.z=Math.min(scXZ,1.1); _pS.y=scY; _cM.compose(_pV.set(x,headY,z),_cQ,_pS); hm.setMatrixAt(i,_cM); }
@@ -2675,22 +2677,28 @@ function updateWedding(dt,t){
    // (Lloyd, V6) through the dip his head stays ON HER FACE, not down at her chest: the 16 cm
    // across turns with her body as she goes back (so it rises with her face), and his lean is
    // whatever puts his head at that height, not a fixed angle
-   if(i===0){ tiltA=0.11*kiss-0.35*dip; W.bt=tiltA; W.bh={x:fx+U.x*1.62*Math.sin(tiltA),z:fz+U.z*1.62*Math.sin(tiltA)}; }
-   else { const tb=W.bt||0, du=0.16*Math.cos(tb), hy=1.62*Math.cos(tb)-0.16*Math.sin(tb);
-    tiltA=-0.11*kiss*(1-dip)-Math.acos(Math.min(1,hy/1.62))*dip; const k=Math.max(kiss,dip), R=EVENT.N.inRoom;
-    if(W.bh&&k>0){ const hx=W.bh.x+U.x*du+R.x*0.16*k, hz=W.bh.z+U.z*du+R.z*0.16*k; const sx=hx-U.x*1.62*Math.sin(tiltA), sz=hz-U.z*1.62*Math.sin(tiltA); fx+=(sx-fx)*k; fz+=(sz-fz)*k; } } }
+   // (Lloyd, V7) the bride is shorter than the groom (her head at HB, his at HG), so he bends
+   // down to her for the kiss as well as the dip: his lean is always the one that puts his
+   // head at hers
+   if(i===0){ tiltA=0.11*kiss-0.35*dip; W.bt=tiltA; W.bh={x:fx+U.x*HB*Math.sin(tiltA),z:fz+U.z*HB*Math.sin(tiltA)}; }
+   else { const tb=W.bt||0, du=0.16*Math.cos(tb), hy=HB*Math.cos(tb)-0.16*Math.sin(tb), k=Math.max(kiss,dip), R=EVENT.N.inRoom;
+    tiltA=-Math.acos(Math.min(1,hy/HG))*k;
+    if(W.bh&&k>0){ const hx=W.bh.x+U.x*du+R.x*0.16*k, hz=W.bh.z+U.z*du+R.z*0.16*k; const sx=hx-U.x*HG*Math.sin(tiltA), sz=hz-U.z*HG*Math.sin(tiltA); fx+=(sx-fx)*k; fz+=(sz-fz)*k; } } }
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
-  poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.78,hide?-99:y0+1.62,i===0?1.15:1,1);
+  // (Lloyd, V7) the bride is 8% shorter; the groom's body runs down to the floor (stretched
+  // 14%), so when he leans about his feet nothing shows daylight under him
+  if(i===0)poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.725,hide?-99:y0+HB,1.15,0.92);
+  else poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.78,hide?-99:y0+HG,1,1,i===1?1.14:1);
   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=!hide;
-   if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.76,fz); W.gown.updateMatrix(); W.veil.updateMatrix(); } }
+   if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+HB+0.14,fz); W.gown.updateMatrix(); W.veil.updateMatrix(); } }
   if(tiltA||vLift){ const U=EVENT.N.u, ax=new THREE.Vector3(0,1,0).cross(U).normalize(), pv=new THREE.Vector3(fx+sway,y0,fz);
    const TR=new THREE.Matrix4().makeTranslation(pv.x,pv.y,pv.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,tiltA)).multiply(new THREE.Matrix4().makeTranslation(-pv.x,-pv.y,-pv.z));
    if(tiltA){ W.cp.bm.getMatrixAt(i,_cM); _cM.premultiply(TR); W.cp.bm.setMatrixAt(i,_cM); W.cp.hm.getMatrixAt(i,_cM); _cM.premultiply(TR); W.cp.hm.setMatrixAt(i,_cM); }
    if(i===0&&W.gown&&!hide){ W.gown.updateMatrix(); W.gown.matrix.premultiply(TR);
     // the veil lifted: swung back over the head about its crown, away from the groom
-    const cr=new THREE.Vector3(fx+sway,y0+1.76,fz), VR=new THREE.Matrix4().makeTranslation(cr.x,cr.y,cr.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,1.05*vLift)).multiply(new THREE.Matrix4().makeTranslation(-cr.x,-cr.y,-cr.z));
+    const cr=new THREE.Vector3(fx+sway,y0+HB+0.14,fz), VR=new THREE.Matrix4().makeTranslation(cr.x,cr.y,cr.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,1.05*vLift)).multiply(new THREE.Matrix4().makeTranslation(-cr.x,-cr.y,-cr.z));
     W.veil.updateMatrix(); W.veil.matrix.premultiply(VR).premultiply(TR); } }
  }
  // RICE only ever leaves a hand that exists: guests still in their seats near the couple, or --
