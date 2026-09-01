@@ -58,7 +58,12 @@ Gandel Hall text should be voronoi stained glass
 V4 (sent 01/09/2026 22:17:42):
 The gandel hall text is too hard to read. Too detailed. Make it low poly stained glass
 
-V5 (draft):
+V5 (sent 01/09/2026 22:52:32):
+[shot 1, 12.8 s] 
+
+The Gandel hall text should be much larger. Same width as the text line below it
+
+V6 (draft):
 
 
 ---
@@ -143,7 +148,7 @@ V4 (sent 01/09/2026 22:39:47):
 Every word should fade in
 
 V5 (draft):
-
+[shot 3, 0.7 s]
 
 ---
 
@@ -221,7 +226,10 @@ V3 (sent 01/09/2026 22:42:32):
 Fade out at the end of this clip
 [shot 5, 9.1 s] This is when the text should appear, not before
 
-V4 (draft):
+V4 (sent 01/09/2026 22:54:30):
+[shot 5, 2.3 s] the text should appear now, and be in the centre of the screen
+
+V5 (draft):
 
 
 ---
@@ -270,7 +278,10 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 V1 (sent 01/09/2026 22:22:51):
 and to celebrate love
 
-V2 (draft):
+V2 (sent 01/09/2026 22:47:37):
+The bride needs a proper veil, and then there should be a scene where they turn to each other, the veil is lifted and they kiss. The groom holds onto the bride and dips her
+
+V3 (draft):
 
 
 ---
@@ -338,7 +349,7 @@ V4 (sent 01/09/2026 22:44:30):
 The entrance through the glass isn't cut out through the glass walls like this in real life. Each glass window has a door at the bottom of it. Just open one of those doors and walk through it. Don't cut through the wall like this
 
 V5 (draft):
-
+The dark blue in gandel hall doesn't contrast well on the black, use different colours
 
 ---
 

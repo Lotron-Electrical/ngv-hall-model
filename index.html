@@ -818,9 +818,10 @@ new GLTFLoader().load('model.glb',g=>{
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
   const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnMats.push(m); return m;} return photoMaterial(m); });
   o.material=Array.isArray(o.material)?out:out[0];
-  // the doorway (Lloyd's storyboard finale): a 2.6 x 3.2 m opening cut out of the glazing on the
-  // court's axis, where the tour walks out; it exists only through the finale (door.x), so the
-  // glass is whole for every other shot and nothing outside shows through it
+  // the doorway (Lloyd's storyboard finale): the opening in the glazing on the court's axis
+  // where the tour walks out; buildDoor sets it to the door leaf's footprint once the panes
+  // are known, and it exists only through the finale (door.x), so the glass is whole for
+  // every other shot and nothing outside shows through it
   if(/glazing-south/i.test([o.name,...ms.map(m=>m.name||'')].join(' ')))for(const m of out){ if(!m.uniforms||!m.uniforms.door)continue;
    m.uniforms.door.value.set(0,1.3,3.2,2.0); m.uniforms.doorC.value.copy(COURT.origin).addScaledVector(COURT.u,COURT.uMid).addScaledVector(COURT.n,-COURT.glassOut);
    m.uniforms.doorU.value.copy(COURT.u); m.uniforms.doorN.value.copy(COURT.n); glazingMats.push(m); }
@@ -854,7 +855,7 @@ new GLTFLoader().load('model.glb',g=>{
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
- hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildPortal(); warpWarm();},
+ hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.'; document.getElementById('loader').classList.add('gone');});
 
@@ -2567,7 +2568,8 @@ function updateWedding(dt,t){
    const tw=t-W.walk.t0, off=(i===0?-0.4:0.4);
    if(tw<=20){ const dNow=3.55+(tw/20)*9.9; const wp=eventPoint(W.uMid+off,0,dNow); fx=wp.x; fz=wp.z; }
    else { const q=Math.min(1,(tw-20)/6);
-    const uNow=W.uMid+off+(27.6+off-(W.uMid+off))*q, dNow=13.45+2.2*q;
+    // in the tour they stop at the door (the finale takes them through it), not into the glass
+    const uNow=W.uMid+off+(27.6+off-(W.uMid+off))*q, dNow=13.45+(tour?1.1:2.2)*q;
     const wp=eventPoint(uNow,0,dNow); fx=wp.x; fz=wp.z;
     if(dNow>15.02)hide=true;
     if(tw>27){ W.walk=null; W.gone=true; summonNextCouple(W); } }
@@ -2586,6 +2588,8 @@ function updateWedding(dt,t){
    if(!W.hasGroom&&i===1)hide=true;
   }
   if(W.phase==='done'&&i===2)hide=true;
+  // through the finale the bride and groom go where finaleStep puts them (out the door)
+  if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
   poseBH(W.cp.bm,W.cp.hm,i,fx+sway,fz,hide?-99:y0+0.78,hide?-99:y0+1.62,i===0?1.15:1,1);
   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=!hide;
    if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+1.51,fz); } } }
@@ -3327,17 +3331,49 @@ function titleStep(s,at,look,spec){ if(!titles&&!buildCourt.font)return; if(titl
   g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }
  if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }
 function titlesOff(){ if(titles)for(const g of titles.children)g.visible=false; }
+// THE DOOR (Lloyd, finale V4): the glass wall is not cut open; every window has a door at its
+// foot, and the tour opens the one on the court's axis and walks through it. The leaf is hung in
+// the GLB pane that spans uMid, in that pane's own plane, hinged on its far edge, and the
+// shader's opening (the door uniform) is the leaf's footprint in the same plane, so the glass
+// behind the swung leaf is simply not there while the door stands open. Closed the rest of the
+// time, and the wall is whole
+let doorLeaf=null; const DOOR={W:1.1,H:2.4};
+function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
+ const legs=collectLegs(); if(!legs.length)return; const P0=COURT.origin.clone().addScaledVector(COURT.u,COURT.uMid);
+ // the pane whose run along the wall takes in the axis (or the nearest)
+ let best=null, bd=1e9;
+ for(const leg of legs){ const a=leg[0].clone().sub(P0).dot(COURT.u), b=leg[1].clone().sub(P0).dot(COURT.u); const lo=Math.min(a,b), hi=Math.max(a,b); const d=(lo<=0&&hi>=0)?0:Math.min(Math.abs(lo),Math.abs(hi)); if(d<bd){ bd=d; best=leg; } }
+ const [bl,br]=best; const c=bl.clone().add(br).multiplyScalar(0.5); const along=br.clone().sub(bl).setY(0); const len=along.length(); along.normalize();
+ // along x up = the pane's normal; turned so it points out of the hall
+ const nrm=new THREE.Vector3(-along.z,0,along.x); if(nrm.dot(COURT.n)<0){ nrm.negate(); along.negate(); }
+ // where the axis crosses the pane's foot
+ const z=bl.clone().sub(P0).dot(nrm)/Math.max(1e-6,COURT.n.dot(nrm)); const Q=P0.clone().addScaledVector(COURT.n,z).setY(bl.y);
+ const t=Math.max(-(len/2-DOOR.W/2-0.05),Math.min(len/2-DOOR.W/2-0.05,Q.clone().sub(c).dot(along)));
+ const foot=c.clone().addScaledVector(along,t).setY(bl.y); DOOR.foot=foot.clone();   // the walk passes through here
+ // the leaf: a dark frame round a pane of glass, a push bar at hand height; hinged on the far
+ // edge, it swings out into the court (rotation.y)
+ doorLeaf=new THREE.Group(); doorLeaf.position.copy(foot).addScaledVector(along,DOOR.W/2);
+ doorLeaf.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(along,new THREE.Vector3(0,1,0),nrm));
+ const fr=new THREE.MeshBasicMaterial({color:0x26262a}); const gl=new THREE.MeshBasicMaterial({color:0xaac0d0,transparent:true,opacity:0.22,depthWrite:false});
+ const box=(w,h,d,x,y,z2)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),fr); m.position.set(x,y,z2); doorLeaf.add(m); };
+ const W=DOOR.W,H=DOOR.H,T=0.06,S=0.05;
+ box(S,H,T,-S/2,H/2,0); box(S,H,T,-W+S/2,H/2,0); box(W,S,T,-W/2,H-S/2,0); box(W,S*2,T,-W/2,S,0);
+ const g=new THREE.Mesh(new THREE.PlaneGeometry(W-2*S,H-3*S),gl); g.position.set(-W/2,H/2+S/2,0); doorLeaf.add(g);
+ box(W-0.3,0.03,0.03,-W/2,1.0,T/2+0.03);
+ scene.add(doorLeaf);
+ // the opening in the wall, exactly the leaf's footprint in the pane's plane
+ for(const m of glazingMats){ m.uniforms.door.value.set(m.uniforms.door.value.x,W/2+0.02,H+0.02,0.12); m.uniforms.doorC.value.copy(foot); m.uniforms.doorU.value.copy(along); m.uniforms.doorN.value.copy(nrm); } }
 // THE FINALE (Lloyd's storyboard, shot 10): through the doorway in the glass and out to the
 // sculpture; the three marks rise off the turntable and align into a triangle facing the hall,
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:8, rise:8, flat:5, hold:4, fade:2};   // seconds per phase
+const FIN={walk:8, pan:3, drop:6, flat:5, hold:4, fade:2};   // seconds per phase
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
 // the hall and the sky go, through a short dip to black
 let gandelTop=null, gandelTopMat=null;
 let finale=null, gandelText=null, gandelMat=null;
-const finaleTotal=()=>FIN.walk+FIN.rise+FIN.flat+FIN.hold+FIN.fade;
+const finaleTotal=()=>FIN.walk+FIN.pan+FIN.drop+FIN.flat+FIN.hold+FIN.fade;
 // the triangle in the turntable's own frame (+z faces the hall; seen from the hall, +x is left)
 function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partners.map(p=>p.userData.top));
  // the year sits at the foot (0.3 up, 0.6 H tall), the partners clear of it, Lotron clear of them
@@ -3367,51 +3403,80 @@ function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.le
  const home=o=>({p:o.position.clone(),r:o.rotation.y,s:o.scale.clone()});
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=0;
  for(const m of glazingMats)m.uniforms.door.value.x=1;
+ // the couple are the finale's now: their walk handed over, placed by finaleStep each frame
+ if(wedding){ wedding.walk=null; wedding.gone=false; wedding.fin={pos:null}; }
  finale={L,homes:new Map([[logo,home(logo)],...partners.map(p=>[p,home(p)])]),yaw:turntable.rotation.y,scale:turntable.scale.x,tagY:tag?tag.userData.baseY:0,f}; }
 // everything back where the court had it (the tour's end, or the tool looping the shot)
 function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.position.copy(h.p); o.rotation.y=h.r; o.scale.copy(h.s); }
- turntable.rotation.y=finale.yaw; turntable.scale.setScalar(finale.scale); if(tag){ tag.userData.baseY=finale.tagY; tag.scale.setScalar(1); } for(const m of glazingMats)m.uniforms.door.value.x=0; if(gandelText)gandelText.visible=false; if(gandelTop)gandelTop.visible=false;
+ turntable.rotation.y=finale.yaw; turntable.scale.setScalar(finale.scale); if(tag){ tag.userData.baseY=finale.tagY; tag.scale.setScalar(1); } for(const m of glazingMats)m.uniforms.door.value.x=0; if(doorLeaf)doorLeaf.rotation.y=0; if(gandelText)gandelText.visible=false; if(gandelTop)gandelTop.visible=false;
+ if(wedding){ wedding.fin=null; wedding.gone=true; }
  finaleLights(false); finale=null; }
 // the world off (the court's paving, the hall, the sky) and back on
 function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark; if(court&&court.userData.graphite)court.userData.graphite.color.set(dark?0xffffff:0x23272e); /* ENTTEC's graphite letters white on the black (Lloyd) */ if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
 // s: seconds into the shot
+// (Lloyd, V4) the finale is the couple's exit: the camera follows the bride and groom out
+// through the door, right up on their backs so they fill the frame in the doorway, then they
+// walk off to the side and the court with the sculpture is revealed. The camera pans up; the
+// marks and the lines come down from the top of the frame and arrange themselves into the
+// triangle; then the flattening, the black, the hold and the fade as before
 function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=finale, L=F.L, y0=COURT.origin.y;
+ // the door swings out ahead of the walk, open before anyone reaches it
+ if(doorLeaf)doorLeaf.rotation.y=Math.PI*0.58*smooth(Math.max(0,Math.min(1,(s-0.3)/2.2)));
+ const df=DOOR.foot||courtPoint(COURT.uMid,y0,0), N=COURT.n, U=COURT.u;
+ const P=(back,side,y)=>df.clone().addScaledVector(N,back).addScaledVector(U,side).setY(y);   // back: metres into the hall
+ // THE COUPLE'S PATH: from 3 m inside, through the door, 2 m out, then away to the side and out
+ // of the frame; a polyline walked at a steady pace
+ const way=[[3.2,0,0],[0,0,3.6],[-2.0,0,5.4],[-3.4,2.2,7.0],[-4.0,5.5,9.5]];
+ const along=t=>{ let i=0; while(i<way.length-2&&t>way[i+1][2])i++; const a=way[i], b=way[i+1]; const q=Math.max(0,Math.min(1,(t-a[2])/(b[2]-a[2]))); return {back:a[0]+(b[0]-a[0])*q,side:a[1]+(b[1]-a[1])*q,dir:Math.atan2(b[0]-a[0],b[1]-a[1])}; };
+ const W=wedding; if(W&&W.fin){ const m=along(s); const g=along(Math.max(0,s-0.45));
+  const across=new THREE.Vector3(-N.z,0,N.x);   // sideways to the walk, for the two abreast
+  const b=P(m.back,m.side,0).addScaledVector(across,-0.28), gm=P(g.back,g.side,0).addScaledVector(across,0.28);
+  W.fin.pos=[{x:b.x,z:b.z},{x:gm.x,z:gm.z}]; }
  // seen from the hall, -x is the left: ENTTEC there, Shadow AV on the right
  const targets=new Map([[logo,[0,L.yTop,0]],[partners[0],[-L.dx,L.yBot,0]],[partners[1],[L.dx,L.yBot,0]]]);
- // the rise: every mark from its place on the ring to its corner of the triangle, turning to face
- // the hall; the turntable itself settles to face the hall; the line above rises clear of Lotron
- const rk=smooth(Math.max(0,Math.min(1,(s-FIN.walk)/FIN.rise)));
+ const tP=FIN.walk, tD=tP+FIN.pan, tF=tD+FIN.drop;
+ const pk=smooth(Math.max(0,Math.min(1,(s-tP)/FIN.pan)));   // the pan up: the marks lift away and take their places above
+ const dk=smooth(Math.max(0,Math.min(1,(s-tD)/FIN.drop)));  // the drop: down from the top of the frame into the triangle
  // the eye stays a metre outside the glass at least; where the triangle would not fit from there
- // (a phone's narrow picture) the whole sculpture shrinks as it rises instead
+ // (a phone's narrow picture) the whole sculpture shrinks instead
  const th=Math.tan(cam.fov*Math.PI/360), D0=Math.max(0.7*L.top/th,0.55*L.wTot/(th*cam.aspect)), Dmax=COURT.logoZ-1.0, sf=Math.min(1,Dmax/D0), D=Math.min(D0,Dmax);
- turntable.scale.setScalar(F.scale*(1+(sf-1)*rk));
- for(const [o,h] of F.homes){ const t=targets.get(o); if(!t)continue; o.position.set(h.p.x+(t[0]-h.p.x)*rk,h.p.y+(t[1]-h.p.y)*rk,h.p.z+(t[2]-h.p.z)*rk);
-  let dr=-h.r; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); o.rotation.y=h.r+dr*rk; }
- { let dy=turntable.userData.yaw0-F.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); turntable.rotation.y=F.yaw+dy*rk; }
- // the tag shrinks with the turntable too (a phone), so the line above never sits on it
- if(tag){ tag.userData.baseY=F.tagY+(turntable.position.y+L.tagY*sf-F.tagY)*rk; tag.scale.setScalar(1+(sf-1)*rk); }
+ const hUp=(D*th*1.3+L.top)*Math.max(1,sf);   // clear of the top of the frame from D out
+ turntable.scale.setScalar(F.scale*(1+(sf-1)*pk));
+ for(const [o,h] of F.homes){ const t=targets.get(o); if(!t)continue;
+  const lift=hUp*pk*(1-dk);
+  o.position.set(h.p.x+(t[0]-h.p.x)*pk,h.p.y+(t[1]-h.p.y)*pk+lift,h.p.z+(t[2]-h.p.z)*pk);
+  let dr=-h.r; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); o.rotation.y=h.r+dr*pk; }
+ { let dy=turntable.userData.yaw0-F.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); turntable.rotation.y=F.yaw+dy*pk; }
+ // the line above and GANDEL HALL come down with the marks; the tag shrinks with the turntable
+ // too (a phone), so the line above never sits on it
+ const liftW=hUp*turntable.scale.x*pk*(1-dk);
+ if(tag){ tag.userData.baseY=F.tagY+(turntable.position.y+L.tagY*sf-F.tagY)*pk+liftW; tag.scale.setScalar(1+(sf-1)*pk); }
  // the flattening: the depth of every mark goes to nothing, and the year comes up beneath
- const fk=smooth(Math.max(0,Math.min(1,(s-FIN.walk-FIN.rise)/FIN.flat)));
+ const fk=smooth(Math.max(0,Math.min(1,(s-tF)/FIN.flat)));
  for(const [o,h] of F.homes){ if(targets.has(o))o.scale.set(h.s.x,h.s.y,h.s.z*(1-0.99*fk)); }
  if(gandelText){ gandelText.visible=fk>0; gandelMat.uniforms.op.value=Math.min(1,fk*1.5); gandelMat.uniforms.t.value=s; }
- if(gandelTop){ gandelTop.visible=fk>0; gandelTopMat.uniforms.op.value=Math.min(1,fk*1.5); gandelTopMat.uniforms.t.value=s;
+ if(gandelTop){ gandelTop.visible=pk>0; gandelTopMat.uniforms.op.value=Math.min(1,pk*1.5); gandelTopMat.uniforms.t.value=s;
   // above the tag, whose letters do not shrink with the turntable on a phone: its height is
-  // taken as it is, the rest scaled
-  // level and square to the camera (Lloyd): it turns to face the eye rather than the hall
-  gandelTop.position.copy(turntable.position); gandelTop.position.y+=L.gBot*sf; gandelTop.scale.setScalar(sf); gandelTop.lookAt(eye.x,gandelTop.position.y,eye.z); }
+  // taken as it is, the rest scaled; level and square to the camera (Lloyd)
+  gandelTop.position.copy(turntable.position); gandelTop.position.y+=L.gBot*sf+liftW; gandelTop.scale.setScalar(sf); gandelTop.lookAt(eye.x,gandelTop.position.y,eye.z); }
  // the dip to black as the flattening begins, and the world gone when it comes back
- const tB=FIN.walk+FIN.rise, dip=s<tB?Math.max(0,(s-(tB-0.6))/0.6):Math.max(0,1-(s-tB)/0.8);
- finaleLights(s>=tB);
+ const dip=s<tF?Math.max(0,(s-(tF-0.6))/0.6):Math.max(0,1-(s-tF)/0.8);
+ finaleLights(s>=tF);
  // the fade to black at the end
- const fd=Math.max(0,Math.min(1,(s-FIN.walk-FIN.rise-FIN.flat-FIN.hold)/FIN.fade));
+ const fd=Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade));
  F.f.style.opacity=Math.max(fd,smooth(Math.min(1,dip)));
- // the camera: through the doorway at head height to a spot in the court, then back and up to
- // frame the whole triangle from D out, D from its height and the picture's width
- const wk=smooth(Math.min(1,s/FIN.walk)), bk=smooth(Math.max(0,Math.min(1,(s-FIN.walk)/FIN.rise)));
- const cz=COURT.logoZ-D;
- const a=courtPoint(COURT.uMid,y0+1.7,-4), b=courtPoint(COURT.uMid,y0+1.7,6), c=courtPoint(COURT.uMid,y0+L.top*0.5*sf,cz);
- const at=s<FIN.walk?a.lerp(b,wk):b.lerp(c,bk);
- const look=s<FIN.walk?courtPoint(COURT.uMid,y0+3,COURT.logoZ):courtPoint(COURT.uMid,y0+2+(L.top*0.5*sf-2)*bk,COURT.logoZ);
+ // THE CAMERA. The walk: 1.3 m behind the couple at their shoulders, through the door on their
+ // backs; from 2 m outside it stops and turns to the sculpture as they walk out of the picture
+ const cz=COURT.logoZ-D, c=courtPoint(COURT.uMid,y0+L.top*0.5*sf,cz), sc=courtPoint(COURT.uMid,y0+3,COURT.logoZ);
+ let at,look;
+ if(s<tP){ const m=along(Math.min(s,5.2)), m2=along(Math.min(s,5.2)+1.6);
+  at=P(m.back+1.0,m.side,y0+1.5); const ahead=P(m2.back,m2.side,y0+1.35);
+  const tk=smooth(Math.max(0,Math.min(1,(s-5.2)/2.6))); const rest=P(-1.2,0,y0+1.7);
+  at.lerp(rest,tk); look=ahead.lerp(sc,tk); }
+ else { const rest=P(-1.2,0,y0+1.7); at=rest.lerp(c,pk);
+  // the pan up: the look climbs to the sky over the sculpture, then settles on the triangle as it lands
+  const hi=courtPoint(COURT.uMid,y0+L.top*0.5*sf+D*th*0.9,COURT.logoZ), mid=courtPoint(COURT.uMid,y0+L.top*0.5*sf,COURT.logoZ);
+  look=sc.clone().lerp(hi,pk).lerp(mid,dk); }
  poseAt(at,look); }
 // THE TEXT of the tour (Lloyd): every line a shot shows, by the shot's storyboard key, editable
 // in the storyboard tool, which writes storyboard/titles.json over these defaults. A '|' in a
@@ -3484,7 +3549,8 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {mode:'wedding',dur:14, cam:withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.6,5.2),EP(uM,1.5,3.5),EP(uM,1.6,3.0)),14,TX('wedding-aisle'))},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   {celebrate:true,dur:26.5, cam:k=>{ const tw=k*26.5, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5));
-    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); }},
+    // (Lloyd, V3) no sculpture outside the glass in this shot
+    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); if(court)court.visible=false; }},
   // the finale (Lloyd's storyboard): out through the doorway to the sculpture, the marks rise into
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
