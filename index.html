@@ -151,7 +151,7 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 html.embed main>*:not(#stage){display:none!important}
 html.embed #stage{height:100vh;min-height:0;border:0}
 html.embed,html.embed body{overflow:hidden;height:100%}
-html.embed body,html.embed main{margin:0;padding:0}
+html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stage fills the frame; the 960px cap left a dead right side in wide embeds (Lloyd, on the tour video) */
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
