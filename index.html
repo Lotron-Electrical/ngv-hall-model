@@ -3221,7 +3221,7 @@ function idleStep(now){ if(!hallGroup||!portal||!entered)return;
 // dodecahedron with the corners tied, turning against each other; look into it and the lit frame
 // repeats smaller and darker forever, an infinity mirror ray-marched through folded space. It floats, it shimmers, a fine spray lifts off it, a
 // spotlight falls on it from the canopy, and it stands on a neon portal cut into the floor.
-// "Enter The Future of Gandel Hall" hangs above it, always facing the camera. Clicking or tapping the object
+// "The Future / Gandel Hall" hangs above it, always facing the camera. Clicking or tapping the object
 // starts the tour. It lives only while no tour and no event is running.
 let portal=null, reflecting=false;
 // THE APPROACH (Lloyd, 2026-09-01): the nearer the eye gets to the object, the wider the view and
@@ -3604,7 +3604,7 @@ function buildPortal(){
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
-  line('Enter The Future',0.42,0.3,false); line('Gandel Hall',0.42,-0.3,true);
+  line('The Future',0.42,0.3,false); line('Gandel Hall',0.42,-0.3,true);
   // the cue (Lloyd): under the name, "Tap to begin" on a phone and "Click to begin" on a computer,
   // with an arrow pointing down at the object. It goes away once the approach has begun.
   // Lloyd: thinner and smaller than the name, and never hidden behind the object, so the cue is
