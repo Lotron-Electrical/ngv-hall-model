@@ -3143,6 +3143,23 @@ const EP=(u,h,d)=>eventPoint(u,(FLOOR_Y||EVENT.N.origin.y)+h,d);
 const glide=(a,b,la,lb)=>k=>{ const q=smooth(k); poseAt(a.clone().lerp(b,q),(la||b).clone().lerp(lb||la||b,q)); };
 function setEvent(mode){ const ev=document.getElementById('event'), md=document.getElementById('eventmode');
  ev.checked=!!mode; if(mode)md.value=mode; buildEvent(); }
+// THE TITLES (Lloyd, storyboard shot 1): three lines float ahead of the camera on the first flight
+// down the hall, one after another: "A unique space", "Carefully crafted over decades", "Is brought
+// to light". Set in the same white face as "The Future", each faces the eye and rides six metres
+// ahead of it, fading in and out over 0.6 s
+const TITLES=['A unique space','Carefully crafted over decades','Is brought to light'];
+let titles=null;
+function buildTitles(){ if(titles||!buildCourt.font)return; titles=new THREE.Group(); titles.visible=false; scene.add(titles);
+ for(const text of TITLES){ const g=new THREE.Group(); const tg=new TextGeometry(text,{font:buildCourt.font,size:0.34,height:0.05,curveSegments:4});
+  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,-(b.min.y+b.max.y)/2,0);
+  const mats=[]; const mk=(op,sc)=>{ const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:op<1?0xdfe8ff:0xffffff,transparent:true,opacity:op,blending:op<1?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:op>=1,toneMapped:false})); m.material.userData.base=op; if(sc)m.scale.set(...sc); mats.push(m.material); g.add(m); };
+  mk(1,null); mk(0.22,[1.05,1.18,1.6]); mk(0.1,[1.12,1.4,2.4]); g.userData.mats=mats; g.visible=false; titles.add(g); } }
+// s: seconds into the shot; each line holds 4.4 s, the next starting as the last goes
+function titleStep(s,at,fwd){ buildTitles(); if(!titles)return; titles.visible=true;
+ titles.children.forEach((g,i)=>{ const t=s-i*4.4; let f=0; if(t>0&&t<4.4)f=Math.min(1,t/0.6,(4.4-t)/0.6); g.visible=f>0; if(!g.visible)return;
+  for(const m of g.userData.mats)m.opacity=m.userData.base*f;
+  g.position.copy(at).addScaledVector(fwd,6).setY(at.y+0.35); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); }); }
+function titlesOff(){ if(titles)titles.visible=false; }
 function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  const fly=(h,d0,d1,look)=>glide(EP(4,h,d0),EP(45.5,h,d1),EP(22,look,d0),EP(60,look,d1));
  const hold=(u,h,d,lu,lh,ld)=>k=>{ const w=0.06*Math.sin(k*Math.PI*2); poseAt(EP(u+w*8,h,d),EP(lu,lh,ld)); };
@@ -3150,8 +3167,13 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  const couple=tw=>{ if(tw<=20)return {u:uM,d:3.55+(tw/20)*9.9}; const q=Math.min(1,(tw-20)/6); return {u:uM+(27.6-uM)*q,d:13.45+2.2*q}; };
  const court=()=>turntable?turntable.position.clone():courtPoint(COURT.uMid,0,COURT.logoZ);
  return [
-  {mode:null,     dur:16, cam:fly(1.7,7.6,7.6,1.5)},
-  {mode:'dinner', dur:16, cam:fly(2.4,5.5,9.5,0.9)},
+  // shot 1 (Lloyd's storyboard notes): the titles float ahead on the way down the hall; before
+  // the end the camera looks down at the carpet, and shot 2 pans back up from the same spot on
+  // to the dinner, already set while the carpet filled the frame
+  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+26*q; const at=EP(u,1.7,7.6), ahead=EP(u+18,1.5,7.6), down=EP(u+1.5,0.0,7.6);
+    const dk=smooth(Math.max(0,(k-0.8)/0.2)); poseAt(at,ahead.lerp(down,dk)); titleStep(k*16,at,EVENT.N.u); }},
+  {mode:'dinner', dur:16, cam:k=>{ const q=smooth(k), u=30+15.5*q, d=7.6+1.9*q; const at=EP(u,1.7+0.7*q,d), ahead=EP(u+18,0.9,d), down=EP(31.5,0.0,7.6);
+    poseAt(at,down.lerp(ahead,smooth(Math.min(1,k*16/2.5)))); }},
   {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
   {mode:'party',  dur:16, cam:fly(2.2,9,6,1.2)},
   {celebrate:true,dur:14, cam:hold(uM+8,2.4,13,uM,2.5,5)},
@@ -3170,9 +3192,9 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  ]; }
 function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ boom=null; if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('celebratefab').hidden=!document.getElementById('event').checked; }
+function stopTour(){ boom=null; titlesOff(); if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('celebratefab').hidden=!document.getElementById('event').checked; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
- const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0);
+ const sg=T.segs[T.i]; T.t0=now; titlesOff(); if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0);
  // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
  document.getElementById('celebratefab').hidden=true; }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;

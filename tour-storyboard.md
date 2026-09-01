@@ -17,13 +17,21 @@ The tour runs straight after the kaleidoscope. Total length about 173 s.
 
 Duration 16 s. Event: none (the columns run rainbow).
 
-Fly from `(4, 1.7, 7.6)` to `(45.5, 1.7, 7.6)`: down the length of the hall at head height along the object's line, looking ahead at `(22..60, 1.5, 7.6)`.
+Fly from `(4, 1.7, 7.6)` to `(30, 1.7, 7.6)`: down the hall at head height along the object's line, looking ahead. Three title lines float 6 m ahead of the camera, one after another (4.4 s each): "A unique space", "Carefully crafted over decades", "Is brought to light". Over the last 3 s the camera tilts down to the carpet just ahead `(31.5, 0, 7.6)`.
 
 | start | middle | end |
 |---|---|---|
 | ![](storyboard/seg01a.jpg) | ![](storyboard/seg01b.jpg) | ![](storyboard/seg01c.jpg) |
 
-**Notes:**
+**Notes:** Text floating in the start reading 
+
+"A unique space"
+Then
+"Carefully crafted over decades"
+Then
+"Is brought to light"
+
+Have the camera move forwards down the hall and then before it gets to the end, look down and the floor and then when it pans up the dinner scene has started
 
 ---
 
@@ -31,7 +39,7 @@ Fly from `(4, 1.7, 7.6)` to `(45.5, 1.7, 7.6)`: down the length of the hall at h
 
 Duration 16 s. Event: `dinner` (tables set).
 
-Fly from `(4, 2.4, 5.5)` to `(45.5, 2.4, 9.5)`: down the hall a little higher, drifting from the wall side out towards the glass, looking ahead and down at table height (0.9).
+Starts where shot 1 ended, `(30, 1.7, 7.6)` looking down at the carpet, with the dinner already set. Pans up over 2.5 s, then flies on to `(45.5, 2.4, 9.5)`, rising and drifting out towards the glass, looking ahead at table height (0.9).
 
 | start | middle | end |
 |---|---|---|
