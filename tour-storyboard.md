@@ -2,7 +2,7 @@
 
 One block per camera path in the tour, in the order they play. Each block has three frames (start, middle, end), the timing, what the camera does, and a **Notes** line for you. Write anything under **Notes**; leave the rest alone and I will read the notes back and change the code to match.
 
-The tour runs straight after the kaleidoscope. Total length about 174 s.
+The tour runs straight after the kaleidoscope. Total length about 162 s. Title lines are drawn over everything, so a column never hides them.
 
 **How to read the positions.** Every camera point is written as `(u, h, d)` in hall metres:
 - `u` runs along the hall, 0 at the screen-wall end, `uM` is the middle of the hall (about 26).
@@ -44,7 +44,7 @@ Also make sure the text fits on the phone as well
 
 Duration 16 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community" floats over the dinner from 3.4 s to 9 s.
+Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community." floats over the dinner from 3.4 s to 9 s. The glazing is frosted for this shot, so nothing outside shows.
 
 | start | middle | end |
 |---|---|---|
@@ -79,7 +79,7 @@ Hold at `(uM-7, 2.1, 13)`, by the glass, looking across the room at `(uM+2, 1.0,
 
 Duration 16 s. Event: `party`.
 
-From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long curve (16 m along, 3.4 m across) and rising all the way, to end high up at `(28.4, 6.2, 12.8)` facing the crowd in the centre `(uM, 1.2, 9.5)`. Faces the centre throughout. "A place to come together" floats ahead from 2 s to 8 s.
+From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long curve (16 m along, 3.4 m across) and rising all the way, to end high up at `(28.4, 6.2, 12.8)` facing the crowd in the centre `(uM, 1.2, 9.5)`. Faces the centre throughout. "A place to come together" floats ahead from 2 s to 8 s. Fades to black over the last 1.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -100,7 +100,7 @@ Fade out at the end
 
 Duration 14 s. Celebrate fires at the start.
 
-Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`. "and celebrate amongst friends" floats ahead from 1 s to 7 s.
+Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`. Fades in from black over 1.5 s. "and celebrate amongst friends" floats ahead from 1.5 s to 7.5 s.
 
 | start | middle | end |
 |---|---|---|
@@ -140,21 +140,7 @@ Make sure the text isn't blocked by the columns
 
 ---
 
-## 7. Standing celebrate
-
-Duration 12 s. Celebrate fires at the start.
-
-Hold at `(uM-6, 2.3, 13)`, by the glass, looking across at `(uM, 2.0, 6)`.
-
-| start | middle | end |
-|---|---|---|
-| ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
-
-**Notes:** We don't need this clip
-
----
-
-## 8. Wedding, the aisle
+## 7. Wedding, the aisle
 
 Duration 14 s. Event: `wedding` (chairs, aisle, the couple waiting).
 
@@ -162,7 +148,7 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 
 | start | middle | end |
 |---|---|---|
-| ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
+| ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
 **Notes:** Text:
 "A place to celebrate love" 
@@ -173,7 +159,7 @@ Make sure the text isn't blocked by columns
 
 ---
 
-## 9. Wedding, the walk
+## 8. Wedding, the walk
 
 Duration 26.5 s. Celebrate fires at the start and the couple begin to walk: 20 s up the aisle, then 6 s across to the glass.
 
@@ -181,13 +167,13 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 
 | start | middle | end |
 |---|---|---|
-| ![](storyboard/seg09a.jpg) | ![](storyboard/seg09b.jpg) | ![](storyboard/seg09c.jpg) |
+| ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
 **Notes:** this clip is missing the event
 
 ---
 
-## 10. The finale: out to the courtyard
+## 9. The finale: out to the courtyard
 
 Duration 27 s (walk 8, rise 8, flatten 5, hold 4, fade 2). The tour ends here; the picture fades back in on the free view.
 
@@ -195,7 +181,7 @@ Walks at head height through a doorway cut in the glass on the court's axis, out
 
 | start | middle | end |
 |---|---|---|
-| ![](storyboard/seg10a.jpg) | ![](storyboard/seg10b.jpg) | ![](storyboard/seg10c.jpg) |
+| ![](storyboard/seg09a.jpg) | ![](storyboard/seg09b.jpg) | ![](storyboard/seg09c.jpg) |
 
 **Notes:** This should walk through a doorway cut out in the glass.
 
