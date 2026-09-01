@@ -1217,7 +1217,7 @@ function animate(time){
    else if(kind==='chaseup'||kind==='chasedown'){const dir=kind==='chaseup'?1:-1; const ph=((P.s[i]*3-dir*T*0.5)%1+1)%1; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
    else if(kind==='wave'){const k=0.5+0.5*Math.sin(P.s[i]*Math.PI*4-T*2); r=B[0]+(A[0]-B[0])*k; g=B[1]+(A[1]-B[1])*k; b=B[2]+(A[2]-B[2])*k;}
    else if(kind==='rainbow'){hsv(((P.s[i]*360+P.col[i]*30+T*40)%360+360)%360,1,Ly.A.v,tmp); r=lin(tmp[0]);g=lin(tmp[1]);b=lin(tmp[2]);}
-   else if(kind==='sparkle'){const fr=Math.floor(T*6); const q=P.pid[i]; const k=hash(q*7919+fr)<0.02?1:(hash(q*7919+fr-1)<0.02?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
+   else if(kind==='sparkle'){const fr=Math.floor(T*6), dn=Ly.dens||0.02; /* dens: the share of pixels lit at once (the banquet's glitter, Lloyd) */ const q=P.pid[i]; const k=hash(q*7919+fr)<dn?1:(hash(q*7919+fr-1)<dn?0.5:0); r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
    else if(kind==='sweep'){const ph=((P.colx[i]*1.2-T*0.3)%1.2+1.2)%1.2; const k=ph<0.25?1-ph*4:0; r=dimB[0]+(A[0]-dimB[0])*k; g=dimB[1]+(A[1]-dimB[1])*k; b=dimB[2]+(A[2]-dimB[2])*k;}
    else if(kind==='alternate'){const on=((P.gap[i]+Math.floor(T*0.8))%2)===0; const C=on?A:B; r=C[0];g=C[1];b=C[2];}
    else {r=A[0];g=A[1];b=A[2];}
@@ -1843,8 +1843,9 @@ const EVENT_LED={
  wedding:{house:0.5,level:0.8,layers:[{name:'Champagne',on:true,anim:'wave',speed:0.14,opacity:1,blend:'add',A:{h:44,s:0.14,v:1},B:{h:48,s:0.4,v:0.75}}]},
  party:{house:0.15,level:1,layers:[{name:'Chase',on:true,anim:'chaseup',speed:0.85,opacity:1,blend:'add',A:{h:315,s:1,v:1},B:{h:230,s:1,v:0.9}},
   {name:'Strobe sparkle',on:true,anim:'sparkle',speed:0.9,opacity:0.7,blend:'add',A:{h:0,s:0,v:1},B:{h:0,s:0,v:0}}]}};
-// the banquet is lit as the dinner is
-EVENT_LED.banquet=EVENT_LED.dinner;
+// the banquet is lit as the dinner is, but its columns SPARKLE (Lloyd, shot 3 V10): the same
+// candlelight under a bright white glitter, fast and dense enough to read from the table
+EVENT_LED.banquet=JSON.parse(JSON.stringify(EVENT_LED.dinner)); EVENT_LED.banquet.layers[1]={name:'Sparkle',on:true,anim:'sparkle',dens:0.12,speed:0.8,opacity:1,blend:'add',A:{h:45,s:0.08,v:1},B:{h:0,s:0,v:0}}; EVENT_LED.banquet.level=0.7;
 function applyEventLED(mode){
  if(!eventSavedLED)eventSavedLED={layers:JSON.parse(JSON.stringify(state.layers)),sel:state.sel,level:state.level,house:lit.house};
  const pr=EVENT_LED[mode]; state.layers=JSON.parse(JSON.stringify(pr.layers)); state.sel=0; state.level=pr.level;
@@ -3707,8 +3708,9 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // so the crowd and more of the columns are in the frame
   // (Lloyd, V5) the shot fades out from 13.9 s with the camera still on the move: the circle
   // eases in and never eases out
-  {mode:'standing',dur:16,cam:k=>{ const q=1-Math.cos(k*Math.PI/2), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
-    poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(Math.max(1-smooth(Math.min(1,k*16/1.5)),smooth(Math.max(0,(k*16-13.9)/1.5)))); }},   /* (Lloyd, V2) fades in from black; (V5) out from 13.9 s */
+  // (Lloyd, V7) the shot ends the moment its fade is done, 15.4 s, no black before the next
+  {mode:'standing',dur:15.4,cam:k=>{ const q=1-Math.cos(k*15.4/16*Math.PI/2), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
+    poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*15.4,TX('standing')); veil(Math.max(1-smooth(Math.min(1,k*15.4/1.5)),smooth(Math.max(0,(k*15.4-13.9)/1.5)))); }},   /* (Lloyd, V2) fades in from black; (V5) out from 13.9 s */
   // (Lloyd, V2) the ceremony plays to the shot's clock: the turn, the veil, the kiss, the dip
   {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
