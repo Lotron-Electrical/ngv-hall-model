@@ -3388,7 +3388,7 @@ function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tou
 function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
  if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
-function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
+function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); if(TOURQ)startTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
@@ -3437,6 +3437,9 @@ function fabSync(){ document.getElementById('celebratefab').hidden=!document.get
 // SHOT REVIEW (Lloyd's storyboard tool): ?shot=N opens straight on to tour shot N (1-based) and
 // plays it on a loop, no veil and no sound gesture, so one camera path can be watched on its own
 const SHOT=+new URLSearchParams(location.search).get('shot')||0;
+// ?tour plays the whole tour from the moment the hall is ready, on a loop, no tap (the storyboard
+// tool's clip of every shot together, Lloyd)
+const TOURQ=new URLSearchParams(location.search).has('tour');
 function playShot(){ idle=false; entered=true; if(!tour)startTour(); const T=tour; if(!T)return;
  // the event the tour would have set by this shot, from the last 'mode' at or before it, built
  // once (Lloyd: the party, standing and wedding shots played with no event)
@@ -3965,7 +3968,7 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
  // is what looked glitched; then the picture fades in
  // once drawn, the veil offers Enter Gandel Hall (Lloyd): that tap is the gesture the browser
  // wants for sound, so the music starts as the hall fades in
- if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else document.getElementById('loader').classList.add('ready'); }
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';

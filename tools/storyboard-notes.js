@@ -66,6 +66,8 @@ function publishTitles(){ try{ execSync('git add storyboard/titles.json && git d
 // draft becomes a sent round and a new empty draft follows it.
 function generate(key){
  const s=parse().secs.find(x=>x.key===key); if(!s)return false; const d=s.rounds[s.rounds.length-1]; if(!d.text)return false;
+ // a round that repeats an earlier one word for word is a box the browser refilled, not a note
+ if(s.rounds.slice(0,-1).some(r=>r.text===d.text))return false;
  d.sent=stamp(); s.rounds.push({n:d.n+1,sent:null,text:''}); if(!writeNotes(key,s.rounds))return false;
  const list=readReq().filter(r=>!(r.key===key&&r.status!=='done'));
  list.push({id:Date.now().toString(36),key,round:d.n,i:s.i,shot:s.shot,title:s.title,notes:d.text,status:'queued',at:new Date().toISOString()});
@@ -98,7 +100,8 @@ button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.
 @media(max-width:700px){.clip{flex-wrap:wrap}.clip .pc,.clip .ph{width:100%}}
 .req{font-size:12px;font-weight:400;color:#111;background:#8c8;border-radius:10px;padding:1px 9px;margin-left:8px;vertical-align:middle;display:none}.req.queued{display:inline;background:#ec5}.req.working{display:inline;background:#8bf}.req.done{display:inline;background:#8c8}
 @media(max-width:700px){.row{flex-wrap:wrap}.row img{width:100%}}</style>
-<main><button id="pub" type="button">Publish text</button><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to. The Text lines are what the shot shows: edit them, Play clip shows the change at once, and Publish text puts it on the live page.</div>${cards}</main>
+<main><button id="pub" type="button">Publish text</button><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to. The Text lines are what the shot shows: edit them, Play clip shows the change at once, and Publish text puts it on the live page.</div>
+<section id="s-all"><h2>The whole tour</h2><p>Every shot in order, on a loop, as the tour plays it.</p><div class="clip" id="clip-all"></div><div class="btns"><button class="play" data-shot="all" data-key="all">Play the whole tour</button></div></section>${cards}</main>
 <script>
 const timers={};
 document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, n=+t.dataset.n||0, id=k+(n?'-'+n:''), st=document.getElementById('st-'+id); st.textContent='…'; clearTimeout(timers[id]);
@@ -107,12 +110,12 @@ document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()
 document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click',()=>{ const box=document.getElementById('clip-'+b.dataset.key); const open=box.querySelector('iframe');
  document.querySelectorAll('.clip').forEach(c=>{ c.innerHTML=''; }); document.querySelectorAll('button.play').forEach(x=>x.textContent='Play clip');
  if(open)return; // the same shot twice, side by side: the computer's frame and a phone's (Lloyd)
- const src='/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'; b.textContent='Stop clip'; }); });
+ const src=b.dataset.shot==='all'?'/viewer.html?embed=1&tour=1':'/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'; b.textContent='Stop clip'; }); });
 // Generate waits for a pending save, sends, then reloads the page so the round files itself and
 // a fresh box appears
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }
  b.disabled=true; b.textContent='Sending…'; clearTimeout(timers[k]); await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,text:t.value})});
- const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Generate'; return; } location.reload(); }); });
+ const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Not sent: same as an earlier round'; setTimeout(()=>{ b.textContent='Generate'; },4000); return; } location.reload(); }); });
 document.querySelectorAll('.line input').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, idx=+t.dataset.idx, id='tx-'+k+'-'+idx, st=document.getElementById(id); st.textContent='…'; clearTimeout(timers[id]);
  timers[id]=setTimeout(async()=>{ const r=await fetch('/title',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,idx,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
 document.getElementById('pub').addEventListener('click',async()=>{ const b=document.getElementById('pub'); b.disabled=true; b.textContent='Publishing…'; const r=await fetch('/publish',{method:'POST'}); b.textContent=r.ok?'Published (live in a minute)':'Publish FAILED'; setTimeout(()=>{ b.disabled=false; b.textContent='Publish text'; },6000); });
