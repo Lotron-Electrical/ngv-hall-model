@@ -125,7 +125,12 @@ V5 (sent 01/09/2026 23:26:44):
 V6 (sent 01/09/2026 23:37:55):
 [shot 2, 4.5 s] the bows for the violins should move across the violins back and forth. not in and out of the violins, clipping through them
 
-V7 (draft):
+V7 (sent 01/09/2026 23:48:50):
+[shot 2, 9.5 s] 
+A place for community (line break)
+to come together
+
+V8 (draft):
 
 
 ---
@@ -177,8 +182,12 @@ V6 (sent 01/09/2026 23:29:11):
 V7 (sent 01/09/2026 23:36:42):
 [shot 3, 4.4 s] I think the white tablecloth is still there because it looks like it's clipping through the purple tablecloth
 
-V8 (draft):
+V8 (sent 01/09/2026 23:47:53):
 [shot 3, 11.4 s] the text on desktop should be just a little bit higher during this scene because the word "meet" is hard to read because it isn't contrasting well against the scene
+[shot 3, 8.0 s] also, no white table cloth - use light purple
+
+V9 (draft):
+
 
 ---
 

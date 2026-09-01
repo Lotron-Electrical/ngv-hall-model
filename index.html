@@ -2128,7 +2128,7 @@ function buildBanquet(ctx){
  const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate()));
  const put=(mesh,u,y,dd)=>{ const p=eventPoint(u,0,dd); mesh.position.set(p.x,y0+y,p.z); mesh.quaternion.copy(q); mesh.frustumCulled=false; eventGroup.add(mesh); return mesh; };
  // (Lloyd, V7) the white top overhangs the purple skirt, which stops 2 cm under it: no shared face to fight
- put(new THREE.Mesh(new THREE.BoxGeometry(L+0.36,0.04,W+0.36),eventMat(0xe9e4d6,0xf6f2e8)),uc,TOP-0.02,d);
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.36,0.04,W+0.36),eventMat(0xc4b3e6,0xe0d4f5)),uc,TOP-0.02,d);   /* the top light purple too, no white cloth (Lloyd, V8) */
  put(new THREE.Mesh(new THREE.BoxGeometry(L+0.3,TOP-0.12,W+0.3),eventMat(0xb9a6dd,0xd6c8f0)),uc,(TOP-0.12)/2+0.08,d);   /* the cloth's sides light purple (Lloyd, V6) */
  put(new THREE.Mesh(new THREE.BoxGeometry(L+0.32,0.012,0.5),eventMat(0x5a1220,0x7a1c30)),uc,TOP+0.006,d);
  put(new THREE.Mesh(new THREE.BoxGeometry(L+0.34,0.06,W+0.34),eventMat(0xb08a2e,0xd4aa45)),uc,0.12,d);
@@ -3599,7 +3599,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special space",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special space / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
@@ -3643,7 +3643,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     veil(smooth(Math.max(0,Math.min(1,(s-11.5)/1.5)))); if(court)court.visible=false; }},
   // (Lloyd's storyboard, shot 3) the banquet: fade in, a slow travel down the table at 1.9 m
   // over the guests' heads, looking along it, fade out
-  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55)); titlesNow(s,TX('banquet'));
+  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55)); titlesNow(s,TX('banquet'),cam.aspect>1?0.6:0.35);   /* a touch higher on a wide picture, so Meet clears the table (Lloyd, V8) */
     veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-14.5)/1.5)))); }},
   // (Lloyd's notes) the party: from the floor at the hall's end, round the room on a long curve
   // and rising all the way, to end high up facing the crowd in the middle; never a blank wall
