@@ -1763,7 +1763,8 @@ function buildCourt(){
   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xfff6dc,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   // (Lloyd, finale V9) the glow a touch softer: it read too bright against the black
-  halo.material.opacity=0.13; halo.scale.set(1.05,1.15,1.5); const halo2=halo.clone(); halo2.scale.set(1.12,1.32,2.2); halo2.material=halo.material.clone(); halo2.material.opacity=0.06;
+  // (V9) softer again: half of that, and closer to the letters
+  halo.material.opacity=0.06; halo.scale.set(1.03,1.08,1.3); const halo2=halo.clone(); halo2.scale.set(1.06,1.16,1.6); halo2.material=halo.material.clone(); halo2.material.opacity=0.03;
   // in the court group, not the logo group: it faces the glass and does not turn with the letters (Lloyd)
   tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(turntable.position).y+=tagY; tag.quaternion.copy(turntable.quaternion); tag.userData.baseY=tag.position.y; tag.userData.size=tagSize; court.add(tag); };
  // Lotron at the front of the turntable, facing the hall at the start of every turn
@@ -3737,7 +3738,9 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {mode:'standing',dur:15.4,cam:k=>{ const q=1-Math.cos(k*15.4/16*Math.PI/2), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
     poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*15.4,TX('standing')); veil(Math.max(1-smooth(Math.min(1,k*15.4/1.5)),smooth(Math.max(0,(k*15.4-13.9)/1.5)))); }},   /* (Lloyd, V2) fades in from black; (V5) out from 13.9 s */
   // (Lloyd, V2) the ceremony plays to the shot's clock: the turn, the veil, the kiss, the dip
-  {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
+  // (Lloyd, V9) shot 6 ends on black, so this one fades in from it over 1.5 s (the veil is the
+  // one overlay, and nobody else clears it)
+  {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); veil(1-smooth(Math.min(1,k*14/1.5))); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   // (Lloyd, V6) the shot cuts at 23 s, fading out over its last 1.5 s, and the finale fades in
   // (Lloyd, V8) the shot ends at 10.4 s, mid-aisle, fading out over its last 1.5 s into the finale
