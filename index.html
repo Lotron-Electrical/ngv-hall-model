@@ -3231,10 +3231,12 @@ const PORTAL_FRAG=`uniform float t; varying vec2 vUv;
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
 const SUCK_VERT=`attribute float a0; attribute float r0; attribute float phase; uniform float t; varying float vA;
- void main(){ float k=fract(t*0.13+phase); float r=mix(r0,0.15,pow(k,0.75)); float an=a0+k*3.0;
-  float y=0.05+0.35*sin(k*3.14159)-0.9*pow(k,6.0);
-  vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.15,k)*(1.0-pow(k,4.0));
-  vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.6+0.9*vA)*(38.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
+ // a vacuum (Lloyd, 2026-09-01): a mote creeps at first, then rushes, and is taken at the LIP,
+ // not carried to the centre; it dips under the rim in the last instant and is gone
+ void main(){ float k=fract(t*0.11+phase); float pull=pow(k,2.4); float r=mix(r0,1.62,pull); float an=a0+pull*1.4;
+  float y=0.05+0.12*sin(k*3.14159)-0.5*smoothstep(0.93,1.0,k);
+  vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.2,k)*(1.0-smoothstep(0.94,1.0,k));
+  vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.35+0.5*vA)*(38.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
 const SUCK_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.05,length(d)); gl_FragColor=vec4(0.62,0.28,1.0,m*vA*0.3); }`;
 const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
  void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
