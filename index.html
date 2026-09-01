@@ -11,28 +11,29 @@ main{max-width:960px;margin:0 auto;padding:0 0 48px}
 header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
-#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5}
+#flash{position:absolute;inset:0 0 44px 0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 #loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
 #loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
 #loader i{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 #stage:fullscreen{height:100vh}
-#cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#cv{width:100%;height:calc(100% - 44px);display:block;touch-action:none;cursor:grab}
 #pad{display:none;position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none}
 #knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
-.ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
+.ctl{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;gap:0;background:#000;border-top:1px solid var(--rule);z-index:7}
+.ctl button{flex:1 1 0;border:0;border-right:1px solid var(--rule);background:#000;min-width:0;padding:0 4px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15}
+.ctl button:last-child{border-right:0}
 /* phones: the row spans the view, one gap between buttons and the same gap to either edge, every
    button the same width (Lloyd, 2026-09-01: they ran off the left edge and sat unevenly) */
-@media (max-width:640px){.ctl{left:10px;right:10px;gap:10px} .ctl button{flex:1 1 0;padding:6px 3px;min-width:0;font-size:11px;line-height:1.15;
-  display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;padding:6px 2px}}
+@media (max-width:640px){.ctl button{font-size:11px;white-space:normal;padding:0 2px}}
 .ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
 .ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
 /* bottom-left and small, so the stats never sit over the menu buttons along the top */
-#hud{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.55);color:#e8e8e8;font:10px/1.5 ui-monospace,Consolas,monospace;padding:6px 8px;white-space:pre;pointer-events:none;border-radius:4px;max-width:calc(100% - 24px);overflow:hidden}
+#hud{position:absolute;left:12px;bottom:56px;background:rgba(0,0,0,.55);color:#e8e8e8;font:10px/1.5 ui-monospace,Consolas,monospace;padding:6px 8px;white-space:pre;pointer-events:none;border-radius:4px;max-width:calc(100% - 24px);overflow:hidden}
 .hint{color:var(--dim);font-size:13px;padding:8px 16px 0}
 .hint a{color:var(--accent)}
-.bar{position:absolute;left:16px;bottom:16px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
+.bar{position:absolute;left:16px;bottom:60px;color:var(--dim);font-size:13px;background:rgba(0,0,0,.6);padding:4px 8px}
 h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:500;font-size:22px;margin:28px 16px 8px;color:var(--accent)}
 .grid{display:flex;flex-direction:column;gap:20px;padding:0 16px}
 figure{margin:0} figure img{width:100%;display:block;border:1px solid var(--rule)}
@@ -118,7 +119,7 @@ a.startbtn:focus-visible,button.startbtn:focus-visible{outline:2px solid var(--i
 #pmap{grid-column:1/-1}
 #pmap>summary,#panel.menu-overlay #pmap>summary{display:none}
 details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
-.qr{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:5}
+.qr{position:absolute;inset:0 0 44px 0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:5}
 .qr[hidden]{display:none}
 .qrbox{background:#111;border:1px solid #444;border-radius:10px;padding:18px;display:flex;gap:18px;align-items:center;max-width:92%;flex-wrap:wrap}
 .qrbox svg{width:220px;height:220px;background:#fff;border-radius:6px}
@@ -428,8 +429,11 @@ function photoMaterial(src){
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
    varying vec2 vUv; varying vec3 vPos;
    void main(){
-    if(hole.w>0.5&&distance(vPos.xz,hole.xy)<hole.z)discard;   // the void's bowl sits in a hole in the floor
+    float hd=distance(vPos.xz,hole.xy);
+    if(hole.w>0.5&&hd<hole.z)discard;   // the void's bowl sits in a hole in the floor
     vec3 albedo=texture2D(map,vUv).rgb*tint;
+    // the void's purple lip carried out onto the carpet, fading over half a metre (Lloyd: blend the edges)
+    float lip=hole.w>0.5?smoothstep(hole.z+0.55,hole.z,hd):0.0;
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
@@ -455,7 +459,7 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    gl_FragColor=vec4(albedo*E,alpha);
+    gl_FragColor=vec4(albedo*E+vec3(0.55,0.2,1.0)*lip*lip*0.32,alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
@@ -834,7 +838,7 @@ function home(){eye.set(...HOME.eye); yaw=HOME.yaw; pitch=HOME.pitch;}
 home();
 // #x,y,z,yaw,pitch in the URL puts the camera there (for sharing a view and for checks)
 {const h=location.hash.slice(1).split(',').map(Number); if(h.length===5&&h.every(Number.isFinite)){eye.set(h[0],h[1],h[2]); yaw=h[3]; pitch=h[4];}}
-function resize(){const w=stage.clientWidth,h=stage.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
+function resize(){const w=cv.clientWidth,h=cv.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
 // THE GOVERNOR (Lloyd: never under 60 fps). Once a second it reads the measured rate: under 57 it
 // steps the render scale down (2 -> 1.5 -> 1.25 -> 1 -> 0.8 of device pixels); after five clean
 // seconds above 59 it steps back up. The scale is the biggest single lever on a phone.
@@ -3244,7 +3248,12 @@ function warpInit(){ if(WARP.rt)return;
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     // the iris: the picture squeezed down to a point of white light with black all round (Lloyd)
-    if(iris>=0.0){ float rr=length(vUv-0.5)*2.0; float e=smoothstep(iris,iris-0.05,rr); gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(1.0),smoothstep(0.35,0.0,iris))*e; }
+    if(iris>=0.0){ float rr=length(vUv-0.5)*2.0;
+     // the star (Lloyd): once the picture is down to a point it twinkles, its size and brightness
+     // flickering with three fast sines that never line up (spin is 0.12 x seconds)
+     float tt=spin/0.12; float tw=0.5+0.5*sin(tt*53.0)*sin(tt*31.0+1.3)*sin(tt*17.0+0.7); float st=smoothstep(0.3,0.0,iris);
+     float ir=iris*(1.0+0.35*st*(tw-0.5)); float e=smoothstep(ir,ir-0.05,rr);
+     gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(1.0),smoothstep(0.35,0.0,iris))*e*(1.0+0.6*st*tw); }
    }`}));
  WARP.qscene.add(WARP.quad); }
 // the shake: a random kick to the eye and the three axes every frame, growing with the square of
@@ -3361,7 +3370,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
  poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C);
  const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b; }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0.85; requestAnimationFrame(()=>{ f.style.transition='opacity 2s ease-out'; f.style.opacity=0; }); }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
@@ -3421,8 +3430,10 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
    float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
    col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
   col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
-  float rim=smoothstep(0.93,0.975,r)*smoothstep(1.0,0.99,r);
-  col+=vec3(0.55,0.2,1.0)*rim*0.6;
+  // the purple lip blends both ways (Lloyd): a broad soft glow that fades down into the bowl and,
+  // on the carpet side, is carried on by the floor shader's matching glow
+  float rim=smoothstep(0.62,1.0,r);
+  col+=vec3(0.55,0.2,1.0)*rim*rim*0.5;
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
@@ -3558,6 +3569,9 @@ function buildPortal(){
  // the words above it
  const words=new THREE.Group(); words.position.y=3.1; g.add(words);
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
+   // the peak is remembered and let go of slowly: a pattern whose brightest pixel goes dark used to
+   // lift every other pixel in one frame (Lloyd: it looked like a flash when something rendered in)
+   G.mx=Math.max(mx,(G.mx||mx)*0.985); mx=G.mx;
  // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, driven
  // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
  // the glint mesh shares the chrome's exact surface, so without a depth offset the two fought for
