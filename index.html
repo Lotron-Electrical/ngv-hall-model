@@ -14,7 +14,7 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #flash{position:absolute;inset:0 0 44px 0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 #loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
 #loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
-#loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:17px;letter-spacing:.08em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
+#loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader.ready i{display:none}
 #loader.ready button{display:block}
 #loader.ready{pointer-events:auto}
@@ -463,8 +463,9 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    // through the fade the carpet passes through purple on its way to black (Lloyd): carpet, rim, void
-    float lipW=holeA*(1.0-holeA)*4.0;
+    // through the fade the carpet passes through purple on its way to black (Lloyd): carpet, rim, void;
+    // a narrow bell in the middle of the fade, about 8 cm wide (Lloyd: the line was too thick)
+    float lipW=exp(-pow((holeA-0.5)/0.13,2.0));
     gl_FragColor=vec4(albedo*E+vec3(0.55,0.2,1.0)*lipW*0.28,alpha*holeA);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -3188,11 +3189,11 @@ let colXZ=null; function columnsXZ(){ if(colXZ)return colXZ; colXZ=[]; for(const
 // the nearest angle round C whose orbit point at radius r is reached from `from` on a straight line
 // that passes no column closer than a metre (0.4 m shaft plus elbow room)
 function segClear(a,b){ for(const [cx,cz] of columnsXZ()){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz||1e-9; const t=Math.max(0,Math.min(1,((cx-a.x)*dx+(cz-a.z)*dz)/L2)); if(Math.hypot(a.x+dx*t-cx,a.z+dz*t-cz)<1.0)return false; } return true; }
-// the orbit is a circle (Lloyd: the circle was fine) sized to the room: the object sits 7.6 m off
-// the screen wall in a hall about 15 m wide, and the 8.5 m circle went through the wall (the screen
-// went black). At 5.5 m it clears both walls by two metres and passes no column nearer than 1.2 m
-// (checked against the twelve feet in EVENT.cols), so nothing but a column ever crosses the view
-const ORBIT_R=5.5;
+// the orbit is a circle, eight and a half metres out (Lloyd: it was better starting further
+// away, not right in the centre; the 5.5 m circle sat too close). The object sits 7.6 m off the
+// screen wall in a hall about 15 m wide, so the circle passes through the walls on two sides;
+// the walls are not solid to the eye on a scripted move, and the room reads as it did before
+const ORBIT_R=8.5;
 function orbitAt(C,a,y){ return C.clone().addScaledVector(EVENT.N.u,Math.cos(a)*ORBIT_R).addScaledVector(EVENT.N.inRoom,Math.sin(a)*ORBIT_R).setY(y); }
 function clearAngle(from,C,r){ const rel=from.clone().sub(C), a0=Math.atan2(rel.dot(EVENT.N.inRoom),rel.dot(EVENT.N.u));
  for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const at=orbitAt(C,a,from.y); if(segClear(from,at))return a; } return a0; }
@@ -3438,8 +3439,9 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
    float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
    col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
   col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
-  // the purple rim under the carpet's fade, dying away inward (Lloyd: carpet, purple rim, black void)
-  col+=vec3(0.55,0.2,1.0)*smoothstep(0.66,0.98,r)*0.26;
+  // the purple rim under the carpet's fade, dying away inward over the last tenth of the radius
+  // (Lloyd: carpet, purple rim, black void; the rim was too thick)
+  col+=vec3(0.55,0.2,1.0)*smoothstep(0.88,0.98,r)*0.26;
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
