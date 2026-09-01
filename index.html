@@ -19,13 +19,16 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #loader.ready button{display:block}
 #loader.ready{pointer-events:auto}
 /* the two buttons that come up on the finale's rest (Lloyd): Free roam, Start again */
-#restbtns{position:absolute;left:0;right:0;bottom:12%;display:none;gap:14px;justify-content:center;z-index:5}
-#restbtns.up{display:flex}
+#restbtns{position:absolute;left:0;right:0;bottom:12%;display:flex;gap:14px;justify-content:center;z-index:5;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1.2s ease,visibility 0s linear 1.2s}
+#restbtns.up{opacity:1;visibility:visible;pointer-events:auto;transition:opacity 1.2s ease}
 #restbtns button{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader i{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
 #stage:fullscreen{height:100vh}
+/* a phone's full screen: the browser's own toast ("to exit full screen, drag from the top") sits over the
+   bottom of the screen for a while and covered the buttons (Lloyd), so there the row moves to the top */
+@media (pointer:coarse){#stage:fullscreen .ctl{top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--rule)} #stage:fullscreen #cv{margin-top:44px}}
 #cv{width:100%;height:calc(100% - 44px);display:block;touch-action:none;cursor:grab}
 #pad{display:none;position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none}
 #knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
@@ -2612,6 +2615,11 @@ function buildWedding(ctx){
  const veil=new THREE.Mesh(new THREE.LatheGeometry([[0,0],[0.09,-0.01],[0.14,-0.05],[0.17,-0.14],[0.19,-0.3],[0.24,-0.55],[0.31,-0.82]].map(p=>new THREE.Vector2(p[0],p[1])),16),
   new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.4,depthWrite:false,side:THREE.DoubleSide}));
  eventGroup.add(gown,veil); wedding.gown=gown; wedding.veil=veil; gown.matrixAutoUpdate=false; veil.matrixAutoUpdate=false;
+ // (Lloyd) they HOLD HANDS down the aisle and out through the door: an arm from each shoulder,
+ // her sleeve white and his black, meeting at one hand point between them; placed each frame
+ const armGeo=new THREE.CapsuleGeometry(0.035,1,2,6);
+ wedding.arms=[new THREE.Mesh(armGeo,new THREE.MeshBasicMaterial({color:0xf7f5f0})),new THREE.Mesh(armGeo,new THREE.MeshBasicMaterial({color:0x14141a}))];
+ for(const a of wedding.arms){ a.matrixAutoUpdate=false; a.visible=false; eventGroup.add(a); }
  const bridePos=eventPoint(uMid-0.4,0,3.55), groomPos=eventPoint(uMid+0.4,0,3.55), celPos=eventPoint(uMid,0,2.8);
  wedding.fixed=[[bridePos.x,bridePos.z],[groomPos.x,groomPos.z],[celPos.x,celPos.z]];
  // two blocks of chairs, an aisle between; most seats taken, nobody perfectly still
@@ -2722,6 +2730,7 @@ function updateWedding(dt,t){
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
+  if(i<2){ W.hp=W.hp||[]; W.hp[i]={x:fx+sway,z:fz,hide}; }
   const NOWHERE=()=>_cM.compose(_pV.set(0,-99,0),_cQ.identity(),{x:0.001,y:0.001,z:0.001});
   if(cer&&!hide){ const U=EVENT.N.u, ax=new THREE.Vector3(0,1,0).cross(U).normalize(), sxz=i===0?1.15:1, li=3+i;
    const about=(p,a)=>new THREE.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,a)).multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z));
@@ -2730,7 +2739,9 @@ function updateWedding(dt,t){
    // the legs: planted, leaning by leg about the feet; the upper body and the head about the hips
    _cQ.identity(); _cM.compose(_pV.set(feet.x,y0+cer.hip/2,feet.z),_cQ,{x:sxz,y:cer.hip/1.37,z:sxz}).premultiply(LR); W.cp.bm.setMatrixAt(li,_cM);
    NOWHERE(); W.cp.hm.setMatrixAt(li,_cM);
-   _cM.compose(_pV.set(hips.x,hips.y+0.375,hips.z),_cQ,{x:sxz,y:0.75/1.37,z:sxz}).premultiply(BR); W.cp.bm.setMatrixAt(i,_cM);
+   // the upper body stops just under the head (Lloyd: the bride's head vanished in the kiss and
+   // the dip; a 75 cm torso from the hips reached past her head's centre and swallowed it)
+   const tl=cer.lh-0.1; _cM.compose(_pV.set(hips.x,hips.y+tl/2,hips.z),_cQ,{x:sxz,y:tl/1.37,z:sxz}).premultiply(BR); W.cp.bm.setMatrixAt(i,_cM);
    const hw=Math.min(sxz,1.1); _cM.compose(_pV.set(hips.x,hips.y+cer.lh,hips.z),_cQ,{x:hw,y:1,z:hw}).premultiply(BR); W.cp.hm.setMatrixAt(i,_cM);
    if(i===0&&W.gown){ W.gown.visible=W.veil.visible=true; W.gown.position.set(feet.x,y0+0.475,feet.z); W.gown.updateMatrix();
     // the veil on the head, bending with her; lifted: swung back over the head about its crown
@@ -2744,6 +2755,13 @@ function updateWedding(dt,t){
    if(i===0&&W.gown){ W.gown.visible=W.veil.visible=!hide;
     if(!hide){ W.gown.position.set(fx+sway,y0+0.475,fz); W.veil.position.set(fx+sway,y0+HB+0.14,fz); W.gown.updateMatrix(); W.veil.updateMatrix(); } } }
  }
+ // the held hands: on the walk down the aisle and the finale's walk out, while both are seen
+ if(W.arms){ const on=(W.walk||(W.fin&&W.fin.pos))&&W.hp&&W.hp[0]&&W.hp[1]&&!W.hp[0].hide&&!W.hp[1].hide&&W.hasGroom;
+  for(const a of W.arms)a.visible=!!on;
+  if(on){ const A=W.hp[0], B=W.hp[1], hand=new THREE.Vector3((A.x+B.x)/2,y0+0.8,(A.z+B.z)/2), up=new THREE.Vector3(0,1,0);
+   const arm=(m,sx,sz,sy,tx,tz)=>{ const s=new THREE.Vector3(sx+(tx-sx)*0.15,sy,sz+(tz-sz)*0.15), d=hand.clone().sub(s), L=d.length();
+    m.matrix.compose(s.clone().add(hand).multiplyScalar(0.5),new THREE.Quaternion().setFromUnitVectors(up,d.normalize()),new THREE.Vector3(1,L,1)); };
+   arm(W.arms[0],A.x,A.z,y0+1.2,B.x,B.z); arm(W.arms[1],B.x,B.z,y0+1.3,A.x,A.z); } }
  // RICE only ever leaves a hand that exists: guests still in their seats near the couple, or --
  // once the rows are empty -- the celebrant at the arch, who throws the last of it
  if(W.walk){
@@ -3543,7 +3561,7 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:6.5, pan:1.5, drop:5, flat:5, hold:4, fade:2};   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
+const FIN={walk:6.5, pan:1.5, drop:5, flat:2.5, hold:0, fade:0};   // (V11, Lloyd) once the marks are down nothing else happens: no fade, no cut; the tour ends 2.5 s later and rests on that frame, and the buttons fade in   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
 // (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
 // down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
@@ -3556,7 +3574,7 @@ function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partn
  // the year sits at the foot (0.3 up, 0.6 H tall), the partners clear of it, Lotron clear of them
  // (Lloyd, V2) closer together: the partners nearer the middle and Lotron nearer them; and the
  // big GANDEL HALL above the tag, its height in the framing
- const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5, dx=W*0.45, tagY=yTop+T+H*0.5, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*0.35, gH=H*0.95;
+ const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5, dx=W*0.45, tagY=yTop+T+H*0.5, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*0.9, gH=H*0.95;   /* (Lloyd, V11) GANDEL HALL sits higher, in its own space: it is the hero */
  // (Lloyd, V5) ENTTEC's left edge on LOTRON's left, Shadow AV's right edge on LOTRON's right
  const dx0=W/2-(partners[0].userData.w||W*0.5)/2, dx1=W/2-(partners[1].userData.w||W*0.5)/2;
  return {H,W,T,yTop,yBot,dx,dx0,dx1,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.1*W}; }
@@ -3634,7 +3652,9 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  if(tag){ tag.userData.baseY=F.tagY+(turntable.position.y+L.tagY*sf-F.tagY)*pk+liftW; tag.scale.setScalar(1+(sf-1)*pk); }
  // the flattening: the depth of every mark goes to nothing, and the year comes up beneath
  const fk=smooth(Math.max(0,Math.min(1,(s-tF)/FIN.flat)));
- for(const [o,h] of F.homes){ if(targets.has(o))o.scale.set(h.s.x,h.s.y,h.s.z*(1-0.99*fk)); }
+ // (Lloyd) the marks come in FLAT, not as blocks: the depth goes with the pan, so they are already
+ // flat when they drop into the frame; the flattening phase then only brings the year up
+ for(const [o,h] of F.homes){ if(targets.has(o))o.scale.set(h.s.x,h.s.y,h.s.z*(1-0.99*Math.max(pk,fk))); }
  if(gandelText){ gandelText.visible=fk>0; gandelMat.uniforms.op.value=Math.min(1,fk*1.5); gandelMat.uniforms.t.value=s; }
  if(gandelTop){ gandelTop.visible=pk>0; gandelTopMat.uniforms.op.value=Math.min(1,pk*1.5); gandelTopMat.uniforms.t.value=s;
   // above the tag, whose letters do not shrink with the turntable on a phone: its height is
@@ -3643,7 +3663,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  // the dip to black as the flattening begins, and the world gone when it comes back
  const dip=0; if(court)court.visible=s>=tP; finaleLights(s>=tP);
  // the fade to black at the end
- const fd=Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade));
+ const fd=FIN.fade>0?Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade)):0;
  // black: the groom's back fills the frame by 6 s and the fade to black follows it (Lloyd, V9);
  // held through the lift; clears in the pan's last half second, on a scene that is pure black
  // with the marks above the frame, so they enter from outside it
@@ -3672,7 +3692,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special place / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for the community / to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special place / in Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / is brought to |light",8.8,13.2]],"dinner":[["A place for the community / to come together",5.5,11]],"banquet":[["~Where / ~rich history and modern tradition / ~meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
@@ -3711,10 +3731,10 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {mode:'dinner', dur:13, cam:k=>{ const s=k*13, U=EVENT.N.u, R=EVENT.N.inRoom;
     const q1=smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))), q2=smooth(Math.max(0,Math.min(1,(s-5.6)/6.4)));
     // (Lloyd, V9) up from the carpet the look goes RIGHT first, to the quartet on the stage
-    // (5.6 to 8 s), rests on them, then swings LEFT across to the tables and the room's centre
-    // (9 to 12.5 s); the lift runs underneath as before
+    // (5.6 to 8 s), barely rests, then swings LEFT across to the tables and the room's centre
+    // (8.3 to 11.8 s; V11, Lloyd: it lingered on the quartet too long); the lift runs underneath as before
     const at=EP(18.9,0.9+1.7*q2,4.9), cu=uM-18.9, cd=9.5-4.9, t1=Math.atan2(cd,cu), aq=Math.atan2(2.3-4.9,21.7-18.9);
-    const qa=smooth(Math.max(0,Math.min(1,(s-5.6)/2.4))), qb=smooth(Math.max(0,Math.min(1,(s-9.0)/3.5))), a=aq*qa*(1-qb)+t1*qb;
+    const qa=smooth(Math.max(0,Math.min(1,(s-5.6)/2.4))), qb=smooth(Math.max(0,Math.min(1,(s-8.3)/3.5))), a=aq*qa*(1-qb)+t1*qb;
     const p0=-1.50, p1=-0.09, p2=Math.atan2(1.0-2.6,Math.hypot(cu,cd)), p=p0+(p1-p0)*q1+(p2-p1)*q2;
     const h=U.clone().multiplyScalar(Math.cos(a)).addScaledVector(R,Math.sin(a));
     poseAt(at,at.clone().addScaledVector(h,5*Math.cos(p)).add(new THREE.Vector3(0,5*Math.sin(p),0))); titleStep(s,at,at.clone().addScaledVector(h,5),TX('dinner'));
@@ -3762,7 +3782,12 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false;
+ // the tour starts on its own look, whatever was set (Lloyd: started with other lights, the opening
+ // shot was wrong): no event, the launch rainbow at full level; the event shots set theirs from here
+ if(document.getElementById('event').checked)setEvent(null);
+ state.layers=[Object.assign(newLayer(1),{anim:'rainbow',speed:0.3})]; state.sel=0; state.level=1; {const lv=document.getElementById('level'); lv.value=100; document.getElementById('levelval').textContent='100%';} paintUI(); sceneDirty=true;
+ const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ if(tour)tourDone=true; /* Stop tour leaves no Celebrate button either (Lloyd) */ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
@@ -3774,7 +3799,7 @@ let restFinale=false; const FIN_REST=()=>finaleTotal()-FIN.fade-FIN.hold*0.5;
 // (Lloyd) a few seconds into the rest two buttons come up: Free roam, and Start again, which
 // is the moment after Enter Gandel Hall: no event, the object back in the hall, the orbit
 const restBtns=document.getElementById('restbtns'); let restTimer=null;
-function restShow(){ clearTimeout(restTimer); restTimer=setTimeout(()=>{ if(restFinale)restBtns.classList.add('up'); },3500); }
+function restShow(){ clearTimeout(restTimer); restTimer=setTimeout(()=>{ if(restFinale)restBtns.classList.add('up'); },300); }   /* the wait is in the finale's tail; the fade-in is CSS */
 function restHide(){ clearTimeout(restTimer); restBtns.classList.remove('up'); }
 function restLeave(){ restFinale=false; tourDone=false; restHide(); if(finale)finaleEnd(); const ev=document.getElementById('event'); if(ev.checked){ ev.checked=false; buildEvent(); } home(); }
 document.getElementById('restagain').onclick=()=>{ restLeave(); entered=true; idle=true; idleT0=null; fabSync(); };
@@ -3830,6 +3855,9 @@ let roam=null, roamed=false;
 const ROAM={fade:2,house:6,warm:8};
 const WARM=()=>({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}});
 function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false; roamed=true; roam={t0:performance.now()/1000};
+ // the eye starts where the orbit starts, in the hall looking at its middle (Lloyd: Free roam after
+ // the finale spawned the camera outside, in a wall)
+ if(portal&&hallGroup){ const C=portal.centre, a=clearAngle(eye,C,ORBIT_R); poseAt(orbitAt(C,a,C.y+0.2),C.clone().setY(C.y-0.2)); safeEye=eye.clone(); }   /* safeEye too: resolveMove was walking the eye there from the finale's spot and the walls stopped it */
  lit.house=0; state.layers=[WARM()]; state.sel=0; sceneDirty=true;
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; fabSync(); }
 function roamStep(now){ const R=roam; if(!R)return; const s=now-R.t0;
@@ -4364,7 +4392,12 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }
- if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
+ if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8);
+ // (Lloyd) GANDEL HALL stands above the line whenever the sculptures are on show, riding with the
+ // tag; the finale places it itself
+ if(!gandelTop&&tag&&buildCourt.font&&logo&&partners.length>=2)gandelTopBuild(finaleLayout());
+ if(gandelTop&&!finale){ const L=finaleLayout(); gandelTop.visible=court.visible&&tag.visible; if(gandelTop.visible){ gandelTopMat.uniforms.op.value=1; gandelTopMat.uniforms.t.value=now/1000;
+  gandelTop.position.copy(turntable.position); gandelTop.position.y=tag.position.y+L.gBot-L.tagY; gandelTop.scale.setScalar(1); gandelTop.lookAt(eye.x,gandelTop.position.y,eye.z); } } if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
  if(keys.KeyW||keys.ArrowUp)eye.addScaledVector(f,s); if(keys.KeyS||keys.ArrowDown)eye.addScaledVector(f,-s);
