@@ -173,7 +173,7 @@ V7 (sent 01/09/2026 23:36:42):
 [shot 3, 4.4 s] I think the white tablecloth is still there because it looks like it's clipping through the purple tablecloth
 
 V8 (draft):
-[shot 3, 11.4 s] the text on desktop should be just a little bit higher
+[shot 3, 11.4 s] the text on desktop should be just a little bit higher during this scene because the word "meet" is hard to read because it isn't contrasting well against the scene
 
 ---
 
@@ -315,7 +315,10 @@ The bride needs a proper veil, and then there should be a scene where they turn 
 V3 (sent 01/09/2026 23:13:22):
 [shot 7, 3.0 s] the veil should not be a cone. It should have a smooth top on the brides head. Then is opened up. Then when they lean to kiss, they don't clip into each other
 
-V4 (draft):
+V4 (sent 01/09/2026 23:40:47):
+[shot 7, 11.8 s] make sure the bride and groom don't clip into each other during the dip
+
+V5 (draft):
 
 
 ---

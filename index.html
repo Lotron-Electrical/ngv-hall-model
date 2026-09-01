@@ -2125,8 +2125,9 @@ function buildBanquet(ctx){
  const d=7.55, u0=uLo+3, u1=uHi-3, L=u1-u0, W=1.6, TOP=0.76, uc=(u0+u1)/2;
  const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(EVENT.N.u.clone(),new THREE.Vector3(0,1,0),EVENT.N.inRoom.clone().negate()));
  const put=(mesh,u,y,dd)=>{ const p=eventPoint(u,0,dd); mesh.position.set(p.x,y0+y,p.z); mesh.quaternion.copy(q); mesh.frustumCulled=false; eventGroup.add(mesh); return mesh; };
- put(new THREE.Mesh(new THREE.BoxGeometry(L,0.05,W),eventMat(0xe9e4d6,0xf6f2e8)),uc,TOP-0.025,d);
- put(new THREE.Mesh(new THREE.BoxGeometry(L+0.3,TOP-0.08,W+0.3),eventMat(0xb9a6dd,0xd6c8f0)),uc,(TOP-0.08)/2+0.08,d);   /* the cloth's sides light purple (Lloyd, V6) */
+ // (Lloyd, V7) the white top overhangs the purple skirt, which stops 2 cm under it: no shared face to fight
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.36,0.04,W+0.36),eventMat(0xe9e4d6,0xf6f2e8)),uc,TOP-0.02,d);
+ put(new THREE.Mesh(new THREE.BoxGeometry(L+0.3,TOP-0.12,W+0.3),eventMat(0xb9a6dd,0xd6c8f0)),uc,(TOP-0.12)/2+0.08,d);   /* the cloth's sides light purple (Lloyd, V6) */
  put(new THREE.Mesh(new THREE.BoxGeometry(L+0.32,0.012,0.5),eventMat(0x5a1220,0x7a1c30)),uc,TOP+0.006,d);
  put(new THREE.Mesh(new THREE.BoxGeometry(L+0.34,0.06,W+0.34),eventMat(0xb08a2e,0xd4aa45)),uc,0.12,d);
  // the pleats: a half-round fold every 35 cm along both long sides
@@ -2381,7 +2382,8 @@ function buildDinner(ctx){
     inst.add(mk(SPH,wood,0.11*sc,0.13*sc,0.035,0,-0.06*sc,0), mk(SPH,wood,0.09*sc,0.1*sc,0.035,0,0.1*sc,0), mk(BOX,dark,0.025,0.34*sc,0.015,0,0.27*sc,0.02), mk(SPH,dark,0.03,0.03,0.03,0,0.45*sc,0.02), mk(BOX,dark,0.06,0.015,0.01,0,-0.03,0.04));
     bowG.position.set(-0.1,1.06,0.24); bowG.add(mk(BOX,hair,0.012,0.5,0.012,0,-0.12,0,-0.3), mk(BOX,dark,0.02,0.03,0.03,0.04,0.1,0,-0.3)); }
    g.add(mk(CYL,dark,0.012,0.9,0.012,-0.05,0.45,0.62), mk(BOX,dark,0.34,0.26,0.01,-0.05,1.0,0.62,0,-0.4));
-   dinner.quartet.st.push({i,x:p.x,z:p.z,dy,cello,bow:bowG,ph:Math.random()*6.28}); }
+   // (Lloyd, V5) the bow is drawn ACROSS the strings, sliding along its own length, never through the body
+   dinner.quartet.st.push({i,x:p.x,z:p.z,dy,cello,bow:bowG,bowBase:bowG.position.clone(),bowAxis:cello?new THREE.Vector3(1,0,0):new THREE.Vector3(Math.sin(0.3),Math.cos(0.3),0),ph:Math.random()*6.28}); }
   qp.bm.instanceColor.needsUpdate=true; qp.hm.instanceColor.needsUpdate=true; for(const m of [qc,qp.bm,qp.hm]){ m.frustumCulled=false; eventGroup.add(m); } }
  eventGroup.add(tm,lm,cm,pm,fm,km,bk,bm,hm,wt.bm,wt.hm,tray);
  addWheelchairs(ctx,[[lanesU[1],lanesD[0]],[lanesU[cols-2],lanesD[1]]]);
@@ -2420,7 +2422,7 @@ function updateDinner(dt,t,ctx){
   poseBH(D.bm,D.hm,i,s.x+lean*0.5+inx*0.08*eat,s.z+lean*0.3+inz*0.08*eat,y0+0.72+jb,y0+1.18+nod+jb-0.06*eat+0.03*sq,1,1);
   const gb=D.glassBase[i]; if(gb&&(sq>0||s.sipWas)){ s.sipWas=sq>0; _cQ.identity(); _cM.compose(_pV.set(gb[0]+(s.x-gb[0])*0.85*sq,gb[1]+0.42*sq,gb[2]+(s.z-gb[2])*0.85*sq),_cQ,{x:1,y:1,z:1}); D.km.setMatrixAt(i,_cM); D.km.instanceMatrix.needsUpdate=true; }
  }
- if(D.quartet)for(const q of D.quartet.st){ const sw=Math.sin(t*(q.cello?2.2:2.9)+q.ph); if(q.cello)q.bow.rotation.y=0.5*sw; else q.bow.rotation.x=0.45*sw;
+ if(D.quartet)for(const q of D.quartet.st){ const sw=Math.sin(t*(q.cello?2.2:2.9)+q.ph); q.bow.position.copy(q.bowBase).addScaledVector(q.bowAxis,(q.cello?0.16:0.12)*sw);
   poseBH(D.quartet.bm,D.quartet.hm,q.i,q.x,q.z,y0+q.dy+0.72,y0+q.dy+1.18+0.02*Math.sin(t*1.3+q.ph),1,1); }
  if(D.quartet){ D.quartet.bm.instanceMatrix.needsUpdate=true; D.quartet.hm.instanceMatrix.needsUpdate=true; }
  // movers keep a personal bubble: any two closer than half a metre are pushed apart, so nobody
