@@ -1609,7 +1609,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3171,6 +3171,49 @@ function idleStep(now){ if(!hallGroup||!portal)return;
 // "Enter The Future of Gandel Hall" hangs above it, always facing the camera. Clicking or tapping the object
 // starts the tour. It lives only while no tour and no event is running.
 let portal=null, reflecting=false;
+// THE APPROACH (Lloyd, 2026-09-01): the nearer the eye gets to the object, the wider the view and
+// the harder the camera shakes, until at the shell the view is the full 360 degrees and the picture
+// judders and blacks out. A perspective camera cannot pass 180, so inside WARP.far the frame is
+// drawn through a cube map with a fisheye projection whose angle runs on to 360: at the end the
+// left and right edges of the screen look straight behind you. The fisheye starts out matching the
+// rectilinear view exactly (the projection is mixed, not swapped) so there is no pop at 8 m.
+const WARP={far:8, near:1.6, k:0, cc:new THREE.Color(), rt:null, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
+function warpK(){ if(!portal||!portal.group.visible||tour)return 0; const d=eye.distanceTo(portal.centre);
+ const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
+function warpInit(){ if(WARP.rt)return;
+ const res=('ontouchstart' in window)?512:1024;
+ WARP.rt=new THREE.WebGLCubeRenderTarget(res,{type:THREE.HalfFloatType,generateMipmaps:false});
+ WARP.cube=new THREE.CubeCamera(0.05,400,WARP.rt);
+ WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
+ WARP.qscene=new THREE.Scene(); WARP.qcam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+ WARP.quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
+  uniforms:{cube:{value:WARP.rt.texture},ang:{value:1.1},tanh:{value:0.6},mixf:{value:0},aspect:{value:1},basis:{value:new THREE.Matrix3()}},
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }`,
+  fragmentShader:`uniform samplerCube cube; uniform float ang; uniform float tanh; uniform float mixf; uniform float aspect; uniform mat3 basis; varying vec2 vUv;
+   void main(){ vec2 p=vUv*2.0-1.0; p.x*=aspect; float l=length(p); float r=l/aspect;   // r is 1 at the left and right edges
+    float th=mix(atan(r*tanh),r*ang*0.5,mixf);                                          // rectilinear blending into equidistant fisheye
+    if(th>3.14159){ gl_FragColor=vec4(0.0,0.0,0.0,1.0); return; }
+    vec2 d=l>1e-5?p/l:vec2(0.0); vec3 dir=basis*vec3(sin(th)*d.x,sin(th)*d.y,-cos(th));
+    gl_FragColor=vec4(textureCube(cube,dir).rgb,1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+   }`}));
+ WARP.qscene.add(WARP.quad); }
+// the shake: a random kick to the eye and the three axes every frame, growing with the square of
+// the nearness, plus dropped frames (the picture holds) and black frames (the shutter) at the end
+function warpShake(k,now){ const a=k*k;
+ cam.position.x+=(Math.random()-0.5)*a*0.5; cam.position.y+=(Math.random()-0.5)*a*0.5; cam.position.z+=(Math.random()-0.5)*a*0.5;
+ cam.rotateX((Math.random()-0.5)*a*0.5+Math.sin(now*31.0)*a*0.08); cam.rotateY((Math.random()-0.5)*a*0.5); cam.rotateZ((Math.random()-0.5)*a*0.7+Math.sin(now*17.3)*a*0.15);
+ cam.updateMatrixWorld(); }
+function warpRender(k){ warpInit(); const W=WARP;
+ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null);   // the twelve mirrors refresh here
+ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
+ try{ W.cube.update(R,scene); } finally{ reflecting=false; }
+ // the slider's fov is vertical; the projection is built on the horizontal one, so it starts where the perspective view ends
+ const th=Math.tan(cam.fov*Math.PI/360)*cam.aspect, base=2*Math.atan(th), ang=base+k*(2*Math.PI-base), u=W.quad.material.uniforms;
+ u.ang.value=ang; u.tanh.value=th; u.mixf.value=Math.min(1,k*6); u.aspect.value=cam.aspect;
+ u.basis.value.setFromMatrix4(cam.matrixWorld);
+ R.render(W.qscene,W.qcam); }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -3393,7 +3436,13 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(i
  if(rc.mv.f||rc.mv.r||rc.mv.u){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
  animate(now/1000);
- cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
+ cam.position.copy(eye); cam.lookAt(eye.clone().add(f));
+ const wk=WARP.k=warpK();
+ if(wk>0){ const a=wk*wk; if(Math.random()<a*0.55){ requestAnimationFrame(frame); return; }   // a dropped frame: the picture holds
+  if(Math.random()<a*0.12){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); requestAnimationFrame(frame); return; }   // the shutter
+  warpShake(wk,now/1000); warpRender(wk); }
+ else R.render(scene,cam);
+ requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>
