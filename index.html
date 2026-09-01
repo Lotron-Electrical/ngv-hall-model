@@ -3185,8 +3185,8 @@ const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; u
  // again, each one further away; this is that, along every axis at once
  float fold(float x,float r){ return abs(mod(x+r,2.0*r)-r); }
  float frame(vec3 p,float r){
-  float w0=exp(-30.0*(r-fold(dot(p,A0),r))), w1=exp(-30.0*(r-fold(dot(p,A1),r))), w2=exp(-30.0*(r-fold(dot(p,A2),r)));
-  float w3=exp(-30.0*(r-fold(dot(p,A3),r))), w4=exp(-30.0*(r-fold(dot(p,A4),r))), w5=exp(-30.0*(r-fold(dot(p,A5),r)));
+  float w0=exp(-42.0*(r-fold(dot(p,A0),r))), w1=exp(-42.0*(r-fold(dot(p,A1),r))), w2=exp(-42.0*(r-fold(dot(p,A2),r)));
+  float w3=exp(-42.0*(r-fold(dot(p,A3),r))), w4=exp(-42.0*(r-fold(dot(p,A4),r))), w5=exp(-42.0*(r-fold(dot(p,A5),r)));
   // an edge is where two faces meet: every pair
   return w0*w1+w0*w2+w0*w3+w0*w4+w0*w5+w1*w2+w1*w3+w1*w4+w1*w5+w2*w3+w2*w4+w2*w5+w3*w4+w3*w5+w4*w5; }
  void main(){
@@ -3197,44 +3197,53 @@ const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; u
   float glit=pow(0.5+0.5*sin(dot(vP,vec3(17.0,23.0,11.0))+t*4.0),24.0);
   // the corridor: march into the object and pick up the folded frames, each dimmer and further
   vec3 d=-normalize(vLV); vec3 p=vP; vec3 gcol=vec3(0.0); float att=1.0;
-  for(int k=0;k<30;k++){ p+=d*0.19; float e=frame(p,rIn);
-   gcol+=hsv(fract(hueShift+float(k)*0.04+t*0.03),0.85,1.0)*min(e,1.2)*att; att*=0.9; }
+  for(int k=0;k<40;k++){ p+=d*0.15; float e=frame(p,rIn);
+   gcol+=hsv(fract(hueShift+float(k)*0.035+t*0.03),0.85,1.0)*min(e,1.0)*att; att*=0.925; }
   gcol*=depthOn;
-  vec3 col=c*(0.12+0.12*sheen)+vec3(1.0)*(fr*0.45+glit*0.5)+gcol*1.1;
-  gl_FragColor=vec4(col,(0.78+0.2*fr)*gain);
+  // the pane: a one-way mirror. From outside it is a tint you see through; the interior is the
+  // reflections, so it reads dark where no reflected frame lies, which is what gives the depth
+  vec3 col=c*(0.08+0.08*sheen)+vec3(1.0)*(fr*0.4+glit*0.5)+gcol*1.3;
+  gl_FragColor=vec4(col,(0.9+0.1*fr)*gain);
  }`;
-const PORTAL_FRAG=`uniform float t; varying vec2 vUv;
+const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varying vec3 vW;
  float hash(vec2 q){ return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453); }
- // a layer of stars: cells, one star per cell, its own size and twinkle; the layer drifts toward
- // the centre so the field seems to be falling in
- float stars(vec2 p,float scale,float speed){
-  vec2 q=p*scale; vec2 c=floor(q), f=fract(q); float h=hash(c); if(h<0.55)return 0.0;
+ float stars(vec2 q,float thresh){
+  vec2 c=floor(q), f=fract(q); float h=hash(c); if(h<thresh)return 0.0;
   vec2 sp=vec2(hash(c+1.3),hash(c+7.1)); float d=length(f-sp);
   float tw=0.6+0.4*sin(t*(1.5+3.0*hash(c+3.7))+h*40.0);
-  return smoothstep(0.22,0.0,d)*tw*(0.4+0.6*hash(c+9.2)); }
+  return smoothstep(0.16,0.0,d)*tw*(0.4+0.6*hash(c+9.2)); }
  void main(){
-  // a black, starry, endless void (Lloyd, 2026-09-01): the stars crowd and shrink toward the
-  // centre as if the drop went on forever, and the lip is a faint purple only
+  // a hole into space (Lloyd, 2026-09-01: depth, as if infinite). The disc is a window: the eye's
+  // ray is carried on below the floor and meets each star layer at its own depth, so near stars
+  // slide against far ones as the viewer moves, the way a real drop does. The shaft widens with
+  // depth and the deep layers dim into purple haze, which is what infinite looks like from a rim.
   vec2 p=(vUv-0.5)*2.0; float r=length(p); if(r>1.0)discard;
-  float a=atan(p.y,p.x);
+  vec3 dir=normalize(vW-cameraPosition); float dy=min(dir.y,-0.08);
   vec3 col=vec3(0.0);
-  float depth=pow(r,1.4);
-  // three depths of stars, the deeper ones smaller and fainter, all sliding inward with time
-  for(int i=0;i<3;i++){ float fi=float(i); float z=fract(t*0.03*(1.0+fi*0.6)+fi*0.33);
-   float rr=mix(1.0,0.02,z)*r+0.001; vec2 q=vec2(cos(a),sin(a))*(0.15+0.85/rr);
-   float s=stars(q,2.5+fi*2.0,1.0)*(1.0-z)*smoothstep(0.0,0.2,z);
-   col+=vec3(0.8,0.75,1.0)*s*(2.2-0.5*fi)*(0.35+0.65*depth); }
-  col+=vec3(0.05,0.0,0.10)*depth*depth;
+  for(int i=0;i<7;i++){ float fi=float(i);
+   float D=0.6*pow(1.9,fi+fract(t*0.012));                       // the layers sink slowly: falling in
+   vec3 q=vW+dir*(D/-dy);                                       // where this ray crosses that depth
+   vec2 o=q.xz-centre.xz; float R=1.7+D*0.45;                    // the shaft's radius at that depth
+   float inside=smoothstep(R,R*0.75,length(o));
+   float sc=3.0/(1.0+fi*0.35);
+   float sN=stars(o*sc+fi*17.0,0.6-0.03*fi);
+   float dim=1.0/(1.0+fi*0.55);
+   col+=vec3(0.82,0.78,1.0)*sN*dim*inside*1.8;
+   // haze: a violet breath that thickens with depth
+   float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
+   col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
+  col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
   float rim=smoothstep(0.93,0.975,r)*smoothstep(1.0,0.99,r);
   col+=vec3(0.55,0.2,1.0)*rim*0.6;
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
 const SUCK_VERT=`attribute float a0; attribute float r0; attribute float phase; uniform float t; varying float vA;
- // a vacuum (Lloyd, 2026-09-01): a mote creeps at first, then rushes, and is taken at the LIP,
- // not carried to the centre; it dips under the rim in the last instant and is gone
- void main(){ float k=fract(t*0.11+phase); float pull=pow(k,2.4); float r=mix(r0,1.62,pull); float an=a0+pull*1.4;
-  float y=0.05+0.12*sin(k*3.14159)-0.5*smoothstep(0.93,1.0,k);
+ // a vacuum (Lloyd, 2026-09-01): a mote creeps at first, then rushes, spinning faster the closer
+ // it gets, the way water goes down a drain, and is taken at the LIP, dipping under the rim
+ void main(){ float k=fract(t*0.1+phase); float pull=pow(k,2.2); float r=mix(r0,1.58,pull);
+  float an=a0+3.2*(r0/r-1.0)+k*0.6;
+  float y=0.05+0.10*sin(k*3.14159)-0.5*smoothstep(0.93,1.0,k);
   vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.2,k)*(1.0-smoothstep(0.94,1.0,k));
   vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.35+0.5*vA)*(38.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
 const SUCK_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.05,length(d)); gl_FragColor=vec4(0.62,0.28,1.0,m*vA*0.3); }`;
@@ -3273,7 +3282,7 @@ function buildPortal(){
  const spray=new THREE.Points(sg,sprayMat); spray.frustumCulled=false; g.add(spray);
  // the portal in the floor
  const floorY=FLOOR_Y||EVENT.N.origin.y;
- const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+ const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},centre:{value:new THREE.Vector3(C.x,floorY+0.14,C.z)}},vertexShader:`varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vW=(modelMatrix*vec4(position,1.0)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.0); }`,
   fragmentShader:PORTAL_FRAG,depthWrite:false});   // opaque: the void paints OVER the carpet, it does not add to it
  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
