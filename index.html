@@ -1989,10 +1989,21 @@ function buildEvent(){
    const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.35,1.1,8.2,18,1,true),
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
    eventGroup.add(beam);
+   // THE FIXTURE (Lloyd, shot 6 V8): the spot is a real light hung from the canopy above the
+   // stage, not a beam hovering in space: a black can on a stem at the ceiling over the
+   // stage's front, with a bright lens; the beam is drawn from the lens to wherever the pool
+   // is, tilting to follow the speaker and the guest
+   const fp0=eventPoint(uMid,0,1.35); let ceilY=y0+11; if(hallGroup){ hallGroup.updateWorldMatrix(true,true); const rc=new THREE.Raycaster(new THREE.Vector3(fp0.x,y0+3,fp0.z),new THREE.Vector3(0,1,0),0,80); const h=rc.intersectObject(hallGroup,true)[0]; if(h)ceilY=h.point.y; }
+   const fix=new THREE.Group(); fix.position.set(fp0.x,ceilY-0.02,fp0.z);
+   const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.6,8),new THREE.MeshBasicMaterial({color:0x111114})); stem.position.y=-0.3; fix.add(stem);
+   const yoke=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.02,6,16),new THREE.MeshBasicMaterial({color:0x111114})); yoke.position.y=-0.6; yoke.rotation.x=Math.PI/2; fix.add(yoke);
+   const can=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.19,0.5,14),new THREE.MeshBasicMaterial({color:0x1a1a1e})); can.position.y=-0.9; fix.add(can);
+   const lens=new THREE.Mesh(new THREE.CircleGeometry(0.17,16),new THREE.MeshBasicMaterial({color:0xfff6e0,toneMapped:false})); lens.position.y=-1.151; lens.rotation.x=Math.PI/2; fix.add(lens);
+   eventGroup.add(fix); const lensY=ceilY-0.02-1.15;
    const pool=new THREE.Mesh(new THREE.CircleGeometry(1.15,24).rotateX(-Math.PI/2),
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false}));
    eventGroup.add(pool);
-   speaker={g:sg,beam,pool,uMid,y0};
+   speaker={g:sg,beam,pool,uMid,y0,fix,lens:new THREE.Vector3(fp0.x,lensY,fp0.z)};
    // THE PANEL (Lloyd, shot 6 V6): five people seated on the stage near the speaker, in a row
    // along the back of the stage on the right (u > uMid), 0.55 m in from the wall. The speaker
    // paces at d 1.35 and the guest climbs to uMid+0.35, d 1.35: the chairs reach d 0.76 and a
@@ -2048,7 +2059,9 @@ function buildEvent(){
    // the spotlight follows whoever holds the room -- the guest, while they speak
    const fu=hold&&G2.phase==='speak'?G2.u:su, fd2=hold&&G2.phase==='speak'?G2.d:1.35;
    const fp=eventPoint(fu,0,fd2);
-   speaker.beam.position.set(fp.x,y0s+sH+4.4,fp.z);
+   // the beam hangs from the lens to the pool: placed midway, turned to the line between them,
+   // its 8.2 m stretched to the distance (the can tilts with it)
+   { const top=speaker.lens, bot=new THREE.Vector3(fp.x,y0s+sH+0.02,fp.z), dv=top.clone().sub(bot), L=dv.length(); speaker.beam.position.copy(bot).addScaledVector(dv,0.5); speaker.beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dv.normalize()); speaker.beam.scale.set(1,L/8.2,1); speaker.fix.quaternion.copy(speaker.beam.quaternion); }
    speaker.pool.position.set(fp.x,y0s+sH+0.02,fp.z);
   };
  } else if(mode==='dinner') buildDinner(ctx);
