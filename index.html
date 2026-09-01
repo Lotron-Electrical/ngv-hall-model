@@ -324,7 +324,7 @@ const SYSTEMS={
   lmR:82, lmG:171, lmB:36, lmW:137, lmMix:0,
   lmAll:426, wAll:18, KA:18/4, KB:18/4, KC:0, wattNote:'even split assumed'},
 };
-const AMBIENT=0.03;         // fraction of house level that remains with everything off
+const AMBIENT=0.015;        // fraction of house level that remains with everything off (Lloyd: the opening scene even darker; was 0.03)
 const LED_GAIN_GLASS=0.25;  // translucent glass scatters back only a fraction of the LED light from below
 const BANDS=8, MAX_LIGHTS=96;
 // HARD LIGHT vs DIFFUSED LIGHT (Lloyd, 2026-08-28: "no diffuser should be casting hard light").
@@ -3203,7 +3203,8 @@ let portal=null, reflecting=false;
 // left and right edges of the screen look straight behind you. The fisheye starts out matching the
 // rectilinear view exactly (the projection is mixed, not swapped) so there is no pop at 8 m.
 const TOUCH=('ontouchstart' in window);   // a phone: every render pass costs, so the mirrors and the cube map run at half size
-const WARP={far:5, near:1.6,   // far: where the widening and the shake begin (Lloyd: a bit closer before the trippy sequence starts) k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
+// far: where the widening and the shake begin (Lloyd: a bit closer before the trippy sequence starts)
+const WARP={far:5, near:1.6, k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
 function warpK(){ if(!portal||!portal.group.visible||tour)return 0; const d=eye.distanceTo(portal.centre);
  const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
 // two cube maps: 1024 is sharp everywhere (Lloyd: no blur) and is the one used whenever the frame
