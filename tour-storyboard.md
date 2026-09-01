@@ -75,7 +75,7 @@ Hold at `(uM-7, 2.1, 13)`, by the glass, looking across the room at `(uM+2, 1.0,
 
 Duration 16 s. Event: `party`.
 
-Fly from `(4, 2.2, 9)` to `(45.5, 2.2, 6)`: down the hall from the glass side in towards the wall side, looking ahead at 1.2 m.
+From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long curve (16 m along, 3.4 m across) and rising all the way, to end high up at `(28.4, 6.2, 12.8)` facing the crowd in the centre `(uM, 1.2, 9.5)`. Faces the centre throughout. "A place to come together" floats ahead from 2 s to 8 s.
 
 | start | middle | end |
 |---|---|---|
@@ -92,7 +92,7 @@ Camera path, do not finish facing a blank wall. It would be better if it panned 
 
 Duration 14 s. Celebrate fires at the start.
 
-Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`.
+Hold at `(uM+8, 2.4, 13)`, by the glass, looking back across at `(uM, 2.5, 5)`. "and celebrate amongst friends" floats ahead from 1 s to 7 s.
 
 | start | middle | end |
 |---|---|---|
@@ -110,7 +110,7 @@ Also, in this clip, the party scene wasn't visible
 
 Duration 16 s. Event: `standing`.
 
-Fly from `(4, 2.1, 6.5)` to `(45.5, 2.1, 8.5)`: down the hall near the middle line, looking ahead at 1.3 m.
+A half circle round the speaker on the stage `(uM, 1.9, 1.6)`, 9 m out, from `(uM+7.6, 2.0, 6.5)` through `(uM, 2.3, 10.6)` to `(uM-7.6, 2.6, 6.5)`, facing the speaker the whole way. "A space for people to share their stories" floats ahead from 2 s to 8 s.
 
 | start | middle | end |
 |---|---|---|
@@ -141,14 +141,14 @@ Hold at `(uM-6, 2.3, 13)`, by the glass, looking across at `(uM, 2.0, 6)`.
 
 Duration 14 s. Event: `wedding` (chairs, aisle, the couple waiting).
 
-Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the aisle towards the screen wall, looking at the far end of the aisle `(uM, 1.5, 3.5)`.
+Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the aisle towards the screen wall, looking at the far end of the aisle `(uM, 1.5, 3.5)`. "A place to celebrate love" floats ahead from 2 s to 8 s.
 
 | start | middle | end |
 |---|---|---|
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
 **Notes:** Text:
-"A place to
+"A place to celebrate love"
 
 ---
 
@@ -162,7 +162,7 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 |---|---|---|
 | ![](storyboard/seg09a.jpg) | ![](storyboard/seg09b.jpg) | ![](storyboard/seg09c.jpg) |
 
-**Notes:**
+**Notes:** this clip is missing the event
 
 ---
 
@@ -176,7 +176,9 @@ Glide from `(26.6, 1.9, 12.6)` inside the glass out to 14 m in front of the scul
 |---|---|---|
 | ![](storyboard/seg10a.jpg) | ![](storyboard/seg10b.jpg) | ![](storyboard/seg10c.jpg) |
 
-**Notes:**
+**Notes:** This should walk through a doorway cut out in the glass.
+
+Then It should be the final shot where all three of the logos rise up from the platform and align themselves into a triangle shape. Lotron on top, enttec bottom left and shadow av bottom right. With the brought to light by text above them, and then slowly it flattens from 3d to 2d and has text "Gandel Hall 2026" at the bottom in shimmering rainbow and then it holds for a few seconds and fades out.
 
 ---
 
@@ -190,7 +192,7 @@ A slow quarter-turn round the sculpture on a 15 m circle, 3.2 m up, looking at i
 |---|---|---|
 | ![](storyboard/seg11a.jpg) | ![](storyboard/seg11b.jpg) | ![](storyboard/seg11c.jpg) |
 
-**Notes:**
+**Notes:** this final clip isn't needed
 
 ---
 
