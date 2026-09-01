@@ -3393,7 +3393,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
  poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C);
  const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b; }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0.85; requestAnimationFrame(()=>{ f.style.transition='opacity 2s ease-out'; f.style.opacity=0; }); }
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.85; requestAnimationFrame(()=>{ f.style.transition='opacity 2s ease-out'; f.style.opacity=0; }); }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
@@ -3401,7 +3401,10 @@ function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noc
 const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
 function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; setTimeout(()=>{ f.style.background='#fff'; },2000); })); return false; }
+  // the veil goes back to white only once its fade has ended, not on a timer: on a phone the
+  // first tour frame builds the event and the fade starts late, so the timer turned the still
+  // visible veil white (Lloyd: a white blink before the fade in)
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); return false; }
  warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.12;
  const q=Math.max(0,(s-T.kal)/T.iris); u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
  // no shake here: the kaleidoscope is smooth (Lloyd)
