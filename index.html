@@ -3292,6 +3292,18 @@ function buildPortal(){
  const body=new THREE.Group(); body.add(outer,inner,struts); g.add(body);
  // everything inside the mirrors is on layer 1 as well, which is all the cube camera sees
  body.traverse(o=>o.layers.enable(1));
+ // PIXEL STRIPS on every internal edge (Lloyd, 2026-09-01): the inner shell's thirty edges and the
+ // twenty struts each carry a run of pixels that shows what the columns are showing this frame,
+ // read straight from the column pixel buffer (run 0, in pixel order) and inverted in colour.
+ const EDGE_PX=22;
+ const ledRun=(segs,parent)=>{ const n=segs.length*EDGE_PX, pos=new Float32Array(n*3), col=new Float32Array(n*3);
+  segs.forEach(([a,b],i)=>{ for(let j=0;j<EDGE_PX;j++){ const t=(j+0.5)/EDGE_PX; pos.set([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t],(i*EDGE_PX+j)*3); } });
+  const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(pos,3)); gg.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.05,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  m.frustumCulled=false; m.layers.enable(1); parent.add(m); return m; };
+ const segsOf=geo=>{ const e=new THREE.EdgesGeometry(geo).attributes.position, out=[]; for(let i=0;i<e.count;i+=2)out.push([new THREE.Vector3().fromBufferAttribute(e,i),new THREE.Vector3().fromBufferAttribute(e,i+1)]); return out; };
+ const strutSegs=[]; for(let i=0;i<strut.length;i+=6)strutSegs.push([new THREE.Vector3(strut[i],strut[i+1],strut[i+2]),new THREE.Vector3(strut[i+3],strut[i+4],strut[i+5])]);
+ const leds=[ledRun(segsOf(innerG),inner),ledRun(strutSegs,body)];
  // the spray: a fine mist lifting off the shell, like the drift off a waterfall
  const n=380, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);
  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
@@ -3319,16 +3331,22 @@ function buildPortal(){
  // the words above it
  const words=new THREE.Group(); words.position.y=2.6; g.add(words);
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
- const addWords=(font)=>{ const line=(text,size,y)=>{ const tg=new TextGeometry(text,{font,size,height:0.06,curveSegments:3,bevelEnabled:false});
+ // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, with a
+ // glint sweeping along the letters so it shimmers rather than sits
+ const shimmerMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`uniform float t; varying vec3 vP; void main(){ float g=pow(0.5+0.5*sin(vP.x*2.2-t*2.6),18.0); float g2=pow(0.5+0.5*sin(vP.x*5.0+vP.y*3.0+t*1.7),40.0);
+   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*(g*0.8+g2*0.5),1.0); }`});
+ const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
-   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
-   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
-   const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=0.1; halo2.scale.set(1.12,1.4,2.4);
-   words.add(core,halo,halo2); };
-  line('Enter The Future',0.42,0.3); line('Gandel Hall',0.42,-0.3); };
+   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xe6e9ef,metalness:1,roughness:0.12,envMapIntensity:1.6}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
+   const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
+   words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
+  line('Enter The Future',0.42,0.3,false); line('Gandel Hall',0.42,-0.3,true); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
- portal={group:g,centre:C,body,outer,inner,spray,disc,words,mats:[inner.material,sprayMat,portalMat,suckMat],hit:[...mirrors,inner,disc]};
+ portal={group:g,centre:C,body,outer,inner,spray,disc,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const P=portal; if(!P)return;
  P.group.visible=!tour&&!document.getElementById('event').checked; if(!P.group.visible)return;
@@ -3338,6 +3356,14 @@ function portalStep(now){ const P=portal; if(!P)return;
  const pulse=0.53+0.08*Math.sin(now*0.7); P.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
  P.spray.position.y=P.body.position.y;
  P.words.position.y=2.6+0.5*P.body.position.y; P.words.rotation.y=Math.atan2(eye.x-P.group.position.x,eye.z-P.group.position.z);
+ // the strips: run 0's pixels, in order, stretched along each edge, colours inverted
+ if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
+  if(G.runOf!==P){ G.runOf=P; G.runIdx=[]; for(let k=0;k<P.n;k++)if(P.run[k]===0)G.runIdx.push(k); G.runIdx.sort((x,y)=>P.pi[x]-P.pi[y]); }
+  const a=pix.instanceColor.array, L=G.runIdx.length;
+  if(L){ for(const m of G.leds){ const c=m.geometry.attributes.color.array, n=c.length/3;
+   for(let i=0;i<n;i++){ const k=G.runIdx[Math.min(L-1,Math.floor(((i%G.edgePx)+0.5)/G.edgePx*L))]*3;
+    c[i*3]=1-Math.min(1,a[k]); c[i*3+1]=1-Math.min(1,a[k+1]); c[i*3+2]=1-Math.min(1,a[k+2]); }
+   m.geometry.attributes.color.needsUpdate=true; } } }
  sceneDirty=true; }
 
 // click or tap the object: the tour begins
