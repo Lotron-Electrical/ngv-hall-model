@@ -3242,7 +3242,8 @@ function warpK(){ if(!portal||!portal.group.visible||tour||idle)return 0; const 
 // half-float cube maps cost a phone GPU dearly in bandwidth
 function warpInit(){ if(WARP.rt)return;
  const mk=res=>new THREE.WebGLCubeRenderTarget(res,{type:TOUCH?THREE.UnsignedByteType:THREE.HalfFloatType,generateMipmaps:false});
- WARP.rts={1024:mk(1024),512:mk(512)}; WARP.res=1024; WARP.rt=WARP.rts[1024]; WARP.okSince=0;
+ // a phone starts on the 512 cube; the governor climbs to 1024 after two seconds at 58 fps
+ WARP.rts={1024:mk(1024),512:mk(512)}; WARP.res=TOUCH?512:1024; WARP.rt=WARP.rts[1024]; WARP.okSince=0;
  WARP.cube=new THREE.CubeCamera(0.05,400,WARP.rt);
  WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
  WARP.qscene=new THREE.Scene(); WARP.qcam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -3295,7 +3296,12 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
    // still short of 60 at 512: the cube map is refreshed every other frame (the shake hides the half-frame lag)
    W.half=W.res===512&&fps<50;
    W.rt=W.rts[W.res]; W.cube.renderTarget=W.rt; W.quad.material.uniforms.cube.value=W.rt.texture; }
- if(!W.half||(W.n&1)){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
+ // the cube's refresh eases in: every third frame at the hand-over, every other frame past half
+ // way, every frame from 0.8 (Lloyd: the frame rate dropped right where the view widened). The
+ // cube pass is six more renders of the hall; early in the widening the eye moves slowly and the
+ // fisheye edge shows little of it, so a cube a few frames old is not seen
+ const every=Math.max(W.half?2:1,k<0.5?3:k<0.8?2:1);
+ if(W.n%every===0){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
   try{ W.cube.update(R,scene); } finally{ reflecting=false; } }
  // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
  const u=W.quad.material.uniforms;
