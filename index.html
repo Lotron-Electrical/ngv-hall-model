@@ -3146,7 +3146,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  ]; }
 function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ boom=null; if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
+function stopTour(){ boom=null; if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0); }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
@@ -3264,8 +3264,16 @@ for(const ev of ['pointerdown','keydown','touchstart'])addEventListener(ev,()=>{
 document.getElementById('sound').onchange=e=>{ SND.on=e.target.checked; if(SND.master)SND.master.gain.setTargetAtTime(SND.on?0.6:0,SND.ctx.currentTime,0.1); };
 // THE TOUCH (Lloyd): the eye reaching the shell sets the scene off, a flash of white and the picture
 // folded into a spinning kaleidoscope, and then the tour begins on its own
-let boom=null;
-function boomStart(now){ if(boom||tour)return; boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
+let boom=null, approach=null;
+// THE TAP (Lloyd): tapping the object does not start the tour outright. The camera turns to it and
+// drifts in slowly, the view widening and the chord building on the way, until it touches the
+// shell and the touch does the rest. Reset view cancels it.
+function approachStart(){ if(approach||boom||tour||!portal)return; idle=false; approach={from:eye.clone(),t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(portal.centre)/0.9)}; noclip=true; }
+function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
+ const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
+ const goal=C.clone().add(A.from.clone().sub(C).setLength(1.2));           // the far end of the drift is just inside the shell
+ poseAt(A.from.clone().lerp(goal,e),C); }
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
 function boomRender(now){ const s=now-boom.t0; if(s>2.6){ boom=null; startTour(); return false; }
  warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*s*2.5;
  warpShake(0.6,now); warpRender(1,Math.PI*(0.9+0.5*Math.sin(s*7))); u.kal.value=0; return true; }
@@ -3473,12 +3481,12 @@ function portalHit(cx,cy){ if(!portal||!portal.group.visible)return false; const
  portalRay.setFromCamera(new THREE.Vector2(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1),cam);
  return portalRay.intersectObjects(portal.hit,false).length>0; }
 let tapAt=null;
-cv.addEventListener('click',e=>{ if(portalHit(e.clientX,e.clientY))startTour(); });
+cv.addEventListener('click',e=>{ if(portalHit(e.clientX,e.clientY))approachStart(); });
 cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.clientX,y:t.clientY,t:performance.now(),id:t.identifier}; },{passive:true});
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
- if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))startTour(); tapAt=null; });
+ if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
