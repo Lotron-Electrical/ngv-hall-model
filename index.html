@@ -3292,9 +3292,9 @@ function buildPortal(){
  const body=new THREE.Group(); body.add(outer,inner,struts); g.add(body);
  // everything inside the mirrors is on layer 1 as well, which is all the cube camera sees
  body.traverse(o=>o.layers.enable(1));
- // PIXEL STRIPS on every internal edge (Lloyd, 2026-09-01): the inner shell's thirty edges and the
- // twenty struts each carry a run of pixels that shows what the columns are showing this frame,
- // read straight from the column pixel buffer (run 0, in pixel order) and inverted in colour.
+ // PIXEL STRIPS along the outer shell's thirty edges, on the inside (Lloyd, 2026-09-01: just the
+ // internal edges of the outer tesseract): each carries a run of pixels showing what the columns
+ // show this frame, read from the column pixel buffer (run 0, in pixel order), colours inverted.
  const EDGE_PX=22;
  const ledRun=(segs,parent)=>{ const n=segs.length*EDGE_PX, pos=new Float32Array(n*3), col=new Float32Array(n*3);
   segs.forEach(([a,b],i)=>{ for(let j=0;j<EDGE_PX;j++){ const t=(j+0.5)/EDGE_PX; pos.set([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t],(i*EDGE_PX+j)*3); } });
