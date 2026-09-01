@@ -3273,7 +3273,7 @@ function warpInit(){ if(WARP.rt)return;
    }`}));
  WARP.qscene.add(WARP.quad); }
 // the shake: a random kick to the eye and the three axes every frame, growing with the square of
-// the nearness, plus dropped frames (the picture holds) and black frames (the shutter) at the end
+// the nearness; no dropped frames and no black frames any more (Lloyd: the shake is fine, no shutter)
 // (Lloyd: less jittery, more smooth) the kicks are sums of sines at unrelated frequencies, so
 // the motion is continuous with no frame-to-frame snap, plus a small tremor on top
 const sn=(t,f)=>Math.sin(t*f)*Math.sin(t*f*0.37+1.3)*Math.sin(t*f*0.11+0.4);
