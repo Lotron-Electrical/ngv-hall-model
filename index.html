@@ -1588,7 +1588,7 @@ const solids=[], SKIN=0.35, rayc=new THREE.Raycaster(); let safeEye=null, noclip
 document.getElementById('collide').onchange=e=>{noclip=!e.target.checked;};
 document.getElementById('fov').oninput=e=>{cam.fov=+e.target.value; cam.updateProjectionMatrix(); document.getElementById('fovval').textContent=e.target.value;};
 function resolveMove(){
- if(noclip||tour||!solids.length||!safeEye){safeEye=eye.clone(); return;}
+ if(noclip||tour||idle||approach||!solids.length||!safeEye){safeEye=eye.clone(); return;}   // scripted moves (tour, idle orbit, approach) are routed clear of the columns, not blocked by them
  let from=safeEye, want=eye.clone();
  for(let pass=0;pass<2;pass++){
   const d=want.clone().sub(from); const len=d.length(); if(len<1e-6)break;
@@ -3155,12 +3155,29 @@ document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startT
 // Before anyone touches anything the view is not a still: the camera drifts slowly up and down
 // the middle of the hall (Lloyd, 2026-09-01), easing in from the home pose once the model is up.
 // The first key, drag, touch or phone-remote nudge ends it for good; the tour takes over from it.
-let idle=true, idleT0=null, idleFrom=null;
+// ?still=1 holds the camera exactly where the URL hash puts it: the idle drift is right
+// for a visitor arriving at the page, but it moves the camera before a headless shot can
+// be taken, so verification screenshots could never be framed on anything.
+let idle=!new URLSearchParams(location.search).has('still'), idleT0=null, idleFrom=null;
+let idleA0=0;
+// the columns' feet in the floor plane (world x,z), read once from the hall
+let colXZ=null; function columnsXZ(){ if(colXZ)return colXZ; colXZ=[]; for(const {mesh:m} of columnMeshes){ m.geometry.computeBoundingBox(); const b=m.geometry.boundingBox; const v=m.localToWorld(new THREE.Vector3((b.min.x+b.max.x)/2,0,(b.min.z+b.max.z)/2)); colXZ.push([v.x,v.z]); } return colXZ; }
+// the nearest angle round C whose orbit point at radius r is reached from `from` on a straight line
+// that passes no column closer than a metre (0.4 m shaft plus elbow room)
+function segClear(a,b){ for(const [cx,cz] of columnsXZ()){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz||1e-9; const t=Math.max(0,Math.min(1,((cx-a.x)*dx+(cz-a.z)*dz)/L2)); if(Math.hypot(a.x+dx*t-cx,a.z+dz*t-cz)<1.0)return false; } return true; }
+function clearAngle(from,C,r){ const a0=Math.atan2(from.z-C.z,from.x-C.x);
+ for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const at=new THREE.Vector3(C.x+Math.cos(a)*r,from.y,C.z+Math.sin(a)*r); if(segClear(from,at))return a; } return a0; }
+// and the nearest angle whose straight line in to the object, from radius r to the shell, is clear
+function clearRadial(C,r,y){ const a0=Math.atan2(eye.z-C.z,eye.x-C.x);
+ for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const o=new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r), i=new THREE.Vector3(C.x+Math.cos(a)*1.2,y,C.z+Math.sin(a)*1.2); if(segClear(o,i))return a; } return a0; }
 function idleStep(now){ if(!hallGroup||!portal)return;
- if(idleT0===null){ idleT0=now; idleFrom=eye.clone(); }
- const t=now-idleT0, C=portal.centre;
+ const C=portal.centre, r=8.5;
+ // the glide from wherever the eye is onto the orbit takes the nearest line that misses every
+ // column (Lloyd: the camera hit a column and stopped); the orbit itself, 8.5 m out, runs clear
+ if(idleT0===null){ idleT0=now; idleFrom=eye.clone(); idleA0=clearAngle(idleFrom,C,r); }
+ const t=now-idleT0;
  // a slow orbit round the object, eight and a half metres out, breathing up and down a little
- const a=t*2*Math.PI/70, r=8.5;
+ const a=idleA0+t*2*Math.PI/70;
  const at=C.clone().add(V3(Math.cos(a)*r,0.2+0.6*Math.sin(t*0.23),Math.sin(a)*r));
  if(t<5){ const q=smooth(t/5); at.copy(idleFrom.clone().lerp(at,q)); }
  poseAt(at,C.clone().setY(C.y-0.2)); sceneDirty=true; }
@@ -3205,9 +3222,12 @@ function warpInit(){ if(WARP.rt)return;
  WARP.qscene.add(WARP.quad); }
 // the shake: a random kick to the eye and the three axes every frame, growing with the square of
 // the nearness, plus dropped frames (the picture holds) and black frames (the shutter) at the end
-function warpShake(k,now){ const a=k*k;
- cam.position.x+=(Math.random()-0.5)*a*0.5; cam.position.y+=(Math.random()-0.5)*a*0.5; cam.position.z+=(Math.random()-0.5)*a*0.5;
- cam.rotateX((Math.random()-0.5)*a*0.5+Math.sin(now*31.0)*a*0.08); cam.rotateY((Math.random()-0.5)*a*0.5); cam.rotateZ((Math.random()-0.5)*a*0.7+Math.sin(now*17.3)*a*0.15);
+// (Lloyd: less jittery, more smooth) the kicks are sums of sines at unrelated frequencies, so
+// the motion is continuous with no frame-to-frame snap, plus a small tremor on top
+const sn=(t,f)=>Math.sin(t*f)*Math.sin(t*f*0.37+1.3)*Math.sin(t*f*0.11+0.4);
+function warpShake(k,now){ const a=k*k, j=a*0.12;
+ cam.position.x+=sn(now,7.1)*a*0.12+(Math.random()-0.5)*j*0.2; cam.position.y+=sn(now,9.3)*a*0.1; cam.position.z+=sn(now,6.4)*a*0.12;
+ cam.rotateX(sn(now,11.0)*a*0.12+(Math.random()-0.5)*j); cam.rotateY(sn(now,8.7)*a*0.12+(Math.random()-0.5)*j); cam.rotateZ(sn(now,5.3)*a*0.25);
  cam.updateMatrixWorld(); }
 const WARP_SW=2.0944;   // 120 degrees: up to here the real perspective camera draws the frame, past it the cube map
 function warpRender(k,angOv){ warpInit(); const W=WARP;
@@ -3274,16 +3294,20 @@ let boom=null, approach=null;
 // THE TAP (Lloyd): tapping the object does not start the tour outright. The camera turns to it and
 // drifts in slowly, the view widening and the chord building on the way, until it touches the
 // shell and the touch does the rest. Reset view cancels it.
-function approachStart(){ if(approach||boom||tour||!portal)return; idle=false; approach={from:eye.clone(),t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(portal.centre)/0.9)}; noclip=true; }
+function approachStart(){ if(approach||boom||tour||!portal)return; idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
+ // the drift is a spiral: the angle swings early onto the nearest line that meets the object without
+ // passing through a column, while the radius closes slowly
+ approach={from:eye.clone(),a0:Math.atan2(eye.z-C.z,eye.x-C.x),a1:clearRadial(C,r0,eye.y),r0,t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(C)/0.9)}; noclip=true; }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
- const goal=C.clone().add(A.from.clone().sub(C).setLength(1.2));           // the far end of the drift is just inside the shell
- poseAt(A.from.clone().lerp(goal,e),C); }
+ let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
+ const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
+ poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C); }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
-// five seconds, a slow turn and a slow breathing zoom (Lloyd: the first cut was too fast, too intense)
+// five seconds, a slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too fast)
 function boomRender(now){ const s=now-boom.t0; if(s>5){ boom=null; startTour(); return false; }
- warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.35+s*s*0.05;
- warpShake(0.3,now); warpRender(1,Math.PI*(1.0+0.35*Math.sin(s*1.3))); u.kal.value=0; return true; }
+ warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.12;
+ warpShake(0.25,now); warpRender(1,Math.PI*(0.55-0.05*s)); u.kal.value=0; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -3299,7 +3323,7 @@ const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain;
   vec3 V=normalize(cameraPosition-vW); float fr=pow(1.0-abs(dot(V,vN)),2.0);
   float sheen=0.5+0.5*sin(dot(vP,vec3(2.1,3.3,1.7))*2.0+t*1.6);
   float glit=pow(0.5+0.5*sin(dot(vP,vec3(17.0,23.0,11.0))+t*4.0),24.0);
-  vec3 col=c*(0.55+0.45*sheen)+vec3(1.0)*(fr*0.6+glit*0.8);
+  vec3 col=c*(0.42+0.33*sheen)+vec3(1.0)*(fr*0.18+glit*0.3);   // the white lift held down: the mirrors multiply it up (Lloyd: a bright white sheen inside)
   gl_FragColor=vec4(col,(0.62+0.3*fr)*gain);
  }`;
 const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varying vec3 vW;
@@ -3383,7 +3407,7 @@ function buildPortal(){
     m.position.copy(cen); m.quaternion.copy(q); m.camera.layers.set(1);
     // 80% reflective (Lloyd): a fifth of the light gets out, so the reflections dim with every
     // bounce and a little of what is behind a far pane shows through it
-    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.8 )');
+    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.7 )');
     m.material.transparent=true; m.material.depthWrite=false;
     // the mirror pass sees no sky: inside a mirror box there is nothing but the box, so the
     // background is black for the duration and the hall's own sky is put back afterwards
@@ -3510,8 +3534,8 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  const wk=WARP.k=warpK(); sndStep(now/1000,boom?1:wk);
  if(wk>0&&!boom&&eye.distanceTo(portal.centre)<1.55)boomStart(now/1000);
  if(boom){ if(boomRender(now/1000)){ requestAnimationFrame(frame); return; } }
- if(wk>0){ const a=wk*wk; if(Math.random()<a*0.55){ requestAnimationFrame(frame); return; }   // a dropped frame: the picture holds
-  if(Math.random()<a*0.12){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); requestAnimationFrame(frame); return; }   // the shutter
+ if(wk>0){ const a=wk*wk; if(Math.random()<a*0.2){ requestAnimationFrame(frame); return; }   // a dropped frame: the picture holds
+  if(Math.random()<a*0.03){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); requestAnimationFrame(frame); return; }   // the shutter
   warpShake(wk,now/1000); warpRender(wk); }
  else R.render(scene,cam);
  requestAnimationFrame(frame);}
