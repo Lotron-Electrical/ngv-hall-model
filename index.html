@@ -1991,10 +1991,22 @@ function buildEvent(){
     new THREE.MeshBasicMaterial({color:0xfff3d8,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false}));
    eventGroup.add(pool);
    speaker={g:sg,beam,pool,uMid,y0};
+   // THE PANEL (Lloyd, shot 6 V6): five people seated on the stage near the speaker, in a row
+   // along the back of the stage on the right (u > uMid), 0.55 m in from the wall. The speaker
+   // paces at d 1.35 and the guest climbs to uMid+0.35, d 1.35: the chairs reach d 0.76 and a
+   // body at 1.35 reaches back to 1.18, so nobody on the stage ever meets anyone else
+   { const nP=5, pp=peopleMeshes(nP,0.55), pc=new THREE.InstancedMesh(new THREE.BoxGeometry(0.42,0.5,0.42),eventMat(0x2e2b28,0x4e4a46),nP), S1={x:1,y:1,z:1}, dy=EVENT.stageH, c=new THREE.Color();
+    speaker.panel={bm:pp.bm,hm:pp.hm,st:[]};
+    for(let i=0;i<nP;i++){ const p=eventPoint(uMid+1.7+i*0.9,0,0.55); _cQ.identity(); _cM.compose(_pV.set(p.x,y0+dy+0.25,p.z),_cQ,S1); pc.setMatrixAt(i,_cM);
+     pp.bm.setColorAt(i,c.setHSL(rnd(0,1),rnd(0.08,0.3),rnd(0.08,0.3),THREE.SRGBColorSpace)); pp.hm.setColorAt(i,c.set(SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)]));
+     speaker.panel.st.push({i,x:p.x,z:p.z,dy,ph:Math.random()*6.28}); }
+    pp.bm.instanceColor.needsUpdate=true; pp.hm.instanceColor.needsUpdate=true; for(const m of [pc,pp.bm,pp.hm]){ m.frustumCulled=false; eventGroup.add(m); } }
   }
   eventAnim=(dt,t)=>{ updateCrowd(dt,t);
    if(!speaker)return;
    const y0s=speaker.y0, sH=EVENT.stageH;
+   // the panel sits and listens, heads moving a little
+   if(speaker.panel){ for(const q of speaker.panel.st)poseBH(speaker.panel.bm,speaker.panel.hm,q.i,q.x,q.z,y0s+q.dy+0.72,y0s+q.dy+1.18+0.02*Math.sin(t*1.1+q.ph),1,1); speaker.panel.bm.instanceMatrix.needsUpdate=true; speaker.panel.hm.instanceMatrix.needsUpdate=true; }
    // THE GUEST SPOT (Lloyd): every so often the speaker pulls someone up from the crowd; the
    // guest crosses the floor, climbs the stage, takes the mic and the spotlight for a few
    // moments, then climbs down and melts back into the crowd
@@ -2010,7 +2022,8 @@ function buildEvent(){
      let gu=G.fu, gd=G.fd, lift=0;
      const stageU=speaker.uMid+0.35, stageD=1.35, stepD=EVENT.stageD+0.45;
      if(G.phase==='up'){ const q=Math.min(1,el/3.5); gu=G.fu+(stageU-G.fu)*q; gd=G.fd+(stepD-G.fd)*q;
-      if(el>3.5){ G.phase='climb'; G.t0=t; G.holdU=speaker.uMid+2.6*Math.sin(t*0.22); } }
+      // (Lloyd, V6) the speaker holds a spot at least 1.3 m from where the guest stands
+      if(el>3.5){ G.phase='climb'; G.t0=t; let hu=speaker.uMid+2.6*Math.sin(t*0.22); if(Math.abs(hu-stageU)<1.3)hu=stageU+(hu>=stageU?1.3:-1.3); G.holdU=hu; } }
      else if(G.phase==='climb'){ const q=Math.min(1,el/1.0); lift=q; gu=stageU; gd=stepD+(stageD-stepD)*q; if(el>1.0){G.phase='speak'; G.t0=t;} }
      else if(G.phase==='speak'){ lift=1; gu=stageU; gd=stageD; if(el>6.5){G.phase='desc'; G.t0=t;} }
      else if(G.phase==='desc'){ const q=Math.min(1,el/1.0); lift=1-q; gu=stageU; gd=stageD+(stepD-stageD)*q; if(el>1.0){G.phase='back'; G.t0=t;} }
