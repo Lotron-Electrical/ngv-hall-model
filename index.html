@@ -3789,7 +3789,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
 function startTour(){ if(tour)return; tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false;
  // the tour starts on its own look, whatever was set (Lloyd: started with other lights, the opening
  // shot was wrong): no event, the launch rainbow at full level; the event shots set theirs from here
- if(document.getElementById('event').checked)setEvent(null);
+ if(document.getElementById('event').checked)setEvent(null); roam=null;   /* a Free roam still fading would keep raising the house through the first shot */
  state.layers=[Object.assign(newLayer(1),{anim:'rainbow',speed:0.3})]; state.sel=0; state.level=1; {const lv=document.getElementById('level'); lv.value=100; document.getElementById('levelval').textContent='100%';} paintUI(); sceneDirty=true;
  const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
@@ -3806,7 +3806,11 @@ const restBtns=document.getElementById('restbtns'); let restTimer=null;
 function restShow(){ clearTimeout(restTimer); restTimer=setTimeout(()=>{ if(restFinale)restBtns.classList.add('up'); },300); }   /* the wait is in the finale's tail; the fade-in is CSS */
 function restHide(){ clearTimeout(restTimer); restBtns.classList.remove('up'); }
 function restLeave(){ restFinale=false; tourDone=false; restHide(); if(finale)finaleEnd(); const ev=document.getElementById('event'); if(ev.checked){ ev.checked=false; buildEvent(); } home(); }
-document.getElementById('restagain').onclick=()=>{ restLeave(); entered=true; idle=true; idleT0=null; fabSync(); };
+document.getElementById('restagain').onclick=()=>{ restLeave(); entered=true; idle=true; idleT0=null;
+ // the object comes back (Lloyd: it was missing): a Free roam before this had left roamed set, and
+ // the tesseract hides on it; any roam still fading is dropped too
+ roamed=false; roam=null; { const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0; }
+ lit.house=0; { const h=document.getElementById('house'); h.value=0; document.getElementById('houseval').textContent='0%'; } sceneDirty=true; fabSync(); };   /* house at 0, as after Enter */
 document.getElementById('restroam').onclick=()=>{ restLeave(); roamed=false; roamStart(); };
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; if(!TOURQ){ restFinale=true; restShow(); } stopTour(); if(TOURQ)startTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
