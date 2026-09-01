@@ -57,7 +57,8 @@ td:first-child{color:var(--dim);width:42%;padding-right:12px}
 .panel{margin:12px 16px 0;background:var(--panel);border:1px solid var(--rule);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
 /* The panel lives INSIDE the viewport as a collapsible menu (Lloyd, 2026-08-31): one button opens
    it, each category folds. Same elements, same ids, same listeners - only the housing moved. */
-#panel.menu-overlay{position:absolute;right:12px;top:52px;width:min(400px,calc(100% - 24px));max-height:calc(100% - 64px);overflow-y:auto;display:block;margin:0;z-index:30;background:rgba(8,8,10,.94)}
+#panel.menu-overlay{position:absolute;right:12px;top:52px;width:min(400px,calc(100% - 24px));max-height:calc(100% - 108px);overflow-y:auto;display:block;margin:0;z-index:30;background:rgba(8,8,10,.94)}   /* stops 12px above the 44px button row (Lloyd: it covered the buttons) */
+@media (pointer:coarse){#stage:fullscreen #panel.menu-overlay{max-height:calc(100% - 64px)}}   /* there the row is at the top */
 #panel.menu-overlay[hidden]{display:none}
 #panel.menu-overlay details{border-bottom:1px solid var(--rule);padding:2px 0 8px}
 #panel.menu-overlay details:last-child{border-bottom:0}
