@@ -3188,25 +3188,21 @@ const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; v
 const PORTAL_FRAG=`uniform float t; varying vec2 vUv;
  vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
  void main(){
+  // an infinite void (Lloyd, 2026-09-01: the first cut was too much): black to the centre, with
+  // faint rings falling inward forever and a thin neon lip, mirror-folded so the far rings echo
   vec2 p=(vUv-0.5)*2.0; float r=length(p); if(r>1.0)discard;
-  float a=atan(p.y,p.x);
-  // mirror fold: six-fold kaleidoscope, so the pattern reflects itself round the ring
-  float seg=3.14159/3.0; a=abs(mod(a+t*0.05,seg)-seg*0.5);
-  // the tunnel: rings that fall inward forever, log-spaced so the far ones crowd the centre
-  float z=fract(log(r+0.02)*1.4-t*0.45);
-  // a little fractal: fold the point through itself a few times for the filigree
-  vec2 q=vec2(cos(a),sin(a))*r*2.0; float f=0.0;
-  for(int i=0;i<4;i++){ q=abs(q)/dot(q,q)-vec2(0.9,0.55); f+=exp(-6.0*abs(length(q)-0.7)); }
-  float ring=smoothstep(0.0,0.08,z)*smoothstep(0.35,0.12,z);
-  float hue=fract(z*0.6+a/3.14159+t*0.08);
-  vec3 col=hsv(hue,0.9,1.0)*(ring*1.4+f*0.35)+vec3(0.1,0.0,0.2)*f;
-  // the lip: a hard neon rim, and everything dims into the black at the very centre
-  float rim=smoothstep(0.90,0.96,r)*smoothstep(1.0,0.985,r);
-  col+=hsv(fract(t*0.1),0.8,1.0)*rim*2.0;
-  float mirror=pow(0.5+0.5*sin(a*6.0+r*30.0-t*2.0),8.0)*0.5;
-  col+=vec3(mirror);
-  float fade=smoothstep(0.0,0.25,r);
-  gl_FragColor=vec4(col*fade,1.0);
+  float a=atan(p.y,p.x); float seg=3.14159/3.0; a=abs(mod(a+t*0.04,seg)-seg*0.5);
+  float z=fract(log(r+0.015)*1.6-t*0.35);
+  float ring=smoothstep(0.0,0.06,z)*smoothstep(0.30,0.10,z);
+  float depth=pow(r,1.8);                                  // the rings dim as they fall away
+  float hue=fract(z*0.5+a/3.14159+t*0.06);
+  vec3 col=hsv(hue,0.85,1.0)*ring*0.35*depth;
+  col+=vec3(0.02,0.0,0.06)*depth;
+  float rim=smoothstep(0.90,0.965,r)*smoothstep(1.0,0.985,r);
+  col+=hsv(fract(t*0.08),0.8,1.0)*rim*1.2;
+  float glint=pow(0.5+0.5*sin(a*6.0+r*26.0-t*1.4),18.0)*0.25*depth;
+  col+=vec3(glint);
+  gl_FragColor=vec4(col,1.0);
  }`;
 const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
  void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
@@ -3248,8 +3244,8 @@ function buildPortal(){
  // the portal in the floor
  const floorY=FLOOR_Y||EVENT.N.origin.y;
  const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader:PORTAL_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
- const disc=new THREE.Mesh(new THREE.CircleGeometry(4.2,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
+  fragmentShader:PORTAL_FRAG,depthWrite:false});   // opaque: the void paints OVER the carpet, it does not add to it
+ const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the spotlight: a lamp under the canopy aimed at the object, and its cone made visible
  const lampY=(isFinite(CEIL_Y)&&CEIL_Y>C.y?CEIL_Y:C.y+8)-0.4;
  const spot=new THREE.SpotLight(0xfff4e0,60,lampY-floorY+2,0.20,0.5,1.2); spot.position.set(0,lampY-C.y,0); spot.target.position.set(0,0,0); g.add(spot); g.add(spot.target);
