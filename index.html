@@ -14,6 +14,10 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #flash{position:absolute;inset:0 0 44px 0;background:#fff;opacity:0;pointer-events:none;z-index:5}
 #loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
 #loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
+#loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:17px;letter-spacing:.08em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
+#loader.ready i{display:none}
+#loader.ready button{display:block}
+#loader.ready{pointer-events:auto}
 #loader i{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin 0.9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #stage{position:relative;width:100%;height:70vh;min-height:360px;background:#000;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
@@ -142,7 +146,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -3680,9 +3684,13 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  // the veil (Lloyd): a spinner on black until the hall, the strips and the object all exist and
  // thirty frames have drawn, since the first frames compile shaders and the strips settle, which
  // is what looked glitched; then the picture fades in
- if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; document.getElementById('loader').classList.add('gone'); }
+ // once drawn, the veil offers Enter Gandel Hall (Lloyd): that tap is the gesture the browser
+ // wants for sound, so the music starts as the hall fades in
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
+document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
+document.getElementById('enter').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); };
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>
