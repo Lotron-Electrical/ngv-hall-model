@@ -333,7 +333,7 @@ V4 (sent 01/09/2026 23:40:47):
 [shot 7, 11.8 s] make sure the bride and groom don't clip into each other during the dip
 
 V5 (draft):
-
+[shot 7, 11.3 s] when they dip
 
 ---
 
