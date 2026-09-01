@@ -252,6 +252,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 const cv=document.getElementById('cv'), stage=document.getElementById('stage'), bar=document.getElementById('bar'), hint=document.getElementById('hint');
 const COARSE=matchMedia('(pointer: coarse)').matches;
 hint.innerHTML = COARSE
@@ -3169,7 +3170,7 @@ function idleStep(now){ if(!hallGroup||!portal)return;
 // spotlight falls on it from the canopy, and it stands on a neon portal cut into the floor.
 // ENTER THE FUTURE hangs above it, always facing the camera. Clicking or tapping the object
 // starts the tour. It lives only while no tour and no event is running.
-let portal=null;
+let portal=null, reflecting=false;
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -3245,16 +3246,40 @@ function buildPortal(){
  const glassMat=(shift,gain)=>new THREE.ShaderMaterial({uniforms:{t:{value:0},hueShift:{value:shift},gain:{value:gain}},vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,
   transparent:true,depthWrite:false,side:THREE.DoubleSide});
  const outerG=new THREE.DodecahedronGeometry(1.35,0), innerG=new THREE.DodecahedronGeometry(0.72,0);
- // ONE-WAY MIRRORS (Lloyd, 2026-09-01, "do exactly as I say"): the outer panes are drawn on their
- // INSIDE only, as 100% reflective mirrors, and not at all on the outside, so from outside they
- // are fully transparent and you look straight in. What they reflect is the interior itself,
- // captured by a cube camera at the centre every frame; the mirrors are in that capture too,
- // reflecting the previous frame's capture, so the reflections recurse to infinity over frames
- // rather than being faked. Two targets alternate so a frame never reads the texture it writes.
- const rts=[new THREE.WebGLCubeRenderTarget(256),new THREE.WebGLCubeRenderTarget(256)];
- const cams=rts.map(rt=>{ const cc=new THREE.CubeCamera(0.05,30,rt); cc.children.forEach(c=>c.layers.set(1)); return cc; });
- const mirrorMat=new THREE.MeshBasicMaterial({color:0xffffff,envMap:rts[0].texture,reflectivity:1,side:THREE.BackSide});
- const outer=new THREE.Mesh(outerG,mirrorMat), inner=new THREE.Mesh(innerG,glassMat(0.5,0.9));
+ // ONE-WAY MIRRORS (Lloyd, 2026-09-01, "do exactly as I say"): every pane is a true planar mirror
+ // on its INSIDE and nothing at all on its outside. Each of the twelve faces is a Reflector: it
+ // renders the interior from the camera's mirror image behind its own plane, so the reflection
+ // has the right parallax for a flat mirror (a cube map does not: it assumes everything reflected
+ // is infinitely far, which is what looked wrong). A mirror only draws when the eye is in front
+ // of its inward face, so from outside the near panes vanish and you look straight in at the far
+ // ones. Each mirror's render shows the other mirrors carrying their previous frame, so the
+ // reflections recurse to infinity over frames; a guard stops a render nesting inside a render.
+ const outer=new THREE.Group(); const mirrors=[];
+ { const pos=outerG.attributes.position, faces=new Map();
+   for(let i=0;i<pos.count;i+=3){ const a=new THREE.Vector3().fromBufferAttribute(pos,i), b=new THREE.Vector3().fromBufferAttribute(pos,i+1), c=new THREE.Vector3().fromBufferAttribute(pos,i+2);
+    const n=new THREE.Vector3().subVectors(b,a).cross(new THREE.Vector3().subVectors(c,a)).normalize();
+    const key=n.toArray().map(x=>x.toFixed(2)).join(','); if(!faces.has(key))faces.set(key,{n,v:[]});
+    for(const v of [a,b,c]){ const f=faces.get(key); if(!f.v.some(w=>w.distanceTo(v)<1e-3))f.v.push(v); } }
+   for(const {n,v} of faces.values()){
+    const cen=v.reduce((p,q)=>p.add(q),new THREE.Vector3()).divideScalar(v.length);
+    const inward=n.clone().negate();                                   // the mirror faces the centre
+    const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),inward), qi=q.clone().invert();
+    const loc=v.map(w=>w.clone().sub(cen).applyQuaternion(qi)); loc.sort((a,b)=>Math.atan2(a.y,a.x)-Math.atan2(b.y,b.x));
+    const shape=new THREE.Shape(loc.map(w=>new THREE.Vector2(w.x,w.y)));
+    const m=new Reflector(new THREE.ShapeGeometry(shape),{color:0x7f7f7f,textureWidth:512,textureHeight:512,clipBias:0.002});   // 0x7f7f7f is identity in the Reflector's overlay blend: a true, unshaded mirror
+    m.position.copy(cen); m.quaternion.copy(q); m.camera.layers.set(1);
+    // 80% reflective (Lloyd): a fifth of the light gets out, so the reflections dim with every
+    // bounce and a little of what is behind a far pane shows through it
+    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.8 )');
+    m.material.transparent=true; m.material.depthWrite=false;
+    // the mirror pass sees no sky: inside a mirror box there is nothing but the box, so the
+    // background is black for the duration and the hall's own sky is put back afterwards
+    const orig=m.onBeforeRender, cc=new THREE.Color();
+    m.onBeforeRender=function(r,sc,cm){ if(reflecting)return; reflecting=true; const bg=sc.background, env=sc.environment, fog=sc.fog; r.getClearColor(cc); const ca=r.getClearAlpha();
+     sc.background=null; sc.environment=null; sc.fog=null; r.setClearColor(0x000000,1);
+     try{ orig.call(this,r,sc,cm); } finally{ sc.background=bg; sc.environment=env; sc.fog=fog; r.setClearColor(cc,ca); reflecting=false; } };
+    outer.add(m); mirrors.push(m); } }
+ const inner=new THREE.Mesh(innerG,glassMat(0.5,0.9));
  const lead=(geo,col,op,add)=>new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false}));
  outer.add(lead(outerG,0x05050a,0.9,false)); outer.add(lead(outerG,0xffffff,0.35,true));
  inner.add(lead(innerG,0x05050a,0.9,false)); inner.add(lead(innerG,0xffffff,0.45,true));
@@ -3301,7 +3326,7 @@ function buildPortal(){
   words.add(core,halo,halo2); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
- portal={group:g,centre:C,body,outer,inner,spray,disc,words,mats:[inner.material,sprayMat,portalMat,suckMat],hit:[outer,inner,disc],rts,cams,mirrorMat,flip:0};
+ portal={group:g,centre:C,body,outer,inner,spray,disc,words,mats:[inner.material,sprayMat,portalMat,suckMat],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const P=portal; if(!P)return;
  P.group.visible=!tour&&!document.getElementById('event').checked; if(!P.group.visible)return;
@@ -3312,10 +3337,7 @@ function portalStep(now){ const P=portal; if(!P)return;
  P.spray.position.y=P.body.position.y;
  P.words.position.y=2.6+0.5*P.body.position.y; P.words.rotation.y=Math.atan2(eye.x-P.group.position.x,eye.z-P.group.position.z);
  sceneDirty=true; }
-// the mirrors' feed: rendered just before the frame, from the object's centre, layer 1 only
-function portalReflect(){ const P=portal; if(!P||!P.group.visible)return;
- const w=P.flip, r=1-w; P.mirrorMat.envMap=P.rts[r].texture;
- P.body.getWorldPosition(P.cams[w].position); P.cams[w].update(R,scene); P.flip=r; }
+
 // click or tap the object: the tour begins
 const portalRay=new THREE.Raycaster();
 function portalHit(cx,cy){ if(!portal||!portal.group.visible)return false; const r=cv.getBoundingClientRect();
@@ -3340,7 +3362,7 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(i
  if(rc.mv.f||rc.mv.r||rc.mv.u){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
  animate(now/1000);
- cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); portalReflect(); R.render(scene,cam); requestAnimationFrame(frame);}
+ cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); R.render(scene,cam); requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>
