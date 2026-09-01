@@ -3562,7 +3562,12 @@ function buildPortal(){
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
-  line('Enter The Future',0.42,0.3,false); line('Gandel Hall',0.42,-0.3,true); };
+  line('Enter The Future',0.42,0.3,false); line('Gandel Hall',0.42,-0.3,true);
+  // the cue (Lloyd): under the name, "Tap to begin" on a phone and "Click to begin" on a computer,
+  // with an arrow pointing down at the object. It goes away once the approach has begun.
+  const n0=words.children.length; line(TOUCH?'Tap to begin':'Click to begin',0.2,-0.9,false);
+  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.34,4),new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false})); arrow.rotation.x=Math.PI; arrow.position.y=-1.3; words.add(arrow);
+  words.userData.cue=words.children.slice(n0); words.userData.arrow=arrow; };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
  portal={group:g,centre:C,body,outer,inner,spray,disc,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
@@ -3577,6 +3582,7 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
  Q.spray.position.y=Q.body.position.y; Q.spray.material.uniforms.voidY.value=Q.disc.position.y-Q.body.position.y;   // the void, seen from the spray's frame
  Q.words.position.y=2.6+0.5*Q.body.position.y; Q.words.rotation.y=Math.atan2(eye.x-Q.group.position.x,eye.z-Q.group.position.z);
+ if(Q.words.userData.cue){ const on=!approach&&!boom; for(const o of Q.words.userData.cue)o.visible=on; Q.words.userData.arrow.position.y=-1.3+0.07*Math.sin(now*3.0); }
  // the strips: run 0's pixels, in order, stretched along each edge; the run is normalised to its
  // own brightest pixel (the buffer is in lumens-ish units well below 1) and then inverted
  if(typeof pix!=='undefined'&&pix&&P.n){ const G=portal;
