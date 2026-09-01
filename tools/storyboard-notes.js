@@ -50,7 +50,8 @@ label{display:block;font-weight:600;margin-bottom:4px}textarea{width:100%;min-he
 textarea:focus{outline:none;border-color:#7af}.st{font-weight:400;color:#8c8;font-size:13px}.top{color:#999;font-size:13px}
 .btns{display:flex;gap:8px;margin:0 0 10px}button{background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}button:hover{border-color:#7af}
 button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.5;cursor:default}
-.clip{margin-bottom:10px}.clip iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:4px;background:#000;display:block}
+.clip{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}.clip iframe{border:0;border-radius:4px;background:#000;display:block}.clip .pc{flex:1;aspect-ratio:16/9;min-width:0}.clip .ph{width:26%;aspect-ratio:9/19}
+@media(max-width:700px){.clip{flex-wrap:wrap}.clip .pc,.clip .ph{width:100%}}
 .req{font-size:12px;font-weight:400;color:#111;background:#8c8;border-radius:10px;padding:1px 9px;margin-left:8px;vertical-align:middle;display:none}.req.queued{display:inline;background:#ec5}.req.working{display:inline;background:#8bf}.req.done{display:inline;background:#8c8}
 @media(max-width:700px){.row{flex-wrap:wrap}.row img{width:100%}}</style>
 <main><h1>Gandel Hall tour: camera storyboard</h1><div class="top">Notes save as you type into tour-storyboard.md. Play clip shows the shot on a loop in the real viewer. Generate hands the shot's notes to Claude and moves on; the chip shows where it is up to.</div>${cards}</main>
@@ -61,7 +62,8 @@ document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()
 // one clip at a time: the viewer is the whole 3D hall, so a second one would halve the frame rate
 document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click',()=>{ const box=document.getElementById('clip'+b.dataset.i); const open=box.querySelector('iframe');
  document.querySelectorAll('.clip').forEach(c=>{ c.innerHTML=''; }); document.querySelectorAll('button.play').forEach(x=>x.textContent='Play clip');
- if(open)return; box.innerHTML='<iframe src="/viewer.html?embed=1&shot='+b.dataset.shot+'" allow="autoplay"></iframe>'; b.textContent='Stop clip'; }); });
+ if(open)return; // the same shot twice, side by side: the computer's frame and a phone's (Lloyd)
+ const src='/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'; b.textContent='Stop clip'; }); });
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ b.disabled=true; b.textContent='Queued…'; const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({i:+b.dataset.i})}); if(!r.ok){ b.disabled=false; b.textContent='Generate'; } status(); }); });
 async function status(){ const list=await (await fetch('/requests')).json(); document.querySelectorAll('.req').forEach(c=>{ c.className='req'; c.textContent=''; });
  for(const r of list){ const c=document.getElementById('rq'+r.i); if(!c)continue; c.className='req '+r.status; c.textContent=r.status; const b=document.querySelector('button.gen[data-i="'+r.i+'"]'); if(b){ b.disabled=r.status!=='done'; b.textContent=r.status==='done'?'Generate again':'Queued…'; } } }
