@@ -12,7 +12,7 @@ header{padding:20px 16px 12px;display:flex;flex-direction:column;gap:2px}
 h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:34px;margin:0;line-height:1.05}
 .sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 #flash{position:absolute;inset:0 0 44px 0;background:#fff;opacity:0;pointer-events:none;z-index:5}
-#loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
+#loader{position:absolute;inset:0;background:#000;z-index:6;display:flex;gap:14px;flex-wrap:wrap;align-items:center;align-content:center;justify-content:center;transition:opacity 1.2s ease;pointer-events:none}
 #loader.gone{opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s 1.2s}
 #loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader.ready i{display:none}
@@ -3141,8 +3141,9 @@ function fireConfetti(){
   clearTimeout(fireConfetti.timer); fireConfetti.timer=setTimeout(()=>{if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}},18000);
  }
 }
-document.getElementById('event').onchange=()=>{ tourDone=false; buildEvent(); };
-document.getElementById('eventmode').onchange=()=>{ tourDone=false; buildEvent(); };
+const leaveRest=()=>{ tourDone=false; if(restFinale){ restFinale=false; if(finale)finaleEnd(); } };
+document.getElementById('event').onchange=()=>{ leaveRest(); buildEvent(); };
+document.getElementById('eventmode').onchange=()=>{ leaveRest(); buildEvent(); };
 function fireCelebrate(){
  if(!document.getElementById('event').checked)return;
  const md=document.getElementById('eventmode').value;
@@ -3748,12 +3749,16 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; tourDone=false; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; tourDone=false; restFinale=false; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ if(tour)tourDone=true; /* Stop tour leaves no Celebrate button either (Lloyd) */ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
- if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
-function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; stopTour(); if(TOURQ)startTour(); return; }
+ if(finale&&!restFinale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
+// (Lloyd) after the tour the picture RESTS on the finale's held frame: the marks flat in their
+// triangle on black, BROUGHT TO LIGHT BY and GANDEL HALL above; restFinale keeps the finale
+// alive and frame() holds it at its rest time until something else starts
+let restFinale=false; const FIN_REST=()=>finaleTotal()-FIN.fade-FIN.hold*0.5;
+function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; if(!TOURQ)restFinale=true; stopTour(); if(TOURQ)startTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
@@ -4003,9 +4008,9 @@ function sndStep(now,k){ const c=SND.ctx; if(!c||c.state!=='running')return; con
  SND.riser.g.gain.setTargetAtTime(0.25*k*k,t,0.3); SND.riser.o.frequency.setTargetAtTime(220*Math.pow(4,k),t,0.3); }
 function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime;
  const n=c.createBufferSource(); n.buffer=SND.noise; const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(6000,t); lp.frequency.exponentialRampToValueAtTime(80,t+2.5);
- const g=c.createGain(); g.gain.setValueAtTime(0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+3); n.connect(lp); lp.connect(g); g.connect(SND.master); g.connect(SND.verb); n.start(t); n.stop(t+3);
- const o=c.createOscillator(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(28,t+1.5); const og=c.createGain(); og.gain.setValueAtTime(0.7,t); og.gain.exponentialRampToValueAtTime(0.001,t+2.5); o.connect(og); og.connect(SND.master); o.start(t); o.stop(t+2.5);
- SND.chordGain.gain.cancelScheduledValues(t); SND.chordGain.gain.setValueAtTime(0.5,t); SND.chordGain.gain.exponentialRampToValueAtTime(0.001,t+3); }
+ const g=c.createGain(); g.gain.setValueAtTime(0.3,t); /* (Lloyd) the boom at half: noise, sub and chord */ g.gain.exponentialRampToValueAtTime(0.001,t+3); n.connect(lp); lp.connect(g); g.connect(SND.master); g.connect(SND.verb); n.start(t); n.stop(t+3);
+ const o=c.createOscillator(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(28,t+1.5); const og=c.createGain(); og.gain.setValueAtTime(0.35,t); og.gain.exponentialRampToValueAtTime(0.001,t+2.5); o.connect(og); og.connect(SND.master); o.start(t); o.stop(t+2.5);
+ SND.chordGain.gain.cancelScheduledValues(t); SND.chordGain.gain.setValueAtTime(0.3,t); SND.chordGain.gain.exponentialRampToValueAtTime(0.001,t+3); }
 // every gesture that a browser counts as user activation: on Android Chrome a touch's pointerdown
 // and touchstart do NOT count, touchend and click do (Lloyd: the sound isn't starting on the phone)
 for(const ev of ['pointerdown','pointerup','keydown','touchstart','touchend','click'])addEventListener(ev,()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); },{passive:true,capture:true});
@@ -4037,7 +4042,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
  poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C);
  const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b; }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync(); sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.85; requestAnimationFrame(()=>{ f.style.transition='opacity 2s ease-out'; f.style.opacity=0; }); }
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync(); sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.5; /* (Lloyd) the flash toned down, and quicker off */ requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s ease-out'; f.style.opacity=0; }); }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
@@ -4333,7 +4338,7 @@ cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.cl
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
  if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }
