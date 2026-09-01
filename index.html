@@ -3545,11 +3545,17 @@ function buildPortal(){
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
  // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, driven
  // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
- const shimmerMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ // the glint mesh shares the chrome's exact surface, so without a depth offset the two fought for
+ // the depth buffer and the glint flickered (Lloyd); it now sits a hair in front. And the glint is
+ // faintly rainbow, a spectrum sliding along the name under the white (Lloyd: slightly rainbow)
+ const shimmerMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   // one broad glint crossing the name every few seconds, smooth (Lloyd: the first cut jittered)
-  fragmentShader:`uniform float t; varying vec3 vP; void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
-   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*g*0.9,1.0); }`});
+  fragmentShader:`uniform float t; varying vec3 vP;
+   vec3 hsv(float h){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return mix(vec3(1.0),clamp(p-1.0,0.0,1.0),0.85); }
+   void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
+   vec3 c=mix(vec3(1.0,0.98,0.94),hsv(fract(vP.x*0.16+t*0.07)),0.4);
+   gl_FragColor=vec4(c*g*0.9,1.0); }`});
  const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
    const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:3.2,emissive:0x5a6070}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
