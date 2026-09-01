@@ -2668,9 +2668,13 @@ function updateWedding(dt,t){
    // (Lloyd, V5) their faces touch the whole time: the bride's head is worked out from her lean,
    // and the groom's feet are placed so that HIS head lands 16 cm across and 16 cm in front of
    // hers at his own lean; the leans are gentle enough that the bodies stay clear
-   if(i===0){ tiltA=0.11*kiss-0.35*dip; W.bh={x:fx+U.x*1.62*Math.sin(tiltA),z:fz+U.z*1.62*Math.sin(tiltA)}; }
-   else { tiltA=-0.11*kiss-0.42*dip; const k=Math.max(kiss,dip), R=EVENT.N.inRoom;
-    if(W.bh&&k>0){ const hx=W.bh.x+U.x*0.16+R.x*0.16*k, hz=W.bh.z+U.z*0.16+R.z*0.16*k; const sx=hx-U.x*1.62*Math.sin(tiltA), sz=hz-U.z*1.62*Math.sin(tiltA); fx+=(sx-fx)*k; fz+=(sz-fz)*k; } } }
+   // (Lloyd, V6) through the dip his head stays ON HER FACE, not down at her chest: the 16 cm
+   // across turns with her body as she goes back (so it rises with her face), and his lean is
+   // whatever puts his head at that height, not a fixed angle
+   if(i===0){ tiltA=0.11*kiss-0.35*dip; W.bt=tiltA; W.bh={x:fx+U.x*1.62*Math.sin(tiltA),z:fz+U.z*1.62*Math.sin(tiltA)}; }
+   else { const tb=W.bt||0, du=0.16*Math.cos(tb), hy=1.62*Math.cos(tb)-0.16*Math.sin(tb);
+    tiltA=-0.11*kiss*(1-dip)-Math.acos(Math.min(1,hy/1.62))*dip; const k=Math.max(kiss,dip), R=EVENT.N.inRoom;
+    if(W.bh&&k>0){ const hx=W.bh.x+U.x*du+R.x*0.16*k, hz=W.bh.z+U.z*du+R.z*0.16*k; const sx=hx-U.x*1.62*Math.sin(tiltA), sz=hz-U.z*1.62*Math.sin(tiltA); fx+=(sx-fx)*k; fz+=(sz-fz)*k; } } }
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
@@ -3654,8 +3658,9 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     veil(smooth(Math.max(0,Math.min(1,(s-11.5)/1.5)))); if(court)court.visible=false; }},
   // (Lloyd's storyboard, shot 3) the banquet: fade in, a slow travel down the table at 1.9 m
   // over the guests' heads, looking along it, fade out
-  {mode:'banquet',dur:16, cam:k=>{ const s=k*16, q=smooth(k), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55)); titlesNow(s,TX('banquet'),cam.aspect>1?0.6:0.35);   /* a touch higher on a wide picture, so Meet clears the table (Lloyd, V8) */
-    veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-14.5)/1.5)))); }},
+  // (Lloyd, V9) the shot fades out from 10 s and cuts at 11.5 s; the travel keeps its old pace
+  {mode:'banquet',dur:11.5, cam:k=>{ const s=k*11.5, q=smooth(s/16), u=uM-18+30*q; poseAt(EP(u,1.9,7.55),EP(u+7,0.9,7.55)); titlesNow(s,TX('banquet'),cam.aspect>1?0.6:0.35);   /* a touch higher on a wide picture, so Meet clears the table (Lloyd, V8) */
+    veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-10)/1.5)))); }},
   // (Lloyd's notes) the party: from the floor at the hall's end, round the room on a long curve
   // and rising all the way, to end high up facing the crowd in the middle; never a blank wall
   {mode:'party',  dur:16, cam:k=>{ const q=smooth(k), a=Math.PI-q*Math.PI*0.58, C=EP(uM,1.2,9.5);
@@ -3672,8 +3677,10 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     confettiUntil=Math.max(confettiUntil,performance.now()/1000+0.3);   /* (Lloyd, V7) the crowd keeps jumping the whole shot */ veil(Math.max(1-smooth(Math.min(1,s/1.5)),smooth(Math.max(0,(s-12.5)/1.5)))); }},
   // (Lloyd's notes) standing: a half circle round the speaker on the stage, 9 m out, facing them
   // the whole way
-  {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6);
-    poseAt(EP(uM+9*Math.cos(a),2.0+0.6*q,1.6+9*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(1-smooth(Math.min(1,k*16/1.5))); }},   /* (Lloyd, V2) fades in from black */
+  // (Lloyd, V9) on a phone's narrow picture the circle is 13 m out, not 9, and a little higher,
+  // so the crowd and more of the columns are in the frame
+  {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
+    poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(1-smooth(Math.min(1,k*16/1.5))); }},   /* (Lloyd, V2) fades in from black */
   // (Lloyd, V2) the ceremony plays to the shot's clock: the turn, the veil, the kiss, the dip
   {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
