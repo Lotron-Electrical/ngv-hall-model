@@ -3804,24 +3804,21 @@ let idle=!new URLSearchParams(location.search).has('still'), idleT0=null, idleFr
 // so the glide up to the orbit is seen, not spent behind the black (Lloyd: it was better when the
 // camera started at the end of the hall and flew up into its orbit)
 let entered=false;
-// FREE ROAM (Lloyd): the veil's other door. No tour: the object and its name shrink and sink
-// into the void over 4 s, the void closes over the next 1.5 s, then the house lights come up to
-// full over 3.5 s while the columns fade to warm white over 6 s, and the hall is left to walk.
-// The object does not come back.
+// FREE ROAM (Lloyd, 2026-09-02): no tesseract, no void, no hole in the floor. The hall simply
+// loads in warm white: it fades in from black over 2 s with the house lights and the columns at
+// nothing, then both come up slowly, the house over 6 s and the columns to warm white over 8 s,
+// and the hall is left to walk. The object never comes back.
 let roam=null, roamed=false;
-const ROAM={sink:4,close:1.5,house:3.5,warm:6};
-function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false; roam={t0:performance.now()/1000,phase:0}; fabSync(); }
-function roamStep(now){ const R=roam, Q=portal; if(!R||!Q)return; const s=now-R.t0;
- if(s<ROAM.sink){ const q=smooth(s/ROAM.sink); Q.body.scale.setScalar(1-q); Q.body.position.y=Q.body.position.y*(1-q)+Q.disc.position.y*q; Q.words.scale.setScalar(1-q); Q.words.position.y=3.1*(1-q)+Q.body.position.y;
-  if(Q.words.userData.cueGroup)Q.words.userData.cueGroup.visible=false; Q.spray.visible=false; return; }
- Q.body.visible=false; Q.words.visible=false;
- const s2=s-ROAM.sink;
- if(s2<ROAM.close){ const q=smooth(s2/ROAM.close); Q.disc.scale.setScalar(1-q); Q.suck.visible=false; Q.cone.visible=false; Q.spot.intensity=60*(1-q);
-  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR*(1-q); return; }
- if(R.phase<2){ R.phase=2; roamed=true; R.h0=lit.house; for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR; state.layers.push({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}}); }
- const s3=s2-ROAM.close, qh=smooth(Math.min(1,s3/ROAM.house)), qw=smooth(Math.min(1,s3/ROAM.warm));
- lit.house=R.h0+(1-R.h0)*qh; const W=state.layers[state.layers.length-1]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
- if(s3>=ROAM.warm){ state.layers=[{name:'Warm white',on:true,anim:'solid',speed:0,opacity:1,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}}]; state.sel=0; lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';} paintUI(); roam=null; }
+const ROAM={fade:2,house:6,warm:8};
+const WARM=()=>({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}});
+function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false; roamed=true; roam={t0:performance.now()/1000};
+ lit.house=0; state.layers=[WARM()]; state.sel=0; sceneDirty=true;
+ const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; fabSync(); }
+function roamStep(now){ const R=roam; if(!R)return; const s=now-R.t0;
+ const f=document.getElementById('flash'); f.style.opacity=1-smooth(Math.min(1,s/ROAM.fade));
+ const s3=Math.max(0,s-0.6), qh=smooth(Math.min(1,s3/ROAM.house)), qw=smooth(Math.min(1,s3/ROAM.warm));
+ lit.house=qh; const W=state.layers[0]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
+ if(s3>=ROAM.warm){ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';} paintUI(); f.style.opacity=0; f.style.background='#fff'; roam=null; }
 }
 // the Celebrate button is up only with an event loaded, inside the hall, and nothing playing:
 // not before the Enter tap, not on the fly-in, not in the tour or a shot (Lloyd: it was stuck
@@ -4377,7 +4374,9 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
-document.getElementById('enter').onclick=()=>{ entered=true; fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); };
+// (Lloyd) Enter always starts the orbit: a touch on the canvas while the loader was still
+// loading (its pointer-events off) had switched idle off, and the orbit then never began
+document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roam').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); roamStart(); };
 requestAnimationFrame(frame);
 </script>
