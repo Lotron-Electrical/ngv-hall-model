@@ -48,10 +48,12 @@ function writeNotes(key,rs){
  parts[s.i]=parts[s.i].replace(re,'**Notes:**\n'+fmt(rs)+'\n');
  fs.writeFileSync(MD,[head,...parts].join('\n')); return true;
 }
-// typing goes into the draft round only
-function save(key,text){
+// typing goes into the draft round, or into a filed round by its number (Lloyd: every text on
+// the page can be edited)
+function save(key,text,n){
  const s=parse().secs.find(x=>x.key===key); if(!s)return false;
- s.rounds[s.rounds.length-1].text=text.replace(/\r/g,'').trim(); return writeNotes(key,s.rounds);
+ const r=n?s.rounds.find(x=>x.n===n):s.rounds[s.rounds.length-1]; if(!r)return false;
+ r.text=text.replace(/\r/g,'').trim(); return writeNotes(key,s.rounds);
 }
 const readReq=()=>{ try{ return JSON.parse(fs.readFileSync(REQ,'utf8')); }catch(e){ return []; } };
 // a request: the shot's key, title and the round being sent; one live request per shot. The
@@ -70,7 +72,7 @@ function page(){
   return `<section id="s-${s.key}"><h2>${esc(s.title)} <span class="key">${esc(s.key)}</span><span class="req" id="rq-${s.key}"></span></h2><p>${esc(s.body).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n+/g,'<br>')}</p>
   ${s.imgs.length?`<div class="row">${s.imgs.map(u=>`<img src="/${u}" loading="lazy">`).join('')}</div>`:''}
   ${s.shot?`<div class="clip" id="clip-${s.key}"></div><div class="btns"><button class="play" data-shot="${s.shot}" data-key="${s.key}">Play clip</button><button class="gen" data-key="${s.key}">Generate</button></div>`:''}
-  ${sent.length?`<details class="hist"><summary>${sent.length} round${sent.length>1?'s':''} sent</summary>${sent.map(r=>`<div class="round"><b>V${r.n}</b> <span>sent ${esc(r.sent)}</span><pre>${esc(r.text)}</pre></div>`).join('')}</details>`:''}
+  ${sent.length?`<details class="hist"><summary>${sent.length} round${sent.length>1?'s':''} sent</summary>${sent.map(r=>`<div class="round"><b>V${r.n}</b> <span>sent ${esc(r.sent)}</span> <span class="st" id="st-${s.key}-${r.n}"></span><textarea class="old" data-key="${s.key}" data-n="${r.n}">${esc(r.text)}</textarea></div>`).join('')}</details>`:''}
   <label>V${d.n} <span class="st" id="st-${s.key}"></span></label><textarea data-key="${s.key}" placeholder="Type your notes for round ${d.n} of this shot">${esc(d.text)}</textarea></section>`; }).join('');
  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tour storyboard notes</title>
 <style>body{margin:0;background:#111;color:#eee;font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:16px}
@@ -82,7 +84,7 @@ textarea:focus{outline:none;border-color:#7af}.st{font-weight:400;color:#8c8;fon
 .btns{display:flex;gap:8px;margin:0 0 10px}button{background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}button:hover{border-color:#7af}
 button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.5;cursor:default}
 .hist{margin:0 0 10px;border:1px solid #333;border-radius:6px;padding:6px 10px;background:#161616}.hist summary{cursor:pointer;color:#aaa;font-size:13px}
-.round{border-top:1px solid #2a2a2a;padding:8px 0 2px}.round span{color:#888;font-size:12px;margin-left:6px}.round pre{margin:4px 0 0;white-space:pre-wrap;font:inherit;color:#ccc}
+.round{border-top:1px solid #2a2a2a;padding:8px 0 2px}.round span{color:#888;font-size:12px;margin-left:6px}textarea.old{min-height:60px;margin-top:4px;color:#ccc;background:#111;border-color:#333}
 .clip{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}.clip iframe{border:0;border-radius:4px;background:#000;display:block}.clip .pc{flex:1;aspect-ratio:16/9;min-width:0}.clip .ph{width:26%;aspect-ratio:9/19}
 @media(max-width:700px){.clip{flex-wrap:wrap}.clip .pc,.clip .ph{width:100%}}
 .req{font-size:12px;font-weight:400;color:#111;background:#8c8;border-radius:10px;padding:1px 9px;margin-left:8px;vertical-align:middle;display:none}.req.queued{display:inline;background:#ec5}.req.working{display:inline;background:#8bf}.req.done{display:inline;background:#8c8}
@@ -90,8 +92,8 @@ button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.
 <main><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to.</div>${cards}</main>
 <script>
 const timers={};
-document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, st=document.getElementById('st-'+k); st.textContent='…'; clearTimeout(timers[k]);
- timers[k]=setTimeout(async()=>{ const r=await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
+document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, n=+t.dataset.n||0, id=k+(n?'-'+n:''), st=document.getElementById('st-'+id); st.textContent='…'; clearTimeout(timers[id]);
+ timers[id]=setTimeout(async()=>{ const r=await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,n,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
 // one clip at a time: the viewer is the whole 3D hall, so a second one would halve the frame rate
 document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click',()=>{ const box=document.getElementById('clip-'+b.dataset.key); const open=box.querySelector('iframe');
  document.querySelectorAll('.clip').forEach(c=>{ c.innerHTML=''; }); document.querySelectorAll('button.play').forEach(x=>x.textContent='Play clip');
@@ -109,7 +111,7 @@ status(); setInterval(status,5000);
 }
 http.createServer((req,res)=>{
  const url=req.url.split('?')[0];
- if(req.method==='POST'&&(url==='/save'||url==='/generate')){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{ const j=JSON.parse(b); res.writeHead((url==='/save'?save(j.key,j.text):generate(j.key))?200:400); }catch(e){ res.writeHead(400); } res.end(); }); return; }
+ if(req.method==='POST'&&(url==='/save'||url==='/generate')){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{ const j=JSON.parse(b); res.writeHead((url==='/save'?save(j.key,j.text,j.n):generate(j.key))?200:400); }catch(e){ res.writeHead(400); } res.end(); }); return; }
  if(url==='/'){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(page()); return; }
  if(url==='/requests'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(readReq())); return; }
  // the viewer as committed, never the working copy (it may carry another session's unfinished hunks)
