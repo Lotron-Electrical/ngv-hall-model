@@ -3166,18 +3166,19 @@ let colXZ=null; function columnsXZ(){ if(colXZ)return colXZ; colXZ=[]; for(const
 // the nearest angle round C whose orbit point at radius r is reached from `from` on a straight line
 // that passes no column closer than a metre (0.4 m shaft plus elbow room)
 function segClear(a,b){ for(const [cx,cz] of columnsXZ()){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz||1e-9; const t=Math.max(0,Math.min(1,((cx-a.x)*dx+(cz-a.z)*dz)/L2)); if(Math.hypot(a.x+dx*t-cx,a.z+dz*t-cz)<1.0)return false; } return true; }
-// the orbit is an ELLIPSE in the wall's frame, not a circle: the object sits 7.6 m off the screen
-// wall in a hall about 15 m wide, so a circle of any useful size went through the wall on one
-// side and the far wall on the other (Lloyd: the screen went black). Long axis 8.5 m along the
-// hall, short axis 3 m across it, which keeps the eye between the two rows of columns
-function orbitAt(C,a,y){ return C.clone().addScaledVector(EVENT.N.u,Math.cos(a)*8.5).addScaledVector(EVENT.N.inRoom,Math.sin(a)*3.0).setY(y); }
+// the orbit is a circle (Lloyd: the circle was fine) sized to the room: the object sits 7.6 m off
+// the screen wall in a hall about 15 m wide, and the 8.5 m circle went through the wall (the screen
+// went black). At 5.5 m it clears both walls by two metres and passes no column nearer than 1.2 m
+// (checked against the twelve feet in EVENT.cols), so nothing but a column ever crosses the view
+const ORBIT_R=5.5;
+function orbitAt(C,a,y){ return C.clone().addScaledVector(EVENT.N.u,Math.cos(a)*ORBIT_R).addScaledVector(EVENT.N.inRoom,Math.sin(a)*ORBIT_R).setY(y); }
 function clearAngle(from,C,r){ const rel=from.clone().sub(C), a0=Math.atan2(rel.dot(EVENT.N.inRoom),rel.dot(EVENT.N.u));
  for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const at=orbitAt(C,a,from.y); if(segClear(from,at))return a; } return a0; }
 // and the nearest angle whose straight line in to the object, from radius r to the shell, is clear
 function clearRadial(C,r,y){ const a0=Math.atan2(eye.z-C.z,eye.x-C.x);
  for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const o=new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r), i=new THREE.Vector3(C.x+Math.cos(a)*1.2,y,C.z+Math.sin(a)*1.2); if(segClear(o,i))return a; } return a0; }
 function idleStep(now){ if(!hallGroup||!portal)return;
- const C=portal.centre, r=8.5;
+ const C=portal.centre, r=ORBIT_R;
  // the glide from wherever the eye is onto the orbit takes the nearest line that misses every
  // column (Lloyd: the camera hit a column and stopped); the orbit itself, 8.5 m out, runs clear
  if(idleT0===null){ idleT0=now; idleFrom=eye.clone(); idleA0=clearAngle(idleFrom,C,r); }
@@ -3205,7 +3206,8 @@ let portal=null, reflecting=false;
 const TOUCH=('ontouchstart' in window);   // a phone: every render pass costs, so the mirrors and the cube map run at half size
 // far: where the widening and the shake begin (Lloyd: a bit closer before the trippy sequence starts)
 const WARP={far:5, near:1.6, k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
-function warpK(){ if(!portal||!portal.group.visible||tour)return 0; const d=eye.distanceTo(portal.centre);
+// (the idle orbit is not an approach, so it never triggers this)
+function warpK(){ if(!portal||!portal.group.visible||tour||idle)return 0; const d=eye.distanceTo(portal.centre);
  const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
 // two cube maps: 1024 is sharp everywhere (Lloyd: no blur) and is the one used whenever the frame
 // rate holds; if the six extra scene renders drag the rate under 50 the pass drops to 512 until it
@@ -3354,7 +3356,9 @@ const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain;
   vec3 V=normalize(cameraPosition-vW); float fr=pow(1.0-abs(dot(V,vN)),2.0);
   float sheen=0.5+0.5*sin(dot(vP,vec3(2.1,3.3,1.7))*2.0+t*1.6);
   float glit=pow(0.5+0.5*sin(dot(vP,vec3(17.0,23.0,11.0))+t*4.0),24.0);
-  vec3 col=c*(0.42+0.33*sheen)+vec3(1.0)*(fr*0.18+glit*0.3);   // the white lift held down: the mirrors multiply it up (Lloyd: a bright white sheen inside)
+  // dark glass with a little colour in it, hardly any white lift: the mirrors multiply whatever is
+  // here up over their bounces (Lloyd: too bright inside, it should have darkness as well, less sheen)
+  vec3 col=c*(0.22+0.18*sheen)+vec3(1.0)*(fr*0.05+glit*0.1);
   gl_FragColor=vec4(col,(0.62+0.3*fr)*gain);
  }`;
 const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varying vec3 vW;
@@ -3447,7 +3451,7 @@ function buildPortal(){
     m.position.copy(cen); m.quaternion.copy(q); m.camera.layers.set(1);
     // 80% reflective (Lloyd): a fifth of the light gets out, so the reflections dim with every
     // bounce and a little of what is behind a far pane shows through it
-    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.7 )');
+    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.6 )');
     m.material.transparent=true; m.material.depthWrite=false;
     // the mirror pass sees no sky: inside a mirror box there is nothing but the box, so the
     // background is black for the duration and the hall's own sky is put back afterwards
