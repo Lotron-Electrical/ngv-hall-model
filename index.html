@@ -3295,15 +3295,15 @@ function buildPortal(){
  // PIXEL STRIPS along the outer shell's thirty edges, on the inside (Lloyd, 2026-09-01: just the
  // internal edges of the outer tesseract): each carries a run of pixels showing what the columns
  // show this frame, read from the column pixel buffer (run 0, in pixel order), colours inverted.
- const EDGE_PX=22;
+ const EDGE_PX=44;   // dense enough to read as a strip, not a dotted line
  const ledRun=(segs,parent)=>{ const n=segs.length*EDGE_PX, pos=new Float32Array(n*3), col=new Float32Array(n*3);
   segs.forEach(([a,b],i)=>{ for(let j=0;j<EDGE_PX;j++){ const t=(j+0.5)/EDGE_PX; pos.set([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t],(i*EDGE_PX+j)*3); } });
   const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(pos,3)); gg.setAttribute('color',new THREE.BufferAttribute(col,3));
-  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.05,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.16,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   m.frustumCulled=false; m.layers.enable(1); parent.add(m); return m; };
  const segsOf=geo=>{ const e=new THREE.EdgesGeometry(geo).attributes.position, out=[]; for(let i=0;i<e.count;i+=2)out.push([new THREE.Vector3().fromBufferAttribute(e,i),new THREE.Vector3().fromBufferAttribute(e,i+1)]); return out; };
- const strutSegs=[]; for(let i=0;i<strut.length;i+=6)strutSegs.push([new THREE.Vector3(strut[i],strut[i+1],strut[i+2]),new THREE.Vector3(strut[i+3],strut[i+4],strut[i+5])]);
- const leds=[ledRun(segsOf(innerG),inner),ledRun(strutSegs,body)];
+ // a hair inside the mirror planes, so the strips sit in front of the glass and not in it
+ const leds=[ledRun(segsOf(outerG).map(([a,b])=>[a.multiplyScalar(0.975),b.multiplyScalar(0.975)]),outer)];
  // the spray: a fine mist lifting off the shell, like the drift off a waterfall
  const n=380, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);
  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
@@ -3331,15 +3331,15 @@ function buildPortal(){
  // the words above it
  const words=new THREE.Group(); words.position.y=2.6; g.add(words);
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
- // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, with a
- // glint sweeping along the letters so it shimmers rather than sits
+ // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, driven
+ // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
  const shimmerMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:`uniform float t; varying vec3 vP; void main(){ float g=pow(0.5+0.5*sin(vP.x*2.2-t*2.6),18.0); float g2=pow(0.5+0.5*sin(vP.x*5.0+vP.y*3.0+t*1.7),40.0);
-   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*(g*0.8+g2*0.5),1.0); }`});
+   gl_FragColor=vec4(vec3(1.0,0.98,0.94)*(g*1.1+g2*0.7),1.0); }`});
  const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
-   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xe6e9ef,metalness:1,roughness:0.12,envMapIntensity:1.6}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:3.2,emissive:0x5a6070}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
