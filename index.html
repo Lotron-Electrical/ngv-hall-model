@@ -3569,9 +3569,6 @@ function buildPortal(){
  // the words above it
  const words=new THREE.Group(); words.position.y=3.1; g.add(words);
  // two lines, each centred on the object's axis (Lloyd): the second is the hall's name
-   // the peak is remembered and let go of slowly: a pattern whose brightest pixel goes dark used to
-   // lift every other pixel in one frame (Lloyd: it looked like a flash when something rendered in)
-   G.mx=Math.max(mx,(G.mx||mx)*0.985); mx=G.mx;
  // the hall's name in chrome (Lloyd): a polished metal that mirrors the room environment, driven
  // hard and lifted because that map is dim, with a glint sweeping along the letters so it shimmers
  // the glint mesh shares the chrome's exact surface, so without a depth offset the two fought for
@@ -3629,6 +3626,9 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
   if(G.runOf!==P){ G.runOf=P; G.runIdx=[]; for(let k=0;k<P.n;k++)if(P.run[k]===0)G.runIdx.push(k); G.runIdx.sort((x,y)=>P.pi[x]-P.pi[y]); }
   const a=pix.instanceColor.array, L=G.runIdx.length;
   if(L){ let mx=1e-4; for(const k of G.runIdx){ mx=Math.max(mx,a[k*3],a[k*3+1],a[k*3+2]); }
+   // the peak is remembered and let go of slowly: a pattern whose brightest pixel goes dark used to
+   // lift every other pixel in one frame (Lloyd: it looked like a flash when something rendered in)
+   G.mx=Math.max(mx,(G.mx||mx)*0.985); mx=G.mx;
    for(const m of G.leds){ const c=m.geometry.attributes.color.array, n=c.length/3;
     for(let i=0;i<n;i++){ const k=G.runIdx[Math.min(L-1,Math.floor(((i%G.edgePx)+0.5)/G.edgePx*L))]*3;
      c[i*3]=1-Math.min(1,a[k]/mx); c[i*3+1]=1-Math.min(1,a[k+1]/mx); c[i*3+2]=1-Math.min(1,a[k+2]/mx); }
