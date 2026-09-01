@@ -3325,11 +3325,11 @@ const SUCK_VERT=`attribute float a0; attribute float r0; attribute float phase; 
   float an=a0+3.2*(r0/r-1.0)+k*0.6;
   float y=0.05+0.10*sin(k*3.14159)-0.5*smoothstep(0.93,1.0,k);
   vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.2,k)*(1.0-smoothstep(0.94,1.0,k));
-  vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.35+0.5*vA)*(38.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
+  vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=min(4.0,(0.35+0.5*vA)*(38.0/-mv.z)); gl_Position=projectionMatrix*mv; }`;
 const SUCK_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.05,length(d)); gl_FragColor=vec4(0.62,0.28,1.0,m*vA*0.3); }`;
 const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
  void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
-  vA=(1.0-k)*smoothstep(0.0,0.15,k); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.8+1.2*vA)*(40.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
+  vA=(1.0-k)*smoothstep(0.0,0.15,k); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=min(5.0,(0.8+1.2*vA)*(40.0/-mv.z)); gl_Position=projectionMatrix*mv; }`;
 const SPRAY_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.1,length(d)); gl_FragColor=vec4(0.85,0.92,1.0,m*vA*0.2); }`;
 // the spotlight's visible cone: bright at the lamp, gone at the floor, soft at the edge
 const CONE_FRAG=`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){
@@ -3401,7 +3401,7 @@ function buildPortal(){
  // a hair inside the mirror planes, so the strips sit in front of the glass and not in it
  const leds=[ledRun(segsOf(outerG).map(([a,b])=>[a.multiplyScalar(0.975),b.multiplyScalar(0.975)]),outer)];
  // the spray: a fine mist lifting off the shell, like the drift off a waterfall
- const n=380, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);
+ const n=110, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);   // Lloyd, phone: far too many at 380
  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
  const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(pos,3)); sg.setAttribute('dir',new THREE.BufferAttribute(dir,3)); sg.setAttribute('phase',new THREE.BufferAttribute(ph,1));
  const sprayMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:SPRAY_VERT,fragmentShader:SPRAY_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
@@ -3412,7 +3412,7 @@ function buildPortal(){
   fragmentShader:PORTAL_FRAG,depthWrite:false});   // opaque: the void paints OVER the carpet, it does not add to it
  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
- const sn=240, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
+ const sn=80, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
  for(let i=0;i<sn;i++){ sa[i]=Math.random()*Math.PI*2; sr[i]=1.9+Math.random()*2.6; sph[i]=Math.random(); }
  const suckG=new THREE.BufferGeometry(); suckG.setAttribute('position',new THREE.BufferAttribute(sp,3)); suckG.setAttribute('a0',new THREE.BufferAttribute(sa,1)); suckG.setAttribute('r0',new THREE.BufferAttribute(sr,1)); suckG.setAttribute('phase',new THREE.BufferAttribute(sph,1));
  const suckMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:SUCK_VERT,fragmentShader:SUCK_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
