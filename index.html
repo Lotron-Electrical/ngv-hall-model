@@ -3586,7 +3586,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const dip=0; if(court)court.visible=s>=tP; finaleLights(s>=tP);
  // the fade to black at the end
  const fd=Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade));
- // black: the groom's back fills the frame by 5.9 s and the fade to black follows it (Lloyd, V9);
+ // black: the groom's back fills the frame by 6 s and the fade to black follows it (Lloyd, V9);
  // held through the lift; clears in the pan's last half second, on a scene that is pure black
  // with the marks above the frame, so they enter from outside it
  const bo=s<tD-0.5?smooth(Math.max(0,Math.min(1,(s-6.0)/0.5))):1-smooth(Math.min(1,(s-tD+0.5)/0.5));
@@ -3596,13 +3596,13 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const cz=COURT.logoZ-D, c=courtPoint(COURT.uMid,y0+L.top*0.5*sf,cz), sc=courtPoint(COURT.uMid,y0+3,COURT.logoZ);
  let at,look;
  if(s<tP){ // behind the couple, then closing onto the groom's back until it fills the frame
-  const ss=Math.min(s,6.4), m=along(ss), g=along(Math.max(0,ss-0.45)), ck=smooth(Math.max(0,Math.min(1,(ss-3.6)/1.5)));
+  const ss=Math.min(s,6.4), m=along(ss), g=along(Math.max(0,ss-0.45)), ck=smooth(Math.max(0,Math.min(1,(ss-2.4)/2.2)));
   const across=new THREE.Vector3(-N.z,0,N.x);
   at=P(m.back+1.0,m.side,y0+1.5).lerp(P(g.back+0.32,g.side,y0+1.25).addScaledVector(across,0.28),ck);
   const m2=along(ss+1.6); look=P(m2.back,m2.side,y0+1.35).lerp(P(g.back-0.3,g.side,y0+1.15).addScaledVector(across,0.28),ck);
-  // (Lloyd, V9) then right up into his back, level, until his jacket is the whole frame: the
-  // picture is black before the fade is
-  const ck2=smooth(Math.max(0,Math.min(1,(ss-5.0)/0.9)));
+  // (Lloyd, V9, V10) then right up into his back, slowly, level, until his jacket is the whole
+  // frame at 6 s: the picture is black before the fade is
+  const ck2=smooth(Math.max(0,Math.min(1,(ss-4.4)/1.6)));
   at.lerp(P(g.back+0.2,g.side,y0+1.1).addScaledVector(across,0.34),ck2); look.lerp(P(g.back-0.5,g.side,y0+1.1).addScaledVector(across,0.34),ck2); }
  else { at=c;
   // (Lloyd, V9) the look is on the triangle's place from the start: the marks come down into
