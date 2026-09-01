@@ -2658,9 +2658,12 @@ function updateWedding(dt,t){
   let tiltA=0, vLift=0;
   if(W.cer!=null&&!W.walk&&!sm&&!W.gone&&i!==2){ const ce=W.cer, U=EVENT.N.u, side=i===0?-1:1, cl=(a,b)=>Math.max(0,Math.min(1,(ce-a)/(b-a)));
    const turn=smooth(cl(6,7.5)), kiss=smooth(cl(9.5,10.7)), dip=smooth(cl(10.7,12.0))*(1-smooth(cl(13.0,13.9))); vLift=smooth(cl(7.8,9.3));
-   const step=0.08*turn+0.12*dip+(i===1?0.22*dip:0);   // (Lloyd, V3) heads meet, nothing clips
+   // (Lloyd, V3, V4) heads meet and nothing clips: no step in for the dip (the groom's feet were
+   // inside the gown's hem), he leans further over her instead
+   const step=0.08*turn;
    fx-=side*U.x*step; fz-=side*U.z*step;
-   tiltA=i===0?(0.11*kiss-0.55*dip):(-0.11*kiss-0.4*dip); }
+   if(i===1){ const R=EVENT.N.inRoom; fx+=R.x*0.3*dip; fz+=R.z*0.3*dip; }   // the groom a step in front of her for the dip, clearly holding her
+   tiltA=i===0?(0.11*kiss-0.55*dip):(-0.11*kiss-0.6*dip); }
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }
