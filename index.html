@@ -3605,6 +3605,8 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  if(wk>0){ const a=wk*wk; if(Math.random()<a*0.2){ requestAnimationFrame(frame); return; }   // a dropped frame: the picture holds
   if(Math.random()<a*0.03){ R.getClearColor(WARP.cc); const ca=R.getClearAlpha(); R.setRenderTarget(null); R.setClearColor(0x000000,1); R.clear(); R.setClearColor(WARP.cc,ca); requestAnimationFrame(frame); return; }   // the shutter
   warpShake(wk,now/1000); warpRender(wk); }
+ else if(idle){   // the orbit is as wide as the room allows, so the lens opens instead: words and void both in frame (Lloyd)
+  const keep=cam.fov; cam.fov=Math.min(100,keep+(TOUCH?24:18)); cam.updateProjectionMatrix(); R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); }
  else R.render(scene,cam);
  requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
