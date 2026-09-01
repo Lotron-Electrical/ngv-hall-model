@@ -4057,7 +4057,9 @@ function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
   // visible veil white (Lloyd: a white blink before the fade in)
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); return false; }
  warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.12;
- const q=Math.max(0,(s-T.kal)/T.iris); u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
+ // q is held at 1 through the beat of black: past it (1-q)^2 grew again and the point came
+ // back as a growing dot (Lloyd's recording: the blip at the end)
+ const q=Math.min(1,Math.max(0,(s-T.kal)/T.iris)); u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
  // no shake here: the kaleidoscope is smooth (Lloyd)
  cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
