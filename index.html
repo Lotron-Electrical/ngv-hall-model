@@ -854,6 +854,7 @@ new GLTFLoader().load('model.glb',g=>{
   const cap2=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
+ HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
@@ -890,6 +891,7 @@ function applyColumnHeight(){const f=heightFactor(); if(!hallGroup)return;
 // a control change means the next frame must repaint the LEDs even if every layer is static
 let sceneDirty=true;
 let CEIL_Y=0;                // the canopy underside in the unscaled model
+let HALL_BOX=null;           // the loaded hall's extent, unscaled: the box the eye may not leave with collision on
 const L=()=>state.layers[state.sel];
 const rc={mv:{f:0,r:0,u:0}, conn:null, peer:null}; // the phone remote's link and held stick, see below
 let RUNS=null, pix=null, ribbon=null, glow=null, pcb=null, pkg=null, cvr=null;
@@ -1584,6 +1586,15 @@ function resolveMove(){
   const rest=d.clone().sub(dir.clone().multiplyScalar(stop)); rest.sub(n.multiplyScalar(rest.dot(n)));
   from=at; want=at.clone().add(rest);
  }
+ // Belt and braces (Lloyd, 2026-09-01: 'no way for the camera to escape the hall unless
+ // collisions are turned off'): the scan has seams a ray can slip through and the canopy has
+ // gaps between its panels, so on top of the ray test the eye is held inside the hall's own box,
+ // under the canopy. The box scales with the column-height lever like everything else.
+ if(HALL_BOX){const f=heightFactor(), ceil=isFinite(CEIL_Y)&&CEIL_Y>FLOOR_Y?CEIL_Y:HALL_BOX.max.y;
+  const top=FLOOR_Y+(ceil-FLOOR_Y)*f-SKIN;
+  from.x=Math.min(Math.max(from.x,HALL_BOX.min.x+SKIN),HALL_BOX.max.x-SKIN);
+  from.z=Math.min(Math.max(from.z,HALL_BOX.min.z+SKIN),HALL_BOX.max.z-SKIN);
+  from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
 window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get solids(){return solids.length;}};
