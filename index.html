@@ -1608,7 +1608,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3164,46 +3164,78 @@ function idleStep(now){ if(!hallGroup||!portal)return;
 
 // ============ THE OBJECT (Lloyd, 2026-09-01) ============
 // In the middle of the hall, before the tour: a stained-glass tesseract, a dodecahedron inside a
-// dodecahedron with the corners tied, turning against each other, and between them an infinity
-// mirror of the same shape receding inward. It floats, it shimmers, a fine spray lifts off it, a
+// dodecahedron with the corners tied, turning against each other; look into it and the lit frame
+// repeats smaller and darker forever, an infinity mirror ray-marched through folded space. It floats, it shimmers, a fine spray lifts off it, a
 // spotlight falls on it from the canopy, and it stands on a neon portal cut into the floor.
 // ENTER THE FUTURE hangs above it, always facing the camera. Clicking or tapping the object
 // starts the tour. It lives only while no tour and no event is running.
 let portal=null;
-const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP;
- void main(){ vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position; gl_Position=projectionMatrix*viewMatrix*w; }`;
-const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; varying vec3 vN; varying vec3 vW; varying vec3 vP;
+const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
+ void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
+  // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
+  vec3 dw=cameraPosition-w.xyz; vLV=vec3(dot(m[0],dw),dot(m[1],dw),dot(m[2],dw));
+  gl_Position=projectionMatrix*viewMatrix*w; }`;
+const GLASS_FRAG=`uniform float t; uniform float hueShift; uniform float gain; uniform float rIn; uniform float depthOn;
+ varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+ // the six axes of a dodecahedron's opposite face pairs, unit length
+ const vec3 A0=vec3(0.0,0.52573,0.85065), A1=vec3(0.0,0.52573,-0.85065), A2=vec3(0.52573,0.85065,0.0),
+           A3=vec3(0.52573,-0.85065,0.0), A4=vec3(0.85065,0.0,0.52573), A5=vec3(-0.85065,0.0,0.52573);
+ // fold space so the shell repeats forever: between two mirrors a lit frame appears again and
+ // again, each one further away; this is that, along every axis at once
+ float fold(float x,float r){ return abs(mod(x+r,2.0*r)-r); }
+ float frame(vec3 p,float r){
+  float w0=exp(-30.0*(r-fold(dot(p,A0),r))), w1=exp(-30.0*(r-fold(dot(p,A1),r))), w2=exp(-30.0*(r-fold(dot(p,A2),r)));
+  float w3=exp(-30.0*(r-fold(dot(p,A3),r))), w4=exp(-30.0*(r-fold(dot(p,A4),r))), w5=exp(-30.0*(r-fold(dot(p,A5),r)));
+  // an edge is where two faces meet: every pair
+  return w0*w1+w0*w2+w0*w3+w0*w4+w0*w5+w1*w2+w1*w3+w1*w4+w1*w5+w2*w3+w2*w4+w2*w5+w3*w4+w3*w5+w4*w5; }
  void main(){
-  // one colour per pane: the pane's normal picks the hue, so every facet is its own glass
   float h=fract(atan(vN.z,vN.x)/6.2832+vN.y*0.35+hueShift+t*0.02);
   vec3 c=hsv(h,0.95,1.0);
   vec3 V=normalize(cameraPosition-vW); float fr=pow(1.0-abs(dot(V,vN)),2.0);
-  // the shimmer: a slow sheet of light passing through the pane, plus a fine glitter
   float sheen=0.5+0.5*sin(dot(vP,vec3(2.1,3.3,1.7))*2.0+t*1.6);
   float glit=pow(0.5+0.5*sin(dot(vP,vec3(17.0,23.0,11.0))+t*4.0),24.0);
-  vec3 col=c*(0.55+0.45*sheen)+vec3(1.0)*(fr*0.6+glit*0.8);
-  gl_FragColor=vec4(col,(0.5+0.35*fr)*gain);
+  // the corridor: march into the object and pick up the folded frames, each dimmer and further
+  vec3 d=-normalize(vLV); vec3 p=vP; vec3 gcol=vec3(0.0); float att=1.0;
+  for(int k=0;k<30;k++){ p+=d*0.19; float e=frame(p,rIn);
+   gcol+=hsv(fract(hueShift+float(k)*0.04+t*0.03),0.85,1.0)*min(e,1.2)*att; att*=0.9; }
+  gcol*=depthOn;
+  vec3 col=c*(0.12+0.12*sheen)+vec3(1.0)*(fr*0.45+glit*0.5)+gcol*1.1;
+  gl_FragColor=vec4(col,(0.78+0.2*fr)*gain);
  }`;
 const PORTAL_FRAG=`uniform float t; varying vec2 vUv;
- vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
+ float hash(vec2 q){ return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453); }
+ // a layer of stars: cells, one star per cell, its own size and twinkle; the layer drifts toward
+ // the centre so the field seems to be falling in
+ float stars(vec2 p,float scale,float speed){
+  vec2 q=p*scale; vec2 c=floor(q), f=fract(q); float h=hash(c); if(h<0.55)return 0.0;
+  vec2 sp=vec2(hash(c+1.3),hash(c+7.1)); float d=length(f-sp);
+  float tw=0.6+0.4*sin(t*(1.5+3.0*hash(c+3.7))+h*40.0);
+  return smoothstep(0.22,0.0,d)*tw*(0.4+0.6*hash(c+9.2)); }
  void main(){
-  // an infinite void (Lloyd, 2026-09-01: the first cut was too much): black to the centre, with
-  // faint rings falling inward forever and a thin neon lip, mirror-folded so the far rings echo
+  // a black, starry, endless void (Lloyd, 2026-09-01): the stars crowd and shrink toward the
+  // centre as if the drop went on forever, and the lip is a faint purple only
   vec2 p=(vUv-0.5)*2.0; float r=length(p); if(r>1.0)discard;
-  float a=atan(p.y,p.x); float seg=3.14159/3.0; a=abs(mod(a+t*0.04,seg)-seg*0.5);
-  float z=fract(log(r+0.015)*1.6-t*0.35);
-  float ring=smoothstep(0.0,0.06,z)*smoothstep(0.30,0.10,z);
-  float depth=pow(r,1.8);                                  // the rings dim as they fall away
-  float hue=fract(z*0.5+a/3.14159+t*0.06);
-  vec3 col=hsv(hue,0.85,1.0)*ring*0.35*depth;
-  col+=vec3(0.02,0.0,0.06)*depth;
-  float rim=smoothstep(0.90,0.965,r)*smoothstep(1.0,0.985,r);
-  col+=hsv(fract(t*0.08),0.8,1.0)*rim*1.2;
-  float glint=pow(0.5+0.5*sin(a*6.0+r*26.0-t*1.4),18.0)*0.25*depth;
-  col+=vec3(glint);
+  float a=atan(p.y,p.x);
+  vec3 col=vec3(0.0);
+  float depth=pow(r,1.4);
+  // three depths of stars, the deeper ones smaller and fainter, all sliding inward with time
+  for(int i=0;i<3;i++){ float fi=float(i); float z=fract(t*0.03*(1.0+fi*0.6)+fi*0.33);
+   float rr=mix(1.0,0.02,z)*r+0.001; vec2 q=vec2(cos(a),sin(a))*(0.15+0.85/rr);
+   float s=stars(q,2.5+fi*2.0,1.0)*(1.0-z)*smoothstep(0.0,0.2,z);
+   col+=vec3(0.8,0.75,1.0)*s*(2.2-0.5*fi)*(0.35+0.65*depth); }
+  col+=vec3(0.05,0.0,0.10)*depth*depth;
+  float rim=smoothstep(0.93,0.975,r)*smoothstep(1.0,0.99,r);
+  col+=vec3(0.55,0.2,1.0)*rim*0.6;
   gl_FragColor=vec4(col,1.0);
  }`;
+// the pull: purple motes lift off the carpet round the void and spiral into it
+const SUCK_VERT=`attribute float a0; attribute float r0; attribute float phase; uniform float t; varying float vA;
+ void main(){ float k=fract(t*0.13+phase); float r=mix(r0,0.15,pow(k,0.75)); float an=a0+k*3.0;
+  float y=0.05+0.35*sin(k*3.14159)-0.9*pow(k,6.0);
+  vec3 p=vec3(cos(an)*r,y,sin(an)*r); vA=smoothstep(0.0,0.15,k)*(1.0-pow(k,4.0));
+  vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.6+0.9*vA)*(38.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
+const SUCK_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.05,length(d)); gl_FragColor=vec4(0.62,0.28,1.0,m*vA*0.3); }`;
 const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; varying float vA;
  void main(){ float k=fract(t*0.11+phase); vec3 p=position+dir*(0.2+k*1.6)+vec3(0.0,k*k*1.2,0.0);
   vA=(1.0-k)*smoothstep(0.0,0.15,k); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.8+1.2*vA)*(40.0/-mv.z); gl_Position=projectionMatrix*mv; }`;
@@ -3216,10 +3248,11 @@ function buildPortal(){
  if(portal){ scene.remove(portal.group); portal=null; }
  const uM=EVENT.wallLen/2, C=EP(uM,3.3,7.6);
  const g=new THREE.Group(); g.position.copy(C);
- const glassMat=(shift,gain)=>new THREE.ShaderMaterial({uniforms:{t:{value:0},hueShift:{value:shift},gain:{value:gain}},vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,
-  transparent:true,depthWrite:false,side:THREE.DoubleSide});
+ const glassMat=(shift,gain,rIn,depthOn,side)=>new THREE.ShaderMaterial({uniforms:{t:{value:0},hueShift:{value:shift},gain:{value:gain},rIn:{value:rIn},depthOn:{value:depthOn}},vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,
+  transparent:true,depthWrite:false,side:side});
  const outerG=new THREE.DodecahedronGeometry(1.35,0), innerG=new THREE.DodecahedronGeometry(0.72,0);
- const outer=new THREE.Mesh(outerG,glassMat(0,1)), inner=new THREE.Mesh(innerG,glassMat(0.5,1));
+ // inradius = circumradius x 0.7947 for a dodecahedron
+ const outer=new THREE.Mesh(outerG,glassMat(0,1,1.35*0.7947,1,THREE.FrontSide)), inner=new THREE.Mesh(innerG,glassMat(0.5,0.3,0.72*0.7947,0,THREE.DoubleSide));
  const lead=(geo,col,op,add)=>new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false}));
  outer.add(lead(outerG,0x05050a,0.9,false)); outer.add(lead(outerG,0xffffff,0.35,true));
  inner.add(lead(innerG,0x05050a,0.9,false)); inner.add(lead(innerG,0xffffff,0.45,true));
@@ -3229,12 +3262,7 @@ function buildPortal(){
  oc.forEach((v,i)=>{ const w=ic[i]||v.clone().multiplyScalar(0.72/1.35); strut.set([v.x,v.y,v.z,w.x,w.y,w.z],i*6); });
  const strutG=new THREE.BufferGeometry(); strutG.setAttribute('position',new THREE.BufferAttribute(strut,3));
  const struts=new THREE.LineSegments(strutG,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false}));
- // the infinity mirror: the outer shell again and again, each copy smaller and fainter, the way
- // a lit frame repeats between two facing mirrors; they turn a touch out of step so the depth reads
- const mirror=new THREE.Group(); const shells=[];
- for(let i=1;i<=6;i++){ const k=Math.pow(0.86,i); const sh=new THREE.Mesh(outerG,glassMat(i*0.07,0.35*Math.pow(0.62,i))); sh.scale.setScalar(k);
-  sh.add(lead(outerG,0xffffff,0.4*Math.pow(0.7,i),true)); mirror.add(sh); shells.push(sh); }
- const body=new THREE.Group(); body.add(outer,mirror,inner,struts); g.add(body);
+ const body=new THREE.Group(); body.add(outer,inner,struts); g.add(body);
  // the spray: a fine mist lifting off the shell, like the drift off a waterfall
  const n=380, pos=new Float32Array(n*3), dir=new Float32Array(n*3), ph=new Float32Array(n);
  for(let i=0;i<n;i++){ const v=new THREE.Vector3().randomDirection(); pos.set(v.clone().multiplyScalar(1.3).toArray(),i*3); dir.set(v.multiplyScalar(0.6+Math.random()*0.5).toArray(),i*3); ph[i]=Math.random(); }
@@ -3246,6 +3274,12 @@ function buildPortal(){
  const portalMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:PORTAL_FRAG,depthWrite:false});   // opaque: the void paints OVER the carpet, it does not add to it
  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.7,96),portalMat); disc.rotation.x=-Math.PI/2; disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
+ // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
+ const sn=240, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
+ for(let i=0;i<sn;i++){ sa[i]=Math.random()*Math.PI*2; sr[i]=1.9+Math.random()*2.6; sph[i]=Math.random(); }
+ const suckG=new THREE.BufferGeometry(); suckG.setAttribute('position',new THREE.BufferAttribute(sp,3)); suckG.setAttribute('a0',new THREE.BufferAttribute(sa,1)); suckG.setAttribute('r0',new THREE.BufferAttribute(sr,1)); suckG.setAttribute('phase',new THREE.BufferAttribute(sph,1));
+ const suckMat=new THREE.ShaderMaterial({uniforms:{t:{value:0}},vertexShader:SUCK_VERT,fragmentShader:SUCK_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+ const suck=new THREE.Points(suckG,suckMat); suck.frustumCulled=false; suck.position.copy(disc.position); g.add(suck);
  // the spotlight: a lamp under the canopy aimed at the object, and its cone made visible
  const lampY=(isFinite(CEIL_Y)&&CEIL_Y>C.y?CEIL_Y:C.y+8)-0.4;
  const spot=new THREE.SpotLight(0xfff4e0,60,lampY-floorY+2,0.20,0.5,1.2); spot.position.set(0,lampY-C.y,0); spot.target.position.set(0,0,0); g.add(spot); g.add(spot.target);
@@ -3263,14 +3297,13 @@ function buildPortal(){
   words.add(core,halo,halo2); };
  if(buildCourt.font)addWords(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addWords(f);});
  scene.add(g);
- portal={group:g,centre:C,body,outer,inner,shells,spray,disc,words,mats:[outer.material,inner.material,sprayMat,portalMat,...shells.map(x=>x.material)],hit:[outer,inner,disc]};
+ portal={group:g,centre:C,body,outer,inner,spray,disc,words,mats:[outer.material,inner.material,sprayMat,portalMat,suckMat],hit:[outer,inner,disc]};
 }
 function portalStep(now){ const P=portal; if(!P)return;
  P.group.visible=!tour&&!document.getElementById('event').checked; if(!P.group.visible)return;
  for(const m of P.mats)m.uniforms.t.value=now;
  P.body.position.y=0.25*Math.sin(now*0.9);                       // the float
  P.outer.rotation.set(now*0.17,now*0.23,now*0.11); P.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
- P.shells.forEach((sh,i)=>sh.rotation.set(now*0.17+i*0.05,now*0.23-i*0.06,now*0.11+i*0.04));   // the mirror copies lag a little
  const pulse=0.53+0.08*Math.sin(now*0.7); P.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
  P.spray.position.y=P.body.position.y;
  P.words.position.y=2.6+0.5*P.body.position.y; P.words.rotation.y=Math.atan2(eye.x-P.group.position.x,eye.z-P.group.position.z);
