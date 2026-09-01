@@ -66,7 +66,12 @@ The Gandel hall text should be much larger. Same width as the text line below it
 V6 (sent 01/09/2026 23:14:05):
 Try a new generation of the gandel hall text here
 
-V7 (draft):
+V7 (sent 01/09/2026 23:46:39):
+[shot 1, 4.0 s] a special space
+line break
+In Melbourne's heart
+
+V8 (draft):
 
 
 ---
@@ -353,7 +358,10 @@ V5 (sent 01/09/2026 23:26:53):
 V6 (sent 01/09/2026 23:31:45):
 [shot 8, 11.3 s] the people should keep jumping during this scene. Also it should cut a bit earlier and go into the next scene. Fade out
 
-V7 (draft):
+V7 (sent 01/09/2026 23:45:51):
+[shot 8, 16.5 s] make sure the people in the wheelchairs are bobbing up and down happily along with everyone else as well
+
+V8 (draft):
 
 
 ---
