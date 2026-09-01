@@ -133,7 +133,7 @@ html.embed body,html.embed main{margin:0;padding:0}
 <div id="stage"><canvas id="cv"></canvas>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
- <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
+ <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="rst" type="button">Reset view</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
  <div id="hud" hidden></div>
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
@@ -1567,7 +1567,7 @@ function moveStick(st){knob.style.transform=`translate(${st.dx*0.6}px,${st.dy*0.
 function hideStick(){pad.style.display='none';}
 function fwd(){return new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));}
 function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
-document.getElementById('rst').onclick=home;
+document.getElementById('rst').onclick=()=>{stopTour(); home();};
 document.getElementById('full').onclick=()=>{(document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen()).catch(()=>{});};
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---- solid walls. Every mesh of the hall is a collider: one ray from where the eye WAS to
@@ -1578,7 +1578,7 @@ const solids=[], SKIN=0.35, rayc=new THREE.Raycaster(); let safeEye=null, noclip
 document.getElementById('collide').onchange=e=>{noclip=!e.target.checked;};
 document.getElementById('fov').oninput=e=>{cam.fov=+e.target.value; cam.updateProjectionMatrix(); document.getElementById('fovval').textContent=e.target.value;};
 function resolveMove(){
- if(noclip||!solids.length||!safeEye){safeEye=eye.clone(); return;}
+ if(noclip||tour||!solids.length||!safeEye){safeEye=eye.clone(); return;}
  let from=safeEye, want=eye.clone();
  for(let pass=0;pass<2;pass++){
   const d=want.clone().sub(from); const len=d.length(); if(len<1e-6)break;
@@ -1601,7 +1601,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,tourSeg:()=>tour?tour.i:null,get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -1615,7 +1615,8 @@ function rcApply(m){
  switch(m.t){
   case 'move': rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
   case 'look': yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
-  case 'home': home(); break;
+  case 'home': stopTour(); home(); break;
+  case 'tour': if(tour)stopTour(); else startTour(); break;
   case 'full': document.getElementById('full').click(); break;
   case 'house': lit.house=Math.max(0,Math.min(1,+m.v)); {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';} break;
   case 'level': state.level=Math.max(0,Math.min(1,+m.v)); {const l=document.getElementById('level'); l.value=Math.round(state.level*100); document.getElementById('levelval').textContent=l.value+'%';} break;
@@ -3091,7 +3092,58 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  syncSpec(); document.getElementById('hudb').addEventListener('click',()=>setTimeout(syncSpec,0));
 }
 let last=performance.now();
-function frame(now){ if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+
+// ============ THE TOUR (Lloyd, 2026-09-01) ============
+// One button flies the whole pitch: the empty hall, then each event in turn, a fly-through and
+// its Celebrate, ending with the wedding couple walked down the aisle and out to the partners'
+// sculpture in the court. The camera is scripted per segment (eased glides between poses, or a
+// pose computed from the couple's own timetable in updateWedding); collision is off for the
+// duration because the route leaves through the glass. Any Reset view, or the button again, ends it.
+let tour=null;
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const smooth=k=>k*k*(3-2*k);
+// set the eye and point it at a world target: fwd() is (cos p cos y, sin p, -cos p sin y)
+function poseAt(eyeAt,target){ eye.copy(eyeAt); const d=target.clone().sub(eyeAt).normalize(); pitch=Math.asin(Math.max(-1,Math.min(1,d.y))); yaw=Math.atan2(-d.z,d.x); }
+// hall poses in the event frame: u along the wall, h above the floor, d into the room
+const EP=(u,h,d)=>eventPoint(u,(FLOOR_Y||EVENT.N.origin.y)+h,d);
+const glide=(a,b,la,lb)=>k=>{ const q=smooth(k); poseAt(a.clone().lerp(b,q),(la||b).clone().lerp(lb||la||b,q)); };
+function setEvent(mode){ const ev=document.getElementById('event'), md=document.getElementById('eventmode');
+ ev.checked=!!mode; if(mode)md.value=mode; buildEvent(); }
+function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
+ const fly=(h,d0,d1,look)=>glide(EP(4,h,d0),EP(45.5,h,d1),EP(22,look,d0),EP(60,look,d1));
+ const hold=(u,h,d,lu,lh,ld)=>k=>{ const w=0.06*Math.sin(k*Math.PI*2); poseAt(EP(u+w*8,h,d),EP(lu,lh,ld)); };
+ // the couple's timetable, mirrored from updateWedding: 20 s up the aisle, 6 s across to the glass
+ const couple=tw=>{ if(tw<=20)return {u:uM,d:3.55+(tw/20)*9.9}; const q=Math.min(1,(tw-20)/6); return {u:uM+(27.6-uM)*q,d:13.45+2.2*q}; };
+ const court=()=>turntable?turntable.position.clone():courtPoint(COURT.uMid,0,COURT.logoZ);
+ return [
+  {mode:null,     dur:16, cam:fly(1.7,7.6,7.6,1.5)},
+  {mode:'dinner', dur:16, cam:fly(2.4,5.5,9.5,0.9)},
+  {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
+  {mode:'party',  dur:16, cam:fly(2.2,9,6,1.2)},
+  {celebrate:true,dur:14, cam:hold(uM+8,2.4,13,uM,2.5,5)},
+  {mode:'standing',dur:16,cam:fly(2.1,6.5,8.5,1.3)},
+  {celebrate:true,dur:12, cam:hold(uM-6,2.3,13,uM,2.0,6)},
+  {mode:'wedding',dur:14, cam:glide(EP(uM,1.7,14.2),EP(uM,1.6,5.2),EP(uM,1.5,3.5),EP(uM,1.6,3.0))},
+  // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
+  {celebrate:true,dur:26.5, cam:k=>{ const tw=k*26.5, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5));
+    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); }},
+  // out through the glass to the sculpture, then a slow half-turn around it
+  {dur:9,  cam:k=>{ const T=court(); const from=EP(26.6,1.9,12.6), to=T.clone().addScaledVector(EVENT.N.inRoom,-14).setY(T.y+3);
+    poseAt(from.lerp(to,smooth(k)), T.clone().setY(T.y+4.5)); }},
+  {dur:22, cam:k=>{ const T=court(); const a=Math.PI+k*Math.PI*0.5, r=15;
+    const f=EVENT.N.inRoom, rgt=EVENT.N.u; const at=T.clone().addScaledVector(f,Math.cos(a)*r).addScaledVector(rgt,Math.sin(a)*r).setY(T.y+3.2);
+    poseAt(at,T.clone().setY(T.y+4)); }},
+ ]; }
+function startTour(){ if(tour)return; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+ document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
+function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
+function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
+ const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0); }
+function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
+ if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
+document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
+
+function frame(now){ if(tour)tourStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
