@@ -3295,11 +3295,11 @@ function buildPortal(){
  // PIXEL STRIPS along the outer shell's thirty edges, on the inside (Lloyd, 2026-09-01: just the
  // internal edges of the outer tesseract): each carries a run of pixels showing what the columns
  // show this frame, read from the column pixel buffer (run 0, in pixel order), colours inverted.
- const EDGE_PX=44;   // dense enough to read as a strip, not a dotted line
+ const EDGE_PX=72;   // dense enough to read as a strip at 30 mm pixels, not a dotted line
  const ledRun=(segs,parent)=>{ const n=segs.length*EDGE_PX, pos=new Float32Array(n*3), col=new Float32Array(n*3);
   segs.forEach(([a,b],i)=>{ for(let j=0;j<EDGE_PX;j++){ const t=(j+0.5)/EDGE_PX; pos.set([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t],(i*EDGE_PX+j)*3); } });
   const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(pos,3)); gg.setAttribute('color',new THREE.BufferAttribute(col,3));
-  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.075,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  const m=new THREE.Points(gg,new THREE.PointsMaterial({size:0.03,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   m.frustumCulled=false; m.layers.enable(1); parent.add(m); return m; };
  const segsOf=geo=>{ const e=new THREE.EdgesGeometry(geo).attributes.position, out=[]; for(let i=0;i<e.count;i+=2)out.push([new THREE.Vector3().fromBufferAttribute(e,i),new THREE.Vector3().fromBufferAttribute(e,i+1)]); return out; };
  // a hair inside the mirror planes, so the strips sit in front of the glass and not in it
