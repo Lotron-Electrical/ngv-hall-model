@@ -1761,7 +1761,8 @@ function buildCourt(){
   tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2, -(b.min.y+b.max.y)/2, -depth*0.2); tg.computeVertexNormals();
   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xfff6dc,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
-  halo.scale.set(1.06,1.18,1.6); const halo2=halo.clone(); halo2.scale.set(1.14,1.4,2.4); halo2.material=halo.material.clone(); halo2.material.opacity=0.1;
+  // (Lloyd, finale V9) the glow a touch softer: it read too bright against the black
+  halo.material.opacity=0.13; halo.scale.set(1.05,1.15,1.5); const halo2=halo.clone(); halo2.scale.set(1.12,1.32,2.2); halo2.material=halo.material.clone(); halo2.material.opacity=0.06;
   // in the court group, not the logo group: it faces the glass and does not turn with the letters (Lloyd)
   tag=new THREE.Group(); tag.add(core,halo,halo2); tag.position.copy(turntable.position).y+=tagY; tag.quaternion.copy(turntable.quaternion); tag.userData.baseY=tag.position.y; tag.userData.size=tagSize; court.add(tag); };
  // Lotron at the front of the turntable, facing the hall at the start of every turn
@@ -3482,7 +3483,7 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:6.5, pan:1, drop:6, flat:5, hold:4, fade:2};   // seconds per phase
+const FIN={walk:6.5, pan:1.5, drop:6, flat:5, hold:4, fade:2};   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9)
 // (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
 // down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
@@ -3553,7 +3554,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  // seen from the hall, -x is the left: ENTTEC there, Shadow AV on the right
  const targets=new Map([[logo,[0,L.yTop,0]],[partners[0],[-L.dx0,L.yBot,0]],[partners[1],[L.dx1,L.yBot,0]]]);
  const tP=FIN.walk, tD=tP+FIN.pan, tF=tD+FIN.drop;
- const pk=smooth(Math.max(0,Math.min(1,(s-tP)/FIN.pan)));   // the pan up: the marks lift away and take their places above
+ const pk=smooth(Math.max(0,Math.min(1,(s-tP)/(FIN.pan-0.5))));   // the pan up: the marks lift away and take their places above, done 0.5 s before the drop
  const dk=smooth(Math.max(0,Math.min(1,(s-tD)/FIN.drop)));  // the drop: down from the top of the frame into the triangle
  // the eye stays a metre outside the glass at least; where the triangle would not fit from there
  // (a phone's narrow picture) the whole sculpture shrinks instead
@@ -3581,29 +3582,35 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const dip=0; if(court)court.visible=s>=tP; finaleLights(s>=tP);
  // the fade to black at the end
  const fd=Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade));
- // black: into the groom's back at 5 s, held through the lift, clearing as the marks start down
- const bo=s<tD?smooth(Math.max(0,Math.min(1,(s-5.0)/0.8))):1-smooth(Math.min(1,(s-tD)/0.8));
+ // black: the groom's back fills the frame by 5.9 s and the fade to black follows it (Lloyd, V9);
+ // held through the lift; clears in the pan's last half second, on a scene that is pure black
+ // with the marks above the frame, so they enter from outside it
+ const bo=s<tD-0.5?smooth(Math.max(0,Math.min(1,(s-6.0)/0.5))):1-smooth(Math.min(1,(s-tD+0.5)/0.5));
  F.f.style.opacity=Math.max(fd,bo,1-Math.min(1,s/1.2));
  // THE CAMERA. The walk: 1.3 m behind the couple at their shoulders, through the door on their
  // backs; from 2 m outside it stops and turns to the sculpture as they walk out of the picture
  const cz=COURT.logoZ-D, c=courtPoint(COURT.uMid,y0+L.top*0.5*sf,cz), sc=courtPoint(COURT.uMid,y0+3,COURT.logoZ);
  let at,look;
  if(s<tP){ // behind the couple, then closing onto the groom's back until it fills the frame
-  const ss=Math.min(s,5.4), m=along(ss), g=along(Math.max(0,ss-0.45)), ck=smooth(Math.max(0,Math.min(1,(ss-3.6)/1.5)));
+  const ss=Math.min(s,6.4), m=along(ss), g=along(Math.max(0,ss-0.45)), ck=smooth(Math.max(0,Math.min(1,(ss-3.6)/1.5)));
   const across=new THREE.Vector3(-N.z,0,N.x);
   at=P(m.back+1.0,m.side,y0+1.5).lerp(P(g.back+0.32,g.side,y0+1.25).addScaledVector(across,0.28),ck);
-  const m2=along(ss+1.6); look=P(m2.back,m2.side,y0+1.35).lerp(P(g.back-0.3,g.side,y0+1.15).addScaledVector(across,0.28),ck); }
+  const m2=along(ss+1.6); look=P(m2.back,m2.side,y0+1.35).lerp(P(g.back-0.3,g.side,y0+1.15).addScaledVector(across,0.28),ck);
+  // (Lloyd, V9) then right up into his back, level, until his jacket is the whole frame: the
+  // picture is black before the fade is
+  const ck2=smooth(Math.max(0,Math.min(1,(ss-5.0)/0.9)));
+  at.lerp(P(g.back+0.2,g.side,y0+1.1).addScaledVector(across,0.34),ck2); look.lerp(P(g.back-0.5,g.side,y0+1.1).addScaledVector(across,0.34),ck2); }
  else { at=c;
-  // from above: the look starts high and settles on the triangle as the marks land
-  const hi=courtPoint(COURT.uMid,y0+L.top*0.5*sf+D*th*0.9,COURT.logoZ), mid=courtPoint(COURT.uMid,y0+L.top*0.5*sf,COURT.logoZ);
-  look=hi.lerp(mid,dk); }
+  // (Lloyd, V9) the look is on the triangle's place from the start: the marks come down into
+  // the frame from outside it, not into a look that is following them
+  look=courtPoint(COURT.uMid,y0+L.top*0.5*sf,COURT.logoZ); }
  poseAt(at,look); }
 // THE TEXT of the tour (Lloyd): every line a shot shows, by the shot's storyboard key, editable
 // in the storyboard tool, which writes storyboard/titles.json over these defaults. A '|' in a
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special space / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community / to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special place / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community / to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
