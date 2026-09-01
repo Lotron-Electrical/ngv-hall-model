@@ -429,7 +429,10 @@ function photoMaterial(src){
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
    varying vec2 vUv; varying vec3 vPos;
    void main(){
-    if(hole.w>0.5&&distance(vPos.xz,hole.xy)<hole.z)discard;   // the void's bowl sits in a hole in the floor
+    // the void's bowl sits in a hole in the floor; the carpet does not stop dead at it but thins
+    // out over the last 40 cm, the void showing through (Lloyd: smooth and subtle, no line, no glow)
+    float hd=distance(vPos.xz,hole.xy); if(hole.w>0.5&&hd<hole.z-0.4)discard;
+    float holeA=hole.w>0.5?smoothstep(hole.z-0.4,hole.z,hd):1.0;
     vec3 albedo=texture2D(map,vUv).rgb*tint;
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
@@ -456,7 +459,7 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    gl_FragColor=vec4(albedo*E,alpha);
+    gl_FragColor=vec4(albedo*E,alpha*holeA);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
@@ -3427,10 +3430,7 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
    float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
    col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
   col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
-  // the purple lip, soft on both sides and no halo (Lloyd): it fades in from the bowl and out
-  // again at the carpet's edge, dim
-  float rim=smoothstep(0.93,0.985,r)*smoothstep(1.0,0.99,r);
-  col+=vec3(0.55,0.2,1.0)*rim*0.2;
+  // no lip line: the carpet above fades into the void (Lloyd)
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
@@ -3458,8 +3458,8 @@ const SPRAY_VERT=`attribute vec3 dir; attribute float phase; uniform float t; un
 const SPRAY_FRAG=`varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float m=smoothstep(0.5,0.1,length(d)); gl_FragColor=vec4(0.85,0.92,1.0,m*vA*0.2); }`;
 // the spotlight's visible cone: bright at the lamp, gone at the floor, soft at the edge
 const CONE_FRAG=`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){
- vec3 V=normalize(cameraPosition-vW); float edge=pow(abs(dot(V,vN)),1.5);
- float a=(1.0-vUv.y)*(1.0-vUv.y)*0.12*edge; gl_FragColor=vec4(1.0,0.97,0.9,a); }`;
+ vec3 V=normalize(cameraPosition-vW); float edge=pow(abs(dot(V,vN)),3.0);
+ float a=(1.0-vUv.y)*(1.0-vUv.y)*0.09*edge; gl_FragColor=vec4(1.0,0.97,0.9,a); }`;
 function buildPortal(){
  if(portal){ scene.remove(portal.group); portal=null; }
  const uM=EVENT.wallLen/2, C=EP(uM,3.3,7.6);
@@ -3548,7 +3548,7 @@ function buildPortal(){
   for(let i=0;i<rings;i++)for(let j=0;j<segs;j++){ const a=i*(segs+1)+j, b=a+segs+1; idx.push(a,b,a+1,a+1,b,b+1); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
  const disc=new THREE.Mesh(bowl,portalMat);
- for(const m of photoMats)if(/floor/i.test(m.name||''))m.uniforms.hole.value.set(C.x,C.z,1.69,1);   // cut the carpet under it
+ for(const m of photoMats)if(/floor/i.test(m.name||'')){ m.uniforms.hole.value.set(C.x,C.z,1.69,1); m.transparent=true; m.needsUpdate=true; }   // cut the carpet under it
  disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
  const sn=80, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
@@ -3558,8 +3558,9 @@ function buildPortal(){
  const suck=new THREE.Points(suckG,suckMat); suck.frustumCulled=false; suck.position.copy(disc.position); g.add(suck);
  // the spotlight: a lamp under the canopy aimed at the object, and its cone made visible
  const lampY=(isFinite(CEIL_Y)&&CEIL_Y>C.y?CEIL_Y:C.y+8)-0.4;
- const spot=new THREE.SpotLight(0xfff4e0,60,lampY-floorY+2,0.20,0.5,1.2); spot.position.set(0,lampY-C.y,0); spot.target.position.set(0,0,0); g.add(spot); g.add(spot.target);
- const coneH=lampY-floorY-0.1, coneR=Math.tan(0.20)*coneH;   // the cone lands on the floor (Lloyd)
+ // a soft lamp (Lloyd: diffused, not hard): the whole cone is penumbra, so the pool on the floor has no rim
+ const spot=new THREE.SpotLight(0xfff4e0,60,lampY-floorY+2,0.24,1.0,1.2); spot.position.set(0,lampY-C.y,0); spot.target.position.set(0,0,0); g.add(spot); g.add(spot.target);
+ const coneH=lampY-floorY-0.1, coneR=Math.tan(0.24)*coneH;   // the cone lands on the floor (Lloyd)
  const coneMat=new THREE.ShaderMaterial({uniforms:{},vertexShader:`varying vec2 vUv; varying vec3 vN; varying vec3 vW; void main(){ vUv=uv; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
   fragmentShader:CONE_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  const cone=new THREE.Mesh(new THREE.ConeGeometry(coneR,coneH,48,1,true),coneMat); cone.position.y=lampY-C.y-coneH/2; g.add(cone);
@@ -3578,10 +3579,11 @@ function buildPortal(){
    vec3 hsv(float h){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return mix(vec3(1.0),clamp(p-1.0,0.0,1.0),0.85); }
    void main(){ float x=vP.x-mod(t*0.9,7.0)+3.5; float g=exp(-x*x*1.6);
    vec3 c=mix(vec3(1.0,0.98,0.94),hsv(fract(vP.x*0.16+t*0.07)),0.4);
-   gl_FragColor=vec4(c*g*0.9,1.0); }`});
+   // dimmer (Lloyd: the shimmer was over-exposed)
+   gl_FragColor=vec4(c*g*0.4,1.0); }`});
  const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
    tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
-   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:3.2,emissive:0x5a6070}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
+   const core=new THREE.Mesh(tg,chrome?new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.18,envMapIntensity:2.2,emissive:0x3c4250}):new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
    words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
