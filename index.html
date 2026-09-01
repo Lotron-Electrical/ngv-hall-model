@@ -17,6 +17,9 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #pad{display:none;position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);pointer-events:none}
 #knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
 .ctl{position:absolute;right:12px;top:12px;display:flex;gap:8px}
+/* phones: the row spans the view, one gap between buttons and the same gap to either edge, every
+   button the same width (Lloyd, 2026-09-01: they ran off the left edge and sat unevenly) */
+@media (max-width:640px){.ctl{left:10px;right:10px;gap:10px} .ctl button{flex:1 1 0;padding:6px 4px;min-width:0}}
 .ctl button,.panel button,.panel select{background:rgba(0,0,0,.6);color:var(--ink);border:1px solid var(--rule);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
 .ctl button:focus-visible,.panel button:focus-visible{outline:2px solid var(--accent)}
 /* bottom-left and small, so the stats never sit over the menu buttons along the top */
@@ -1658,7 +1661,7 @@ const COURT={
  origin:new THREE.Vector3(-56.792652,-1.319472,-13.203698),
  u:new THREE.Vector3(0.975681,0,0.219196), n:new THREE.Vector3(-0.219186,0,0.975639),
  uMid:31.5, width:60, depth:44, wallH:12.2, glassOut:1.6,        // metres; Lloyd 2026-08-30: "the courtyard is an open space, there are no walls cutting across it", so only the paving is drawn
- plinthR:11, plinthH:0.15, logoZ:16,                             // the sculpture's stand, mid-court: one disc for all three partners
+ plinthR:11, plinthH:0.15, logoZ:24,                             // the sculpture's stand, mid-court: one disc for all three partners (24 m back from the glass, Lloyd 2026-09-01: 16 was too close)
 };
 // the Lotron logo, traced from Lloyd's PNG (tools/lotron-logo.png, 7478 x 4405, y down) by
 // tools/trace-logo (cv2 contours): LOTRON in rainbow bands over ELECTRICAL in white.
@@ -1698,9 +1701,11 @@ function buildCourt(){
  place(new THREE.Mesh(new THREE.CylinderGeometry(COURT.plinthR,COURT.plinthR,COURT.plinthH,64),dn(0x9a9893,0xe2dfd8)), COURT.uMid, y0+COURT.plinthH/2, COURT.logoZ);
  // a PURE yaw, not the wall basis: the wall vectors are not exactly orthonormal, so a quaternion
  // taken from them carries a skew, and rotateY() compounding on that skew every frame squashed
- // the whole sculpture flat within seconds (Lloyd saw it, 2026-09-01). Local +z faces the hall.
+ // the whole sculpture flat within seconds (Lloyd saw it, 2026-09-01). Local +z faces the HALL
+ // (+n, the glass side): the reader is inside looking out, so the tag and Lotron's opening pose
+ // must read from there, not from the court.
  turntable=new THREE.Group(); turntable.position.copy(courtPoint(COURT.uMid,y0+COURT.plinthH,COURT.logoZ));
- turntable.rotation.set(0, Math.atan2(-COURT.n.x, -COURT.n.z), 0); turntable.userData.yaw0=turntable.rotation.y; court.add(turntable);
+ turntable.rotation.set(0, Math.atan2(COURT.n.x, COURT.n.z), 0); turntable.userData.yaw0=turntable.rotation.y; court.add(turntable);
  // each mark sits this far out from the axis, on its own third of the disc
  const ringR=COURT.plinthR*0.5;
  // the logo: both words extruded as one sculpture, standing on the plinth, face-on to the hall.
@@ -1753,7 +1758,7 @@ function buildCourt(){
  // says so, and one sculpture says it better than three. Each is built the same way as the
  // Lotron mark - layers extruded from traced paths - but sized from its OWN bounding box, because
  // a wordmark and a shield share no proportions and a shared scale would make one of them a speck.
- const partner=(layers,angle)=>{
+ const partner=(layers,angle,depthK=1)=>{   // depthK: the mark's thickness as a fraction of Lotron's
   const gs=layers.map(l=>({g:build(l.d), mat:l.mat, lift:l.lift||0}));
   const box=new THREE.Box3();
   for(const {g} of gs){ g.computeBoundingBox(); box.union(g.boundingBox); }
@@ -1766,7 +1771,7 @@ function buildCourt(){
   const grp=new THREE.Group();
   for(const {g,mat,lift} of gs){
    g.translate(-(box.min.x+box.max.x)/2, -box.min.y, lift*depth);  // centred, standing on the plinth
-   g.scale(k,k,1); g.computeVertexNormals();   // fit in the plane only: the depth stays Lotron's, in metres
+   g.scale(k,k,depthK); g.computeVertexNormals();   // fit in the plane only: the depth stays in metres
    const m=new THREE.Mesh(g,mat); m.frustumCulled=false; grp.add(m); solids.push(m);
   }
   grp.userData.top=(box.max.y-box.min.y)*k;
@@ -1783,7 +1788,8 @@ function buildCourt(){
   // ENTTEC a third of a turn round, its own two blue letters kept
   partner([{d:PARTNER_LOGOS.enttec.white,mat:graphiteMat},{d:PARTNER_LOGOS.enttec.blue,mat:blueMat}], 2*Math.PI/3),
   // Shadow AV on the last third: the silhouette in silver, the ink standing proud of it so the owl reads
-  partner([{d:PARTNER_LOGOS.shadow.body,mat:silverMat},{d:PARTNER_LOGOS.shadow.ink,mat:inkMat,lift:0.5}], -2*Math.PI/3)
+  // half Lotron's depth: a shield this tall at full depth read as a block (Lloyd, 2026-09-01)
+  partner([{d:PARTNER_LOGOS.shadow.body,mat:silverMat},{d:PARTNER_LOGOS.shadow.ink,mat:inkMat,lift:0.5}], -2*Math.PI/3, 0.5)
  ];
  // the tag hovers clear of the TALLEST mark on the turntable, not just Lotron (Lloyd: it must not
  // intersect any logo as they come round)
