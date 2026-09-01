@@ -2564,7 +2564,7 @@ function buildWedding(ctx){
  wedding={cp,y0,uMid,seated:null,t0:Math.random()*10,phase:'couple',hasGroom:true,gone:false,summon:null,cwalk:null};
  // the bride wears a GOWN and a VEIL (Lloyd): a white skirt flaring to the floor, and a
  // translucent cone of tulle draped over the head; both track her down the aisle
- const gown=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.95,14),new THREE.MeshBasicMaterial({color:0xf7f5f0}));
+ const gown=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.95,14),new THREE.MeshBasicMaterial({color:0xf7f5f0}));
  // (Lloyd, V2, V3) a proper veil: not a cone but a smooth cap over the head, draping out to the
  // waist; a lathe whose origin is the crown, so the lift swings it about the head
  const veil=new THREE.Mesh(new THREE.LatheGeometry([[0,0],[0.09,-0.01],[0.14,-0.05],[0.17,-0.14],[0.19,-0.3],[0.24,-0.55],[0.31,-0.82]].map(p=>new THREE.Vector2(p[0],p[1])),16),
@@ -2664,8 +2664,12 @@ function updateWedding(dt,t){
    // inside the gown's hem), he leans further over her instead
    const step=0.08*turn;
    fx-=side*U.x*step; fz-=side*U.z*step;
-   if(i===1){ const R=EVENT.N.inRoom; fx+=R.x*0.3*dip; fz+=R.z*0.3*dip; }   // the groom a step in front of her for the dip, clearly holding her
-   tiltA=i===0?(0.11*kiss-0.55*dip):(-0.11*kiss-0.6*dip); }
+   // (Lloyd, V5) their faces touch the whole time: the bride's head is worked out from her lean,
+   // and the groom's feet are placed so that HIS head lands 16 cm across and 16 cm in front of
+   // hers at his own lean; the leans are gentle enough that the bodies stay clear
+   if(i===0){ tiltA=0.11*kiss-0.35*dip; W.bh={x:fx+U.x*1.62*Math.sin(tiltA),z:fz+U.z*1.62*Math.sin(tiltA)}; }
+   else { tiltA=-0.11*kiss-0.42*dip; const k=Math.max(kiss,dip), R=EVENT.N.inRoom;
+    if(W.bh&&k>0){ const hx=W.bh.x+U.x*0.16+R.x*0.16*k, hz=W.bh.z+U.z*0.16+R.z*0.16*k; const sx=hx-U.x*1.62*Math.sin(tiltA), sz=hz-U.z*1.62*Math.sin(tiltA); fx+=(sx-fx)*k; fz+=(sz-fz)*k; } } }
   if(W.phase==='done'&&i===2)hide=true;
   // through the finale the bride and groom go where finaleStep puts them (out the door)
   if(W.fin&&i!==2){ if(W.fin.pos){ fx=W.fin.pos[i].x; fz=W.fin.pos[i].z; hide=false; } else hide=true; }

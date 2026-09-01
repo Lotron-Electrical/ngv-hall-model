@@ -332,8 +332,11 @@ V3 (sent 01/09/2026 23:13:22):
 V4 (sent 01/09/2026 23:40:47):
 [shot 7, 11.8 s] make sure the bride and groom don't clip into each other during the dip
 
-V5 (draft):
-[shot 7, 11.3 s] when they dip
+V5 (sent 01/09/2026 23:51:08):
+[shot 7, 11.3 s] when they dip, make sure their faces are touching the whole time and they don't clip into each other
+
+V6 (draft):
+
 
 ---
 
@@ -370,7 +373,10 @@ V6 (sent 01/09/2026 23:31:45):
 V7 (sent 01/09/2026 23:45:51):
 [shot 8, 16.5 s] make sure the people in the wheelchairs are bobbing up and down happily along with everyone else as well
 
-V8 (draft):
+V8 (sent 01/09/2026 23:53:22):
+[shot 8, 10.4 s] scene should end here and move onto the next scene
+
+V9 (draft):
 
 
 ---
