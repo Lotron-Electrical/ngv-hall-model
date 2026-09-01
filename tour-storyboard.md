@@ -17,7 +17,7 @@ The tour runs straight after the kaleidoscope. Total length about 173 s.
 
 Duration 16 s. Event: none (the columns run rainbow).
 
-Fly from `(4, 1.7, 7.6)` to `(30, 1.7, 7.6)`: down the hall at head height along the object's line, looking ahead. Three title lines float 6 m ahead of the camera, one after another (4.4 s each): "A unique space", "Carefully crafted over decades", "Is brought to light". Over the last 3 s the camera tilts down to the carpet just ahead `(31.5, 0, 7.6)`.
+Fly from `(4, 1.7, 7.6)` to `(16, 1.7, 4.5)`: down the hall at head height, drifting across from the object's line to the wall-side lane (clear of the tables), looking ahead. Three title lines float 6 m ahead of the camera, one after another (4.4 s each): "A unique space", "Carefully crafted over decades", "Is brought to light". Over the last 3 s the camera tilts down to the carpet just ahead `(17.5, 0, 4.5)`.
 
 | start | middle | end |
 |---|---|---|
@@ -31,7 +31,12 @@ Then
 Then
 "Is brought to light"
 
-Have the camera move forwards down the hall and then before it gets to the end, look down and the floor and then when it pans up the dinner scene has started
+Have the camera move forwards down the hall and then before it gets to the end, look down and the floor and then when it pans up the dinner scene has started.
+
+Notes:
+The text is glowing to much.
+Also make sure the text fits on the phone as well
+"llight" should shimmer smoothly
 
 ---
 
@@ -39,13 +44,13 @@ Have the camera move forwards down the hall and then before it gets to the end, 
 
 Duration 16 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(30, 1.7, 7.6)` looking down at the carpet, with the dinner already set. Pans up over 2.5 s, then flies on to `(45.5, 2.4, 9.5)`, rising and drifting out towards the glass, looking ahead at table height (0.9).
+Starts where shot 1 ended, `(16, 1.7, 4.5)` looking down at the carpet, with the dinner already set. Pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)`, then pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout.
 
 | start | middle | end |
 |---|---|---|
 | ![](storyboard/seg02a.jpg) | ![](storyboard/seg02b.jpg) | ![](storyboard/seg02c.jpg) |
 
-**Notes:**
+**Notes:** This dinner scene at the start is rendered wrong. Don't render the dinner event unique to this shot. Just render it normally as it would be for an event. When the camera pans up from the last shot it should be facing the centre of the room, not the wall.
 
 ---
 

@@ -3188,10 +3188,13 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // shot 1 (Lloyd's storyboard notes): the titles float ahead on the way down the hall; before
   // the end the camera looks down at the carpet, and shot 2 pans back up from the same spot on
   // to the dinner, already set while the carpet filled the frame
-  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+26*q; const at=EP(u,1.7,7.6), ahead=EP(u+18,1.5,7.6), down=EP(u+1.5,0.0,7.6);
+  // (Lloyd, second round) shot 1 drifts across to the wall-side lane (d 4.5, clear of the tables)
+  // and looks down there, so shot 2's pan up comes up on the room's centre, not on guests at the
+  // lens and the far wall; shot 2 then pushes slowly in on the dinner, facing the centre throughout
+  {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+12*q, d=7.6-3.1*q; const at=EP(u,1.7,d), ahead=EP(u+18,1.5,d), down=EP(u+1.5,0.0,d);
     const dk=smooth(Math.max(0,(k-0.8)/0.2)); poseAt(at,ahead.lerp(down,dk)); titleStep(k*16,at,EVENT.N.u); }},
-  {mode:'dinner', dur:16, cam:k=>{ const q=smooth(k), u=30+15.5*q, d=7.6+1.9*q; const at=EP(u,1.7+0.7*q,d), ahead=EP(u+18,0.9,d), down=EP(31.5,0.0,7.6);
-    poseAt(at,down.lerp(ahead,smooth(Math.min(1,k*16/2.5)))); }},
+  {mode:'dinner', dur:16, cam:k=>{ const q=smooth(k); const at=EP(16+8*q,1.7+0.9*q,4.5+0.5*q), centre=EP(uM,1.0,9.5), down=EP(17.5,0.0,4.5);
+    poseAt(at,down.lerp(centre,smooth(Math.min(1,k*16/2.5)))); }},
   {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
   {mode:'party',  dur:16, cam:fly(2.2,9,6,1.2)},
   {celebrate:true,dur:14, cam:hold(uM+8,2.4,13,uM,2.5,5)},
