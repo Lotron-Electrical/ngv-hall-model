@@ -831,6 +831,14 @@ home();
 // #x,y,z,yaw,pitch in the URL puts the camera there (for sharing a view and for checks)
 {const h=location.hash.slice(1).split(',').map(Number); if(h.length===5&&h.every(Number.isFinite)){eye.set(h[0],h[1],h[2]); yaw=h[3]; pitch=h[4];}}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();}
+// THE GOVERNOR (Lloyd: never under 60 fps). Once a second it reads the measured rate: under 57 it
+// steps the render scale down (2 -> 1.5 -> 1.25 -> 1 -> 0.8 of device pixels); after five clean
+// seconds above 59 it steps back up. The scale is the biggest single lever on a phone.
+const GOV={steps:[2,1.5,1.25,1,0.8],i:0,at:0,good:0};
+GOV.steps=GOV.steps.filter(x=>x<=Math.min(devicePixelRatio||1,2)); if(!GOV.steps.length)GOV.steps=[1]; if(GOV.steps[0]<Math.min(devicePixelRatio||1,2))GOV.steps.unshift(Math.min(devicePixelRatio||1,2));
+function govern(now){ if(now-GOV.at<1000)return; GOV.at=now; const fps=animate.fps; if(!fps||document.hidden)return;
+ let i=GOV.i; if(fps<57){ if(i<GOV.steps.length-1)i++; GOV.good=0; } else if(fps>59){ if(++GOV.good>=5&&i>0){ i--; GOV.good=0; } } else GOV.good=0;
+ if(i!==GOV.i){ GOV.i=i; R.setPixelRatio(GOV.steps[i]); resize(); } }
 addEventListener('resize',resize); resize();
 new GLTFLoader().load('model.glb',g=>{
  // The floor, walls and canopy are photographs projected onto flat surfaces: the light is already
@@ -3253,7 +3261,7 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
   R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
  W.n++;
- if(!TOUCH||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
+ if(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
  // pick the cube map by the measured frame rate, with hysteresis so it does not flap
  { const fps=animate.fps||60, now=performance.now();
    if(W.res===1024&&fps<50){ W.res=512; W.okSince=0; }
@@ -3348,7 +3356,8 @@ function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; setTimeout(()=>{ f.style.background='#fff'; },2000); })); return false; }
  warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.12;
  const q=Math.max(0,(s-T.kal)/T.iris); u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
- warpShake(0.25*(1-Math.min(1,q)),now); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
+ // no shake here: the kaleidoscope is smooth (Lloyd)
+ cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -3597,7 +3606,7 @@ function frame(now){ portalStep(now/1000); if(tour)tourStep(now/1000); else if(a
  // the phone remote: its stick is a velocity, held until it sends zero
  if(rc.mv.f||rc.mv.r||rc.mv.u){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
- animate(now/1000);
+ animate(now/1000); govern(now);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f));
  const wk=WARP.k=warpK(); sndStep(now/1000,boom?1:wk);
  if(wk>0&&!boom&&eye.distanceTo(portal.centre)<1.55)boomStart(now/1000);
