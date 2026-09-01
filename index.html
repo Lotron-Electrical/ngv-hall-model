@@ -81,6 +81,12 @@ button.i:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
  padding:12px 26px;font-size:15px;font-weight:600;letter-spacing:.04em;cursor:pointer;
  box-shadow:0 6px 20px rgba(0,0,0,.5)}
 #celebratefab:active{transform:translateX(-50%) scale(.96)}
+/* the tour's own door, front and centre of the view (Lloyd, 2026-09-01); gone while it runs */
+#tourfab{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
+ background:#1c1e24;color:var(--ink);border:1px solid var(--accent);border-radius:30px;
+ padding:16px 34px;font-size:18px;font-weight:700;letter-spacing:.04em;cursor:pointer;
+ box-shadow:0 8px 28px rgba(0,0,0,.6)}
+#tourfab:active{transform:translate(-50%,-50%) scale(.96)}
 .sw i{display:inline-block;width:22px;height:22px;border:1px solid #000;flex:none}
 .sw[aria-pressed="true"]{border-color:var(--accent);outline:1px solid var(--accent)}
 input[type=range]{width:100%;accent-color:var(--accent)}
@@ -138,6 +144,7 @@ html.embed body,html.embed main{margin:0;padding:0}
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
  <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
+ <button type="button" id="tourfab">&#9654; Start tour</button>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -3135,13 +3142,14 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     poseAt(at,T.clone().setY(T.y+4)); }},
  ]; }
 function startTour(){ if(tour)return; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
- document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; }
+ document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('tourfab').hidden=true; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
+function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('tourfab').hidden=false; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0); }
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
  if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
+document.getElementById('tourfab').onclick=startTour;
 
 function frame(now){ if(tour)tourStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
