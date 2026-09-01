@@ -3220,9 +3220,9 @@ function warpInit(){ if(WARP.rt)return;
  WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
  WARP.qscene=new THREE.Scene(); WARP.qcam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
  WARP.quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
-  uniforms:{cube:{value:WARP.rt.texture},ang:{value:1.1},tanh:{value:0.6},mixf:{value:0},aspect:{value:1},basis:{value:new THREE.Matrix3()},kal:{value:0},spin:{value:0}},
+  uniforms:{cube:{value:WARP.rt.texture},ang:{value:1.1},tanh:{value:0.6},mixf:{value:0},aspect:{value:1},basis:{value:new THREE.Matrix3()},kal:{value:0},spin:{value:0},iris:{value:-1}},
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }`,
-  fragmentShader:`uniform samplerCube cube; uniform float ang; uniform float tanh; uniform float mixf; uniform float aspect; uniform mat3 basis; uniform float kal; uniform float spin; varying vec2 vUv;
+  fragmentShader:`uniform samplerCube cube; uniform float ang; uniform float tanh; uniform float mixf; uniform float aspect; uniform mat3 basis; uniform float kal; uniform float spin; uniform float iris; varying vec2 vUv;
    void main(){ vec2 p=vUv*2.0-1.0; p.x*=aspect; float l=length(p); float r=l/aspect;   // r is 1 at the left and right edges
     if(kal>0.5){ float seg=6.2831853/kal, a=mod(atan(p.y,p.x)+spin,seg); if(a>seg*0.5)a=seg-a; p=vec2(cos(a),sin(a))*l; }   // the kaleidoscope: the picture folded into wedges
     float th=mix(atan(r*tanh),r*ang*0.5,mixf);                                          // rectilinear blending into equidistant fisheye
@@ -3231,6 +3231,8 @@ function warpInit(){ if(WARP.rt)return;
     gl_FragColor=vec4(textureCube(cube,dir).rgb,1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
+    // the iris: the picture squeezed down to a point of white light with black all round (Lloyd)
+    if(iris>=0.0){ float rr=length(vUv-0.5)*2.0; float e=smoothstep(iris,iris-0.05,rr); gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(1.0),smoothstep(0.35,0.0,iris))*e; }
    }`}));
  WARP.qscene.add(WARP.quad); }
 // the shake: a random kick to the eye and the three axes every frame, growing with the square of
@@ -3337,10 +3339,16 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
  poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C); }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=1; requestAnimationFrame(()=>{ f.style.transition='opacity 1.4s ease-out'; f.style.opacity=0; }); }
-// five seconds, a slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too fast)
-function boomRender(now){ const s=now-boom.t0; if(s>5){ boom=null; startTour(); return false; }
+// five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
+// fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
+// tour fades in from black
+const BOOM_T={kal:5.0,iris:1.2,hold:0.25};
+function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
+ if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.8s ease-in'; f.style.opacity=0; setTimeout(()=>{ f.style.background='#fff'; },2000); })); return false; }
  warpInit(); const u=WARP.quad.material.uniforms; u.kal.value=8; u.spin.value=s*0.12;
- warpShake(0.25,now); warpRender(1,Math.PI*(0.55-0.05*s)); u.kal.value=0; return true; }
+ const q=Math.max(0,(s-T.kal)/T.iris); u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
+ warpShake(0.25*(1-Math.min(1,q)),now); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -3451,12 +3459,20 @@ function buildPortal(){
     m.position.copy(cen); m.quaternion.copy(q); m.camera.layers.set(1);
     // 80% reflective (Lloyd): a fifth of the light gets out, so the reflections dim with every
     // bounce and a little of what is behind a far pane shows through it
-    m.material.fragmentShader=m.material.fragmentShader.replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.6 )');
+    // and a pane fades out as it turns edge-on (Lloyd: flashes as faces come in and out of view):
+    // at a grazing angle the Reflector's oblique clip plane degenerates and the pane drew a frame
+    // of rubbish before it was culled. graze is set per frame from the view angle.
+    m.material.uniforms.graze={value:1};
+    m.material.fragmentShader=m.material.fragmentShader.replace('uniform vec3 color;','uniform vec3 color; uniform float graze;').replace(/blendOverlay\( base\.rgb, color \), 1\.0 \)/,'blendOverlay( base.rgb, color ), 0.6*graze )');
     m.material.transparent=true; m.material.depthWrite=false;
     // the mirror pass sees no sky: inside a mirror box there is nothing but the box, so the
     // background is black for the duration and the hall's own sky is put back afterwards
     const orig=m.onBeforeRender, cc=new THREE.Color();
-    m.onBeforeRender=function(r,sc,cm){ if(reflecting)return; reflecting=true; const bg=sc.background, env=sc.environment, fog=sc.fog; r.getClearColor(cc); const ca=r.getClearAlpha();
+    const nrm=new THREE.Vector3(), wp=new THREE.Vector3(), vv=new THREE.Vector3();
+    m.onBeforeRender=function(r,sc,cm){
+     this.getWorldDirection(nrm); this.getWorldPosition(wp); vv.copy(cm.position).sub(wp).normalize();
+     const g=THREE.MathUtils.smoothstep(vv.dot(nrm),0.06,0.28); this.material.uniforms.graze.value=g;
+     if(reflecting||g<=0)return; reflecting=true; const bg=sc.background, env=sc.environment, fog=sc.fog; r.getClearColor(cc); const ca=r.getClearAlpha();
      sc.background=null; sc.environment=null; sc.fog=null; r.setClearColor(0x000000,1);
      try{ orig.call(this,r,sc,cm); } finally{ sc.background=bg; sc.environment=env; sc.fog=fog; r.setClearColor(cc,ca); reflecting=false; } };
     outer.add(m); mirrors.push(m); } }
