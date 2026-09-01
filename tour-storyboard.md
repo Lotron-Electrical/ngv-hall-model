@@ -52,7 +52,10 @@ Is brought to light
 
 (Gandel Hall on the line above) Gandel Hall should also be stained glass text effect
 
-V3 (draft):
+V3 (sent 01/09/2026 22:12:00):
+Gandel Hall text should be voronoi stained glass
+
+V4 (draft):
 
 
 ---
@@ -100,7 +103,7 @@ V3 (draft):
 ## 3. Banquet
 <!-- shot: banquet -->
 
-Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides).
+Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides in jewel-toned finery with gold collars, a crown on a third of them, eating and chatting; four waiters walk the lanes behind the chairs with trays and step in to serve).
 
 Fades in from black over 1.5 s. Travels slowly along the table from `(uM-18, 1.9, 7.55)` to `(uM+12, 1.9, 7.55)`, just over the guests' heads, looking along the table 7 m ahead. Fades to black over the last 1.5 s.
 
@@ -114,8 +117,17 @@ Add a new event type - Banquet.
 
 Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
 
-V2 (draft):
+V2 (sent 01/09/2026 22:07:39):
+[shot 3, 0.1 s] 
 
+Have everyone wearing extravagant clothing. Like a modern royal banquet. Wait staff serving food and drinks. Everybody at the table eating or chatting to each other and having a good time
+
+V3 (draft):
+Text (all centre aligned)
+
+A place where (line break)
+Rich history and modern tradition (Each word fades in one after the other) (Line break)
+Come together
 
 ---
 
