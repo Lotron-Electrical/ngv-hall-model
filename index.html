@@ -3539,7 +3539,7 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:6.5, pan:1.5, drop:6, flat:5, hold:4, fade:2};   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9)
+const FIN={walk:6.5, pan:1.5, drop:5, flat:5, hold:4, fade:2};   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
 // (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
 // down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
@@ -3611,11 +3611,13 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const targets=new Map([[logo,[0,L.yTop,0]],[partners[0],[-L.dx0,L.yBot,0]],[partners[1],[L.dx1,L.yBot,0]]]);
  const tP=FIN.walk, tD=tP+FIN.pan, tF=tD+FIN.drop;
  const pk=smooth(Math.max(0,Math.min(1,(s-tP)/(FIN.pan-0.5))));   // the pan up: the marks lift away and take their places above, done 0.5 s before the drop
- const dk=smooth(Math.max(0,Math.min(1,(s-tD)/FIN.drop)));  // the drop: down from the top of the frame into the triangle
+ // the drop: down from the top of the frame into the triangle; it comes in at speed and lands
+ // softly (V10: an ease-out, so the black before the marks appear is short)
+ const dx=Math.max(0,Math.min(1,(s-tD)/FIN.drop)), dk=1-(1-dx)*(1-dx)*(1-dx);
  // the eye stays a metre outside the glass at least; where the triangle would not fit from there
  // (a phone's narrow picture) the whole sculpture shrinks instead
  const th=Math.tan(cam.fov*Math.PI/360), D0=Math.max(0.7*L.top/th,0.55*L.wTot/(th*cam.aspect)), Dmax=COURT.logoZ-1.0, sf=Math.min(1,Dmax/D0), D=Math.min(D0,Dmax);
- const hUp=(D*th*1.3+L.top)*Math.max(1,sf);   // clear of the top of the frame from D out
+ const hUp=(D*th*1.05+L.top)*Math.max(1,sf);   // just clear of the top of the frame from D out (V10: they used to start far above it, a long black)
  turntable.scale.setScalar(F.scale*(1+(sf-1)*pk));
  for(const [o,h] of F.homes){ const t=targets.get(o); if(!t)continue;
   const lift=hUp*pk*(1-dk);
@@ -3666,7 +3668,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
 // line splits off the glint word, ' / ' stacks a second row under the first, and a row in *...*
 // is stained glass ('*Gandel Hall* / Is brought to |light'). finale is the year under the triangle,
 // sculpture the tag over the marks (both built once, so they take the file as it was at load).
-const TOUR_TEXT={"rainbow-columns":[["A special place / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for community / to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
+const TOUR_TEXT={"rainbow-columns":[["A special place / In Melbourne's heart",0,4.4],["Carefully crafted over decades",4.4,8.8],["*Gandel Hall* / Is brought to |light",8.8,13.2]],"dinner":[["A place for the community / to come together",5.5,11]],"banquet":[["~Where / ~Rich history and modern tradition / ~Meet",2.5,13.5]],"party":[["A place to have fun!",2,8]],"party-celebrate":[["and celebrate amongst friends",2.3,8.5]],"standing":[["Somewhere for people to share their ideas",2,8]],"wedding-aisle":[["and to celebrate love",2,8]],"finale":[["",0,0]],"finale-top":[["GANDEL HALL",0,0]],"sculpture":[["BROUGHT TO LIGHT BY",0,0]]};
 fetch('storyboard/titles.json?v='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{ if(j)Object.assign(TOUR_TEXT,j); }).catch(()=>{});
 const TX=k=>(TOUR_TEXT[k]||[]).map(([t,a,b])=>[t,a,b]);
 const TX1=(k,d)=>((TOUR_TEXT[k]||[])[0]||[d])[0]||d;
