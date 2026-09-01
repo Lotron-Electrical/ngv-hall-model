@@ -14,6 +14,7 @@ The tour runs straight after the kaleidoscope. Total length about 162 s. Title l
 ---
 
 ## 1. Rainbow columns (house lights off)
+<!-- shot: rainbow-columns -->
 
 Duration 16 s. Event: none (the columns run rainbow).
 
@@ -23,7 +24,9 @@ Fly from `(4, 1.7, 7.6)` to `(18.9, 0.9, 4.9)`: down the hall at head height, dr
 |---|---|---|
 | ![](storyboard/seg01a.jpg) | ![](storyboard/seg01b.jpg) | ![](storyboard/seg01c.jpg) |
 
-**Notes:** Text floating in the start reading 
+**Notes:**
+V1 (sent earlier):
+Text floating in the start reading 
 
 "A unique space"
 Then
@@ -44,6 +47,7 @@ At the end, smoothly transition the brightness of the carpet into the next scene
 ---
 
 ## 2. Dinner
+<!-- shot: dinner -->
 
 Duration 16 s. Event: `dinner` (tables set).
 
@@ -53,7 +57,9 @@ Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpe
 |---|---|---|
 | ![](storyboard/seg02a.jpg) | ![](storyboard/seg02b.jpg) | ![](storyboard/seg02c.jpg) |
 
-**Notes:** Make sure the carpet is fully in view and matches the starting point from the end of the last clip. So that the dinner is fully revealed.
+**Notes:**
+V1 (sent earlier):
+Make sure the carpet is fully in view and matches the starting point from the end of the last clip. So that the dinner is fully revealed.
 
 Text:
 A space for community.
@@ -71,6 +77,7 @@ At the starts the camera turns too fast. Smooth/ease that turn considerably or r
 ---
 
 ## 3. Banquet
+<!-- shot: banquet -->
 
 Duration 16 s. Event: `banquet` (one long table down the spine of the hall: draped ivory cloth in pleats, burgundy runner, gold hem, plates, food and glasses at every place, flowers and candles down the middle, guests seated both sides).
 
@@ -80,13 +87,16 @@ Fades in from black over 1.5 s. Travels slowly along the table from `(uM-18, 1.9
 |---|---|---|
 | ![](storyboard/seg03a.jpg) | ![](storyboard/seg03b.jpg) | ![](storyboard/seg03c.jpg) |
 
-**Notes:** Add a new event type - Banquet.
+**Notes:**
+V1 (sent earlier):
+Add a new event type - Banquet.
 
 Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
 
 ---
 
 ## 4. Party
+<!-- shot: party -->
 
 Duration 16 s. Event: `party`.
 
@@ -96,7 +106,9 @@ From the floor at the hall's end `(8.4, 2.0, 9.5)`, round the room on a long cur
 |---|---|---|
 | ![](storyboard/seg04a.jpg) | ![](storyboard/seg04b.jpg) | ![](storyboard/seg04c.jpg) |
 
-**Notes:** Text
+**Notes:**
+V1 (sent earlier):
+Text
 A place to come together
 
 Camera path, do not finish facing a blank wall. It would be better if it panned up and smoothly orbited around to end with a shot high up facing the crowd in the centre of the room
@@ -114,6 +126,7 @@ Text "A place to have fun"
 ---
 
 ## 5. Party celebrate
+<!-- shot: party-celebrate -->
 
 Duration 14 s. Celebrate fires at the start.
 
@@ -123,7 +136,9 @@ Starts high under the canopy at `(uM+8, 9.8, 10.5)`, in the band the confetti le
 |---|---|---|
 | ![](storyboard/seg05a.jpg) | ![](storyboard/seg05b.jpg) | ![](storyboard/seg05c.jpg) |
 
-**Notes:** Text:
+**Notes:**
+V1 (sent earlier):
+Text:
 
 and celebrate amongst friends
 
@@ -142,6 +157,7 @@ Start the camera high up and follow the confetti falling down, to finish at the 
 ---
 
 ## 6. Standing / cocktail
+<!-- shot: standing -->
 
 Duration 16 s. Event: `standing`.
 
@@ -151,7 +167,9 @@ A half circle round the speaker on the stage `(uM, 1.9, 1.6)`, 9 m out, from `(u
 |---|---|---|
 | ![](storyboard/seg06a.jpg) | ![](storyboard/seg06b.jpg) | ![](storyboard/seg06c.jpg) |
 
-**Notes:** The camera should be facing the stage and stay facing the speaker as it does a semi-circle orbit
+**Notes:**
+V1 (sent earlier):
+The camera should be facing the stage and stay facing the speaker as it does a semi-circle orbit
 
 Text:
 "A space for people to share their stories"
@@ -162,6 +180,7 @@ Make sure the text isn't blocked by the columns
 ---
 
 ## 7. Wedding, the aisle
+<!-- shot: wedding-aisle -->
 
 Duration 14 s. Event: `wedding` (chairs, aisle, the couple waiting).
 
@@ -172,10 +191,13 @@ Glide from `(uM, 1.7, 14.2)` at the glass to `(uM, 1.6, 5.2)`: straight down the
 | ![](storyboard/seg07a.jpg) | ![](storyboard/seg07b.jpg) | ![](storyboard/seg07c.jpg) |
 
 **Notes:**
+V1 (draft):
+
 
 ---
 
 ## 8. Wedding, the walk
+<!-- shot: wedding-walk -->
 
 Duration 26.5 s. Celebrate fires at the start and the couple begin to walk: 20 s up the aisle, then 6 s across to the glass.
 
@@ -185,11 +207,14 @@ The camera follows 3.6 m behind the couple at shoulder height (1.8), looking a l
 |---|---|---|
 | ![](storyboard/seg08a.jpg) | ![](storyboard/seg08b.jpg) | ![](storyboard/seg08c.jpg) |
 
-**Notes:** the rice should be landing on the floor and not disappearing right away.  Also, it seems that it's sticking to invisible boxes on top of people. It should fall realistically
+**Notes:**
+V1 (sent earlier):
+the rice should be landing on the floor and not disappearing right away.  Also, it seems that it's sticking to invisible boxes on top of people. It should fall realistically
 
 ---
 
 ## 9. The finale: out to the courtyard
+<!-- shot: finale -->
 
 Duration 27 s (walk 8, rise 8, flatten 5, hold 4, fade 2). The tour ends here; the picture fades back in on the free view.
 
@@ -199,12 +224,18 @@ Walks at head height through a doorway cut in the glass on the court's axis, out
 |---|---|---|
 | ![](storyboard/seg09a.jpg) | ![](storyboard/seg09b.jpg) | ![](storyboard/seg09c.jpg) |
 
-**Notes:** This should walk through a doorway cut out in the glass.
+**Notes:**
+V1 (sent earlier):
+This should walk through a doorway cut out in the glass.
 
 Then It should be the final shot where all three of the logos rise up from the platform and align themselves into a triangle shape. Lotron on top, enttec bottom left and shadow av bottom right. With the brought to light by text above them, and then slowly it flattens from 3d to 2d and has text "Gandel Hall 2026" at the bottom in shimmering rainbow and then it holds for a few seconds and fades out.
 
 ---
 
 ## General notes
+<!-- shot: general -->
 
 **Notes:**
+V1 (draft):
+
+
