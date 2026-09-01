@@ -36,7 +36,10 @@ Have the camera move forwards down the hall and then before it gets to the end, 
 Notes:
 The text is glowing to much.
 Also make sure the text fits on the phone as well
-"llight" should shimmer smoothly
+"light" should shimmer smoothly
+
+V3.
+At the end, smoothly transition the brightness of the carpet into the next scene
 
 ---
 
@@ -44,7 +47,7 @@ Also make sure the text fits on the phone as well
 
 Duration 16 s. Event: `dinner` (tables set).
 
-Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up over 2.5 s to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community." floats over the dinner from 3.4 s to 9 s. The glazing is frosted for this shot, so nothing outside shows.
+Starts where shot 1 ended, `(18.9, 0.9, 4.9)` looking straight down at the carpet, with the dinner already set. Holds the carpet 0.6 s, pans up slowly over 5 s (double ease) to face the centre of the room `(uM, 1.0, 9.5)` so the dinner is revealed, then rises and pushes slowly in to `(24, 2.6, 5.0)`, facing the centre throughout. "A space for community." floats over the dinner from 5.5 s to 11 s. The courtyard is hidden for this shot: plain glass, nothing outside. The house light comes up over 2.5 s at the start, so the carpet's brightness eases in from shot 1.
 
 | start | middle | end |
 |---|---|---|
@@ -59,6 +62,12 @@ V2.
 
 the glass walls should be fully frosted here so we can't see the logo sculptures outside
 
+V3.
+
+The frosted glass is too frosted. Maybe instead, we have normal glass, and no sculptures outside.
+
+At the starts the camera turns too fast. Smooth/ease that turn considerably or remove it.
+
 ---
 
 ## 3. Dinner celebrate
@@ -71,7 +80,9 @@ Hold at `(uM-7, 2.1, 13)`, by the glass, looking across the room at `(uM+2, 1.0,
 |---|---|---|
 | ![](storyboard/seg03a.jpg) | ![](storyboard/seg03b.jpg) | ![](storyboard/seg03c.jpg) |
 
-**Notes:**
+**Notes:** Add a new event type - Banquet.
+
+Which is a long rectangular table going down the spine of the hall long ways. Have the camera fade in, for a shot of the camera moving down the banquet table. The banquet table should have food, flowers on it and people sitting at it. Also with ornate draped tablecloth. Fade out at the end of the shot
 
 ---
 
@@ -93,6 +104,10 @@ Camera path, do not finish facing a blank wall. It would be better if it panned 
 V2.
 
 Fade out at the end
+
+V3.
+
+Fade in at the start of the shot.
 
 ---
 

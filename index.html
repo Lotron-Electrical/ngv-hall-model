@@ -3266,7 +3266,6 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  const hold=(u,h,d,lu,lh,ld)=>k=>{ const w=0.06*Math.sin(k*Math.PI*2); poseAt(EP(u+w*8,h,d),EP(lu,lh,ld)); };
  // the couple's timetable, mirrored from updateWedding: 20 s up the aisle, 6 s across to the glass
  const couple=tw=>{ if(tw<=20)return {u:uM,d:3.55+(tw/20)*9.9}; const q=Math.min(1,(tw-20)/6); return {u:uM+(27.6-uM)*q,d:13.45+2.2*q}; };
- const court=()=>turntable?turntable.position.clone():courtPoint(COURT.uMid,0,COURT.logoZ);
  // a shot's title lines, placed from the pose just set: ahead of the eye along its look
  const titlesNow=(s,spec)=>titleStep(s,eye,eye.clone().add(fwd()),spec);
  // the black veil, set straight (no transition): 0 clear, 1 black
@@ -3286,10 +3285,11 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // dinner is revealed, "A space for community" floating over it
   {mode:null,     dur:16, cam:k=>{ const q=smooth(k), u=4+14.9*q, d=7.6-2.7*q, dk=smooth(Math.max(0,(k-0.8)/0.2)); const at=EP(u,1.7-0.8*dk,d), ahead=EP(u+18,1.5,d), down=EP(u+0.05,0.0,d);
     poseAt(at,ahead.clone().lerp(down,dk)); titleStep(k*16,at,ahead,[['A unique space',0,4.4],['Carefully crafted over decades',4.4,8.8],[['Is brought to','light'],8.8,13.2]]); }},
+  // (Lloyd, V3) the pan up takes 5 s with a double ease, and the courtyard is simply hidden for
+  // this shot: plain glass, nothing outside it
   {mode:'dinner', dur:16, cam:k=>{ const s=k*16, q=smooth(k); const at=EP(18.9+5.1*q,0.9+1.7*q,4.9+0.3*q), centre=EP(uM,1.0,9.5), down=EP(18.95,0.0,4.9);
-    poseAt(at,down.lerp(centre,smooth(Math.max(0,Math.min(1,(s-0.6)/2.5))))); titleStep(s,at,centre,[['A space for community.',3.4,9.0]]);
-    // the glazing frosted for this shot (Lloyd: so the sculptures outside cannot be seen)
-    frostTarget=1; }},
+    poseAt(at,down.lerp(centre,smooth(smooth(Math.max(0,Math.min(1,(s-0.6)/5)))))); titleStep(s,at,centre,[['A space for community.',5.5,11.0]]);
+    if(court)court.visible=false; }},
   {celebrate:true,dur:11, cam:hold(uM-7,2.1,13,uM+2,1.0,6)},
   // (Lloyd's notes) the party: from the floor at the hall's end, round the room on a long curve
   // and rising all the way, to end high up facing the crowd in the middle; never a blank wall
@@ -3312,14 +3312,19 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  ]; }
 function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ boom=null; titlesOff(); frostTarget=0;
+function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
  if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('celebratefab').hidden=!document.getElementById('event').checked; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
- const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if('mode' in sg)setEvent(sg.mode); if(sg.celebrate)fireCelebrate(); sg.cam(0);
+ const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(court)court.visible=document.getElementById('court').checked;
+ // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
+ // should transition smoothly into the next scene)
+ const h0=lit.house; if('mode' in sg)setEvent(sg.mode); if(lit.house!==h0){ houseRamp={from:h0,to:lit.house,t0:now,dur:2.5}; lit.house=h0; } if(sg.celebrate)fireCelebrate(); sg.cam(0);
  // no Celebrate button while the tour runs: the tour fires its own (Lloyd); stopTour puts it back
  document.getElementById('celebratefab').hidden=true; }
+let houseRamp=null;
 function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
+ if(houseRamp){ const q=Math.min(1,(now-houseRamp.t0)/houseRamp.dur); lit.house=houseRamp.from+(houseRamp.to-houseRamp.from)*smooth(q); if(q>=1)houseRamp=null; }
  if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
 // Before anyone touches anything the view is not a still: the camera drifts slowly up and down
