@@ -67,7 +67,10 @@ function publishTitles(){ try{ execSync('git add storyboard/titles.json && git d
 function generate(key){
  const s=parse().secs.find(x=>x.key===key); if(!s)return false; const d=s.rounds[s.rounds.length-1]; if(!d.text)return false;
  // a round that repeats an earlier one word for word is a box the browser refilled, not a note
- if(s.rounds.slice(0,-1).some(r=>r.text===d.text))return false;
+ // (a browser restored the old text into the fresh box on reload, and a note typed after it is
+ // still the note): a draft that begins with an earlier round's text sends only what follows
+ for(const r of s.rounds.slice(0,-1)){ if(r.text&&d.text.startsWith(r.text)){ d.text=d.text.slice(r.text.length).trim(); } }
+ if(!d.text)return false;
  d.sent=stamp(); s.rounds.push({n:d.n+1,sent:null,text:''}); if(!writeNotes(key,s.rounds))return false;
  const list=readReq().filter(r=>!(r.key===key&&r.status!=='done'));
  list.push({id:Date.now().toString(36),key,round:d.n,i:s.i,shot:s.shot,title:s.title,notes:d.text,status:'queued',at:new Date().toISOString()});
@@ -104,6 +107,10 @@ button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.
 <section id="s-all"><h2>The whole tour</h2><p>Every shot in order, on a loop, as the tour plays it. Pause, drag the slider to any moment, and Note here drops the shot and the second into that shot's box.</p><div class="clip" id="clip-all"></div><div class="btns"><button class="play" data-shot="all" data-key="all">Play the whole tour</button></div></section>${cards}</main>
 <script>
 const timers={};
+// every box shows what the server rendered, never what the browser remembers from before the
+// reload (Firefox and Chrome put the last page's text back into a field at the same place: the
+// fresh round box kept filling with the round just sent)
+for(const t of document.querySelectorAll('textarea,input[type=text],.line input'))t.value=t.defaultValue;
 document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, n=+t.dataset.n||0, id=k+(n?'-'+n:''), st=document.getElementById('st-'+id); st.textContent='…'; clearTimeout(timers[id]);
  timers[id]=setTimeout(async()=>{ const r=await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,n,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
 // one clip at a time: the viewer is the whole 3D hall, so a second one would halve the frame rate
@@ -132,7 +139,7 @@ function wireScrub(box){ clearInterval(scrubTimer); const fr=[...box.querySelect
 // a fresh box appears
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }
  b.disabled=true; b.textContent='Sending…'; clearTimeout(timers[k]); await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,text:t.value})});
- const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Not sent: same as an earlier round'; setTimeout(()=>{ b.textContent='Generate'; },4000); return; } location.reload(); }); });
+ const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Not sent: nothing new in the box'; setTimeout(()=>{ b.textContent='Generate'; },4000); return; } location.reload(); }); });
 document.querySelectorAll('.line input').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, idx=+t.dataset.idx, id='tx-'+k+'-'+idx, st=document.getElementById(id); st.textContent='…'; clearTimeout(timers[id]);
  timers[id]=setTimeout(async()=>{ const r=await fetch('/title',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,idx,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
 document.getElementById('pub').addEventListener('click',async()=>{ const b=document.getElementById('pub'); b.disabled=true; b.textContent='Publishing…'; const r=await fetch('/publish',{method:'POST'}); b.textContent=r.ok?'Published (live in a minute)':'Publish FAILED'; setTimeout(()=>{ b.disabled=false; b.textContent='Publish text'; },6000); });
