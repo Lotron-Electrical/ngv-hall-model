@@ -869,7 +869,7 @@ new GLTFLoader().load('model.glb',g=>{
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
- hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildPortal();},
+ hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.';});
 
@@ -3166,8 +3166,13 @@ let colXZ=null; function columnsXZ(){ if(colXZ)return colXZ; colXZ=[]; for(const
 // the nearest angle round C whose orbit point at radius r is reached from `from` on a straight line
 // that passes no column closer than a metre (0.4 m shaft plus elbow room)
 function segClear(a,b){ for(const [cx,cz] of columnsXZ()){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz||1e-9; const t=Math.max(0,Math.min(1,((cx-a.x)*dx+(cz-a.z)*dz)/L2)); if(Math.hypot(a.x+dx*t-cx,a.z+dz*t-cz)<1.0)return false; } return true; }
-function clearAngle(from,C,r){ const a0=Math.atan2(from.z-C.z,from.x-C.x);
- for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const at=new THREE.Vector3(C.x+Math.cos(a)*r,from.y,C.z+Math.sin(a)*r); if(segClear(from,at))return a; } return a0; }
+// the orbit is an ELLIPSE in the wall's frame, not a circle: the object sits 7.6 m off the screen
+// wall in a hall about 15 m wide, so a circle of any useful size went through the wall on one
+// side and the far wall on the other (Lloyd: the screen went black). Long axis 8.5 m along the
+// hall, short axis 3 m across it, which keeps the eye between the two rows of columns
+function orbitAt(C,a,y){ return C.clone().addScaledVector(EVENT.N.u,Math.cos(a)*8.5).addScaledVector(EVENT.N.inRoom,Math.sin(a)*3.0).setY(y); }
+function clearAngle(from,C,r){ const rel=from.clone().sub(C), a0=Math.atan2(rel.dot(EVENT.N.inRoom),rel.dot(EVENT.N.u));
+ for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const at=orbitAt(C,a,from.y); if(segClear(from,at))return a; } return a0; }
 // and the nearest angle whose straight line in to the object, from radius r to the shell, is clear
 function clearRadial(C,r,y){ const a0=Math.atan2(eye.z-C.z,eye.x-C.x);
  for(let d=0;d<=Math.PI;d+=Math.PI/90)for(const a of (d?[a0+d,a0-d]:[a0])){ const o=new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r), i=new THREE.Vector3(C.x+Math.cos(a)*1.2,y,C.z+Math.sin(a)*1.2); if(segClear(o,i))return a; } return a0; }
@@ -3179,7 +3184,7 @@ function idleStep(now){ if(!hallGroup||!portal)return;
  const t=now-idleT0;
  // a slow orbit round the object, eight and a half metres out, breathing up and down a little
  const a=idleA0+t*2*Math.PI/70;
- const at=C.clone().add(V3(Math.cos(a)*r,0.2+0.6*Math.sin(t*0.23),Math.sin(a)*r));
+ const at=orbitAt(C,a,C.y+0.2+0.6*Math.sin(t*0.23));
  if(t<5){ const q=smooth(t/5); at.copy(idleFrom.clone().lerp(at,q)); }
  poseAt(at,C.clone().setY(C.y-0.2)); sceneDirty=true; }
 
@@ -3198,12 +3203,16 @@ let portal=null, reflecting=false;
 // left and right edges of the screen look straight behind you. The fisheye starts out matching the
 // rectilinear view exactly (the projection is mixed, not swapped) so there is no pop at 8 m.
 const TOUCH=('ontouchstart' in window);   // a phone: every render pass costs, so the mirrors and the cube map run at half size
-const WARP={far:8, near:1.6, k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
+const WARP={far:5, near:1.6,   // far: where the widening and the shake begin (Lloyd: a bit closer before the trippy sequence starts) k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
 function warpK(){ if(!portal||!portal.group.visible||tour)return 0; const d=eye.distanceTo(portal.centre);
  const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
+// two cube maps: 1024 is sharp everywhere (Lloyd: no blur) and is the one used whenever the frame
+// rate holds; if the six extra scene renders drag the rate under 50 the pass drops to 512 until it
+// has been comfortably above 58 for two seconds (Lloyd: keep it at 60 fps). Phones keep 8-bit maps:
+// half-float cube maps cost a phone GPU dearly in bandwidth
 function warpInit(){ if(WARP.rt)return;
- const res=1024;   // full size everywhere: anything less is a blur once it fills the screen (Lloyd: no blur)
- WARP.rt=new THREE.WebGLCubeRenderTarget(res,{type:THREE.HalfFloatType,generateMipmaps:false});
+ const mk=res=>new THREE.WebGLCubeRenderTarget(res,{type:TOUCH?THREE.UnsignedByteType:THREE.HalfFloatType,generateMipmaps:false});
+ WARP.rts={1024:mk(1024),512:mk(512)}; WARP.res=1024; WARP.rt=WARP.rts[1024]; WARP.okSince=0;
  WARP.cube=new THREE.CubeCamera(0.05,400,WARP.rt);
  WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
  WARP.qscene=new THREE.Scene(); WARP.qcam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -3238,14 +3247,28 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
   const keep=cam.fov; cam.fov=2*Math.atan(Math.tan(ang/2)/cam.aspect)*180/Math.PI; cam.updateProjectionMatrix();
   R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
- if(!TOUCH||(W.n++&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
- W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
- try{ W.cube.update(R,scene); } finally{ reflecting=false; }
+ W.n++;
+ if(!TOUCH||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
+ // pick the cube map by the measured frame rate, with hysteresis so it does not flap
+ { const fps=animate.fps||60, now=performance.now();
+   if(W.res===1024&&fps<50){ W.res=512; W.okSince=0; }
+   else if(W.res===512){ if(fps<58)W.okSince=0; else if(!W.okSince)W.okSince=now; else if(now-W.okSince>2000)W.res=1024; }
+   // still short of 60 at 512: the cube map is refreshed every other frame (the shake hides the half-frame lag)
+   W.half=W.res===512&&fps<50;
+   W.rt=W.rts[W.res]; W.cube.renderTarget=W.rt; W.quad.material.uniforms.cube.value=W.rt.texture; }
+ if(!W.half||(W.n&1)){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
+  try{ W.cube.update(R,scene); } finally{ reflecting=false; } }
  // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
  const u=W.quad.material.uniforms;
  u.ang.value=ang; u.tanh.value=Math.tan(WARP_SW/2); u.mixf.value=angOv?1:Math.min(1,(ang-WARP_SW)/0.6); u.aspect.value=cam.aspect;
  u.basis.value.setFromMatrix4(cam.matrixWorld);
  R.render(W.qscene,W.qcam); }
+// one throwaway pass at both sizes as soon as the object exists: allocating the cube maps and
+// compiling every material for the cube cameras on the first real frame was a visible hitch
+// (Lloyd: it noticeably lags when we enter the field of view sequence)
+function warpWarm(){ warpInit(); const W=WARP; cam.position.copy(eye); cam.updateMatrixWorld(); W.cube.position.copy(cam.position);
+ for(const r of [512,1024]){ W.cube.renderTarget=W.rts[r]; reflecting=true; try{ W.cube.update(R,scene); } finally{ reflecting=false; } }
+ W.cube.renderTarget=W.rt; W.quad.material.uniforms.cube.value=W.rt.texture; R.setRenderTarget(W.tiny); R.render(W.qscene,W.qcam); R.setRenderTarget(null); }
 // SOUND (Lloyd, 2026-09-01): an ambient bed, all synthesised, no files: a low drone, a breath of
 // wind and wind chimes far off. Near the object a second drone rises, its harmonics arriving one by
 // one as the eye closes in, a chord building. Browsers only let sound start on a gesture, so the
@@ -3270,7 +3293,7 @@ function sndInit(){ if(SND.ctx)return; const AC=window.AudioContext||window.webk
  // and the riser itself: a tone climbing two octaves on the way in, with a shiver in it
  const r=c.createOscillator(); r.type='sine'; r.frequency.value=220; const rg=c.createGain(); rg.gain.value=0; r.connect(rg); rg.connect(cg); r.start();
  const vib=c.createOscillator(); vib.frequency.value=5.5; const vgn=c.createGain(); vgn.gain.value=3; vib.connect(vgn); vgn.connect(r.frequency); vib.start(); SND.riser={o:r,g:rg}; }
-function sndStep(now,k){ const c=SND.ctx; if(!c)return; if(c.state==='suspended'){ c.resume(); return; } const t=c.currentTime;
+function sndStep(now,k){ const c=SND.ctx; if(!c||c.state!=='running')return; const t=c.currentTime;
  SND.wind.bp.frequency.setTargetAtTime(400+250*Math.sin(now*0.13)+150*Math.sin(now*0.071),t,0.5);
  SND.wind.wg.gain.setTargetAtTime(0.012+0.014*(0.5+0.5*Math.sin(now*0.09+Math.sin(now*0.031)*2)),t,0.5);
  // chimes: one every few seconds, a pentatonic note, mostly reverb
@@ -3288,6 +3311,12 @@ function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime;
  const o=c.createOscillator(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(28,t+1.5); const og=c.createGain(); og.gain.setValueAtTime(0.7,t); og.gain.exponentialRampToValueAtTime(0.001,t+2.5); o.connect(og); og.connect(SND.master); o.start(t); o.stop(t+2.5);
  SND.chordGain.gain.cancelScheduledValues(t); SND.chordGain.gain.setValueAtTime(0.5,t); SND.chordGain.gain.exponentialRampToValueAtTime(0.001,t+3); }
 for(const ev of ['pointerdown','keydown','touchstart'])addEventListener(ev,()=>{ sndInit(); if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume(); },{passive:true});
+// (Lloyd) the music starts as soon as the viewer scrolls into view, and stops when it scrolls out.
+// A browser that refuses sound before a gesture leaves the context suspended; the first tap or key
+// above then starts it. On the proposal page the frame carries allow="autoplay" for the same reason.
+{ let inView=false; const want=()=>{ sndInit(); if(!SND.ctx)return; if(inView&&!document.hidden){ if(SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); } else if(SND.ctx.state==='running')SND.ctx.suspend(); };
+  new IntersectionObserver(es=>{ inView=es.some(e=>e.isIntersecting); want(); },{threshold:0.3}).observe(stage);
+  document.addEventListener('visibilitychange',want); addEventListener('load',want); }
 document.getElementById('sound').onchange=e=>{ SND.on=e.target.checked; if(SND.master)SND.master.gain.setTargetAtTime(SND.on?0.6:0,SND.ctx.currentTime,0.1); };
 // THE TOUCH (Lloyd): the eye reaching the shell sets the scene off, a flash of white and the picture
 // folded into a spinning kaleidoscope, and then the tour begins on its own
@@ -3503,7 +3532,9 @@ function buildPortal(){
  portal={group:g,centre:C,body,outer,inner,spray,disc,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat],hit:[...mirrors,inner,disc]};
 }
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
- Q.group.visible=!tour&&!document.getElementById('event').checked; if(!Q.group.visible)return;
+ Q.group.visible=!tour&&!document.getElementById('event').checked;
+ for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
+ if(!Q.group.visible)return;
  for(const m of Q.mats)m.uniforms.t.value=now;
  Q.body.position.y=0.25*Math.sin(now*0.9);                       // the float
  Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
