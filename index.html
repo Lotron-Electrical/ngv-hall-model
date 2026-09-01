@@ -1789,7 +1789,7 @@ function buildCourt(){
    g.scale(k,k,depthK); g.computeVertexNormals();   // fit in the plane only: the depth stays in metres
    const m=new THREE.Mesh(g,mat); m.frustumCulled=false; grp.add(m); solids.push(m);
   }
-  grp.userData.top=(box.max.y-box.min.y)*k;
+  grp.userData.top=(box.max.y-box.min.y)*k; grp.userData.w=(box.max.x-box.min.x)*k;
   // on the shared turntable, a third of a turn round from Lotron, facing outward
   grp.position.set(Math.sin(angle)*ringR,0,Math.cos(angle)*ringR); grp.rotation.y=angle;
   turntable.add(grp); return grp;
@@ -3450,7 +3450,8 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
  const nrm=new THREE.Vector3(-along.z,0,along.x); if(nrm.dot(COURT.n)<0){ nrm.negate(); along.negate(); }
  // where the axis crosses the pane's foot
  const z=bl.clone().sub(P0).dot(nrm)/Math.max(1e-6,COURT.n.dot(nrm)); const Q=P0.clone().addScaledVector(COURT.n,z).setY(bl.y);
- const t=Math.max(-(len/2-DOOR.W/2-0.05),Math.min(len/2-DOOR.W/2-0.05,Q.clone().sub(c).dot(along)));
+ // (Lloyd, V5) a step to the left, seen from inside looking out, clear of the fin it clipped
+ const tc=len/2-DOOR.W/2-0.05, t=Math.max(-tc,Math.min(tc,Q.clone().sub(c).dot(along)-0.4*Math.sign(along.dot(COURT.u))));
  const foot=c.clone().addScaledVector(along,t).setY(bl.y); DOOR.foot=foot.clone();   // the walk passes through here
  // the leaf: a dark frame round a pane of glass, a push bar at hand height; hinged on the far
  // edge, it swings out into the court (rotation.y)
@@ -3470,7 +3471,9 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:8, pan:3, drop:6, flat:5, hold:4, fade:2};   // seconds per phase
+const FIN={walk:6.5, pan:1, drop:6, flat:5, hold:4, fade:2};   // seconds per phase
+// (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
+// down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
 // the hall and the sky go, through a short dip to black
 let gandelTop=null, gandelTopMat=null;
@@ -3482,7 +3485,9 @@ function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partn
  // (Lloyd, V2) closer together: the partners nearer the middle and Lotron nearer them; and the
  // big GANDEL HALL above the tag, its height in the framing
  const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5, dx=W*0.45, tagY=yTop+T+H*0.5, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*0.35, gH=H*0.95;
- return {H,W,T,yTop,yBot,dx,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.8*W}; }
+ // (Lloyd, V5) ENTTEC's left edge on LOTRON's left, Shadow AV's right edge on LOTRON's right
+ const dx0=W/2-(partners[0].userData.w||W*0.5)/2, dx1=W/2-(partners[1].userData.w||W*0.5)/2;
+ return {H,W,T,yTop,yBot,dx,dx0,dx1,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.1*W}; }
 function gandelBuild(L){ if(gandelText||!buildCourt.font)return; if(!TX1('finale','')){ gandelTopBuild(L); return; }
  gandelMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:0},x0:{value:0},x1:{value:1}},transparent:true,depthWrite:false,toneMapped:false,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -3523,7 +3528,7 @@ function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark; if(co
 // triangle; then the flattening, the black, the hold and the fade as before
 function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=finale, L=F.L, y0=COURT.origin.y;
  // the door swings out ahead of the walk, open before anyone reaches it
- if(doorLeaf)doorLeaf.rotation.y=Math.PI*0.58*smooth(Math.max(0,Math.min(1,(s-0.3)/2.2)));
+ if(doorLeaf)doorLeaf.rotation.y=-Math.PI*0.58*smooth(Math.max(0,Math.min(1,(s-0.3)/2.2)));   /* outward (Lloyd, V5) */
  const df=DOOR.foot||courtPoint(COURT.uMid,y0,0), N=COURT.n, U=COURT.u;
  const P=(back,side,y)=>df.clone().addScaledVector(N,back).addScaledVector(U,side).setY(y);   // back: metres into the hall
  // THE COUPLE'S PATH: from 3 m inside, through the door, 2 m out, then away to the side and out
@@ -3535,7 +3540,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
   const b=P(m.back,m.side,0).addScaledVector(across,-0.28), gm=P(g.back,g.side,0).addScaledVector(across,0.28);
   W.fin.pos=[{x:b.x,z:b.z},{x:gm.x,z:gm.z}]; }
  // seen from the hall, -x is the left: ENTTEC there, Shadow AV on the right
- const targets=new Map([[logo,[0,L.yTop,0]],[partners[0],[-L.dx,L.yBot,0]],[partners[1],[L.dx,L.yBot,0]]]);
+ const targets=new Map([[logo,[0,L.yTop,0]],[partners[0],[-L.dx0,L.yBot,0]],[partners[1],[L.dx1,L.yBot,0]]]);
  const tP=FIN.walk, tD=tP+FIN.pan, tF=tD+FIN.drop;
  const pk=smooth(Math.max(0,Math.min(1,(s-tP)/FIN.pan)));   // the pan up: the marks lift away and take their places above
  const dk=smooth(Math.max(0,Math.min(1,(s-tD)/FIN.drop)));  // the drop: down from the top of the frame into the triangle
@@ -3562,23 +3567,25 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
   // taken as it is, the rest scaled; level and square to the camera (Lloyd)
   gandelTop.position.copy(turntable.position); gandelTop.position.y+=L.gBot*sf+liftW; gandelTop.scale.setScalar(sf); gandelTop.lookAt(eye.x,gandelTop.position.y,eye.z); }
  // the dip to black as the flattening begins, and the world gone when it comes back
- const dip=s<tF?Math.max(0,(s-(tF-0.6))/0.6):Math.max(0,1-(s-tF)/0.8);
- finaleLights(s>=tF);
+ const dip=0; if(court)court.visible=s>=tP; finaleLights(s>=tP);
  // the fade to black at the end
  const fd=Math.max(0,Math.min(1,(s-tF-FIN.flat-FIN.hold)/FIN.fade));
- F.f.style.opacity=Math.max(fd,smooth(Math.min(1,dip)),1-Math.min(1,s/1.2));
+ // black: into the groom's back at 5 s, held through the lift, clearing as the marks start down
+ const bo=s<tD?smooth(Math.max(0,Math.min(1,(s-5.0)/0.8))):1-smooth(Math.min(1,(s-tD)/0.8));
+ F.f.style.opacity=Math.max(fd,bo,1-Math.min(1,s/1.2));
  // THE CAMERA. The walk: 1.3 m behind the couple at their shoulders, through the door on their
  // backs; from 2 m outside it stops and turns to the sculpture as they walk out of the picture
  const cz=COURT.logoZ-D, c=courtPoint(COURT.uMid,y0+L.top*0.5*sf,cz), sc=courtPoint(COURT.uMid,y0+3,COURT.logoZ);
  let at,look;
- if(s<tP){ const m=along(Math.min(s,5.2)), m2=along(Math.min(s,5.2)+1.6);
-  at=P(m.back+1.0,m.side,y0+1.5); const ahead=P(m2.back,m2.side,y0+1.35);
-  const tk=smooth(Math.max(0,Math.min(1,(s-5.2)/2.6))); const rest=P(-1.2,0,y0+1.7);
-  at.lerp(rest,tk); look=ahead.lerp(sc,tk); }
- else { const rest=P(-1.2,0,y0+1.7); at=rest.lerp(c,pk);
-  // the pan up: the look climbs to the sky over the sculpture, then settles on the triangle as it lands
+ if(s<tP){ // behind the couple, then closing onto the groom's back until it fills the frame
+  const ss=Math.min(s,5.4), m=along(ss), g=along(Math.max(0,ss-0.45)), ck=smooth(Math.max(0,Math.min(1,(ss-3.6)/1.5)));
+  const across=new THREE.Vector3(-N.z,0,N.x);
+  at=P(m.back+1.0,m.side,y0+1.5).lerp(P(g.back+0.32,g.side,y0+1.25).addScaledVector(across,0.28),ck);
+  const m2=along(ss+1.6); look=P(m2.back,m2.side,y0+1.35).lerp(P(g.back-0.3,g.side,y0+1.15).addScaledVector(across,0.28),ck); }
+ else { at=c;
+  // from above: the look starts high and settles on the triangle as the marks land
   const hi=courtPoint(COURT.uMid,y0+L.top*0.5*sf+D*th*0.9,COURT.logoZ), mid=courtPoint(COURT.uMid,y0+L.top*0.5*sf,COURT.logoZ);
-  look=sc.clone().lerp(hi,pk).lerp(mid,dk); }
+  look=hi.lerp(mid,dk); }
  poseAt(at,look); }
 // THE TEXT of the tour (Lloyd): every line a shot shows, by the shot's storyboard key, editable
 // in the storyboard tool, which writes storyboard/titles.json over these defaults. A '|' in a

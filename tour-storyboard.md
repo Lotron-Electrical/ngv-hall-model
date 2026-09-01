@@ -117,7 +117,10 @@ A place for community
 V5 (sent 01/09/2026 23:26:44):
 [shot 2, 4.7 s] the string quartet should be on stage. Improve their models as well to be more accurate
 
-V6 (draft):
+V6 (sent 01/09/2026 23:37:55):
+[shot 2, 4.5 s] the bows for the violins should move across the violins back and forth. not in and out of the violins, clipping through them
+
+V7 (draft):
 
 
 ---
@@ -166,8 +169,11 @@ More variety in all the extravagant clothing the guests are wearing. Also more f
 V6 (sent 01/09/2026 23:29:11):
 [shot 3, 2.2 s] more lavish and detailed banquet. larger types of food. more variety. also instead of the white tablecloth sides, use a light purple
 
-V7 (draft):
+V7 (sent 01/09/2026 23:36:42):
+[shot 3, 4.4 s] I think the white tablecloth is still there because it looks like it's clipping through the purple tablecloth
 
+V8 (draft):
+[shot 3, 11.4 s] the text on desktop should be just a little bit higher
 
 ---
 
@@ -388,10 +394,15 @@ The entrance through the glass isn't cut out through the glass walls like this i
 V5 (sent 01/09/2026 23:26:59):
 The dark blue in gandel hall doesn't contrast well on the black, use different colours
 
-V6 (draft):
+V6 (sent 01/09/2026 23:35:35):
 Door should open outwards. Also move the glass door more to its left. Right now it's clipping into the metal pilon. Also, no logos should be visible outside, they should only appear once the camera pans back off the grooms back.
 
 Actually an even better transition is that the camera flies into the back of the groom, which fills the frame completely, it then fades to black and then in the next clip that's where the screen is black and then the logos come in from the top and show the final logo scene.
+
+Also, the enttec and shadow av logos should be closer together. left side of enttec should align with left side of lotron. Right side of shadow av, right side of lotron. Both of them below lotron electrical
+
+V7 (draft):
+
 
 ---
 
