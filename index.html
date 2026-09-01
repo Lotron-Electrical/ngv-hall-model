@@ -3679,8 +3679,10 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // the whole way
   // (Lloyd, V9) on a phone's narrow picture the circle is 13 m out, not 9, and a little higher,
   // so the crowd and more of the columns are in the frame
-  {mode:'standing',dur:16,cam:k=>{ const q=smooth(k), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
-    poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(1-smooth(Math.min(1,k*16/1.5))); }},   /* (Lloyd, V2) fades in from black */
+  // (Lloyd, V5) the shot fades out from 13.9 s with the camera still on the move: the circle
+  // eases in and never eases out
+  {mode:'standing',dur:16,cam:k=>{ const q=1-Math.cos(k*Math.PI/2), a=Math.PI*(0.18+0.64*q), S=EP(uM,1.9,1.6), r=cam.aspect>1?9:13, hz=cam.aspect>1?0:0.6;
+    poseAt(EP(uM+r*Math.cos(a),2.0+hz+0.6*q,1.6+r*Math.sin(a)),S); titlesNow(k*16,TX('standing')); veil(Math.max(1-smooth(Math.min(1,k*16/1.5)),smooth(Math.max(0,(k*16-13.9)/1.5)))); }},   /* (Lloyd, V2) fades in from black; (V5) out from 13.9 s */
   // (Lloyd, V2) the ceremony plays to the shot's clock: the turn, the veil, the kiss, the dip
   {mode:'wedding',dur:14, cam:k=>{ withTitles(glide(EP(uM,1.7,14.2),EP(uM,1.5,6.4),EP(uM,1.5,3.5),EP(uM,1.25,3.5)),14,TX('wedding-aisle'))(k); if(wedding)wedding.cer=k*14; }},
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
