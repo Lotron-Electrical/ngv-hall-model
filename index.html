@@ -3127,8 +3127,8 @@ function fireConfetti(){
   clearTimeout(fireConfetti.timer); fireConfetti.timer=setTimeout(()=>{if(confetti){scene.remove(confetti); confetti=null; confettiMat=null;}},18000);
  }
 }
-document.getElementById('event').onchange=buildEvent;
-document.getElementById('eventmode').onchange=buildEvent;
+document.getElementById('event').onchange=()=>{ tourDone=false; buildEvent(); };
+document.getElementById('eventmode').onchange=()=>{ tourDone=false; buildEvent(); };
 function fireCelebrate(){
  if(!document.getElementById('event').checked)return;
  const md=document.getElementById('eventmode').value;
@@ -3734,12 +3734,12 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; tourDone=false; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
  if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
-function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); if(TOURQ)startTour(); return; }
+function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; stopTour(); if(TOURQ)startTour(); return; }
  const sg=T.segs[T.i]; T.t0=now; titlesOff(); frostTarget=0; if(wedding)wedding.cer=null; if(court)court.visible=document.getElementById('court').checked;
  // an event's house light comes up over 2.5 s rather than stepping (Lloyd: the carpet's brightness
  // should transition smoothly into the next scene)
@@ -3804,7 +3804,10 @@ function roamStep(now){ const R=roam, Q=portal; if(!R||!Q)return; const s=now-R.
 // the Celebrate button is up only with an event loaded, inside the hall, and nothing playing:
 // not before the Enter tap, not on the fly-in, not in the tour or a shot (Lloyd: it was stuck
 // floating). Every path that changes one of those calls this.
-function fabSync(){ document.getElementById('celebratefab').hidden=!document.getElementById('event').checked||!entered||!!tour||!!approach||!!boom||!!SHOT; }
+// (Lloyd) once the tour has played out and rests on the sculpture, no Celebrate button either:
+// tourDone holds until something else starts (a tour, an event change)
+let tourDone=false;
+function fabSync(){ document.getElementById('celebratefab').hidden=!document.getElementById('event').checked||!entered||!!tour||!!approach||!!boom||!!SHOT||tourDone; }
 // SHOT REVIEW (Lloyd's storyboard tool): ?shot=N opens straight on to tour shot N (1-based) and
 // plays it on a loop, no veil and no sound gesture, so one camera path can be watched on its own
 const SHOT=+new URLSearchParams(location.search).get('shot')||0;
