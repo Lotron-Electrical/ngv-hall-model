@@ -3184,7 +3184,7 @@ const WARP={far:8, near:1.6, k:0, cc:new THREE.Color(), rt:null, n:0, cube:null,
 function warpK(){ if(!portal||!portal.group.visible||tour)return 0; const d=eye.distanceTo(portal.centre);
  const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
 function warpInit(){ if(WARP.rt)return;
- const res=TOUCH?256:1024;
+ const res=1024;   // full size everywhere: anything less is a blur once it fills the screen (Lloyd: no blur)
  WARP.rt=new THREE.WebGLCubeRenderTarget(res,{type:THREE.HalfFloatType,generateMipmaps:false});
  WARP.cube=new THREE.CubeCamera(0.05,400,WARP.rt);
  WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
@@ -3209,14 +3209,20 @@ function warpShake(k,now){ const a=k*k;
  cam.position.x+=(Math.random()-0.5)*a*0.5; cam.position.y+=(Math.random()-0.5)*a*0.5; cam.position.z+=(Math.random()-0.5)*a*0.5;
  cam.rotateX((Math.random()-0.5)*a*0.5+Math.sin(now*31.0)*a*0.08); cam.rotateY((Math.random()-0.5)*a*0.5); cam.rotateZ((Math.random()-0.5)*a*0.7+Math.sin(now*17.3)*a*0.15);
  cam.updateMatrixWorld(); }
+const WARP_SW=2.0944;   // 120 degrees: up to here the real perspective camera draws the frame, past it the cube map
 function warpRender(k,angOv){ warpInit(); const W=WARP;
+ // the slider's fov is vertical; the widening is built on the horizontal one, so it starts where the perspective view ends
+ const th=Math.tan(cam.fov*Math.PI/360)*cam.aspect, base=2*Math.atan(th), ang=angOv||(base+k*(2*Math.PI-base));
+ if(!angOv&&ang<WARP_SW){   // still narrow enough for a perspective camera: sharpest, and no cube pass at all (Lloyd: the cube map was a blur up close)
+  const keep=cam.fov; cam.fov=2*Math.atan(Math.tan(ang/2)/cam.aspect)*180/Math.PI; cam.updateProjectionMatrix();
+  R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
  if(!TOUCH||(W.n++&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
  W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
  try{ W.cube.update(R,scene); } finally{ reflecting=false; }
- // the slider's fov is vertical; the projection is built on the horizontal one, so it starts where the perspective view ends
- const th=Math.tan(cam.fov*Math.PI/360)*cam.aspect, base=2*Math.atan(th), ang=base+k*(2*Math.PI-base), u=W.quad.material.uniforms;
- u.ang.value=angOv||ang; u.tanh.value=th; u.mixf.value=Math.min(1,k*6); u.aspect.value=cam.aspect;
+ // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
+ const u=W.quad.material.uniforms;
+ u.ang.value=ang; u.tanh.value=Math.tan(WARP_SW/2); u.mixf.value=angOv?1:Math.min(1,(ang-WARP_SW)/0.6); u.aspect.value=cam.aspect;
  u.basis.value.setFromMatrix4(cam.matrixWorld);
  R.render(W.qscene,W.qcam); }
 // SOUND (Lloyd, 2026-09-01): an ambient bed, all synthesised, no files: a low drone, a breath of
