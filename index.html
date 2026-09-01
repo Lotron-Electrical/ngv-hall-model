@@ -3339,18 +3339,22 @@ let titles=null, titleGlint=null, titleShimmer=null, titleGlass=null; const titl
 function makeGlassMat(noDepth){ return new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:1},cell:{value:0.42}},transparent:true,depthWrite:false,depthTest:!noDepth,
    vertexShader:`varying vec3 vP; varying vec3 vN; void main(){ vP=position; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
    fragmentShader:`uniform float t; uniform float op; uniform float cell; varying vec3 vP; varying vec3 vN;
-    vec2 h2(vec2 q){ return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
+    // (Lloyd, V6) a new generation of the pattern: the seeds offset, so the panes fall differently
+    vec2 h2(vec2 q){ q+=vec2(17.3,9.1); return fract(sin(vec2(dot(q,vec2(127.1,311.7)),dot(q,vec2(269.5,183.3))))*43758.5453); }
     vec3 hsv(float h,float s,float v){ vec3 k=vec3(1.0,2.0/3.0,1.0/3.0); vec3 p=abs(fract(vec3(h)+k)*6.0-3.0); return v*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),s); }
     void main(){
      vec2 q=vP.xy/cell; vec2 g=floor(q), f=fract(q); float d1=9.0, d2=9.0; vec2 id=vec2(0.0);
      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 o=vec2(float(x),float(y)); vec2 r=o+h2(g+o)-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=g+o; } else if(d<d2){ d2=d; } }
      float edge=sqrt(d2)-sqrt(d1);
      float lead=smoothstep(0.025,0.07,edge);                      // 0 on the lead line, 1 in the pane
-     vec3 c=hsv(fract(h2(id).x+t*0.01),0.85,1.0);
+     // (Lloyd, V6) six glass colours, not every hue: ruby, amber, gold, emerald, cobalt, violet
+     vec3 c=hsv(fract(floor(h2(id).x*6.0)/6.0+0.98+t*0.01),0.85,1.0);
      float px=(id.x+h2(id).x)*cell;                                 // the pane's seed: one flat colour per pane (very low poly, Lloyd)
      float lit=0.55+0.45*sin(px*1.4-t*0.9+h2(id).y*2.0);            // the light behind, sweeping pane by pane
      float side=1.0-0.35*(1.0-abs(vN.z));                          // the bevel and sides a touch darker
      vec3 col=mix(vec3(0.05,0.04,0.05),c*(0.55+0.45*lit),lead)*side;
+     // (Lloyd, V6) lead along the letter's own edge too (the bevel and sides), so the outline reads
+     col=mix(col,vec3(0.06,0.05,0.06),1.0-smoothstep(0.55,0.85,abs(vN.z)));
      gl_FragColor=vec4(col,op); }`});; }
 // a title: rows split on ' / ' (top row first); a row wrapped in *...* is set in stained glass,
 // a Voronoi of coloured panes in dark lead with the object's rainbow glint crossing it (Lloyd, shot 1: "Gandel Hall"
