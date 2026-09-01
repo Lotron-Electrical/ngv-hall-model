@@ -459,7 +459,9 @@ function photoMaterial(src){
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
      E+=lightCol[i].rgb*(ledGain*I*blade); }
-    gl_FragColor=vec4(albedo*E,alpha*holeA);
+    // through the fade the carpet passes through purple on its way to black (Lloyd): carpet, rim, void
+    float lipW=holeA*(1.0-holeA)*4.0;
+    gl_FragColor=vec4(albedo*E+vec3(0.55,0.2,1.0)*lipW*0.28,alpha*holeA);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
@@ -3430,7 +3432,8 @@ const PORTAL_FRAG=`uniform float t; uniform vec3 centre; varying vec2 vUv; varyi
    float hz=0.5+0.5*sin(o.x*1.3+fi*2.0+t*0.2)*sin(o.y*1.1-fi*1.5-t*0.17);
    col+=vec3(0.16,0.04,0.30)*hz*0.10*inside*(fi/6.0); }
   col*=smoothstep(0.0,0.12,1.0-r);                               // no seam at the lip
-  // no lip line: the carpet above fades into the void (Lloyd)
+  // the purple rim under the carpet's fade, dying away inward (Lloyd: carpet, purple rim, black void)
+  col+=vec3(0.55,0.2,1.0)*smoothstep(0.66,0.98,r)*0.26;
   gl_FragColor=vec4(col,1.0);
  }`;
 // the pull: purple motes lift off the carpet round the void and spiral into it
@@ -3548,7 +3551,9 @@ function buildPortal(){
   for(let i=0;i<rings;i++)for(let j=0;j<segs;j++){ const a=i*(segs+1)+j, b=a+segs+1; idx.push(a,b,a+1,a+1,b,b+1); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
  const disc=new THREE.Mesh(bowl,portalMat);
- for(const m of photoMats)if(/floor/i.test(m.name||'')){ m.uniforms.hole.value.set(C.x,C.z,1.69,1); m.transparent=true; m.needsUpdate=true; }   // cut the carpet under it
+ for(const m of photoMats)if(/floor/i.test(m.name||'')){ m.uniforms.hole.value.set(C.x,C.z,1.69,1); m.transparent=true; m.needsUpdate=true; }
+ // the floor now blends, so it sits in the sorted pass: it must draw before the object's panes (they write no depth) or it paints over them (Lloyd: parts of the object vanished)
+ hallGroup.traverse(o=>{ if(o.isMesh&&/floor/i.test((o.material&&o.material.name)||''))o.renderOrder=-1; });   // cut the carpet under it
  disc.position.set(0,floorY+0.14-C.y,0); g.add(disc);   // a hand above the datum: the carpet mesh sits proud of it
  // the motes: born on the carpet between 1.9 and 4.5 m out, drawn in along a spiral, gone at the lip
  const sn=80, sp=new Float32Array(sn*3), sa=new Float32Array(sn), sr=new Float32Array(sn), sph=new Float32Array(sn);
