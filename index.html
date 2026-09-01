@@ -105,6 +105,7 @@ a.startbtn:focus-visible,button.startbtn:focus-visible{outline:2px solid var(--i
 .pmtable th,.pmtable td{border-bottom:1px solid #222;padding:3px 8px;text-align:left;white-space:nowrap}
 .pmtable th{position:sticky;top:0;background:#151515}
 #pmap{grid-column:1/-1}
+#pmap>summary{display:none}
 details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 .qr{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:5}
 .qr[hidden]{display:none}
@@ -200,7 +201,9 @@ html.embed body,html.embed main{margin:0;padding:0}
   <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
  <div class="stat" id="stat"></div>
  <div class="stat" id="runstat"></div>
- <details class="row" id="pmap"><summary>Pixel map: controller outputs, universes and DMX addresses</summary>
+ <!-- always open, no summary of its own: the menu entry "Pixel mapping" is the one door, and a
+      second fold inside it was a layer nobody needed (Lloyd, 2026-09-01) -->
+ <details class="row" id="pmap" open><summary hidden>Pixel map</summary>
   <!-- The ready-made path sits above the configurable one: most readers want the mapped show,
        not the mapping controls, and the show file bakes the exact patch this section builds. -->
   <ol class="startlist" id="getstarted">
