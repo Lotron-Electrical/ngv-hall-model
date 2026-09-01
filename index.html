@@ -3920,7 +3920,9 @@ function warpInit(){ if(WARP.rt)return;
     if(iris>=0.0){ vec2 dv=(vUv-0.5)*2.0; if(aspect>1.0)dv.x*=aspect; else dv.y/=aspect; float rr=length(dv);
      // the circle simply closes to black: no white point and no twinkle at the end (Lloyd: remove
      // that final white blink)
-     float e=smoothstep(iris,iris-0.05,rr);
+     // (Lloyd, 2026-09-02) the last blip: once the circle is under its own soft edge the
+     // smoothstep's edges cross and the centre pixel flashed; below that it is simply black
+     float e=iris<0.06?0.0:smoothstep(iris,iris-0.05,rr);
      gl_FragColor.rgb*=e; }
    }`}));
  WARP.qscene.add(WARP.quad); }
