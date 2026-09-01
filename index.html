@@ -205,7 +205,7 @@ html.embed body,html.embed main{margin:0;padding:0}
   <input type="range" id="tod" min="0" max="24" step="0.25" value="21" style="flex:1;min-width:140px"><span id="todval" style="color:var(--dim);font-size:13px">21:00</span>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cycle"> Cycle</label></div>
  <div class="row"><label for="house">House lights</label>
-  <input type="range" id="house" min="0" max="100" value="100"><span id="houseval" style="color:var(--dim);font-size:13px">100%</span></div>
+  <input type="range" id="house" min="0" max="100" value="0"><span id="houseval" style="color:var(--dim);font-size:13px">0%</span></div>
  <div class="stat" id="stat"></div>
  <div class="stat" id="runstat"></div>
  <!-- always open, no summary of its own: the menu entry "Pixel mapping" is the one door, and a
@@ -358,7 +358,7 @@ const lightPos=new Float32Array(MAX_LIGHTS*4), lightCol=new Float32Array(MAX_LIG
 // a lump at the band's centre, and the vertical wash up a wall is continuous the way 73k real
 // point sources make it.
 // lightCol.w carries the segment height: see the uniform-budget note by the shader below
-const lit={house:1, nLights:0,day:0};
+const lit={house:0, nLights:0,day:0};   // house lights start OFF (Lloyd, 2026-09-01)
 const photoMats=[], columnMats=[];
 // DAYLIGHT, per surface. The canopy and the glazed wall are backlit by the sky, so they gain most;
 // the walls and floor were photographed by day and gain a diffuse lift. Numbers are looks, not lux.
@@ -881,7 +881,8 @@ new GLTFLoader().load('model.glb',g=>{
 // console or an image editor. The colour wheel, intensity, animation and speed controls edit the
 // SELECTED layer; count, density, strip brightness and house lights are global.
 function newLayer(n){return {name:'Layer '+n, on:true, A:{h:30,s:0.25,v:1}, B:{h:215,s:1,v:1}, anim:'solid', speed:0.35, opacity:1, blend:'add'};}
-const state={count:8, density:60, layers:[newLayer(1)], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip', colH:0};
+// the view opens with the columns running rainbow and the house lights off (Lloyd, 2026-09-01)
+const state={count:8, density:60, layers:[Object.assign(newLayer(1),{anim:'rainbow',speed:0.3})], sel:0, active:'A', level:1, skip:0, cover:'black', drive:'rgbw', hud:false, system:'strip', colH:0};
 // ---- column height. The scan measures its own columns (H0 below, 12.772 m floor to shaft top);
 // the 13 m in the quote is an estimate nobody has put a tape on yet, and a column that measures
 // taller than the scan says means the scan is under-scaled VERTICALLY -- so the hall is under-
@@ -1540,10 +1541,10 @@ paintUI();
 
 // ---- desktop: keys + hold-left-mouse look (live_viewer.py convention)
 const keys={};
-addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; keys[e.code]=true; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; keys[e.code]=true; idle=false; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>{keys[e.code]=false;});
 let looking=false,lx=0,ly=0;
-cv.addEventListener('mousedown',e=>{if(e.button===0){looking=true;lx=e.clientX;ly=e.clientY;}});
+cv.addEventListener('mousedown',e=>{if(e.button===0){looking=true;lx=e.clientX;ly=e.clientY; idle=false;}});
 addEventListener('mouseup',()=>looking=false);
 addEventListener('mousemove',e=>{if(!looking)return; yaw-=(e.clientX-lx)*0.003; pitch-=(e.clientY-ly)*0.003; pitch=Math.max(-1.5,Math.min(1.5,pitch)); lx=e.clientX; ly=e.clientY;});
 cv.addEventListener('wheel',e=>{e.preventDefault(); speed*=Math.exp(-e.deltaY*0.0012); speed=Math.max(0.05,Math.min(30,speed));},{passive:false});
@@ -1556,7 +1557,7 @@ function touchList(e){return [...e.changedTouches];}
 // Each half of the view belongs to one thumb, so moving and looking happen together. A second
 // finger landing on a half that is already taken becomes the rise finger: drag up to climb,
 // down to sink.
-cv.addEventListener('touchstart',e=>{e.preventDefault(); const rect=cv.getBoundingClientRect();
+cv.addEventListener('touchstart',e=>{e.preventDefault(); idle=false; const rect=cv.getBoundingClientRect();
  for(const t of touchList(e)){ const leftHalf=t.clientX-rect.left<rect.width/2;
   if(leftHalf&&!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)};
   else if(!leftHalf&&!look)look={id:t.identifier,x:t.clientX,y:t.clientY};
@@ -1574,7 +1575,7 @@ function moveStick(st){knob.style.transform=`translate(${st.dx*0.6}px,${st.dy*0.
 function hideStick(){pad.style.display='none';}
 function fwd(){return new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));}
 function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
-document.getElementById('rst').onclick=()=>{stopTour(); home();};
+document.getElementById('rst').onclick=()=>{stopTour(); idle=false; home();};
 document.getElementById('full').onclick=()=>{(document.fullscreenElement?document.exitFullscreen():stage.requestFullscreen()).catch(()=>{});};
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---- solid walls. Every mesh of the hall is a collider: one ray from where the eye WAS to
@@ -1620,8 +1621,8 @@ function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()})
 function rcApply(m){
  sceneDirty=true;
  switch(m.t){
-  case 'move': rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
-  case 'look': yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
+  case 'move': idle=false; rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
+  case 'look': idle=false; yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
   case 'home': stopTour(); home(); break;
   case 'tour': if(tour)stopTour(); else startTour(); break;
   case 'full': document.getElementById('full').click(); break;
@@ -3141,7 +3142,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
     const f=EVENT.N.inRoom, rgt=EVENT.N.u; const at=T.clone().addScaledVector(f,Math.cos(a)*r).addScaledVector(rgt,Math.sin(a)*r).setY(T.y+3.2);
     poseAt(at,T.clone().setY(T.y+4)); }},
  ]; }
-function startTour(){ if(tour)return; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
+function startTour(){ if(tour)return; idle=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('tourfab').hidden=true; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
 function stopTour(){ if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; document.getElementById('tourfab').hidden=false; }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ stopTour(); return; }
@@ -3150,8 +3151,20 @@ function tourStep(now){ const T=tour; if(!T)return; const sg=T.segs[T.i]; const 
  if(k>=1){ sg.cam(1); tourNext(now); return; } sg.cam(k); sceneDirty=true; }
 document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
 document.getElementById('tourfab').onclick=startTour;
+// Before anyone touches anything the view is not a still: the camera drifts slowly up and down
+// the middle of the hall (Lloyd, 2026-09-01), easing in from the home pose once the model is up.
+// The first key, drag, touch or phone-remote nudge ends it for good; the tour takes over from it.
+let idle=true, idleT0=null, idleFrom=null;
+function idleStep(now){ if(!hallGroup)return;
+ if(idleT0===null){ idleT0=now; idleFrom=eye.clone(); }
+ const t=now-idleT0, uM=EVENT.wallLen/2;
+ const u=uM+18.5*Math.sin(t*2*Math.PI/150), ahead=u+8*Math.cos(t*2*Math.PI/150)+0.001;   // one lap every 150 s
+ const at=EP(u,1.65,7.6+0.6*Math.sin(t*0.21)), look=EP(ahead,1.45+0.15*Math.sin(t*0.17),7.6);
+ if(t<5){ const q=smooth(t/5); at.copy(idleFrom.clone().lerp(at,q)); }
+ poseAt(at,look); sceneDirty=true; }
 
-function frame(now){ if(tour)tourStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+
+function frame(now){ if(tour)tourStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if(logo||partners.length){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  if(tag)tag.position.y=tag.userData.baseY+0.25*Math.sin(now/1000*0.8); if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
