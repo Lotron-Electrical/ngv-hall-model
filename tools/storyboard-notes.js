@@ -13,7 +13,7 @@
 //    request's status (queued, working, done) as Claude updates it.
 //   node tools/storyboard-notes.js [--port 8890]
 const http=require('http'), fs=require('fs'), path=require('path'), os=require('os'), {execSync}=require('child_process');
-const ROOT=path.join(__dirname,'..'), MD=path.join(ROOT,'tour-storyboard.md'), REQ=path.join(ROOT,'storyboard','requests.json');
+const ROOT=path.join(__dirname,'..'), MD=path.join(ROOT,'tour-storyboard.md'), REQ=path.join(ROOT,'storyboard','requests.json'), TITLES=path.join(ROOT,'storyboard','titles.json');
 const port=+(process.argv[process.argv.indexOf('--port')+1])||8890;
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.bin':'application/octet-stream','.css':'text/css','.wasm':'application/wasm'};
 
@@ -56,6 +56,12 @@ function save(key,text,n){
  r.text=text.replace(/\r/g,'').trim(); return writeNotes(key,s.rounds);
 }
 const readReq=()=>{ try{ return JSON.parse(fs.readFileSync(REQ,'utf8')); }catch(e){ return []; } };
+// THE TEXT a shot shows (Lloyd): storyboard/titles.json, by shot key, [text, from, to] per line;
+// the viewer reads the same file, so Play clip shows an edit at once. Publish text commits and
+// pushes just that file so the live page gets it.
+const readTitles=()=>{ try{ return JSON.parse(fs.readFileSync(TITLES,'utf8')); }catch(e){ return {}; } };
+function saveTitle(key,idx,text){ const T=readTitles(); if(!T[key]||!T[key][idx])return false; T[key][idx][0]=text.replace(/[\r\n]/g,' ').trim(); fs.writeFileSync(TITLES,JSON.stringify(T,null,1)+'\n'); return true; }
+function publishTitles(){ try{ execSync('git add storyboard/titles.json && git diff --cached --quiet -- storyboard/titles.json || git commit -q -m "The tour\'s text, edited in the storyboard tool (Lloyd)" -- storyboard/titles.json',{cwd:ROOT,shell:'bash',stdio:'pipe'}); execSync('git push -q origin HEAD:main',{cwd:ROOT,stdio:'pipe'}); return true; }catch(e){ console.error(String(e.stderr||e)); return false; } }
 // a request: the shot's key, title and the round being sent; one live request per shot. The
 // draft becomes a sent round and a new empty draft follows it.
 function generate(key){
@@ -66,12 +72,13 @@ function generate(key){
  fs.writeFileSync(REQ,JSON.stringify(list,null,1)); return true;
 }
 function page(){
- const {secs}=parse();
+ const {secs}=parse(); const T=readTitles();
  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
  const cards=secs.map(s=>{ const d=s.rounds[s.rounds.length-1], sent=s.rounds.slice(0,-1);
   return `<section id="s-${s.key}"><h2>${esc(s.title)} <span class="key">${esc(s.key)}</span><span class="req" id="rq-${s.key}"></span></h2><p>${esc(s.body).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n+/g,'<br>')}</p>
   ${s.imgs.length?`<div class="row">${s.imgs.map(u=>`<img src="/${u}" loading="lazy">`).join('')}</div>`:''}
   ${s.shot?`<div class="clip" id="clip-${s.key}"></div><div class="btns"><button class="play" data-shot="${s.shot}" data-key="${s.key}">Play clip</button><button class="gen" data-key="${s.key}">Generate</button></div>`:''}
+  ${(T[s.key]||[]).length?`<div class="tx"><b>Text</b>${T[s.key].map((l,idx)=>`<div class="line"><input data-key="${s.key}" data-idx="${idx}" value="${esc(l[0]).replace(/"/g,'&quot;')}"><span>${l[2]?esc(l[1]+' to '+l[2]+' s'):''} <i class="st" id="tx-${s.key}-${idx}"></i></span></div>`).join('')}</div>`:''}
   ${sent.length?`<details class="hist"><summary>${sent.length} round${sent.length>1?'s':''} sent</summary>${sent.map(r=>`<div class="round"><b>V${r.n}</b> <span>sent ${esc(r.sent)}</span> <span class="st" id="st-${s.key}-${r.n}"></span><textarea class="old" data-key="${s.key}" data-n="${r.n}">${esc(r.text)}</textarea></div>`).join('')}</details>`:''}
   <label>V${d.n} <span class="st" id="st-${s.key}"></span></label><textarea data-key="${s.key}" placeholder="Type your notes for round ${d.n} of this shot">${esc(d.text)}</textarea></section>`; }).join('');
  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tour storyboard notes</title>
@@ -85,11 +92,13 @@ textarea:focus{outline:none;border-color:#7af}.st{font-weight:400;color:#8c8;fon
 button.gen{background:#173a17;border-color:#2e6b2e}button.gen:disabled{opacity:.5;cursor:default}
 .hist{margin:0 0 10px;border:1px solid #333;border-radius:6px;padding:6px 10px;background:#161616}.hist summary{cursor:pointer;color:#aaa;font-size:13px}
 .round{border-top:1px solid #2a2a2a;padding:8px 0 2px}.round span{color:#888;font-size:12px;margin-left:6px}textarea.old{min-height:60px;margin-top:4px;color:#ccc;background:#111;border-color:#333}
+.tx{margin:0 0 10px;border:1px solid #3a3320;border-radius:6px;padding:8px 10px;background:#1a1810}.tx b{font-size:13px;color:#dc9}.line{display:flex;gap:8px;align-items:center;margin-top:6px}.line input{flex:1;background:#0d0d0d;color:#fff;border:1px solid #554;border-radius:6px;padding:8px 10px;font:inherit;min-width:0}.line input:focus{outline:none;border-color:#dc9}.line span{color:#887;font-size:12px;white-space:nowrap}.line i{font-style:normal}
+#pub{position:sticky;top:8px;float:right;background:#3a2e10;border-color:#a80;margin-left:8px}
 .clip{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}.clip iframe{border:0;border-radius:4px;background:#000;display:block}.clip .pc{flex:1;aspect-ratio:16/9;min-width:0}.clip .ph{width:26%;aspect-ratio:9/19}
 @media(max-width:700px){.clip{flex-wrap:wrap}.clip .pc,.clip .ph{width:100%}}
 .req{font-size:12px;font-weight:400;color:#111;background:#8c8;border-radius:10px;padding:1px 9px;margin-left:8px;vertical-align:middle;display:none}.req.queued{display:inline;background:#ec5}.req.working{display:inline;background:#8bf}.req.done{display:inline;background:#8c8}
 @media(max-width:700px){.row{flex-wrap:wrap}.row img{width:100%}}</style>
-<main><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to.</div>${cards}</main>
+<main><button id="pub" type="button">Publish text</button><h1>Gandel Hall tour: camera storyboard</h1><div class="top">The blue tag is the shot's permanent name; the number is only its place in the tour today. The box is the next round's notes and saves as you type. Generate sends that round to Claude, files it above the box, and opens a fresh box; the chip shows where the round is up to. The Text lines are what the shot shows: edit them, Play clip shows the change at once, and Publish text puts it on the live page.</div>${cards}</main>
 <script>
 const timers={};
 document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, n=+t.dataset.n||0, id=k+(n?'-'+n:''), st=document.getElementById('st-'+id); st.textContent='…'; clearTimeout(timers[id]);
@@ -104,6 +113,9 @@ document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click'
 document.querySelectorAll('button.gen').forEach(b=>{ b.addEventListener('click',async()=>{ const k=b.dataset.key; const t=document.querySelector('textarea[data-key="'+k+'"]'); if(!t.value.trim()){ t.focus(); return; }
  b.disabled=true; b.textContent='Sending…'; clearTimeout(timers[k]); await fetch('/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,text:t.value})});
  const r=await fetch('/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k})}); if(!r.ok){ b.disabled=false; b.textContent='Generate'; return; } location.reload(); }); });
+document.querySelectorAll('.line input').forEach(t=>{ t.addEventListener('input',()=>{ const k=t.dataset.key, idx=+t.dataset.idx, id='tx-'+k+'-'+idx, st=document.getElementById(id); st.textContent='…'; clearTimeout(timers[id]);
+ timers[id]=setTimeout(async()=>{ const r=await fetch('/title',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k,idx,text:t.value})}); st.textContent=r.ok?'saved':'NOT SAVED'; },500); }); });
+document.getElementById('pub').addEventListener('click',async()=>{ const b=document.getElementById('pub'); b.disabled=true; b.textContent='Publishing…'; const r=await fetch('/publish',{method:'POST'}); b.textContent=r.ok?'Published (live in a minute)':'Publish FAILED'; setTimeout(()=>{ b.disabled=false; b.textContent='Publish text'; },6000); });
 async function status(){ const list=await (await fetch('/requests')).json(); document.querySelectorAll('.req').forEach(c=>{ c.className='req'; c.textContent=''; });
  for(const r of list){ if(!r.key)continue; const c=document.getElementById('rq-'+r.key); if(!c)continue; c.className='req '+r.status; c.textContent='V'+r.round+' '+r.status; const b=document.querySelector('button.gen[data-key="'+r.key+'"]'); if(b){ b.disabled=r.status!=='done'; b.textContent=r.status==='done'?'Generate':'Sent…'; } } }
 status(); setInterval(status,5000);
@@ -111,7 +123,8 @@ status(); setInterval(status,5000);
 }
 http.createServer((req,res)=>{
  const url=req.url.split('?')[0];
- if(req.method==='POST'&&(url==='/save'||url==='/generate')){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{ const j=JSON.parse(b); res.writeHead((url==='/save'?save(j.key,j.text,j.n):generate(j.key))?200:400); }catch(e){ res.writeHead(400); } res.end(); }); return; }
+ if(req.method==='POST'&&(url==='/save'||url==='/generate'||url==='/title')){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ try{ const j=JSON.parse(b); res.writeHead((url==='/save'?save(j.key,j.text,j.n):url==='/title'?saveTitle(j.key,j.idx,j.text):generate(j.key))?200:400); }catch(e){ res.writeHead(400); } res.end(); }); return; }
+ if(req.method==='POST'&&url==='/publish'){ res.writeHead(publishTitles()?200:500); res.end(); return; }
  if(url==='/'){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(page()); return; }
  if(url==='/requests'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(readReq())); return; }
  // the viewer as committed, never the working copy (it may carry another session's unfinished hunks)
