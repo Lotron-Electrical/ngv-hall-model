@@ -3736,7 +3736,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
  ]; }
 function startTour(){ if(tour)return; tourDone=false; idle=false; tourPaused=false; const segs=tourSegments(); tour={segs,i:-1,t0:0,noclip};
  document.getElementById('tourbtn').textContent='Stop tour'; document.getElementById('collide').checked=false; tourNext(performance.now()/1000); }
-function stopTour(){ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
+function stopTour(){ if(tour)tourDone=true; /* Stop tour leaves no Celebrate button either (Lloyd) */ boom=null; titlesOff(); frostTarget=0; if(houseRamp){ lit.house=houseRamp.to; houseRamp=null; } if(court)court.visible=document.getElementById('court').checked;
  { const f=document.getElementById('flash'); if(!finale&&+f.style.opacity>0&&f.style.background==='rgb(0, 0, 0)'){ requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } }
  if(finale){ finaleEnd(); const f=document.getElementById('flash'); if(+f.style.opacity>0)requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 1.5s ease-in'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); })); } if(approach){ noclip=approach.noclip; approach=null; } if(!tour)return; noclip=tour.noclip; document.getElementById('collide').checked=!noclip; tour=null; document.getElementById('tourbtn').textContent='Tour'; fabSync(); }
 function tourNext(now){ const T=tour; T.i++; if(T.i>=T.segs.length){ tourDone=true; stopTour(); if(TOURQ)startTour(); return; }
@@ -4247,14 +4247,16 @@ function buildPortal(){
    gl_FragColor=vec4(c*g*0.4,1.0); }`});
  // (Lloyd) the name above the object is the Voronoi stained glass the titles and the finale use
  const wordsGlass=makeGlassMat(false); wordsGlass.uniforms.cell.value=0.5;
- const addWords=(font)=>{ const line=(text,size,y,chrome)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
-   tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
+ // (Lloyd) GANDEL HALL is set as wide as the line beneath it, as shot 1's title is: a row
+ // given a target width is scaled to it
+ const addWords=(font)=>{ const line=(text,size,y,chrome,target)=>{ const tg=new TextGeometry(text,{font,size,height:chrome?0.12:0.06,curveSegments:4,bevelEnabled:chrome,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
+   tg.computeBoundingBox(); let b=tg.boundingBox; const w0=b.max.x-b.min.x; if(target){ const sc=target/w0; tg.scale(sc,sc,1); tg.computeBoundingBox(); b=tg.boundingBox; } tg.translate(-(b.min.x+b.max.x)/2,y-(b.min.y+b.max.y)/2,-0.03);
    if(chrome)tg.computeVertexNormals();
    const core=new THREE.Mesh(tg,chrome?wordsGlass:new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
    const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:chrome?0.12:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); halo.scale.set(1.05,1.18,1.6);
    const halo2=halo.clone(); halo2.material=halo.material.clone(); halo2.material.opacity=chrome?0.06:0.1; halo2.scale.set(1.12,1.4,2.4);
-   words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); };
-  line('Gandel Hall',0.42,0.3,true); line('Brought to light',0.42,-0.3,false);
+   words.add(core,halo,halo2); if(chrome)words.add(new THREE.Mesh(tg,shimmerMat)); return b.max.x-b.min.x; };
+  const wB=line('Brought to light',0.42,-0.3,false); line('Gandel Hall',0.42,0.36,true,wB);
   // the cue (Lloyd): under the name, "Tap to begin" on a phone and "Click to begin" on a computer,
   // with an arrow pointing down at the object. It goes away once the approach has begun.
   // Lloyd: thinner and smaller than the name, and never hidden behind the object, so the cue is
