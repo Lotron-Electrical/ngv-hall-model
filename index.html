@@ -1607,7 +1607,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -4144,6 +4144,19 @@ const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=
 // preload stays at metadata until a gesture asks for more: a visitor who never taps the object
 // never downloads 3.9 MB alongside the model
 { const a=new Audio('sound/tour.mp3'); a.preload='metadata'; a.muted=!SND.on; TRACK.el=a; }
+// THE FLOAT (Lloyd): the file's first sixteen seconds are the sound of the tesseract floating, so
+// that stretch is its own loop, sound/float.mp3 (1.0 to 16.0 s of the master, its last second
+// crossfaded into its first so the wrap has no seam, brought up 4.5 dB with the harmonics above
+// 100 Hz lifted 6 dB: it was too quiet to hear). It plays from Enter until the dive's file is
+// heard, then fades out under it over 2 s; the same material, so the ear hears one sound.
+// It is a WebAudio buffer rather than a second <audio>: the loop is then sample-exact (an <audio>
+// loop leaves a 10 ms hole at every wrap), its fade is a gain, which iOS honours where it ignores
+// an element's volume, and it raises no media notification of its own. The bytes arrive with the
+// page; they are decoded once the sound context exists (the first gesture makes it)
+{ TRACK.flBuf=null; TRACK.flSrc=null; TRACK.flGain=null; TRACK.flOn=false; TRACK.flData=null; TRACK.flDecoding=false;
+  fetch('sound/float.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ TRACK.flData=b; }).catch(()=>{}); }
+function floatDecode(){ const c=SND.ctx; if(!c||TRACK.flBuf||!TRACK.flData||TRACK.flDecoding)return; TRACK.flDecoding=true;
+ c.decodeAudioData(TRACK.flData.slice(0),b=>{ TRACK.flBuf=b; },()=>{ TRACK.flDecoding=false; }); }   /* a copy: decoding detaches the buffer, and a failure gets to try again */
 // the gesture-time touch (Enter, the tap on the object, the Tour button): WebKit lets a script play
 // a sound element later only if a gesture touched THAT element, so play() runs inside the gesture
 // and is paused on the spot (nothing is heard, the download starts, the element is unlocked). A
@@ -4155,6 +4168,15 @@ function trackWarm(){ const a=TRACK.el; if(!a||TRACK.warm||!a.paused)return; TRA
 if('mediaSession' in navigator){ try{ navigator.mediaSession.metadata=new MediaMetadata({title:'Gandel Hall',artist:'Lotron Electrical'});
  navigator.mediaSession.setActionHandler('pause',()=>{ if(tour)window.tourCtl.pause(); else TRACK.hold=true; });
  navigator.mediaSession.setActionHandler('play',()=>{ TRACK.hold=false; if(tour)window.tourCtl.play(); }); }catch(e){} }
+// the float is wanted while the object floats: from Enter, through the orbit and the dive, until the
+// dive's file has joined; never in a tour, a roam, the rest, or once the object has gone
+function floatWant(){ return entered&&!tour&&!boom&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&portal.group.visible; }
+function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); const want=floatWant()&&!TRACK.hidden&&!(joined!=null&&joined>=2);
+ if(!want){ if(TRACK.flSrc){ const src=TRACK.flSrc, g=TRACK.flGain; TRACK.flSrc=null; g.gain.setTargetAtTime(0,c.currentTime,0.03); try{ src.stop(c.currentTime+0.25); }catch(e){} } TRACK.flOn=false; return; }
+ if(!TRACK.flBuf||c.state!=='running')return;
+ if(!TRACK.flSrc){ const g=c.createGain(); g.gain.value=0; g.connect(c.destination); const src=c.createBufferSource(); src.buffer=TRACK.flBuf; src.loop=true; src.connect(g); src.start(); TRACK.flSrc=src; TRACK.flGain=g; }
+ TRACK.flOn=true; const v=(SND.on?1:0)*(joined==null?1:1-smooth(Math.min(1,joined/2)));   // out under the dive's file; the Sound box takes it to nothing
+ TRACK.flGain.gain.setTargetAtTime(v,c.currentTime,0.05); }
 // where the file should be for the state the page is in, in seconds; null means silent
 function trackWant(now){
  if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
@@ -4171,13 +4193,19 @@ function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.mas
 function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
  // that never arrived or the tail's end leave the bed up rather than silence
- const heard=!a.paused&&!a.ended&&a.readyState>=2&&!TRACK.hidden; if(heard!==TRACK.duck)trackDuck(heard);
+ const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc)&&!TRACK.hidden;
+ // on a free flight by hand (no dive) the bed's chord and riser are the build-up, so the bed stays up over the float
+ const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
+ floatStep(now,TRACK.on&&TRACK.join!=null?now-TRACK.join:null);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
- if(!TRACK.on)TRACK.join=w.join?now:null; TRACK.on=true;
+ if(!TRACK.on)TRACK.join=null; TRACK.on=true;
  // (Lloyd: the first seconds after the tap were loud) the file joins the dive on a 3.5 s fade, its
  // rumble rising under the bed as the bed ducks, and is at full level well before the crash; every
  // other start (the tour, the loop, a seek) is at level. iOS ignores volume and hears the file as cut
- if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/3.5)); if(Math.abs(a.volume-v)>0.01)a.volume=v; } else if(a.volume!==1)a.volume=1;
+ // (review) the fade is clocked from the moment the file is actually heard, not from the ask: on a slow
+ // link the ask runs seconds ahead of the sound, and the float holds at full until then
+ if(w.join&&TRACK.join==null){ if(!a.paused&&a.readyState>=2&&a.currentTime>0)TRACK.join=now; else if(a.volume!==0)a.volume=0; }
+ if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/3.5)); if(Math.abs(a.volume-v)>0.01||(v===1&&a.volume!==1))a.volume=v; } else if(!w.join&&a.volume!==1)a.volume=1;
  if(TRACK.hidden||w.paused||(w.free&&TRACK.hold)){ if(!a.paused)a.pause(); if(w.t!=null&&!a.seeking&&Math.abs(a.currentTime-w.t)>0.3)a.currentTime=w.t; return; }
  if(!w.free){ const tol=w.tight?0.08:0.3; if(!a.seeking&&Math.abs(a.currentTime-w.t)>tol)a.currentTime=w.t; }   // the page's clock wins; a seek still landing is left alone
  if(a.paused&&!a.ended&&now>TRACK.ask){ TRACK.ask=now+0.5; const p=a.play(); if(p)p.catch(()=>{}); } }   // asked again every half second until the browser allows it

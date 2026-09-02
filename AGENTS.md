@@ -221,6 +221,7 @@ addressed`. `L` reaching 73,536 means every pixel in the map found a universe in
 | `index.html` | the whole viewer: geometry, pixel map, ELM export, live input |
 | `model.glb` | 6 MB scanned hall |
 | `sound/tour.mp3` | the sound designer's 163 s mix for the ride (MP3 CBR 192k; the 24-bit master is `sound/llyod_gandelhall.wav`, ignored by git, and on Lloyd's Drive) |
+| `sound/float.mp3` | the tesseract's float: 1.0 to 16.0 s of the master, ends crossfaded into a seamless 14 s loop, brought up 4.5 dB with the harmonics above 100 Hz lifted 6 dB; plays from Enter until the dive's file has joined |
 | `tools/dmx_bridge.js` | Art-Net / sACN → WebSocket bridge, zero dependencies |
 | `tools/agent-setup.js` | the one command above, JSON-line output, zero dependencies |
 | `tools/elm-fetch.js` | headless CSV / facts extraction over CDP, zero dependencies |
@@ -241,7 +242,13 @@ precomputes by walking its own ease), the tour at `t0 + elapsed`, pauses and see
 rewinds it. While it plays the synthesised bed (`SND.master`) is ducked to 0. A server that
 serves the file must answer HTTP byte ranges (206) or the browser cannot seek in it: `tools/serve.js`
 and `tools/storyboard-notes.js` both do; GitHub Pages does. `window.dbg.track()` reports the
-file's clock, the wanted time and the bed's gain for headless checks.
+file's clock, the wanted time and the bed's gain for headless checks. The float (`floatWant`/`floatStep`)
+is a WebAudio buffer looping on `SND.ctx` (sample-exact wrap, a gain fade that iOS honours, no media
+notification): wanted from Enter while the object floats, fading out over 2 s from the moment the
+dive's file is actually heard (which itself fades in over 3.5 s from that moment), off in a tour, a
+roam, the rest, the tool's clips, or once the object has gone. On a free flight by hand the bed's
+chord and riser stay up over the float as the build-up. The master's first 17 s were
+lifted the same way in `tour.mp3` so the crossfade is level-matched.
 
 ## Rules for an agent working in this repo
 
