@@ -4111,7 +4111,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
- const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0; /* (Lloyd, V2) no flash */ }
+ const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.5; /* (Lloyd, V4) the flash is back as it was before V2: toned down, and quicker off */ requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s ease-out'; f.style.opacity=0; }); }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
@@ -4129,11 +4129,9 @@ function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  const q=Math.min(1,Math.max(0,(s-T.kal)/T.iris));
  u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
  // no shake here: the kaleidoscope is smooth (Lloyd)
- // (Lloyd, V3) a PULLING transition: the tap arrives with the view wrapped right round (the
- // approach ends near 2pi), and the kaleidoscope's own angle is 0.55pi; the first 0.9 s eases one
- // into the other, so the tesseract's wrapped picture is pulled down into the mandala, no cut
- const pull=smooth(Math.min(1,s/0.9)), tgt=Math.PI*(0.55-0.05*Math.min(s,T.kal));
- cam.updateMatrixWorld(); warpRender(1,2*Math.PI+(tgt-2*Math.PI)*pull); u.kal.value=0; u.iris.value=-1; return true; }
+ // (Lloyd, V4) the cut is back: the kaleidoscope starts at its own angle on its first frame, under
+ // the flash, as it did before V3's pull from the tesseract's 2pi wrap
+ cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
