@@ -1607,7 +1607,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -4137,7 +4137,7 @@ const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
 // frame asks where the file should be for the state the page is in and pulls it back into line
 // when the two clocks drift apart (a pause, a seek, the tool's loop). While the file plays the
 // synthesised bed is muted; it comes back once the file has nothing to play under.
-const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0};
+const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0, join:null};
 // ?mute=1 is the storyboard tool's second, phone-sized frame of the same clip: that copy is silent,
 // or the two frames play the mix twice a few hundred ms apart
 const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=false; document.getElementById('sound').checked=false; }
@@ -4164,7 +4164,7 @@ function trackWant(now){
  // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
  // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
  // itself is never seeked
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2}:null; }
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
 function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?0.6:0,c.currentTime,0.3); }
@@ -4172,8 +4172,12 @@ function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
  // that never arrived or the tail's end leave the bed up rather than silence
  const heard=!a.paused&&!a.ended&&a.readyState>=2&&!TRACK.hidden; if(heard!==TRACK.duck)trackDuck(heard);
- if(!w){ TRACK.hold=false; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
- TRACK.on=true;
+ if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
+ if(!TRACK.on)TRACK.join=w.join?now:null; TRACK.on=true;
+ // (Lloyd: the first seconds after the tap were loud) the file joins the dive on a 3.5 s fade, its
+ // rumble rising under the bed as the bed ducks, and is at full level well before the crash; every
+ // other start (the tour, the loop, a seek) is at level. iOS ignores volume and hears the file as cut
+ if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/3.5)); if(Math.abs(a.volume-v)>0.01)a.volume=v; } else if(a.volume!==1)a.volume=1;
  if(TRACK.hidden||w.paused||(w.free&&TRACK.hold)){ if(!a.paused)a.pause(); if(w.t!=null&&!a.seeking&&Math.abs(a.currentTime-w.t)>0.3)a.currentTime=w.t; return; }
  if(!w.free){ const tol=w.tight?0.08:0.3; if(!a.seeking&&Math.abs(a.currentTime-w.t)>tol)a.currentTime=w.t; }   // the page's clock wins; a seek still landing is left alone
  if(a.paused&&!a.ended&&now>TRACK.ask){ TRACK.ask=now+0.5; const p=a.play(); if(p)p.catch(()=>{}); } }   // asked again every half second until the browser allows it
