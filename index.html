@@ -1607,7 +1607,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3787,7 +3787,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
-function startTour(){ if(tour)return; tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false;
+function startTour(){ if(tour||boom)return; /* the kaleidoscope hands over to the tour by itself in a few seconds; a Tour press in the middle of it would run the tour under the spin and jump the soundtrack */ tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false;
  // the tour starts on its own look, whatever was set (Lloyd: started with other lights, the opening
  // shot was wrong): no event, the launch rainbow at full level; the event shots set theirs from here
  if(document.getElementById('event').checked)setEvent(null); roam=null;   /* a Free roam still fading would keep raising the house through the first shot */
@@ -3827,7 +3827,7 @@ let houseRamp=null;
 function tourStep(now){ const T=tour; if(!T)return; if(tourPaused){ tourShift(now-T.pausedAt); T.pausedAt=now; } const sg=T.segs[T.i]; const k=(now-T.t0)/sg.dur;
  if(houseRamp){ const q=Math.min(1,(now-houseRamp.t0)/houseRamp.dur); lit.house=houseRamp.from+(houseRamp.to-houseRamp.from)*smooth(q); if(q>=1)houseRamp=null; }
  if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
-document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else startTour(); };
+document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else { trackWarm(); startTour(); } };
 // PAUSE AND SCRUB (Lloyd, for the storyboard tool): the tour's clocks are shifted as one, so a
 // pause holds the camera, the paper, the rice and the walk together, and a seek lands mid-shot
 // with the event built and everything time-based wound to that moment. window.tourCtl is what
@@ -4080,25 +4080,35 @@ for(const ev of ['pointerdown','pointerup','keydown','touchstart','touchend','cl
 // (Lloyd) the music starts as soon as the viewer scrolls into view, and stops when it scrolls out.
 // A browser that refuses sound before a gesture leaves the context suspended; the first tap or key
 // above then starts it. On the proposal page the frame carries allow="autoplay" for the same reason.
-{ let inView=false; const want=()=>{ sndInit(); if(!SND.ctx)return; if(inView&&!document.hidden){ if(SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); } else if(SND.ctx.state==='running')SND.ctx.suspend(); };
+{ let inView=false; const want=()=>{ sndInit();
+  // the soundtrack too: out of view or in a hidden tab the frame loop stops, so the file is paused
+  // here rather than left running under a frozen picture; trackStep brings it back into line on return
+  TRACK.hidden=!(inView&&!document.hidden); if(TRACK.hidden&&TRACK.el&&!TRACK.el.paused)TRACK.el.pause();
+  if(!SND.ctx)return; if(inView&&!document.hidden){ if(SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); } else if(SND.ctx.state==='running')SND.ctx.suspend(); };
   new IntersectionObserver(es=>{ inView=es.some(e=>e.isIntersecting); want(); },{threshold:0.3}).observe(stage);
   document.addEventListener('visibilitychange',want); addEventListener('load',want);
   // keep asking: the sound starts the moment the browser allows it, with nothing on screen
   // (Lloyd: no toast, the sound should just start)
   setInterval(want,500); }
-document.getElementById('sound').onchange=e=>{ SND.on=e.target.checked; if(SND.master)SND.master.gain.setTargetAtTime(SND.on?0.6:0,SND.ctx.currentTime,0.1); };
+document.getElementById('sound').onchange=e=>{ SND.on=e.target.checked; if(SND.master)SND.master.gain.setTargetAtTime(SND.on&&!TRACK.duck?0.6:0,SND.ctx.currentTime,0.1); if(TRACK.el)TRACK.el.muted=!SND.on; };
 // THE TOUCH (Lloyd): the eye reaching the shell sets the scene off, a flash of white and the picture
 // folded into a spinning kaleidoscope, and then the tour begins on its own
 let boom=null, approach=null;
 // THE TAP (Lloyd): tapping the object does not start the tour outright. The camera turns to it and
 // drifts in slowly, the view widening and the chord building on the way, until it touches the
 // shell and the touch does the rest. Reset view cancels it.
-function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return; idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
+// the object's float, in metres over its centre at a page time in seconds (portalStep applies it)
+const FLOAT=t=>0.25*Math.sin(t*0.9);
+function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return; trackWarm(); idle=false; const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z);
  // the drift is a spiral: the angle swings early onto the nearest line that meets the object without
  // passing through a column, while the radius closes slowly
  // the look is carried from where it was (Lloyd: no jump): yaw and pitch blend onto the object over
  // the first two seconds, and the idle lens opening eases shut in frame() rather than snapping
- approach={from:eye.clone(),a0:Math.atan2(eye.z-C.z,eye.x-C.x),a1:clearRadial(C,r0,eye.y),r0,t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(C)/0.9),yaw0:yaw,pitch0:pitch}; noclip=true; fabSync(); }
+ approach={from:eye.clone(),a0:Math.atan2(eye.z-C.z,eye.x-C.x),a1:clearRadial(C,r0,eye.y),r0,t0:performance.now()/1000,noclip,dur:Math.max(6,eye.distanceTo(C)/0.9),yaw0:yaw,pitch0:pitch}; noclip=true; fabSync();
+ // where the dive lands: frame() sets the scene off once the eye is inside 1.55 m of the centre,
+ // so the same ease is walked here, with the object's float at each future moment, to find that
+ // moment and the soundtrack's crash is put on it
+ { const A=approach; A.arr=A.dur; for(let i=0;i<=800;i++){ const q=i/800, e=q<0.5?2*q*q:1-2*(1-q)*(1-q); const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y+FLOAT(A.t0+q*A.dur)-A.from.y)*e; if(Math.hypot(r,y-C.y)<1.55){ A.arr=q*A.dur; break; } } } }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
@@ -4109,6 +4119,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
+ if(TRACK.on&&Math.abs(TRACK.el.currentTime-TRACK.sw)>0.15)TRACK.el.currentTime=TRACK.sw;   // the crash on the flash, to the frame
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.5; /* (Lloyd, V4) the flash is back as it was before V2: toned down, and quicker off */ requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s ease-out'; f.style.opacity=0; }); }
@@ -4117,6 +4128,55 @@ function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noc
 // tour fades in from black
 // the kaleidoscope runs 2.5 s (Lloyd: it went on too long, half of the 5 it was)
 const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
+// THE SOUNDTRACK (Lloyd, 2026-09-02): the sound designer's mix for the whole ride, sound/tour.mp3,
+// 163 s of it: the last second of the dive, the crash on the flash, the kaleidoscope, the beat of
+// black, the tour and a tail that plays out over the resting frame. The file rides the page's
+// clocks rather than its own. Two marks place it: its crash peaks at `sw` and the tour's first
+// frame is at `t0` (read off the file's envelope against the tour's cues: the finale starts at
+// 136.3 s in the file, the ceremony cuts to the aisle at 125.6 s, the marks land at 148.1 s). Every
+// frame asks where the file should be for the state the page is in and pulls it back into line
+// when the two clocks drift apart (a pause, a seek, the tool's loop). While the file plays the
+// synthesised bed is muted; it comes back once the file has nothing to play under.
+const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0};
+// ?mute=1 is the storyboard tool's second, phone-sized frame of the same clip: that copy is silent,
+// or the two frames play the mix twice a few hundred ms apart
+const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=false; document.getElementById('sound').checked=false; }
+// preload stays at metadata until a gesture asks for more: a visitor who never taps the object
+// never downloads 3.9 MB alongside the model
+{ const a=new Audio('sound/tour.mp3'); a.preload='metadata'; a.muted=!SND.on; TRACK.el=a; }
+// the gesture-time touch (Enter, the tap on the object, the Tour button): WebKit lets a script play
+// a sound element later only if a gesture touched THAT element, so play() runs inside the gesture
+// and is paused on the spot (nothing is heard, the download starts, the element is unlocked). A
+// NotAllowedError means the browser did not count the gesture; the next one tries again
+function trackWarm(){ const a=TRACK.el; if(!a||TRACK.warm||!a.paused)return; TRACK.warm=true; a.preload='auto'; const p=a.play(); a.pause(); a.currentTime=0; if(p)p.catch(e=>{ if(e&&e.name==='NotAllowedError')TRACK.warm=false; }); }
+// media keys, the lock screen, a headset button: they pause and resume the TOUR, not the file on
+// its own (trackStep would otherwise restart the file within half a second); on the resting frame
+// the tail simply holds until play
+if('mediaSession' in navigator){ try{ navigator.mediaSession.metadata=new MediaMetadata({title:'Gandel Hall',artist:'Lotron Electrical'});
+ navigator.mediaSession.setActionHandler('pause',()=>{ if(tour)window.tourCtl.pause(); else TRACK.hold=true; });
+ navigator.mediaSession.setActionHandler('play',()=>{ TRACK.hold=false; if(tour)window.tourCtl.play(); }); }catch(e){} }
+// where the file should be for the state the page is in, in seconds; null means silent
+function trackWant(now){
+ if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
+  return {t:TRACK.t0+acc+Math.max(0,Math.min(1,(now-T.t0)/sg.dur))*sg.dur, paused:tourPaused}; }
+ if(boom)return {t:TRACK.sw+(now-boom.t0)};
+ // it joins the dive once its crash is due. An Event ticked mid-dive hides the object and the touch
+ // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
+ // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
+ // itself is never seeked
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2}:null; }
+ if(restFinale)return {free:true};   // the tail plays out over the rest
+ return null; }
+function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?0.6:0,c.currentTime,0.3); }
+function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
+ // the bed ducks under the file only while the file is actually heard: a refused play(), a file
+ // that never arrived or the tail's end leave the bed up rather than silence
+ const heard=!a.paused&&!a.ended&&a.readyState>=2&&!TRACK.hidden; if(heard!==TRACK.duck)trackDuck(heard);
+ if(!w){ TRACK.hold=false; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
+ TRACK.on=true;
+ if(TRACK.hidden||w.paused||(w.free&&TRACK.hold)){ if(!a.paused)a.pause(); if(w.t!=null&&!a.seeking&&Math.abs(a.currentTime-w.t)>0.3)a.currentTime=w.t; return; }
+ if(!w.free){ const tol=w.tight?0.08:0.3; if(!a.seeking&&Math.abs(a.currentTime-w.t)>tol)a.currentTime=w.t; }   // the page's clock wins; a seek still landing is left alone
+ if(a.paused&&!a.ended&&now>TRACK.ask){ TRACK.ask=now+0.5; const p=a.play(); if(p)p.catch(()=>{}); } }   // asked again every half second until the browser allows it
 function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
   // the veil goes back to white only once its fade has ended, not on a timer: on a phone the
@@ -4375,7 +4435,7 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
  for(const m of Q.mats)m.uniforms.t.value=now;
- Q.body.position.y=0.25*Math.sin(now*0.9);                       // the float
+ Q.body.position.y=FLOAT(now);                                   // the float
  { const want=hover&&!approach&&!boom?1:0; Q.hov=(Q.hov||0)+(want-(Q.hov||0))*0.12; Q.body.scale.setScalar(1+Q.hov*(0.03+0.03*Math.sin((now-hoverT0)*1.6))); }   // the pulse under the mouse
  Q.outer.rotation.set(now*0.17,now*0.23,now*0.11); Q.inner.rotation.set(-now*0.31,-now*0.27,now*0.19);
  const pulse=0.53+0.08*Math.sin(now*0.7); Q.inner.scale.setScalar(pulse/0.5333);   // the fourth dimension, breathing
@@ -4433,7 +4493,7 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
  resolveMove();
  animate(now/1000); govern(now);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f));
- const wk=WARP.k=warpK(); sndStep(now/1000,boom?null:wk);
+ const wk=WARP.k=warpK(); sndStep(now/1000,boom?null:wk); trackStep(now/1000);
  // the orbit's opened lens eases shut when the orbit ends, instead of snapping (Lloyd: the tap jumped)
  lensOpen+=((idle?(TOUCH?24:18):0)-lensOpen)*Math.min(1,dt*2.5); const fov0=cam.fov; cam.fov=Math.min(100,fov0+lensOpen); cam.updateProjectionMatrix();
  const done=()=>{ cam.fov=fov0; cam.updateProjectionMatrix(); requestAnimationFrame(frame); };
@@ -4453,7 +4513,7 @@ let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
 // (Lloyd) Enter always starts the orbit: a touch on the canvas while the loader was still
 // loading (its pointer-events off) had switched idle off, and the orbit then never began
-document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); };
+document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roam').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); roamStart(); };
 requestAnimationFrame(frame);
 </script>

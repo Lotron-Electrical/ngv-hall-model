@@ -220,12 +220,28 @@ addressed`. `L` reaching 73,536 means every pixel in the map found a universe in
 | --- | --- |
 | `index.html` | the whole viewer: geometry, pixel map, ELM export, live input |
 | `model.glb` | 6 MB scanned hall |
+| `sound/tour.mp3` | the sound designer's 163 s mix for the ride (MP3 CBR 192k; the 24-bit master is `sound/llyod_gandelhall.wav`, ignored by git, and on Lloyd's Drive) |
 | `tools/dmx_bridge.js` | Art-Net / sACN → WebSocket bridge, zero dependencies |
 | `tools/agent-setup.js` | the one command above, JSON-line output, zero dependencies |
 | `tools/elm-fetch.js` | headless CSV / facts extraction over CDP, zero dependencies |
 | `tools/serve.js` | local static server on 127.0.0.1:8877 for headless checks |
 | `tools/run-bridge.cmd` | the double-click path for a human on Windows |
 | `PLAN-agentic.md` | proposed `index.html` changes that would remove the remaining manual steps |
+
+## The soundtrack (2026-09-02)
+
+`sound/tour.mp3` is one file for the whole ride and it follows the page's clocks, never its own:
+`trackStep(now)` in `index.html` runs every frame, asks `trackWant()` where the file should be for
+the state the page is in, and re-seeks the element when the two drift more than 0.3 s. Two marks
+place it, read off the file's envelope against the tour's cues: `TRACK.sw` = 21.9 s is the crash
+that lands on the white flash (`boomStart`), `TRACK.t0` = sw + 2.5 + 1.2 + 0.25 = 25.85 s is the
+tour's first frame. The dive joins the file at `sw - A.arr` (the landing time `approachStart`
+precomputes by walking its own ease), the tour at `t0 + elapsed`, pauses and seeks through
+`tourCtl` follow, the finale's rest lets the tail play out, and anything else silences and
+rewinds it. While it plays the synthesised bed (`SND.master`) is ducked to 0. A server that
+serves the file must answer HTTP byte ranges (206) or the browser cannot seek in it: `tools/serve.js`
+and `tools/storyboard-notes.js` both do; GitHub Pages does. `window.dbg.track()` reports the
+file's clock, the wanted time and the bed's gain for headless checks.
 
 ## Rules for an agent working in this repo
 

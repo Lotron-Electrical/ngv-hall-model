@@ -15,7 +15,7 @@
 const http=require('http'), fs=require('fs'), path=require('path'), os=require('os'), {execSync}=require('child_process');
 const ROOT=path.join(__dirname,'..'), MD=path.join(ROOT,'tour-storyboard.md'), REQ=path.join(ROOT,'storyboard','requests.json'), TITLES=path.join(ROOT,'storyboard','titles.json');
 const port=+(process.argv[process.argv.indexOf('--port')+1])||8890;
-const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.bin':'application/octet-stream','.css':'text/css','.wasm':'application/wasm'};
+const MIME={'.html':'text/html; charset=utf-8','.mp3':'audio/mpeg','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.bin':'application/octet-stream','.css':'text/css','.wasm':'application/wasm'};
 
 // the Notes block of a section is rounds: "V1 (sent 2026-09-01 19:49):" then the text, and so
 // on; the last round is "(draft)" and is what the box on the page edits. A block with no round
@@ -117,7 +117,7 @@ document.querySelectorAll('textarea').forEach(t=>{ t.addEventListener('input',()
 document.querySelectorAll('button.play').forEach(b=>{ b.addEventListener('click',()=>{ const box=document.getElementById('clip-'+b.dataset.key); const open=box.querySelector('iframe');
  document.querySelectorAll('.clip').forEach(c=>{ c.innerHTML=''; }); document.querySelectorAll('button.play').forEach(x=>x.textContent='Play clip');
  if(open)return; // the same shot twice, side by side: the computer's frame and a phone's (Lloyd)
- const src=b.dataset.shot==='all'?'/viewer.html?embed=1&tour=1':'/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'" allow="autoplay"></iframe>'+
+ const src=b.dataset.shot==='all'?'/viewer.html?embed=1&tour=1':'/viewer.html?embed=1&shot='+b.dataset.shot; box.innerHTML='<iframe class="pc" src="'+src+'" allow="autoplay"></iframe><iframe class="ph" src="'+src+'&mute=1" allow="autoplay"></iframe>'+
   '<div class="scrub"><button type="button" class="pp">Pause</button><input type="range" class="sk" min="0" max="1000" value="0"><span class="tm">…</span><button type="button" class="note">Note here</button></div>';
  wireScrub(box); b.textContent='Stop clip'; }); });
 // pause, scrub and note (Lloyd): both frames are driven together through the viewer's tourCtl.
@@ -156,6 +156,10 @@ http.createServer((req,res)=>{
  if(url==='/requests'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(readReq())); return; }
  // the viewer as committed, never the working copy (it may carry another session's unfinished hunks)
  if(url==='/viewer.html'){ try{ const html=execSync('git show HEAD:index.html',{cwd:ROOT,maxBuffer:64e6}); res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(html); }catch(e){ res.writeHead(500); res.end(String(e)); } return; }
- const f=path.join(ROOT,decodeURIComponent(url)); if(f.startsWith(ROOT)&&fs.existsSync(f)&&fs.statSync(f).isFile()){ res.writeHead(200,{'content-type':MIME[path.extname(f)]||'application/octet-stream'}); fs.createReadStream(f).pipe(res); return; }
+ const f=path.join(ROOT,decodeURIComponent(url)); if(f.startsWith(ROOT)&&fs.existsSync(f)&&fs.statSync(f).isFile()){ const size=fs.statSync(f).size, type=MIME[path.extname(f)]||'application/octet-stream';
+  // byte ranges (the soundtrack): the viewer seeks in sound/tour.mp3 by asking for its bytes from the new spot
+  const m=/^bytes=([0-9]*)-([0-9]*)$/.exec(req.headers.range||''); if(m&&(m[1]||m[2])){ const a=m[1]?+m[1]:Math.max(0,size-+m[2]), b=(m[1]&&m[2])?Math.min(+m[2],size-1):size-1; if(a>=size||a>b){ res.writeHead(416,{'content-range':'bytes */'+size}); res.end(); return; }
+   res.writeHead(206,{'content-type':type,'accept-ranges':'bytes','content-range':`bytes ${a}-${b}/${size}`,'content-length':b-a+1}); const st=fs.createReadStream(f,{start:a,end:b}); st.pipe(res); res.on('close',()=>st.destroy()); return; }   /* a browser drops its range request on every seek: the stream goes with it */
+  res.writeHead(200,{'content-type':type,'accept-ranges':'bytes','content-length':size}); const st=fs.createReadStream(f); st.pipe(res); res.on('close',()=>st.destroy()); return; }
  res.writeHead(404); res.end();
 }).listen(port,'0.0.0.0',()=>{ const lan=Object.values(os.networkInterfaces()).flat().find(a=>a.family==='IPv4'&&!a.internal); console.log(`storyboard notes: http://localhost:${port}/  ${lan?'phone: http://'+lan.address+':'+port+'/':''}`); });
