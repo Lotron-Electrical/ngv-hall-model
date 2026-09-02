@@ -4067,10 +4067,13 @@ function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime; SND.wh
  // (Lloyd, V2) no crash: a WHOOSH instead, rising with the iris. Band-passed noise that swells in
  // over the first second, sweeps up through the spectrum and washes away in the reverb; no sub
  // drop and no chord stab
+ // (Lloyd, V3) the wash lasts the whole ride: peak at the switch (0.9 s in, the dive's last
+ // second), then a long fall that comes DOWN through the spectrum and dies exactly as the iris
+ // closes to the point (the kaleidoscope ends 2.5+1.2 s after the switch = 4.6 s in)
  const n=c.createBufferSource(); n.buffer=SND.noise; const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=0.9;
- bp.frequency.setValueAtTime(180,t); bp.frequency.exponentialRampToValueAtTime(3200,t+1.1); bp.frequency.exponentialRampToValueAtTime(700,t+2.6);
- const g=c.createGain(); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.9); g.gain.exponentialRampToValueAtTime(0.001,t+2.6);
- n.connect(bp); bp.connect(g); g.connect(SND.master); g.connect(SND.verb); n.start(t); n.stop(t+2.6); }
+ bp.frequency.setValueAtTime(180,t); bp.frequency.exponentialRampToValueAtTime(3200,t+1.1); bp.frequency.exponentialRampToValueAtTime(220,t+4.6);
+ const g=c.createGain(); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.9); g.gain.exponentialRampToValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.001,t+4.6);
+ n.connect(bp); bp.connect(g); g.connect(SND.master); g.connect(SND.verb); n.start(t); n.stop(t+4.6); }
 // every gesture that a browser counts as user activation: on Android Chrome a touch's pointerdown
 // and touchstart do NOT count, touchend and click do (Lloyd: the sound isn't starting on the phone)
 for(const ev of ['pointerdown','pointerup','keydown','touchstart','touchend','click'])addEventListener(ev,()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); },{passive:true,capture:true});
