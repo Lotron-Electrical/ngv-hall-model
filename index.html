@@ -4063,7 +4063,7 @@ function sndStep(now,k){ const c=SND.ctx; if(!c||c.state!=='running')return; con
  SND.chordGain.gain.setTargetAtTime(0.16*k,t,0.3);
  const N=SND.parts.length; for(const p of SND.parts){ const on=Math.max(0,Math.min(1,(k-p.i/N)*N*0.9)); p.g.gain.setTargetAtTime(on*(p.i<2?0.4:0.6/(p.i+1)),t,0.4); p.o.frequency.setTargetAtTime(110*p.h*(1+0.5*k*k),t,0.5); }
  SND.riser.g.gain.setTargetAtTime(0.25*k*k,t,0.3); SND.riser.o.frequency.setTargetAtTime(220*Math.pow(4,k),t,0.3); }
-function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime;
+function sndBoom(){ const c=SND.ctx; if(!c)return; const t=c.currentTime; SND.whT=t;
  // (Lloyd, V2) no crash: a WHOOSH instead, rising with the iris. Band-passed noise that swells in
  // over the first second, sweeps up through the spectrum and washes away in the reverb; no sub
  // drop and no chord stab
@@ -4101,8 +4101,14 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
  const r=A.r0+(1.2-A.r0)*e, y=A.from.y+(C.y-A.from.y)*e;                    // the far end of the drift is just inside the shell
  poseAt(new THREE.Vector3(C.x+Math.cos(a)*r,y,C.z+Math.sin(a)*r),C);
- const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b; }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync(); sndBoom(); const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0; /* (Lloyd, V2) no flash at all: the kaleidoscope opens out of the dark instead (the iris below) */ }
+ const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b;
+ // (Lloyd, V3) the whoosh belongs to the TRANSITION: it starts on the last second of the dive, so
+ // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
+ if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
+ // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
+ if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
+ const f=document.getElementById('flash'); f.style.transition='none'; f.style.opacity=0; /* (Lloyd, V2) no flash */ }
 // five seconds of slow turn, zoomed right in and drawing in further (Lloyd: the spin was way too
 // fast), then the iris closes over 1.2 s to a point of white in black, a beat of black, and the
 // tour fades in from black
@@ -4118,12 +4124,13 @@ function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  // q is held at 1 through the beat of black: past it (1-q)^2 grew again and the point came
  // back as a growing dot (Lloyd's recording: the blip at the end)
  const q=Math.min(1,Math.max(0,(s-T.kal)/T.iris));
- // (Lloyd, V2) the way IN mirrors the way out: instead of a white flash the picture opens from a
- // point, the iris growing over the first 0.7 s, so the kaleidoscope grows out of the dark
- let ir=-1; if(q>0)ir=Math.max(0,1.4*(1-q)*(1-q)); else if(s<0.7){ const qo=s/0.7; ir=Math.max(0.001,1.4*qo*qo); }
- u.iris.value=ir;   // closing fast at first, slow at the point
+ u.iris.value=q>0?Math.max(0,1.4*(1-q)*(1-q)):-1;   // closing fast at first, slow at the point
  // no shake here: the kaleidoscope is smooth (Lloyd)
- cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
+ // (Lloyd, V3) a PULLING transition: the tap arrives with the view wrapped right round (the
+ // approach ends near 2pi), and the kaleidoscope's own angle is 0.55pi; the first 0.9 s eases one
+ // into the other, so the tesseract's wrapped picture is pulled down into the mandala, no cut
+ const pull=smooth(Math.min(1,s/0.9)), tgt=Math.PI*(0.55-0.05*Math.min(s,T.kal));
+ cam.updateMatrixWorld(); warpRender(1,2*Math.PI+(tgt-2*Math.PI)*pull); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
