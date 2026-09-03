@@ -2780,7 +2780,9 @@ function updateWedding(dt,t){
    // bride's bend is set; the groom's is solved so his head lands 20 cm across and 24 cm in
    // front of hers (V5, V6, V7: the bride is shorter, her head at HB, his at HG)
    const step=0.15*turn; fx-=side*U.x*step; fz-=side*U.z*step;
-   if(i===0){ const phi=0.11*kiss-0.35*dip; W.bphi=phi; W.bh={x:fx+sway+U.x*0.64*Math.sin(phi),z:fz+U.z*0.64*Math.sin(phi)}; cer={phi,leg:0,hip:0.85,lh:HB-0.85}; }
+   // (Lloyd, 2026-09-03) for the kiss she leans FORWARD to meet him in the middle (0.2 rad) and rises
+   // on her toes (6 cm); the dip still takes her back
+   if(i===0){ const phi=0.2*kiss*(1-dip)-0.35*dip, rise=0.06*kiss*(1-dip); W.bphi=phi; W.bh={x:fx+sway+U.x*0.64*Math.sin(phi),z:fz+U.z*0.64*Math.sin(phi)}; cer={phi,leg:0,hip:0.85,lh:HB-0.85,rise}; }
    // (Lloyd, 2026-09-03: the faces clipped into each other) his head lands 24 cm in front of hers
    // and 20 cm across: two heads of 11-12 cm radius, so they touch and no more
    else { const k=Math.max(kiss,dip), R=EVENT.N.inRoom, pb=W.bphi||0, du=0.24*Math.cos(pb); let phi=0, leg=0;
@@ -2795,16 +2797,16 @@ function updateWedding(dt,t){
   const NOWHERE=()=>_cM.compose(_pV.set(0,-99,0),_cQ.identity(),{x:0.001,y:0.001,z:0.001});
   if(cer&&!hide){ const U=EVENT.N.u, ax=new THREE.Vector3(0,1,0).cross(U).normalize(), sxz=i===0?1.15:1, li=3+i;
    const about=(p,a)=>new THREE.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,a)).multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z));
-   const feet=new THREE.Vector3(fx+sway,y0,fz), LR=about(feet,cer.leg);
-   const hips=feet.clone().addScaledVector(U,cer.hip*Math.sin(cer.leg)).setY(y0+cer.hip*Math.cos(cer.leg)), BR=about(hips,cer.phi);
+   const rise=cer.rise||0, feet=new THREE.Vector3(fx+sway,y0+rise,fz), LR=about(feet,cer.leg);   /* rise: on her toes */
+   const hips=feet.clone().addScaledVector(U,cer.hip*Math.sin(cer.leg)).setY(y0+rise+cer.hip*Math.cos(cer.leg)), BR=about(hips,cer.phi);
    // the legs: planted, leaning by leg about the feet; the upper body and the head about the hips
-   _cQ.identity(); _cM.compose(_pV.set(feet.x,y0+cer.hip/2,feet.z),_cQ,{x:sxz,y:cer.hip/1.37,z:sxz}).premultiply(LR); W.cp.bm.setMatrixAt(li,_cM);
+   _cQ.identity(); _cM.compose(_pV.set(feet.x,y0+rise+cer.hip/2,feet.z),_cQ,{x:sxz,y:cer.hip/1.37,z:sxz}).premultiply(LR); W.cp.bm.setMatrixAt(li,_cM);
    NOWHERE(); W.cp.hm.setMatrixAt(li,_cM);
    // the upper body stops just under the head (Lloyd: the bride's head vanished in the kiss and
    // the dip; a 75 cm torso from the hips reached past her head's centre and swallowed it)
    const tl=cer.lh-0.1; _cM.compose(_pV.set(hips.x,hips.y+tl/2,hips.z),_cQ,{x:sxz,y:tl/1.37,z:sxz}).premultiply(BR); W.cp.bm.setMatrixAt(i,_cM);
    const hw=Math.min(sxz,1.1); _cM.compose(_pV.set(hips.x,hips.y+cer.lh,hips.z),_cQ,{x:hw,y:1,z:hw}).premultiply(BR); W.cp.hm.setMatrixAt(i,_cM);
-   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=true; W.gown.position.set(feet.x,y0+0.475,feet.z); W.gown.updateMatrix();
+   if(i===0&&W.gown){ W.gown.visible=W.veil.visible=true; W.gown.position.set(feet.x,y0+rise+0.475,feet.z); W.gown.updateMatrix();
     // the veil on the head, bending with her; lifted: swung back over the head about its crown
     const cr=new THREE.Vector3(hips.x,hips.y+cer.lh+0.14,hips.z); W.veil.position.copy(cr); W.veil.updateMatrix(); W.veil.matrix.premultiply(about(cr,1.05*vLift)).premultiply(BR); } }
   else {
