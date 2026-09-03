@@ -295,6 +295,9 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   the object is magnified more as the view widens while the edge still reaches the full angle (Lloyd,
   2026-09-03: zoom into the tesseract a bit more as the field of view increases). 1 at the hand-over
   from the perspective camera and in the kaleidoscope.
+- Resting sticks (2026-09-03): on a phone, once Free roam has LANDED the eye (`sticksSync`: sink glide
+  done, or the fade from black done), `#sticks` fades in at 50%: MOVE bottom-left, LOOK bottom-right,
+  labels above. Gone with a tour or a shot. The live `#pad` still draws on the thumb as before.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
