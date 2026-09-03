@@ -2777,12 +2777,14 @@ function updateWedding(dt,t){
    // from then on the feet are planted and everything is a BEND AT THE HIPS: the bride back,
    // the groom forward over her, his legs leaning a little toward her too. Each body is legs
    // (their own instance, 3 and 4) plus an upper body and head that turn about the hips. The
-   // bride's bend is set; the groom's is solved so his head lands 16 cm across and 16 cm in
+   // bride's bend is set; the groom's is solved so his head lands 20 cm across and 24 cm in
    // front of hers (V5, V6, V7: the bride is shorter, her head at HB, his at HG)
    const step=0.15*turn; fx-=side*U.x*step; fz-=side*U.z*step;
    if(i===0){ const phi=0.11*kiss-0.35*dip; W.bphi=phi; W.bh={x:fx+sway+U.x*0.64*Math.sin(phi),z:fz+U.z*0.64*Math.sin(phi)}; cer={phi,leg:0,hip:0.85,lh:HB-0.85}; }
-   else { const k=Math.max(kiss,dip), R=EVENT.N.inRoom, pb=W.bphi||0, du=0.16*Math.cos(pb); let phi=0, leg=0;
-    if(W.bh&&k>0){ const hx=W.bh.x+U.x*du+R.x*0.16*k, hz=W.bh.z+U.z*du+R.z*0.16*k;
+   // (Lloyd, 2026-09-03: the faces clipped into each other) his head lands 24 cm in front of hers
+   // and 20 cm across: two heads of 11-12 cm radius, so they touch and no more
+   else { const k=Math.max(kiss,dip), R=EVENT.N.inRoom, pb=W.bphi||0, du=0.24*Math.cos(pb); let phi=0, leg=0;
+    if(W.bh&&k>0){ const hx=W.bh.x+U.x*du+R.x*0.20*k, hz=W.bh.z+U.z*du+R.z*0.20*k;
      // the hips move with the legs' lean, so solve the two together (a few rounds settle it)
      for(let it=0;it<3;it++){ const hu=(hx-(fx+sway))*U.x+(hz-fz)*U.z-0.9*Math.sin(leg); phi=Math.asin(Math.max(-0.98,Math.min(0.3,hu/(HG-0.9)))); leg=0.3*phi; } }
     cer={phi:phi*k,leg:leg*k,hip:0.9,lh:HG-0.9}; } }
