@@ -6,7 +6,7 @@ export class Lift {
     this.floorY = floorY;
     this.pos = hallToWorld(51.2, 5.5, floorY);
     this.yaw = 0;
-    this.deckY = 0.45;
+    this.deckY = 0.85;
     this.height = 0;
     this.aboard = false;
     this.box = null;
@@ -16,49 +16,53 @@ export class Lift {
     this.build();
   }
 
+  // (Lloyd, 2026-09-04: Genie reference photos) a Genie-style slab scissor: blue chassis on four
+  // wheels, a grey stack of crossed arms that flattens as it rises, a blue deck with a full rail
+  // cage and a control box at one end
   build() {
-    const mat = new THREE.MeshStandardMaterial({ color: 0xd2b66d, roughness: 0.55 });
-    const railMat = new THREE.MeshStandardMaterial({ color: 0x69737f, roughness: 0.45 });
-    const armMat = new THREE.MeshStandardMaterial({ color: 0x4f5964, roughness: 0.5 });
-    this.base = new THREE.Mesh(new THREE.BoxGeometry(3, 0.25, 1.2), mat);
-    this.deck = new THREE.Mesh(new THREE.BoxGeometry(3, 0.18, 1.2), mat);
+    const blue = new THREE.MeshStandardMaterial({ color: 0x1b6fd8, roughness: 0.45, metalness: 0.2 });
+    const grey = new THREE.MeshStandardMaterial({ color: 0x8d949c, roughness: 0.55, metalness: 0.3 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x1d2024, roughness: 0.8 });
+    const rubber = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 });
+    this.base = new THREE.Group();
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 1.15), blue); chassis.position.y = 0.45; this.base.add(chassis);
+    for (const x of [-0.85, 0.85]) for (const z of [-0.62, 0.62]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 14), rubber); w.rotation.x = Math.PI / 2; w.position.set(x, 0.22, z); this.base.add(w);
+    }
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.95), dark); tray.position.y = 0.73; this.base.add(tray);
     this.scissor = new THREE.Group();
     this.arms = [];
-    for (const z of [-0.42, 0.42]) {
-      for (let i = 0; i < 2; i++) {
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.9, 0.07), armMat);
-        arm.position.z = z;
-        this.scissor.add(arm);
-        this.arms.push({ arm, side: z, dir: i ? -1 : 1 });
-      }
+    this.N = 5;                         // five crossed pairs, like the GS-2646 stack
+    for (let i = 0; i < this.N; i++) for (const z of [-0.4, 0.4]) for (const dir of [1, -1]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.28, 0.06), grey);
+      this.scissor.add(arm); this.arms.push({ arm, i, z, dir });
     }
-    this.rails = new THREE.Group();
-    for (const z of [-0.62, 0.62]) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.08, 0.05), railMat);
-      rail.position.set(0, 1.05, z);
-      this.rails.add(rail);
-    }
-    for (const x of [-1.45, 1.45]) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.1, 1.25), railMat);
-      rail.position.set(x, 0.58, 0);
-      this.rails.add(rail);
-    }
+    this.deck = new THREE.Group();
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.14, 1.2), blue); plate.position.y = 0; this.deck.add(plate);
+    const rail = (sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), blue); m.position.set(x, y, z); this.deck.add(m); };
+    for (const z of [-0.58, 0.58]) { rail(2.5, 0.05, 0.05, 0, 1.1, z); rail(2.5, 0.04, 0.04, 0, 0.55, z); rail(2.5, 0.12, 0.03, 0, 0.13, z); }
+    for (const x of [-1.23, 1.23]) { rail(0.05, 0.05, 1.2, x, 1.1, 0); rail(0.04, 0.04, 1.2, x, 0.55, 0); }
+    for (const x of [-1.23, -0.41, 0.41, 1.23]) for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, x, 0.55, z);
+    for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, 1.23, 0.55, z);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.2), dark); box.position.set(1.0, 1.0, 0.62); this.deck.add(box);
+    this.rails = new THREE.Group();   // kept for callers that reference it
     this.group.add(this.base, this.scissor, this.deck, this.rails);
+    this.deckY = 0.85;
     this.refresh();
   }
 
   refresh() {
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.yaw;
-    this.base.position.y = 0.12;
-    this.deck.position.y = this.deckY + this.height;
-    this.rails.position.y = this.deckY + this.height;
-    const mid = this.deckY * 0.5 + this.height * 0.5;
-    const angle = THREE.MathUtils.lerp(0.95, 0.18, this.height / 11.6);
+    const top = this.deckY + this.height;          // the deck plate's centre
+    this.deck.position.y = top;
+    // the stack fills the space between the chassis tray (0.76) and the deck: each of the N
+    // pairs takes an equal share, and the arm angle follows from its fixed length
+    const span = Math.max(0.2, top - 0.07 - 0.76), h = span / this.N, L = 1.28;
+    const ang = Math.asin(Math.min(1, h / L));      // from the horizontal
     for (const a of this.arms) {
-      a.arm.position.set(0, mid, a.side);
-      a.arm.rotation.z = a.dir * angle;
-      a.arm.scale.y = 0.95 + this.height * 0.08;
+      a.arm.position.set(0, 0.76 + h * (a.i + 0.5), a.z);
+      a.arm.rotation.z = a.dir * (Math.PI / 2 - ang);
     }
     if (this.box) this.box.mesh.position.copy(this.deckWorld()).add(new THREE.Vector3(0, 0.18, 0));
   }

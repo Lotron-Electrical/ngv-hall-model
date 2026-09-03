@@ -426,3 +426,12 @@ one had the clock at an hour per second and the spawn inside a solid box). Check
 HUD text and console errors and saves %TMP%/game-1.jpg, the phone view after Start Shift).
 Phase 1 = world, controls, lift, pallets/boxes/wrap, fitting, clock, clean-up rule, save.
 Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
+- 2026-09-04 (Claude, no Codex from here): DOUBLE DOORS at the storage doorway (`world.js`: two
+  leaves hung 0.3 m on the hall side of the wall line, swinging 100 degrees into the corridor for
+  anyone within 3.2 m; a parked lift does not hold them; shut = a wall in `collideWorld`). The
+  scanned wall is solid there, so every hall material discards fragments inside the door volume
+  (`onBeforeCompile`; the appended vertex line MUST start on a new line, the chunk ends in
+  #endif). The lift is Genie-styled (`lift.js`: blue chassis + cage, grey 5-pair stack). `fx.js`:
+  fatigue vignette from 01:00, from 03:00 vanishing fitted lights, leaning columns, colour drift,
+  breathing FOV, a ghost lift. Clean-up counts the lift, jack and bags. Off the lift only at ground.
+  Visual checks: `tools/game-look.mjs`, `tools/game-look2.mjs` (contact sheets in %TMP%).

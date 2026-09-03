@@ -161,7 +161,10 @@ export function nearestAction(player, lift, install, items) {
   if (lift.aboard && lift.box && lift.box.lights > 0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
   if (lift.aboard && lift.box && lift.box.lights <= 0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
   if (lift.deckWorld().distanceTo(p) < 1.6 && !lift.aboard) return { label: 'Get on lift', run: () => { player.pos.copy(lift.deckWorld()); lift.aboard = true; } };
-  if (lift.deckWorld().distanceTo(p) < 1.8 && lift.aboard) return { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); lift.aboard = false; } };
+  // off the lift only from the ground: at height the deck is the only floor there is
+  if (lift.deckWorld().distanceTo(p) < 1.8 && lift.aboard) return lift.height < 0.3
+    ? { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); player.pos.y = items.world.floorY; lift.aboard = false; } }
+    : { label: 'Lower the lift to get off', run: null };
 
   const box = items.boxes.find((b) => !b.carried && !b.onLift && !b.disposed && near(b, 1.25));
   if (box) return { label: box.lights > 0 ? 'Take wrapped light from box' : 'Take empty box', run: () => box.lights > 0 ? takeLightFromBox(player, box, items) : carryEmptyBox(player, box, items) };
@@ -353,5 +356,9 @@ export function cleanupClear(items, lift) {
   if (!items.boxes.every((b) => b.disposed || (!b.carried && outside(b.mesh)))) left.push('boxes');
   if (!items.wraps.every((w) => w.bagged || outside(w.mesh))) left.push('wrap');
   if (lift.box && !outside(lift.box.mesh)) left.push('lift box');
+  // (Lloyd) EVERYTHING leaves the hall by 05:00: the machine and the jack as much as the stock
+  if (!outside(lift.group)) left.push('the scissor lift');
+  if (!outside(items.jack.mesh)) left.push('the pallet jack');
+  if (!items.bags.every((b) => b.disposed || outside(b.mesh))) left.push('rubbish bags');
   return { ok: left.length === 0, left };
 }

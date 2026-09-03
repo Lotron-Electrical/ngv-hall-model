@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { loadWorld, collideWorld, hallToWorld } from './world.js';
+import { loadWorld, collideWorld, updateDoors, hallToWorld } from './world.js';
+import { Fx } from './fx.js';
 import { Player } from './player.js';
 import { Lift } from './lift.js';
 import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight } from './items.js';
@@ -22,7 +23,7 @@ player.bind({
 });
 scene.add(camera);
 
-let world, lift, items, install, clock, currentAction;
+let world, lift, items, install, clock, currentAction, fx;
 let last = performance.now();
 let fitClick = null;
 let liftBeep = null;
@@ -58,13 +59,14 @@ async function init() {
   items = createItems(scene, world, camera);
   lift = new Lift(scene, world.floorY);
   clock = new GameClock(saved);
+  fx = new Fx(scene, camera, world.hallScene, lift, install);
   clock.fittedAtStart = install.counts().fitted;
   player.pos.copy(hallToWorld(56.4, 7.5, world.floorY));
   player.yaw = 1.35;
   fitClick = () => tone(880, 0.07);
   liftBeep = () => tone(330, 0.05);
   document.querySelector('#prompt').textContent = 'Press Start Shift';
-  window.game = { player, lift, items, install, clock, world };   // for headless checks
+  window.game = { player, lift, items, install, clock, world, fx, hallToWorld };   // for headless checks
   requestAnimationFrame(loop);
 }
 
@@ -84,7 +86,7 @@ function interact() {
   const before = install.counts().fitted;
   currentAction.run();
   const after = install.counts().fitted;
-  if (after > before) fitClick();
+  if (after > before) { fitClick(); if (install.lastFit) fx.onFit(install.lastFit, player); }
   saveGame(clock, install);
 }
 
@@ -96,6 +98,7 @@ function loop(now) {
   player.update(dt, world, collideWorld);
   const oldLift = lift.height;
   lift.update(dt, player, world, collideWorld);
+  if (!lift.aboard) player.pos.y = world.floorY;   // no gravity to speak of: off the deck you are on the floor
   document.body.classList.toggle('aboard', lift.aboard);
   if (Math.abs(lift.height - oldLift) > 0.002 && now - lastLiftBeep > 450) {
     lastLiftBeep = now;
@@ -103,6 +106,8 @@ function loop(now) {
   }
   camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  updateDoors(dt, world, lift.aboard ? [lift.pos] : [player.pos]);   // the parked lift does not hold the doors open
+  fx.update(dt, clock, player);
   updateItems(player, lift, items);
   if (player.takeDrop()) dropCarry(player, items);
   currentAction = nearestAction(player, lift, install, items);

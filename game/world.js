@@ -19,6 +19,7 @@ export const COLUMN_FEET = [
   [29.67,3.77],[29.96,11.15],[37.18,3.84],[36.82,11.52],[44.54,3.80],[44.23,11.27]
 ];
 
+export function hallPoint(u, d, y = HALL.floorY) { return hallToWorld(u, d, y); }
 export function hallToWorld(u, d, y = HALL.floorY) {
   return HALL.origin.clone().addScaledVector(HALL.u, u).addScaledVector(HALL.inRoom, d).setY(y);
 }
@@ -72,6 +73,23 @@ export async function loadWorld(scene) {
     }
   });
   scene.add(gltf.scene);
+  world.hallScene = gltf.scene;
+  // THE DOORWAY (Lloyd, 2026-09-04: double doors to the storage corridor). The scanned hall has a
+  // solid end wall there, so every hall material discards its fragments inside the door volume:
+  // a 2.5 m x 3 m opening, 1.2 m deep about the wall line, cut in the shader rather than the mesh
+  const o = HALL.origin, U = HALL.u, N = HALL.inRoom;
+  const seen = new Set();
+  gltf.scene.traverse((m) => { if (!m.isMesh) return; for (const mat of [].concat(m.material)) { if (seen.has(mat)) continue; seen.add(mat);
+    mat.onBeforeCompile = (sh) => {
+      const NL = String.fromCharCode(10), V = 'varying vec3 vDoorW;';
+      sh.vertexShader = sh.vertexShader
+        .replace('void main() {', V + ' void main() {')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>' + NL + 'vDoorW = (modelMatrix * vec4(transformed, 1.0)).xyz;' + NL);   // the chunk ends in #endif: the line break matters
+      const cut = ' { vec3 q = vDoorW - vec3(' + o.x + ',' + o.y + ',' + o.z + '); float du = dot(q, vec3(' + U.x + ',' + U.y + ',' + U.z + ')); float dd = dot(q, vec3(' + N.x + ',' + N.y + ',' + N.z + '));'
+        + ' if (abs(du - ' + HALL.doorU + ') < 0.6 && abs(dd - ' + HALL.doorD + ') < ' + (HALL.doorW * 0.5) + ' && vDoorW.y < ' + (o.y + 3.0) + ') discard; }';
+      sh.fragmentShader = sh.fragmentShader.replace('void main() {', V + ' void main() {' + cut);
+    };
+    mat.needsUpdate = true; } });
 
   const floor = new THREE.GridHelper(62, 62, 0x3b3f48, 0x20232a);
   floor.position.y = world.floorY + 0.01;
@@ -106,10 +124,30 @@ export async function loadWorld(scene) {
     scene.add(l);
   }
   const doorFrame = new THREE.MeshStandardMaterial({ color: 0xb9a887, roughness: 0.65 });
-  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.9, 6.15, world.floorY + 1.5), doorFrame));
-  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.9, 8.85, world.floorY + 1.5), doorFrame));
-  scene.add(makeBox(new THREE.Vector3(2.7, 0.15, 0.15), hallToWorld(48.9, 7.5, world.floorY + 3), doorFrame));
+  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.6, 6.15, world.floorY + 1.5), doorFrame));
+  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.6, 8.85, world.floorY + 1.5), doorFrame));
+  scene.add(makeBox(new THREE.Vector3(2.7, 0.15, 0.15), hallToWorld(48.6, 7.5, world.floorY + 3), doorFrame));
 
+  // (Lloyd, 2026-09-04) the storage doorway is a pair of DOUBLE DOORS: two 1.25 m leaves hinged on
+  // the jambs, swinging into the corridor as anyone (or the lift) comes within reach, closing
+  // behind them. A shut pair is a wall; open leaves are passed freely
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.7, metalness: 0.15 });
+  world.doors = [];
+  for (const side of [-1, 1]) {
+    const hinge = new THREE.Group();
+    // hung 0.3 m on the HALL side of the wall line: the model's end wall is solid and one-sided,
+    // so doors behind it would be hidden from the hall (and the wall is see-through from the corridor)
+    hinge.position.copy(hallToWorld(HALL.doorU - 0.3, HALL.doorD + side * HALL.doorW * 0.5, world.floorY));
+    hinge.rotation.y = -Math.atan2(HALL.u.z, HALL.u.x);   // local x along the wall (u), local z = -inRoom
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.95, HALL.doorW * 0.5 - 0.02), leafMat);
+    leaf.position.set(0, 1.5, side * (HALL.doorW * 0.25));   // the leaf hangs from its hinge toward the middle (local z runs -inRoom, so +side is toward the centre for the -1 leaf... both meet at the middle)
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.6), doorFrame);
+    bar.position.set(0.06, 1.05, side * (HALL.doorW * 0.25 + 0.2));
+    hinge.add(leaf, bar);
+    scene.add(hinge);
+    world.doors.push({ hinge, side, open: 0, yaw0: hinge.rotation.y });
+  }
+  world.doorCentre = hallToWorld(HALL.doorU, HALL.doorD, world.floorY);
   const skip = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 1.8), new THREE.MeshStandardMaterial({ color: 0x40556a, roughness: 0.8 }));
   skip.position.copy(world.skip).y += 0.55;
   scene.add(skip);
@@ -117,10 +155,24 @@ export async function loadWorld(scene) {
   return world;
 }
 
+// the doors swing for whoever is near: open within 3 m of the doorway, shut again past it
+export function updateDoors(dt, world, points) {
+  if (!world.doors) return;
+  const near = points.some((p) => p.distanceTo(world.doorCentre) < 3.2);
+  for (const d of world.doors) {
+    d.open = THREE.MathUtils.clamp(d.open + (near ? dt * 1.6 : -dt * 1.1), 0, 1);
+    const k = d.open < 0.5 ? 2 * d.open * d.open : 1 - 2 * (1 - d.open) * (1 - d.open);
+    d.hinge.rotation.y = d.yaw0 + d.side * k * 1.75;   // the wall's own yaw plus 100 degrees, each leaf away from the middle, into the corridor
+  }
+  world.doorsShut = world.doors.every((d) => d.open < 0.15);
+}
+
 export function collideWorld(pos, radius, world) {
   const hd = worldToHall(pos);
   const inDoor = Math.abs(hd.u - HALL.doorU) < 1.2 && Math.abs(hd.d - HALL.doorD) < HALL.doorW * 0.5;
   const inCorridor = hd.u >= HALL.length - 0.1;
+  // shut doors are a wall: nothing crosses the door line until they have swung
+  if (world.doorsShut) { const inHall = hd.u < HALL.doorU; if (inHall && hd.u > HALL.doorU - radius - 0.05) hd.u = HALL.doorU - radius - 0.05; if (!inHall && hd.u < HALL.doorU + radius + 0.05) hd.u = HALL.doorU + radius + 0.05; }
   hd.u = THREE.MathUtils.clamp(hd.u, -0.8, 61);
   if (inCorridor) {
     const c = world.corridor;

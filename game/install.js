@@ -72,6 +72,7 @@ export class Install {
   fit(slot, player) {
     this.fitted.add(slot.id);
     this.drawSlot(slot);
+    this.lastFit = slot;
     player.carry = null;
     return true;
   }
