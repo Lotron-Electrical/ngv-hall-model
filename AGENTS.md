@@ -276,8 +276,9 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
 - Free roam from the float (`roamStart` with the portal visible) is the SINK: over `ROAM.sink` (4 s)
   the object and its name shrink and drop into the void while the disc, the carpet hole and the spot
   close round the falling object (radius = the object's + a hand, capped at 1.7 m) and the eye glides
-  back to `HOME`, the end of the hall on its axis (`roamPathHome`/`roamGlideHome`, sideways to the
-  axis first if the straight line clips a column), then the house rises to `ROAM.houseTo` (0.5) and a warm white
+  to `ROAM_EYE` (`roamHome`: u 48.3, 0.6 m off the far wall; d 7.6, the centre line; 2 m up; looking
+  down the axis) via `roamPathHome`/`roamGlideHome`, sideways to the axis first if the straight line
+  clips a column; Free roam from the rest lands on the same spot, then the house rises to `ROAM.houseTo` (0.5) and a warm white
   comes over the columns (`roamSinkStep`). From the tour's rest, Free roam is still the fade from
   black. `portalReset()` brings the sunk object back whole on Start again; a sink cut short by Tour,
   or by an Event ticked mid-way, is closed out on the spot (`roamed`, `sunk`) for the same reason.

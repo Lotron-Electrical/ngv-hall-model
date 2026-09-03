@@ -1616,7 +1616,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,R,get WARP(){return WARP;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,R,THREE,get EVENT(){return EVENT;},get WARP(){return WARP;},get hall(){return hallGroup;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3879,9 +3879,9 @@ function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false;
  // camera holds where the orbit left it and the sticks are free from here
  if(portal&&portal.group.visible&&!approach&&!boom){ roam={t0:performance.now()/1000,sink:true,phase:0,cam:roamPathHome()}; fabSync(); return; }
  roamed=true; roam={t0:performance.now()/1000};
- // the eye starts where the orbit starts, in the hall looking at its middle (Lloyd: Free roam after
- // the finale spawned the camera outside, in a wall)
- if(portal&&hallGroup){ const C=portal.centre, a=clearAngle(eye,C,ORBIT_R); poseAt(orbitAt(C,a,C.y+0.2),C.clone().setY(C.y-0.2)); safeEye=eye.clone(); }   /* safeEye too: resolveMove was walking the eye there from the finale's spot and the walls stopped it */
+ // the eye starts against the far wall looking down the hall (Lloyd: Free roam after the finale
+ // spawned the camera outside, in a wall)
+ if(hallGroup){ const H=roamHome(); eye.copy(H.eye); yaw=H.yaw; pitch=H.pitch; safeEye=eye.clone(); }   /* (2026-09-03) the same spot as from the float: the far wall, centre line, 2 m up. safeEye too: resolveMove was walking the eye there from the finale's spot and the walls stopped it */
  lit.house=0; state.layers=[WARM()]; state.sel=0; sceneDirty=true;
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; fabSync(); }
 function roamStep(now){ const R=roam; if(!R)return; const s=now-R.t0;
@@ -3917,13 +3917,19 @@ function roamSinkStep(now,s){ const R=roam, Q=portal; if(!Q)return;
 // THE WAY HOME (Lloyd, 2026-09-03): Free roam from the float carries the eye back to HOME, the end
 // of the hall on its axis looking down it, over the sink. Straight if the line passes no column;
 // otherwise sideways to the axis first and then along it (the axis runs clear between the rows)
-function roamPathHome(){ const to=new THREE.Vector3(...HOME.eye), from=eye.clone(), pts=[from,to];
+// where Free roam puts the eye (Lloyd, 2026-09-03, from his screenshot): up against the far wall
+// (measured at u = 48.9 from the event origin, so 0.6 m off it), on the hall's centre line (the
+// column rows stand at d = 3.8 and 11.3, the walls at -0.2 and 15.6), 2 m off the floor, looking
+// straight down the axis. HOME is the veil's hold at the same end and stays what it is
+const ROAM_EYE={u:48.3,d:7.6,h:2.0};
+function roamHome(){ const at=EP(ROAM_EYE.u,ROAM_EYE.h,ROAM_EYE.d), look=EP(0,ROAM_EYE.h,ROAM_EYE.d); const d=look.clone().sub(at).normalize(); return {eye:at,yaw:Math.atan2(-d.z,d.x),pitch:0}; }
+function roamPathHome(){ const H=roamHome(), to=H.eye, from=eye.clone(), pts=[from,to];
  if(!segClear(from,to)){ const via=new THREE.Vector3(from.x,to.y,to.z); if(segClear(from,via)&&segClear(via,to))pts.splice(1,0,via); }
  const legs=[]; let L=0; for(let i=1;i<pts.length;i++){ const l=pts[i].distanceTo(pts[i-1]); legs.push(l); L+=l; }
- return {pts,legs,L,yaw0:yaw,pitch0:pitch}; }
+ return {pts,legs,L,yaw0:yaw,pitch0:pitch,yaw1:H.yaw,pitch1:H.pitch}; }
 function roamGlideHome(P,q){ let d=q*P.L, i=0; while(i<P.legs.length-1&&d>P.legs[i]){ d-=P.legs[i]; i++; }
  eye.copy(P.pts[i]).lerp(P.pts[i+1],P.legs[i]?Math.min(1,d/P.legs[i]):1); safeEye=eye.clone();
- let dy=HOME.yaw-P.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=P.yaw0+dy*q; pitch=P.pitch0+(HOME.pitch-P.pitch0)*q; }
+ let dy=P.yaw1-P.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=P.yaw0+dy*q; pitch=P.pitch0+(P.pitch1-P.pitch0)*q; }
 // whatever the sink left at nothing comes back whole the next time the object is shown (Start again)
 function portalReset(){ const Q=portal; if(!Q||!Q.sunk)return; Q.sunk=false; Q.body.visible=true; Q.body.scale.setScalar(1); Q.words.visible=true; Q.words.scale.setScalar(1); Q.disc.scale.setScalar(1); Q.suck.visible=true; Q.cone.visible=true; Q.spray.visible=true; if(Q.spot)Q.spot.intensity=60;
  for(const m of photoMats)if(m.uniforms.hole)m.uniforms.hole.value.z=Q.holeR; }
