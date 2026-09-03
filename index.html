@@ -3871,13 +3871,13 @@ let entered=false;
 // nothing, then both come up slowly, the house over 6 s and the columns to warm white over 8 s,
 // and the hall is left to walk. The object never comes back.
 let roam=null, roamed=false;
-const ROAM={fade:2,house:6,warm:8, sink:4,close:1.5,sinkHouse:4,sinkWarm:6,houseTo:0.5};
+const ROAM={fade:2,house:6,warm:8, sink:4,close:0,sinkHouse:4,sinkWarm:6,houseTo:0.5};   // close: the void now shuts inside the sink (2026-09-03)
 const WARM=()=>({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}});
 function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false;
  // FROM THE FLOAT (Lloyd, 2026-09-03): the object and its name float down into the void, the void
  // closes over them, then the columns fade to warm white and the house comes up to half. The
  // camera holds where the orbit left it and the sticks are free from here
- if(portal&&portal.group.visible&&!approach&&!boom){ roam={t0:performance.now()/1000,sink:true,phase:0}; fabSync(); return; }
+ if(portal&&portal.group.visible&&!approach&&!boom){ roam={t0:performance.now()/1000,sink:true,phase:0,cam:roamPathHome()}; fabSync(); return; }
  roamed=true; roam={t0:performance.now()/1000};
  // the eye starts where the orbit starts, in the hall looking at its middle (Lloyd: Free roam after
  // the finale spawned the camera outside, in a wall)
@@ -3892,21 +3892,38 @@ function roamStep(now){ const R=roam; if(!R)return; const s=now-R.t0;
  if(s3>=ROAM.warm){ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';} paintUI(); f.style.opacity=0; f.style.background='#fff'; roam=null; }
 }
 // the sink (Lloyd, 2026-09-03; first cut 2026-09-01): over ROAM.sink s the object shrinks and drops to the
-// disc with its name, then over ROAM.close the disc, the hole in the carpet and the spot close up,
+// disc with its name while the disc, the hole in the carpet and the spot close round it (2026-09-03),
 // then the house rises to ROAM.houseTo and a warm white comes over the columns
 function roamSinkStep(now,s){ const R=roam, Q=portal; if(!Q)return;
  if(R.phase<2&&!Q.group.visible){ roamed=true; Q.sunk=true; roam=null; fabSync(); return; }   /* an Event ticked mid-sink took the object away: the sink is over, the event's lighting stands (past phase 2 the object is meant to be gone) */
- if(s<ROAM.sink){ const q=smooth(s/ROAM.sink); Q.body.scale.setScalar(Math.max(0.001,1-q)); Q.body.position.y=Q.body.position.y*(1-q)+Q.disc.position.y*q; Q.words.scale.setScalar(Math.max(0.001,1-q)); Q.words.position.y=3.1*(1-q)+Q.body.position.y;
-  Q.spray.visible=false; return; }
- Q.body.visible=false; Q.words.visible=false;
+ if(s<ROAM.sink){ const q=smooth(s/ROAM.sink), sc=Math.max(0.001,1-q); Q.body.scale.setScalar(sc); Q.body.position.y=Q.body.position.y*(1-q)+Q.disc.position.y*q; Q.words.scale.setScalar(sc); Q.words.position.y=3.1*(1-q)+Q.body.position.y;
+  Q.spray.visible=false;
+  // (Lloyd, 2026-09-03) the void closes WHILE the object falls, hugging it: the disc's radius is the
+  // object's (1.35 m at full size) plus a hand, capped at the disc's own 1.7 m, so it stands still
+  // until the object has shrunk inside it and then closes round it, shut as the object is gone
+  const rad=Math.min(1.7,1.35*sc+0.35), dq=rad/1.7; Q.disc.scale.setScalar(Math.max(0.001,dq)); Q.suck.visible=false; Q.cone.visible=false; if(Q.spot)Q.spot.intensity=60*dq;
+  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR*dq;
+  // and the camera glides back to where the page opens, the end of the hall on its axis (Lloyd)
+  if(R.cam)roamGlideHome(R.cam,q);
+  return; }
+ Q.body.visible=false; Q.words.visible=false; Q.disc.scale.setScalar(0.001); if(Q.spot)Q.spot.intensity=0; for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=0;
+ if(R.cam){ roamGlideHome(R.cam,1); R.cam=null; }
  const s2=s-ROAM.sink;
- if(s2<ROAM.close){ const q=smooth(s2/ROAM.close); Q.disc.scale.setScalar(Math.max(0.001,1-q)); Q.suck.visible=false; Q.cone.visible=false; if(Q.spot)Q.spot.intensity=60*(1-q);
-  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR*(1-q); return; }
  if(R.phase<2){ R.phase=2; roamed=true; Q.sunk=true; R.h0=lit.house; state.layers.push(Object.assign(WARM(),{opacity:0})); fabSync(); }   /* the hole's radius stays shut: portalReset opens it again with the object */
  const s3=s2-ROAM.close, qh=smooth(Math.min(1,s3/ROAM.sinkHouse)), qw=smooth(Math.min(1,s3/ROAM.sinkWarm));
  lit.house=R.h0+(ROAM.houseTo-R.h0)*qh; const W=state.layers[state.layers.length-1]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
  if(s3>=ROAM.sinkWarm){ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; lit.house=ROAM.houseTo; {const h=document.getElementById('house'); h.value=Math.round(ROAM.houseTo*100); document.getElementById('houseval').textContent=h.value+'%';} paintUI(); roam=null; }
 }
+// THE WAY HOME (Lloyd, 2026-09-03): Free roam from the float carries the eye back to HOME, the end
+// of the hall on its axis looking down it, over the sink. Straight if the line passes no column;
+// otherwise sideways to the axis first and then along it (the axis runs clear between the rows)
+function roamPathHome(){ const to=new THREE.Vector3(...HOME.eye), from=eye.clone(), pts=[from,to];
+ if(!segClear(from,to)){ const via=new THREE.Vector3(from.x,to.y,to.z); if(segClear(from,via)&&segClear(via,to))pts.splice(1,0,via); }
+ const legs=[]; let L=0; for(let i=1;i<pts.length;i++){ const l=pts[i].distanceTo(pts[i-1]); legs.push(l); L+=l; }
+ return {pts,legs,L,yaw0:yaw,pitch0:pitch}; }
+function roamGlideHome(P,q){ let d=q*P.L, i=0; while(i<P.legs.length-1&&d>P.legs[i]){ d-=P.legs[i]; i++; }
+ eye.copy(P.pts[i]).lerp(P.pts[i+1],P.legs[i]?Math.min(1,d/P.legs[i]):1); safeEye=eye.clone();
+ let dy=HOME.yaw-P.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=P.yaw0+dy*q; pitch=P.pitch0+(HOME.pitch-P.pitch0)*q; }
 // whatever the sink left at nothing comes back whole the next time the object is shown (Start again)
 function portalReset(){ const Q=portal; if(!Q||!Q.sunk)return; Q.sunk=false; Q.body.visible=true; Q.body.scale.setScalar(1); Q.words.visible=true; Q.words.scale.setScalar(1); Q.disc.scale.setScalar(1); Q.suck.visible=true; Q.cone.visible=true; Q.spray.visible=true; if(Q.spot)Q.spot.intensity=60;
  for(const m of photoMats)if(m.uniforms.hole)m.uniforms.hole.value.z=Q.holeR; }
