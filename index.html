@@ -4214,14 +4214,15 @@ if('mediaSession' in navigator){ try{ navigator.mediaSession.metadata=new MediaM
 // THE TAP SYNTH (Lloyd, 2026-09-03): his own pad, sound/tap.mp3 (the first cycle of
 // legacy_synth_v9_detuned_nosuck_x2.wav, 10 s, 2 dB down): a low chord, and at TAP.tr the chord
 // lifts. A subtle backing track (Lloyd: on its own it was too loud; TAP.gain sets it well under the
-// designer's dive and crash, which play over it as before). It runs from the tap on the object, the
+// designer's dive and crash, which play over it as before). 0.16 was a tiny bit too loud under the
+// tesseract and kaleidoscope (Lloyd, 2026-09-03), so 2 dB under that. It runs from the tap on the object, the
 // lift lands on the flash with the crash, to the frame, and the high chord sits under the
 // kaleidoscope and dies through the iris. The dive's length varies with where the tap comes from, so the low chord
 // waits on a seamless loop of itself (TAP.a to TAP.b, its tail blended into its head once decoded)
 // until the lift is exactly TAP.o2 s of file away, and a second copy then takes over from that spot
 // on a short crossfade and runs through the lift. On the flash the copy's position is checked
 // against TAP.tr and re-cued if a prediction or a hidden tab has put it out.
-const TAP={tr:5.4, a:1.0, b:4.4, o2:0.3, gain:0.16, ease:2.5, buf:null, loopBuf:null, data:null, dec:false, lp:null, lg:null, src:null, g:null, t0:0, o:0, on:false, at:null};
+const TAP={tr:5.4, a:1.0, b:4.4, o2:0.3, gain:0.127, ease:2.5, buf:null, loopBuf:null, data:null, dec:false, lp:null, lg:null, src:null, g:null, t0:0, o:0, on:false, at:null};
 fetch('sound/tap.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ TAP.data=b; }).catch(()=>{});
 function tapDecode(){ const c=SND.ctx; if(!c||TAP.buf||!TAP.data||TAP.dec||TAP.failed)return; TAP.dec=true; c.decodeAudioData(TAP.data.slice(0),b=>{ TAP.buf=b; tapLoopBuf(b); },e=>{ TAP.dec=false; TAP.failed=true; console.warn('tap synth: decode failed',e); }); }
 // the low chord's loop: its last quarter second blended into its first, so the wrap is silent. The
