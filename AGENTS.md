@@ -384,3 +384,15 @@ and what does not survive a restart:
   from ELM's own scheme, silently breaking the CSV patch contract with the browser (proved
   2026-09-01: depth-slices change offset every universe). The import dialog is the only safe
   place for wiring, where "the file is the patch".
+
+## 2026-09-03 (evening): lasers off the people, the kiss as equals, sticks off the rest screen
+- Lasers (Lloyd): never point at people. The two units now hang at the ends of the stage truss
+  (y0+7.35), rays leave slightly downward, every ray is cut at `LASER_FLOOR` (3 m above the floor)
+  and raycast against `hallGroup` so a column or wall ends the beam. Blocking lengths refresh 4
+  rays per unit per frame inside a 0.8 ms budget (`L.len`, `L.cursor`), the floor clamp is applied
+  every frame. `window.dbg.party` exposes the rig for checks (`fx.lasers[].len`).
+- Wedding kiss (Lloyd): no dip. Him over her with her leaning back read as the groom dominating;
+  `dip` is 0, the kiss holds from 9.5 s until they straighten at 13 s, and his solved lean is
+  capped at hers + 0.06 rad.
+- Sticks (Lloyd): free roam, then a tour, and the finale's rest screen came up with the sticks
+  (`roamed` was still true). `sticksSync` now also requires `!finale && !restFinale`.
