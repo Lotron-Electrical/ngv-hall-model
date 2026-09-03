@@ -1586,13 +1586,13 @@ cv.addEventListener('touchstart',e=>{e.preventDefault(); if(locked())return; idl
   // own spot when it lands elsewhere; the floating pad is only for a page with no sticks
   const ring=leftHalf?stickRing('stkmove',t):null, ringed=leftHalf&&roamed&&!ring?{knob:document.querySelector('#stkmove b')}:null;
   if(leftHalf&&!stick){ stick=ring?{id:t.identifier,x0:ring.cx,y0:ring.cy,dx:0,dy:0,el:null,knob:ring.knob}:ringed?{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:null,knob:ringed.knob}:{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; stkHold('move',true); }
-  else if(!leftHalf&&!look){ look={id:t.identifier,x:t.clientX,y:t.clientY,lx:0,ly:0,knob:document.querySelector('#stklook b')}; stkHold('look',true); }
+  else if(!leftHalf&&!look){ const lr=stickRing('stklook',t); look={id:t.identifier,x:t.clientX,y:t.clientY,x0:lr?lr.cx:t.clientX,y0:lr?lr.cy:t.clientY,knob:document.querySelector('#stklook b')}; stkHold('look',true); }   /* (Lloyd) the LOOK knob moves as MOVE's does: from the ring's centre or the thumb's own spot */
   else if(!rise)rise={id:t.identifier,y:t.clientY}; }},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
  for(const t of touchList(e)){
   if(stick&&t.identifier===stick.id){stick.dx=Math.max(-60,Math.min(60,t.clientX-stick.x0)); stick.dy=Math.max(-60,Math.min(60,t.clientY-stick.y0)); moveStick(stick);}
   else if(look&&t.identifier===look.id){const mx=t.clientX-look.x, my=t.clientY-look.y; yaw-=mx*0.005; pitch-=my*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;
-   look.lx=Math.max(-24,Math.min(24,look.lx*0.85+mx*0.6)); look.ly=Math.max(-24,Math.min(24,look.ly*0.85+my*0.6)); look.knob.classList.add('held'); look.knob.style.transform='translate('+look.lx+'px,'+look.ly+'px)';}
+   const kx=Math.max(-60,Math.min(60,t.clientX-look.x0)), ky=Math.max(-60,Math.min(60,t.clientY-look.y0)); look.knob.classList.add('held'); look.knob.style.transform='translate('+(kx*0.4)+'px,'+(ky*0.4)+'px)';}
   else if(rise&&t.identifier===rise.id){eye.y-=(t.clientY-rise.y)*0.01; rise.y=t.clientY;}}},{passive:false});
 function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null; stkHold('move',false);} if(look&&t.identifier===look.id){ look.knob.classList.remove('held'); look.knob.style.transform='translate(0,0)'; look=null; stkHold('look',false); } if(rise&&t.identifier===rise.id)rise=null;}}
 cv.addEventListener('touchend',endTouch); cv.addEventListener('touchcancel',endTouch);
@@ -1780,17 +1780,22 @@ function buildCourt(){
  const gL=build(LOGO.lotron), gE=build(LOGO.electrical);
  for(const g of [gL,gE]){ g.translate(-cx*sc, baseY*sc, -depth/2); }
  const H=(ly1-ly0)*sc, top=(baseY-ly0)*sc, bottom=(baseY-ly1)*sc;
- logoMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},y0:{value:bottom},y1:{value:top}},
+ // (Lloyd, 2026-09-03: make them match the real logos) the letters wear the PNG itself: every
+ // face samples tools/lotron-logo.png at the point of the PNG the vertex was traced from (the
+ // trace's own px -> world mapping run backwards), so the bands, the dark rules and the neon edge
+ // are the logo's own, not a shader's idea of them. The PNG is left in its sRGB values and written
+ // straight to the sRGB framebuffer, as the band shader was. Off the letters (the extrusion's
+ // sides sample the PNG's edge) the nearest band colour stands in
+ const logoTex=new THREE.TextureLoader().load('tools/lotron-logo.png'); logoTex.anisotropy=8;
+ logoMat=new THREE.ShaderMaterial({uniforms:{tex:{value:logoTex},sc:{value:sc},cx:{value:cx},baseY:{value:baseY},pw:{value:7478.0},ph:{value:4405.0},y0:{value:bottom},y1:{value:top}},
   vertexShader:`varying vec3 vP; varying vec3 vN; void main(){vP=position; vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-  // the PNG's seven horizontal bands, red at the top to violet at the bottom, with the dark rule
-  // between them, scrolling slowly downwards; a little shading from the normal so the bevels read
-  fragmentShader:`uniform float t,y0,y1; varying vec3 vP; varying vec3 vN;
+  fragmentShader:`uniform sampler2D tex; uniform float sc,cx,baseY,pw,ph,y0,y1; varying vec3 vP; varying vec3 vN;
    vec3 band(int i){ if(i==0)return vec3(0.93,0.11,0.14); if(i==1)return vec3(0.96,0.48,0.13); if(i==2)return vec3(0.98,0.93,0.15);
     if(i==3)return vec3(0.16,0.72,0.28); if(i==4)return vec3(0.16,0.82,0.93); if(i==5)return vec3(0.25,0.32,0.75); return vec3(0.68,0.22,0.85); }
-   void main(){ float u=fract((y1-vP.y)/(y1-y0)+t*0.12); float f=u*7.0; int i=int(floor(f)); float w=fract(f);
-    float rule=smoothstep(0.0,0.12,w)*smoothstep(1.0,0.88,w); vec3 c=band(i)*(0.25+0.75*rule); float sh=0.7+0.3*abs(vN.z);
-    // written straight to the sRGB framebuffer: the band colours are the PNG's own sRGB values
-    gl_FragColor=vec4(c*sh,1.0);
+   void main(){ float px=vP.x/sc+cx, py=baseY-vP.y/sc; vec4 c=texture2D(tex,vec2(px/pw,1.0-py/ph));
+    float u=clamp((y1-vP.y)/(y1-y0),0.0,0.999); vec3 fb=band(int(floor(u*7.0)));
+    vec3 col=mix(fb,c.rgb,smoothstep(0.2,0.6,c.a)); float sh=0.85+0.15*abs(vN.z);
+    gl_FragColor=vec4(col*sh,1.0);
    }`, toneMapped:false});
  const whiteMat=new THREE.MeshBasicMaterial({color:0xf4f4f2});
  logo=new THREE.Group(); logo.add(new THREE.Mesh(gL,logoMat)); logo.add(new THREE.Mesh(gE,whiteMat)); logo.userData.H=H; logo.userData.W=W; logo.userData.T=top;
@@ -3647,8 +3652,10 @@ function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.pos
 function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark;
  // (Lloyd, V11) the whites on the black were too hard: ENTTEC, ELECTRICAL, Shadow AV's silver and the
  // line above all drop to a soft light grey while the world is black, and come back after
- const soft=0xcfd0cc; if(court&&court.userData.graphite)court.userData.graphite.color.set(dark?soft:0x23272e); /* ENTTEC's graphite letters light on the black (Lloyd) */
- if(logo&&logo.children[1])logo.children[1].material.color.set(dark?soft:0xf4f4f2); if(court&&court.userData.silver)court.userData.silver.color.set(dark?0xb8bcc2:0xd4d8de); if(tag&&tag.children[0])tag.children[0].material.color.set(dark?0xdcdcd8:0xffffff); if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
+ // (Lloyd, 2026-09-03: the real logos) on the black the marks wear their own colours: ENTTEC white,
+ // ELECTRICAL white, Shadow AV a white shield; only the line above stays a soft grey
+ const soft=0xffffff; if(court&&court.userData.graphite)court.userData.graphite.color.set(dark?soft:0x23272e); /* ENTTEC's graphite letters light on the black (Lloyd) */
+ if(logo&&logo.children[1])logo.children[1].material.color.set(dark?soft:0xf4f4f2); if(court&&court.userData.silver)court.userData.silver.color.set(dark?0xffffff:0xd4d8de); if(tag&&tag.children[0])tag.children[0].material.color.set(dark?0xdcdcd8:0xffffff); if(court)for(const o of court.children){ if(o!==turntable&&o!==tag&&o!==gandelTop)o.visible=!dark; } if(hallGroup)hallGroup.visible=!dark; }
 // s: seconds into the shot
 // (Lloyd, V4) the finale is the couple's exit: the camera follows the bride and groom out
 // through the door, right up on their backs so they fill the frame in the doorway, then they
@@ -4753,7 +4760,7 @@ cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.cl
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
  if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }
