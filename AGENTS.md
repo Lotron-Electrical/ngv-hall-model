@@ -411,3 +411,9 @@ and what does not survive a restart:
   drop's curve is `smooth` (ease-in-out glide) instead of the cubic ease-out that entered at full
   speed. The finale is now 6.3 s, so a script placing the wedding by the tour's total uses
   total - 6.3 - 13 - 14.
+- Credits (Lloyd, 2026-09-04): SPECIAL THANKS under the partners, Patrick Connell (Photogrammetry
+  & 3D) left, Gabriel Fischer (Sound design & music) right. `creditsBuild(L)` draws them once to a
+  canvas (IBM Plex Sans) on a W x 0.30 W plane hung in the Lotron mark's group (`logo.userData.cred`,
+  `userData.img` so `markPlanes` shows it on the black), placed by `finaleLayout` (`credY`,
+  `credH`); the whole stack above moved up by `credH + 0.55 H`. Checked at 412x915: clear of the
+  rest buttons.

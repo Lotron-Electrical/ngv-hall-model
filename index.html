@@ -3684,10 +3684,25 @@ function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partn
  // (Lloyd, V2) closer together: the partners nearer the middle and Lotron nearer them; and the
  // big GANDEL HALL above the tag, its height in the framing
  // (Lloyd, 2026-09-03) a bit more air between the marks: the partners to Lotron, Lotron to the line, the line to GANDEL HALL
- const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5+H*0.7, dx=W*0.45, tagY=yTop+T+H*0.9, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*1.3, gH=H*0.95;   /* (Lloyd, V11) GANDEL HALL sits higher, in its own space: it is the hero */
+ // (Lloyd, 2026-09-04) SPECIAL THANKS under the partners: a credits plane credH tall at the foot,
+ // everything above moved up by it
+ const yearTxt=TX1('finale',''), base=yearTxt?0.3+0.45*H+1.0:0.5, credH=W*0.30, credY=base+credH/2, yBot=base+credH+H*0.55, yTop=yBot+pt+0.5+H*0.7, dx=W*0.45, tagY=yTop+T+H*0.9, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*1.3, gH=H*0.95;   /* (Lloyd, V11) GANDEL HALL sits higher, in its own space: it is the hero */
  // (Lloyd, V5) ENTTEC's left edge on LOTRON's left, Shadow AV's right edge on LOTRON's right
  const dx0=W/2-(partners[0].userData.w||W*0.5)/2, dx1=W/2-(partners[1].userData.w||W*0.5)/2;
- return {H,W,T,yTop,yBot,dx,dx0,dx1,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.1*W}; }
+ return {H,W,T,yTop,yBot,dx,dx0,dx1,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.1*W,credY,credH}; }
+// (Lloyd, 2026-09-04) the credits: SPECIAL THANKS centred, Patrick Connell (Photogrammetry & 3D) on
+// the left and Gabriel Fischer (Sound design & music) on the right, drawn once to a canvas and hung
+// on a plane in the Lotron mark's group (so it drops in and stands on the black with the marks;
+// markPlanes shows it as an image plane), placed under the partners by the layout
+function creditsBuild(L){ if(!logo||logo.userData.cred)return; const cv=document.createElement('canvas'); cv.width=2048; cv.height=Math.round(2048*L.credH/L.W);
+ const g=cv.getContext('2d'), F='"IBM Plex Sans",system-ui,Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+ const line=(txt,x,y,px,wt,col,sp)=>{ g.font=wt+' '+px+'px '+F; g.fillStyle=col; try{ g.letterSpacing=(sp||0)+'px'; }catch(e){} g.fillText(txt,x,y); };
+ line('SPECIAL THANKS',1024,110,66,'500','#c9c9c9',14);
+ line('Patrick Connell',560,300,88,'600','#f2f2f2',0); line('Photogrammetry & 3D',560,400,58,'400','#a6a6a6',0);
+ line('Gabriel Fischer',1488,300,88,'600','#f2f2f2',0); line('Sound design & music',1488,400,58,'400','#a6a6a6',0);
+ const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(L.W,L.credH),new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
+ m.position.set(0,L.credY-L.yTop,0.01); m.frustumCulled=false; m.visible=false; m.userData.img=true; logo.add(m); logo.userData.cred=m; }
 function gandelBuild(L){ if(gandelText||!buildCourt.font)return; if(!TX1('finale','')){ gandelTopBuild(L); return; }
  gandelMat=new THREE.ShaderMaterial({uniforms:{t:{value:0},op:{value:0},x0:{value:0},x1:{value:1}},transparent:true,depthWrite:false,toneMapped:false,
   vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -3706,7 +3721,7 @@ function gandelTopBuild(L){ if(gandelTop||!buildCourt.font)return;
  gandelTopMat=makeGlassMat(false); gandelTopMat.uniforms.cell.value=L.gH*1.6; const tg2=new TextGeometry(TX1('finale-top','GANDEL HALL'),{font:buildCourt.font,size:L.gH,height:0.12,curveSegments:3,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.015,bevelSegments:2});
  tg2.computeBoundingBox(); const b2=tg2.boundingBox; tg2.translate(-(b2.min.x+b2.max.x)/2,-b2.min.y,-0.06); tg2.computeVertexNormals();
  gandelTop=new THREE.Mesh(tg2,gandelTopMat); gandelTop.visible=false; gandelTop.quaternion.copy(turntable.quaternion); court.add(gandelTop); }
-function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L);
+function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L); creditsBuild(L);
  const home=o=>({p:o.position.clone(),r:o.rotation.y,s:o.scale.clone()});
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=0;
  // (2026-09-03) the couple keep their own walk: the finale no longer takes them through the door
