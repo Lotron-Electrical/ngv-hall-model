@@ -102,7 +102,8 @@ button.i:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #celebratefab:active{transform:translateX(-50%) scale(.96)}
 /* Free roam (Lloyd, 2026-09-03): not on the veil any more; on the stage above the bar once the hall has been entered */
 /* square-edged and small, the rest buttons' look (Lloyd, 2026-09-03: the pill was too big) */
-#roamfab{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:2px;padding:8px 16px;font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#roamfab{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:30;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1.2s ease,visibility 0s linear 1.2s;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:2px;padding:8px 16px;font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#roamfab.up{opacity:1;visibility:visible;pointer-events:auto;transition:opacity 1.2s ease}
 #roamfab:active{transform:translateX(-50%) scale(.96)}
 /* the tour's own door, front and centre of the view (Lloyd, 2026-09-01); gone while it runs */
 #tourfab{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
@@ -167,7 +168,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
  <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
- <button type="button" id="roamfab" hidden>Free roam</button>
+ <button type="button" id="roamfab">Free roam</button>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -1615,7 +1616,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>!document.getElementById('roamfab').hidden,sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,R,boomStart:()=>boomStart(performance.now()/1000),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -3965,6 +3966,8 @@ function idleStep(now){ if(!hallGroup||!portal||!entered)return;
 // "Gandel Hall / Brought to light" hangs above it, always facing the camera. Clicking or tapping the object
 // starts the tour. It lives only while no tour and no event is running.
 let portal=null, reflecting=false;
+// the kaleidoscope's deal of the twelve mirrors: while `of` is set, mirror i refreshes only on the frame whose phase is i mod of
+const MIRROR_DEAL={n:0,of:0};
 // THE APPROACH (Lloyd, 2026-09-01): the nearer the eye gets to the object, the wider the view and
 // the harder the camera shakes, until at the shell the view is the full 360 degrees and the picture
 // judders and blacks out. A perspective camera cannot pass 180, so inside WARP.far the frame is
@@ -4030,10 +4033,22 @@ function warpRender(k,angOv,everyOv){ warpInit(); const W=WARP;
   R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); W.stale=true; return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
  W.n++;
- if(everyOv?(W.n%everyOv===0):(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1))){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }   /* in the kaleidoscope the mirrors keep the cube's cadence */
+ // (Lloyd, 2026-09-03: the kaleidoscope stutters on the phone, then runs smooth, then stutters) every
+ // fourth frame carried the whole cube pass, six renders of the hall, AND the twelve mirrors: eight
+ // renders in one frame against one in each of the next three, and a phone missed a vsync on every
+ // heavy one, a judder at 15 Hz that came and went with the phone's headroom. Now the six faces are
+ // dealt out over the four frames (two, one, two, one) and so are the mirrors, three a frame (each
+ // mirror is a render of the hall too: all twelve in one frame was the heavier burst, measured 13
+ // renders against 2), so every frame costs about the same, six or seven renders. The cube's size is pinned through it as well: the 512/1024
+ // governor below flapped on the very dip its own switch caused, and each switch drew a fresh cube
+ const ph=everyOv?W.n%everyOv:-1;
+ if(everyOv){ MIRROR_DEAL.n=ph; MIRROR_DEAL.of=everyOv; }
+ if(everyOv||!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
+ MIRROR_DEAL.of=0;
  // pick the cube map by the measured frame rate, with hysteresis so it does not flap
  { const fps=animate.fps||60, now=performance.now();
-   if(W.res===1024&&fps<50){ W.res=512; W.okSince=0; }
+   if(everyOv){ /* pinned */ }
+   else if(W.res===1024&&fps<50){ W.res=512; W.okSince=0; }
    else if(W.res===512){ if(fps<58)W.okSince=0; else if(!W.okSince)W.okSince=now; else if(now-W.okSince>2000)W.res=1024; }
    // still short of 60 at 512: the cube map is refreshed every other frame (the shake hides the half-frame lag)
    W.half=W.res===512&&fps<50;
@@ -4046,13 +4061,21 @@ function warpRender(k,angOv,everyOv){ warpInit(); const W=WARP;
  const every=everyOv||Math.max(W.half?2:1,k<0.5?3:k<0.8?2:1);
  // the first cube frame after the perspective pass always refreshes: the cube it would otherwise
  // show is the warm-up one from the end of the hall (Lloyd: a brief flash before the FOV change)
- if(W.stale||W.n%every===0){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
+ if(W.stale||(!everyOv&&W.n%every===0)){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
   try{ W.cube.update(R,scene); } finally{ reflecting=false; W.stale=false; } }
+ else if(everyOv){ const f=[]; for(let i=0;i<6;i++)if(Math.floor(i*everyOv/6)===ph)f.push(i); warpFaces(f); }
  // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
  const u=W.quad.material.uniforms;
  u.ang.value=ang; u.tanh.value=Math.tan(WARP_SW/2); u.mixf.value=angOv?1:Math.min(1,(ang-WARP_SW)/0.6); u.aspect.value=cam.aspect;
  u.basis.value.setFromMatrix4(cam.matrixWorld);
  R.render(W.qscene,W.qcam); }
+// a few of the cube's six faces, drawn on their own (CubeCamera.update draws all six at once; this is
+// its body, one face at a time, for the kaleidoscope's deal above). Mipmaps are off on these
+// targets, so a face drawn on its own is a face done
+function warpFaces(list){ const W=WARP, C=W.cube; C.position.copy(cam.position); C.updateMatrixWorld();
+ if(C.coordinateSystem!==R.coordinateSystem){ C.coordinateSystem=R.coordinateSystem; C.updateCoordinateSystem(); }
+ const cur=R.getRenderTarget(), xr=R.xr.enabled; R.xr.enabled=false; reflecting=true;
+ try{ for(const i of list){ R.setRenderTarget(W.rt,i); R.render(scene,C.children[i]); } } finally{ reflecting=false; R.setRenderTarget(cur); R.xr.enabled=xr; } }
 // one throwaway pass at both sizes as soon as the object exists: allocating the cube maps and
 // compiling every material for the cube cameras on the first real frame was a visible hitch
 // (Lloyd: it noticeably lags when we enter the field of view sequence)
@@ -4066,7 +4089,9 @@ function warpWarm(){ warpInit(); const W=WARP; cam.position.copy(eye); cam.updat
 // LEVEL: everything 3 dB under where it first sat (Lloyd); BED is the synthesised bed's master at that
 const LEVEL=0.708;
 const SND={ctx:null,on:true,parts:[],chime:0,BED:0.6*0.708};
-function sndInit(){ if(SND.ctx)return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; const c=new AC(); SND.ctx=c;
+// (Lloyd, 2026-09-03) nothing sounds before Enter Gandel Hall is pressed: the gesture and in-view
+// starters below all come through here, and here they wait for the veil to go
+function sndInit(){ if(SND.ctx||!entered)return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; const c=new AC(); SND.ctx=c;
  // (Lloyd, 2026-09-03: all of it a touch too loud, and the treble a touch too much) every WebAudio
  // sound leaves through one shelf, 3 dB down above 5 kHz, and the bed sits at LEVEL below what it was
  const shelf=c.createBiquadFilter(); shelf.type='highshelf'; shelf.frequency.value=5000; shelf.gain.value=-3; shelf.connect(c.destination); SND.shelf=shelf;
@@ -4461,10 +4486,10 @@ function buildPortal(){
     m.onBeforeRender=function(r,sc,cm){
      this.getWorldDirection(nrm); this.getWorldPosition(wp); vv.copy(cm.position).sub(wp).normalize();
      const g=THREE.MathUtils.smoothstep(vv.dot(nrm),0.06,0.28); this.material.uniforms.graze.value=g;
-     if(reflecting||g<=0)return; reflecting=true; const bg=sc.background, env=sc.environment, fog=sc.fog; r.getClearColor(cc); const ca=r.getClearAlpha();
+     if(reflecting||g<=0||(MIRROR_DEAL.of&&this.userData.mi%MIRROR_DEAL.of!==MIRROR_DEAL.n))return; reflecting=true; const bg=sc.background, env=sc.environment, fog=sc.fog; r.getClearColor(cc); const ca=r.getClearAlpha();
      sc.background=null; sc.environment=null; sc.fog=null; r.setClearColor(0x000000,1);
      try{ orig.call(this,r,sc,cm); } finally{ sc.background=bg; sc.environment=env; sc.fog=fog; r.setClearColor(cc,ca); reflecting=false; } };
-    outer.add(m); mirrors.push(m); } }
+    m.userData.mi=mirrors.length; outer.add(m); mirrors.push(m); } }
  const inner=new THREE.Mesh(innerG,glassMat(0.5,0.9));
  const lead=(geo,col,op,add)=>new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,depthWrite:false}));
  outer.add(lead(outerG,0x05050a,0.9,false)); outer.add(lead(outerG,0xffffff,0.35,true));
@@ -4668,7 +4693,11 @@ document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.
 // the button is up while the object floats and nothing else is happening: the same state the float's sound plays in
 // (review) after Stop tour the object is gone and the lock holds, so the button stays up then too:
 // roamStart takes the fade flow when there is no object to sink
-function roamFabSync(){ const b=document.getElementById('roamfab'); const want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&(portal.group.visible||tourDone); if(b.hidden!==!want)b.hidden=!want; }
+// (Lloyd, 2026-09-03) the button fades in only once the fly-in has landed on the orbit (the 5 s glide
+// in idleStep), not the moment Enter is pressed; the fade is the rest buttons' 1.2 s
+function roamFabSync(){ const b=document.getElementById('roamfab'); let want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&(portal.group.visible||tourDone);
+ if(want&&idle&&!tourDone&&(idleT0===null||performance.now()/1000-idleT0<5))want=false;
+ b.classList.toggle('up',want); }
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>

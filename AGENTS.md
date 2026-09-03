@@ -280,9 +280,13 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   black. `portalReset()` brings the sunk object back whole on Start again; a sink cut short by Tour,
   or by an Event ticked mid-way, is closed out on the spot (`roamed`, `sunk`) for the same reason.
   The float's sound plays through the sink and goes out with the close.
-- The kaleidoscope refreshes its cube map and the mirrors every 4th frame (`warpRender(1, ang, 4)`):
-  the spin and the draw-in are the shader's. Measured 66 -> 132 fps uncapped on the PC. A 512/1024
-  cube switch forces a fresh cube.
+- The kaleidoscope refreshes its cube map and the mirrors over a 4-frame cycle (`warpRender(1, ang, 4)`):
+  the spin and the draw-in are the shader's. The six cube faces are dealt 2,1,2,1 across the four
+  frames (`warpFaces`) and the twelve mirrors three a frame (`MIRROR_DEAL`), so every frame costs
+  5-7 hall renders instead of 2 then 13 (Lloyd, 2026-09-03: the phone stuttered, then ran smooth,
+  then stuttered). The cube size is pinned through it. Measured 66 -> 132 fps uncapped on the PC.
+- `#roamfab` fades in (1.2 s, class `up`) only once the 5 s fly-in has landed on the orbit, and no
+  sound at all starts before Enter Gandel Hall (`sndInit` refuses until `entered`).
 - The object sparkles (`SPARK`): ~2.5% of its edge pixels flash white and die away over ~1.1 s,
   additive, only while it floats (not in the dive or the kaleidoscope).
 - The veil's button reads "Enter Gandel Hall" on every device.
