@@ -3875,11 +3875,13 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   // (Lloyd, V6) the shot cuts at 23 s, fading out over its last 1.5 s, and the finale fades in
   // (Lloyd, V8) the shot ends at 10.4 s, mid-aisle, fading out over its last 1.5 s into the finale
-  // (Lloyd, 2026-09-03) the shot is 14 s and ENDS OVER THEIR HEADS: it follows as before, then from
+  // (Lloyd, 2026-09-03) the shot is 13 s and ENDS OVER THEIR HEADS: it follows as before, then from
   // 6 s the eye lifts a little and flies STRAIGHT FORWARD, level, no tilt down (Lloyd), gaining on
   // the couple until it passes over their heads at about 12 s, fading to black as it does; the
   // marks follow on the black. The walk out through the door is gone, and the door with it
-  {celebrate:true,dur:14, cam:k=>{ const tw=k*14, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-12.0)/1.8))));
+  // (Lloyd, 2026-09-03, again) the fade starts BEFORE the eye passes over them (it passes at about 11 s;
+  // the fade runs 9.5 to 12.3 s) and is done before the eye stops moving at 13 s, where the shot ends
+  {celebrate:true,dur:13, cam:k=>{ const tw=k*13, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-9.5)/2.8))));
     // (Lloyd, V3) no sculpture outside the glass in this shot
     const fl=smooth(Math.max(0,Math.min(1,(tw-6)/7))), back=cp.d-3.6;
     const eyeF=EP(uM,1.8,Math.max(3.0,back)), eyeO=EP(uM,2.9,cp.d+2.0), eyeAt=eyeF.lerp(eyeO,fl);
