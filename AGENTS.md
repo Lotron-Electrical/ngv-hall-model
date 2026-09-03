@@ -290,6 +290,10 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   (Lloyd, 2026-09-03: the frame rate held but the picture was choppy). The cube size is pinned. Measured 66 -> 132 fps uncapped on the PC.
 - `#roamfab` fades in (1.2 s, class `up`) only once the 5 s fly-in has landed on the orbit, and no
   sound at all starts before Enter Gandel Hall (`sndInit` refuses until `entered`).
+- The dive's fisheye has a centre zoom (`WARP.pull`, 0.6; the `pull` uniform bends the radius r^pull):
+  the object is magnified more as the view widens while the edge still reaches the full angle (Lloyd,
+  2026-09-03: zoom into the tesseract a bit more as the field of view increases). 1 at the hand-over
+  from the perspective camera and in the kaleidoscope.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
