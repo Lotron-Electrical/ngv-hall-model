@@ -322,16 +322,18 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   out again on rebuild. `resolveMove` casts two rays, at the eye and 1.4 m under it, and an instanced
   hit's normal takes the instance matrix. Measured: from the roam pose a walk stops at the banquet.
 - The wedding's last cut (2026-09-03, Lloyd): the aisle shot is 14 s and ends OVER THE COUPLE'S HEADS
-  (from 6 s the eye rises to 5.5 m and drifts forward, looking down on them), fades to black over its
+  (from 6 s the eye lifts to 2.9 m and flies straight forward, LEVEL, no tilt, passing over them at
+  about 12 s), fades to black over its
   last 1.5 s, and the finale's marks drop in on that black (`FIN.walk` 0, `bo` held at 1 until the
   drop). The walk out through the door is gone: `buildDoor` returns before building the leaf or the
   glazing opening (the wall is glass again), `finaleStart` leaves the couple to their own walk.
 - The column wipe (2026-09-03, Lloyd, the speaker shot): the standing shot's line is clipped in screen
-  space to the strip between the two stage-side columns' silhouettes (`TITLE_WIPE`, `titleWipeHook`
+  space to the strip between the two NEAR columns' silhouettes, the row the eye sweeps past (`TITLE_WIPE`, `titleWipeHook`
   injects a discard on gl_FragCoord.x into every title material, `titleWipeStep` after the camera
   pose projects the columns each frame). The first column uncovers it, the second covers it; the
   shot arms `TITLE_WIPE.cols` each frame and tourStep clears it. Under the wipe the line is set at
-  half the view so it stands whole between the columns; its window is 0.6-14.2 s.
+  half the view so it stands whole between the columns; its window is 0.6-14.2 s. NOTE the live
+  text comes from storyboard/titles.json (fetched over TOUR_TEXT): change windows THERE.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
