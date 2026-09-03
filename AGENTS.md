@@ -299,7 +299,8 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   done, or the fade from black done), MOVE bottom-left and LOOK bottom-right fade in at 50% (80 px
   rings). Each stays until its first touch, then shows while held and fades `STK.linger` s after
   release. They are live: a thumb within 64 px of the MOVE ring drives from its centre (`stickRing`,
-  its knob follows), elsewhere on the left half the floating `#pad` appears as before; the LOOK knob
+  its knob follows), elsewhere on the left half it drives from the thumb's own spot with the ring's
+  knob showing it (the floating `#pad` only appears when not roamed, e.g. a ?shot page); the LOOK knob
   leans with the drag and springs back. Gone with a tour or a shot.
 - The soundtrack file is PARKED at its join point (TRACK.sw - 4.9 s = 17.0 s) while the object floats
   (`trackStep`, no-want branch), so the tap's seek is nil and the bytes are buffered; the join fade is

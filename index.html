@@ -1579,8 +1579,11 @@ cv.addEventListener('touchstart',e=>{e.preventDefault(); if(locked())return; idl
   // (Lloyd, 2026-09-03) the resting sticks are live: a thumb landing on the MOVE ring drives it from
   // the ring's centre (its knob follows the thumb), anywhere else on the left half the pad appears
   // under the thumb as before; the LOOK knob leans with the look drag and springs back
-  const ring=leftHalf?stickRing('stkmove',t):null;
-  if(leftHalf&&!stick){ stick=ring?{id:t.identifier,x0:ring.cx,y0:ring.cy,dx:0,dy:0,el:null,knob:ring.knob}:{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; stkHold('move',true); }
+  // (Lloyd, 2026-09-03: the old pad still showed) once the sticks are the phone's controls, EVERY
+  // left-half touch drives the MOVE ring: from its centre when the thumb lands on it, from the thumb's
+  // own spot when it lands elsewhere; the floating pad is only for a page with no sticks
+  const ring=leftHalf?stickRing('stkmove',t):null, ringed=leftHalf&&roamed&&!ring?{knob:document.querySelector('#stkmove b')}:null;
+  if(leftHalf&&!stick){ stick=ring?{id:t.identifier,x0:ring.cx,y0:ring.cy,dx:0,dy:0,el:null,knob:ring.knob}:ringed?{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:null,knob:ringed.knob}:{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; stkHold('move',true); }
   else if(!leftHalf&&!look){ look={id:t.identifier,x:t.clientX,y:t.clientY,lx:0,ly:0,knob:document.querySelector('#stklook b')}; stkHold('look',true); }
   else if(!rise)rise={id:t.identifier,y:t.clientY}; }},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
