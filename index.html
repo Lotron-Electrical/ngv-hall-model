@@ -4353,12 +4353,12 @@ function sndBus(){ const c=SND.ctx; if(!c)return null; if(!TRACK.bus){ const d=c
   const k=new Audio(URL.createObjectURL(new Blob([h.buffer,new Uint8Array(n).fill(128)],{type:'audio/wav'}))); k.loop=true; k.setAttribute('playsinline',''); TRACK.keep=k; TRACK.keepAsk=0; }
 function keepStep(now,on){ const k=TRACK.keep; if(!k)return; if(!on){ if(!k.paused)k.pause(); return; } if(k.paused&&now>TRACK.keepAsk){ TRACK.keepAsk=now+0.5; const p=k.play(); if(p)p.catch(()=>{}); } }
 function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?SND.BED:0,c.currentTime,0.3); }
-// quiet far off, full close up: the square root of PROX.near over the eye's distance to the object,
-// full at PROX.near (a step outside the shell), about 0.6 on the orbit, a third at the end of the
-// hall where the page opens, never under PROX.floor (a linear ramp hit 0.93 by the orbit: too early).
-// It only follows the eye while the object is the thing to walk up to; the tour, the crash and the
+// quiet far off, full on the orbit: the square root of PROX.near over the eye's distance to the
+// object, full from PROX.near (the orbit's radius; Lloyd: full volume at the orbit, not the shell)
+// inwards, about half at the end of the hall where the page opens, never under PROX.floor. It only
+// follows the eye while the object is the thing to walk up to; the tour, the crash and the
 // kaleidoscope are at level, and once the object has sunk the hall is at level too
-const PROX={floor:0.25,near:2.0};
+const PROX={floor:0.25,near:ORBIT_R};
 function proxStep(now){ const c=SND.ctx, g=SND.prox; if(!c||!g)return; let v=1;
  if(portal&&portal.group.visible&&!tour&&!boom&&!restFinale&&!SHOT&&!TOURQ){ const d=Math.max(PROX.near,eye.distanceTo(portal.centre)); v=Math.max(PROX.floor,Math.sqrt(PROX.near/d)); }
  if(Math.abs(g.gain.value-v)>0.002)g.gain.setTargetAtTime(v,c.currentTime,0.08); }
