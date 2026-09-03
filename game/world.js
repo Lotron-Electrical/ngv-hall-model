@@ -60,7 +60,7 @@ export async function loadWorld(scene) {
   hallGlow.position.copy(hallToWorld(43.5, 7.5, world.floorY + 5.2));
   scene.add(hallGlow);
 
-  const gltf = await new GLTFLoader().loadAsync('../model.glb');
+  const gltf = await new GLTFLoader().loadAsync(new URL('../model.glb', import.meta.url).href);
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = false;

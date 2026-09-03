@@ -53,7 +53,7 @@ function tone(freq, dur) {
 async function init() {
   world = await loadWorld(scene);
   const saved = loadSave();
-  const runsData = await fetch('../runs.json').then((r) => r.json());
+  const runsData = await fetch(new URL('../runs.json', import.meta.url).href).then((r) => r.json());
   install = new Install(scene, runsData, saved);
   items = createItems(scene, world, camera);
   lift = new Lift(scene, world.floorY);
