@@ -396,3 +396,6 @@ and what does not survive a restart:
   capped at hers + 0.06 rad.
 - Sticks (Lloyd): free roam, then a tour, and the finale's rest screen came up with the sticks
   (`roamed` was still true). `sticksSync` now also requires `!finale && !restFinale`.
+- Kiss heads (Lloyd, later): the heads must TOUCH, not clip and not hover. Tuned by measurement
+  through `window.dbg.wedding.cp.hm` instance matrices: target 23 cm ahead / 14 cm across lands
+  the centres 23.0-23.2 cm apart against a 23.1 cm touch distance (the solve undershoots ~4.5 cm).
