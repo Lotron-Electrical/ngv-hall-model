@@ -315,6 +315,12 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   the real colours (LOTRON samples tools/lotron-logo.png at the traced px in `logoMat`). BROUGHT TO LIGHT BY is flat. The lock holds
   through the tour and its rest (`locked`), so a thumb cannot turn the rest frame.
 - The LOOK knob moves as MOVE's does: displacement from the ring's centre or the thumb's own spot.
+- Event colliders (2026-09-03, Lloyd: no clipping into anything in the event scenes but confetti and
+  tiny detail): `eventCollide()` after `scene.add(eventGroup)` puts every Mesh/InstancedMesh of the
+  event into `solids` (people, tables, chairs, stage, lectern, booth...), skipping Points, additive
+  materials (beams, pools) and anything under 0.25 m (tableware, candles); `eventSolids` are pulled
+  out again on rebuild. `resolveMove` casts two rays, at the eye and 1.4 m under it, and an instanced
+  hit's normal takes the instance matrix. Measured: from the roam pose a walk stops at the banquet.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.

@@ -1621,11 +1621,14 @@ function resolveMove(){
  let from=safeEye, want=eye.clone();
  for(let pass=0;pass<2;pass++){
   const d=want.clone().sub(from); const len=d.length(); if(len<1e-6)break;
-  const dir=d.clone().divideScalar(len); rayc.set(from,dir); rayc.far=len+SKIN;
-  const hit=rayc.intersectObjects(solids,false)[0];
+  const dir=d.clone().divideScalar(len); let hit=null;
+  // two rays: one at the eye, one 1.4 m under it, knee height off a 2 m eye (Lloyd, 2026-09-03), so a table or
+  // a guest that stands below the eye line still stops the walk, and the eye cannot ride over them
+  for(const dy of [0,-1.4]){ rayc.set(dy?from.clone().setY(from.y+dy):from,dir); rayc.far=len+SKIN; const h=rayc.intersectObjects(solids,false)[0]; if(h&&(!hit||h.distance<hit.distance))hit=h; }
   if(!hit){from=want; break;}
   const stop=Math.max(0,hit.distance-SKIN); const at=from.clone().addScaledVector(dir,stop);
-  const n=hit.face.normal.clone().transformDirection(hit.object.matrixWorld); if(n.dot(dir)>0)n.negate();
+  const mw=hit.object.matrixWorld; let mwi=mw; if(hit.instanceId!=null){ const im=new THREE.Matrix4(); hit.object.getMatrixAt(hit.instanceId,im); mwi=mw.clone().multiply(im); }   /* an instanced guest or chair: its own turn goes into the normal */
+  const n=hit.face.normal.clone().transformDirection(mwi); if(n.dot(dir)>0)n.negate();
   const rest=d.clone().sub(dir.clone().multiplyScalar(stop)); rest.sub(n.multiplyScalar(rest.dot(n)));
   from=at; want=at.clone().add(rest);
  }
@@ -1886,6 +1889,18 @@ const EVENT={N:{origin:new THREE.Vector3(-54.907447,-1.43545,3.040286), u:new TH
  // runs.json; the stage depth stays inside the d=3.66 shaft face and the guests keep clear of all
  cols:[[7.71,3.82],[7.53,11.41],[14.94,3.86],[14.88,11.29],[22.3,3.86],[22.17,11.33],[29.67,3.77],[29.96,11.15],[37.18,3.84],[36.82,11.52],[44.54,3.80],[44.23,11.27]]};
 let eventGroup=null, confetti=null, confettiMat=null, crowd=null, eventAnim=null, confettiUntil=0, wheelchairs=[], eventSavedLED=null, speaker=null, fxList=[];
+// the event's colliders (Lloyd, 2026-09-03: the eye must not clip into anything in the event scenes,
+// only confetti and tiny detail): every mesh of the event of any size is a solid, on by default
+let eventSolids=[];
+function eventCollide(){ for(const m of eventSolids){ const i=solids.indexOf(m); if(i>=0)solids.splice(i,1); } eventSolids=[]; if(!eventGroup)return;
+ const box=new THREE.Box3(), sz=new THREE.Vector3(), scl=new THREE.Vector3();
+ eventGroup.updateMatrixWorld(true);
+ eventGroup.traverse(o=>{ if(!(o.isMesh||o.isInstancedMesh)||o.isPoints||!o.geometry)return;
+  const mat=Array.isArray(o.material)?o.material[0]:o.material; if(!mat||mat.blending===THREE.AdditiveBlending)return;   /* light beams, pools, glows: not things */
+  if(!o.geometry.boundingBox)o.geometry.computeBoundingBox(); if(!o.geometry.boundingBox)return;
+  box.copy(o.geometry.boundingBox); box.getSize(sz); o.getWorldScale(scl); sz.multiply(scl);
+  if(Math.max(sz.x,sz.y,sz.z)<0.25)return;   /* plates, glasses, candles, hats, cutlery: too small to be walked into */
+  solids.push(o); eventSolids.push(o); }); }
 function clearFx(){ for(const f of fxList){ scene.remove(f.obj); clearTimeout(f.timer); } fxList=[]; }
 // THE COLUMNS DRESS FOR THE EVENT (Lloyd, 2026-08-31): each mode brings its own strip animation.
 // The user's own layer stack is saved on the first event and handed back when the event ends.
@@ -2120,7 +2135,7 @@ function buildEvent(){
  else if(mode==='banquet') buildBanquet(ctx);
  else if(mode==='wedding') buildWedding(ctx);
  else buildParty(ctx);
- scene.add(eventGroup);
+ scene.add(eventGroup); eventCollide();
  applyDay(+document.getElementById('tod').value); sceneDirty=true;
 }
 // shared people machinery: bodies are capsules and heads are spheres, so POSITION is the whole
