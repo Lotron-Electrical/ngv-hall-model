@@ -4309,8 +4309,11 @@ if('mediaSession' in navigator){ try{ navigator.mediaSession.metadata=new MediaM
 // until the lift is exactly TAP.o2 s of file away, and a second copy then takes over from that spot
 // on a short crossfade and runs through the lift. On the flash the copy's position is checked
 // against TAP.tr and re-cued if a prediction or a hidden tab has put it out.
-const TAP={tr:5.4, a:1.0, b:4.4, o2:0.3, gain:0.127, ease:2.5, buf:null, loopBuf:null, data:null, dec:false, lp:null, lg:null, src:null, g:null, t0:0, o:0, on:false, at:null};
-fetch('sound/tap.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ TAP.data=b; }).catch(()=>{});
+// (Lloyd, 2026-09-03, later the same day) OFF: the pad is out from under the dive and the kaleidoscope,
+// the sound designer's file carries them alone. The machinery stays for a change of mind: `off`
+// gates the fetch and every start
+const TAP={off:true, tr:5.4, a:1.0, b:4.4, o2:0.3, gain:0.127, ease:2.5, buf:null, loopBuf:null, data:null, dec:false, lp:null, lg:null, src:null, g:null, t0:0, o:0, on:false, at:null};
+if(!TAP.off)fetch('sound/tap.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ TAP.data=b; }).catch(()=>{});
 function tapDecode(){ const c=SND.ctx; if(!c||TAP.buf||!TAP.data||TAP.dec||TAP.failed)return; TAP.dec=true; c.decodeAudioData(TAP.data.slice(0),b=>{ TAP.buf=b; tapLoopBuf(b); },e=>{ TAP.dec=false; TAP.failed=true; console.warn('tap synth: decode failed',e); }); }
 // the low chord's loop: its last quarter second blended into its first, so the wrap is silent. The
 // end is moved within 30 ms to where its tail is in phase with the head: the pad's fundamentals do
@@ -4336,7 +4339,7 @@ function tapPos(){ return TAP.src?TAP.o+SND.ctx.currentTime-TAP.t0:null; }
 function tapLevel(now){ return TAP.gain*LEVEL*(SND.on?1:0)*(TAP.at==null?1:smooth(Math.min(1,(now-TAP.at)/TAP.ease))); }
 function tapStop(fast){ const c=SND.ctx; if(!c)return; const t=c.currentTime; for(const [k,gk] of [['lp','lg'],['src','g']]){ const old=TAP[k]; if(!old)continue; const og=TAP[gk]; TAP[k]=null; og.gain.setTargetAtTime(0,t,fast?0.08:0.3); try{ old.stop(t+(fast?0.4:1.2)); }catch(e){} } TAP.on=false; TAP.at=null; }
 // every frame: the wait, the take-over, the flash, the fade through the iris, the end
-function tapStep(now){ const c=SND.ctx; if(!c)return; tapDecode();
+function tapStep(now){ const c=SND.ctx; if(!c||TAP.off)return; tapDecode();
  if(c.state!=='running'){ if(TAP.on||TAP.src)TAP.stale=true; return; }
  if(TAP.stale){ TAP.stale=false; tapStop(true); }   // the audio clock stood still while the page's ran on: start over from where the page is
  if(approach&&!boom){ const A=approach; if(A.arr==null||!portal.group.visible){ if(TAP.on)tapStop(true); return; }   // the dive parked at a hidden object: nothing to lift for

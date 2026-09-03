@@ -250,7 +250,7 @@ dive's file is actually heard (which itself fades in over 3.5 s from that moment
 roam, the rest, the tool's clips, or once the object has gone. On a free flight by hand the bed's
 chord and riser stay up over the float as the build-up.
 
-Under the dive and the kaleidoscope (2026-09-03) runs the tap synth (`TAP`, `tapStep`), a SUBTLE
+OFF since 2026-09-03 afternoon (`TAP.off`; Lloyd: take out the pad synth backing track), kept for a change of mind: under the dive and the kaleidoscope ran the tap synth (`TAP`, `tapStep`), a SUBTLE
 backing at `TAP.gain` (0.16) beneath the designer's riser, crash and wash, which play as before: the
 low chord starts on the tap on a seamless loop of itself (`TAP.a` to `TAP.b`), a second copy takes
 over from `TAP.o2` s before the lift so that the lift (`TAP.tr` = 5.4 s in the file) lands on the
