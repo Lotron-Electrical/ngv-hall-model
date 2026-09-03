@@ -3592,7 +3592,7 @@ function titleStep(s,at,look,spec,yOff=0.35){ if(!titles&&!buildCourt.font)retur
  const fwd=look.clone().sub(at).setY(0).normalize(); const on=new Set();
  for(const [text,t0,t1] of spec){ const g=titleGroup(text); if(!g)continue; const t=s-t0; let f=0; if(t>0&&s<t1)f=Math.min(1,t/0.6,(t1-s)/0.6); if(f<=0)continue; on.add(g); g.visible=true;
   for(const m of g.userData.mats)m.opacity=m.userData.base*Math.min(f,m.userData.delay?Math.max(0,Math.min(1,(t-m.userData.delay)/0.6)):1); if(g.userData.glint)titleGlint.uniforms.op.value=f; if(g.userData.shimmer)titleShimmer.uniforms.op.value=f; if(g.userData.glass)titleGlass.uniforms.op.value=f;
-  g.scale.setScalar(Math.min(1,(TITLE_WIPE.cols?0.5:0.86)*vw/g.userData.w));   /* under the column wipe the line is set narrower, so it can stand whole between the two columns */
+  g.scale.setScalar(Math.min(1,0.86*vw/g.userData.w));   /* the same size under the column wipe as anywhere else (Lloyd) */
   if(yOff===0){ g.position.copy(at).addScaledVector(look.clone().sub(at).normalize(),TITLE_D); g.quaternion.copy(cam.quaternion); }   /* mid-picture whatever the pitch (Lloyd, shot 5) */
   else { g.position.copy(at).addScaledVector(fwd,TITLE_D).setY(at.y+yOff); g.rotation.y=Math.atan2(at.x-g.position.x,at.z-g.position.z); } }
  if(titles)for(const g of titles.children)if(!on.has(g))g.visible=false; }

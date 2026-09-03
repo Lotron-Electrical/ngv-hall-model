@@ -331,8 +331,8 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   space to the strip between the two NEAR columns' silhouettes, the row the eye sweeps past (`TITLE_WIPE`, `titleWipeHook`
   injects a discard on gl_FragCoord.x into every title material, `titleWipeStep` after the camera
   pose projects the columns each frame). The first column uncovers it, the second covers it; the
-  shot arms `TITLE_WIPE.cols` each frame and tourStep clears it. Under the wipe the line is set at
-  half the view so it stands whole between the columns; its window is 0.6-14.2 s. NOTE the live
+  shot arms `TITLE_WIPE.cols` each frame and tourStep clears it. The line keeps its normal size
+  (Lloyd); its window is 0.6-14.2 s. NOTE the live
   text comes from storyboard/titles.json (fetched over TOUR_TEXT): change windows THERE.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
