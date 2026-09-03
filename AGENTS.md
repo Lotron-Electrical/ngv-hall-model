@@ -250,13 +250,13 @@ dive's file is actually heard (which itself fades in over 3.5 s from that moment
 roam, the rest, the tool's clips, or once the object has gone. On a free flight by hand the bed's
 chord and riser stay up over the float as the build-up.
 
-The dive and the kaleidoscope (2026-09-03) are the tap synth's (`TAP`, `tapStep`): the low chord
-starts on the tap on a seamless loop of itself (`TAP.a` to `TAP.b`), a second copy takes over from
-`TAP.o2` s before the lift so that the lift (`TAP.tr` = 5.4 s in the file) lands on the flash to the
-frame (re-cued at `boomStart` if more than 120 ms out), the high chord holds through the spin and
-dies through the iris. Through the dive and the kaleidoscope the tour's file is cued to 25.85 s and
-held, so the designer's riser and crash are no longer heard; the tour starts on the black beat.
-Without a synth (not yet decoded, decode failed) the designer's riser and crash are the fallback.
+Under the dive and the kaleidoscope (2026-09-03) runs the tap synth (`TAP`, `tapStep`), a SUBTLE
+backing at `TAP.gain` (0.16) beneath the designer's riser, crash and wash, which play as before: the
+low chord starts on the tap on a seamless loop of itself (`TAP.a` to `TAP.b`), a second copy takes
+over from `TAP.o2` s before the lift so that the lift (`TAP.tr` = 5.4 s in the file) lands on the
+flash with the crash, to the frame (re-cued at `boomStart` if more than 120 ms out), the high chord
+holds under the spin and dies through the iris. Lloyd, on hearing it alone: too loud; it is a
+background backing track, the other sounds stay.
 The loop's end is found by phase once decoded (`TAP.bFound`, ~4.415 s: a blend of anti-phase windows
 dipped 6 dB at every wrap). Every WebAudio sound goes through `sndBus()`, a limiter, and while any
 WebAudio sound is heard with the file paused a one-second silent element loops (`TRACK.keep`) so
