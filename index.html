@@ -1557,7 +1557,9 @@ paintUI();
 const keys={};
 // THE LOCK (Lloyd, 2026-09-03): from Enter until Free roam nothing moves the eye by hand, not the sticks,
 // the keys, the mouse or the phone remote; the visitor taps the object or presses Free roam
-const locked=()=>entered&&!roam&&!roamed&&!SHOT&&!TOURQ;
+// (2026-09-03) and through the tour and its rest as well: a Free roam before the tour left the sticks
+// free, and a thumb on the rest frame turned the eye off the marks (Lloyd: the logos shifted)
+const locked=()=>entered&&(!(roam||roamed)||!!tour||restFinale)&&!SHOT&&!TOURQ;
 addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); if(locked())return; keys[e.code]=true; idle=false; });
 addEventListener('keyup',e=>{keys[e.code]=false;});
 let looking=false,lx=0,ly=0;
@@ -1797,8 +1799,9 @@ function buildCourt(){
  // It HOVERS above the sculpture and GLOWS (Lloyd): a bright white face with a soft additive halo
  // (the same letters, slightly inflated, blended in), bobbing gently in frame().
  const tagSize=H*0.34; let tagY=top+H*1.1;   // raised again below, once the partners' heights are known
- const addTag=(font)=>{ if(!logo)return; const tg=new TextGeometry(TX1('sculpture','BROUGHT TO LIGHT BY'),{font,size:tagSize,height:depth*0.4,curveSegments:3,bevelEnabled:false});
-  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2, -(b.min.y+b.max.y)/2, -depth*0.2); tg.computeVertexNormals();
+ // (Lloyd, 2026-09-03) FLAT, not 3D: the letters have no depth to speak of, a face on the black
+ const addTag=(font)=>{ if(!logo)return; const tg=new TextGeometry(TX1('sculpture','BROUGHT TO LIGHT BY'),{font,size:tagSize,height:0.002,curveSegments:3,bevelEnabled:false});
+  tg.computeBoundingBox(); const b=tg.boundingBox; tg.translate(-(b.min.x+b.max.x)/2, -(b.min.y+b.max.y)/2, -0.001); tg.computeVertexNormals();
   const core=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));
   const halo=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0xfff6dc,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
   // (Lloyd, finale V9) the glow a touch softer: it read too bright against the black
