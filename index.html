@@ -1729,6 +1729,9 @@ const PARTNER_LOGOS={"enttec":{"white":"M48.0019 85.84H0.671875V2.25H48.0019V13.
 
 const LOTRON_PATH_UNUSED='M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z';
 let court=null, logo=null, logoMat=null, tag=null, partners=[], turntable=null;
+// the proposal page's logo images for the finale's marks (see markPlaneBuild), declared up here
+// because the court is built before the finale's code below has been evaluated
+const MARK_IMG={lotron:['tools/logo-lotron.png',1120/286],enttec:['tools/logo-enttec.png',1400/226],shadow:['tools/logo-shadow.png',709/300]};
 function courtPoint(u,y,z){ // u along the wall from its origin, z metres beyond the glass line, y absolute
  return COURT.origin.clone().addScaledVector(COURT.u,u).addScaledVector(COURT.n,-(COURT.glassOut+z)).setY(y);
 }
@@ -1858,6 +1861,7 @@ function buildCourt(){
  ];
  // the tag hovers clear of the TALLEST mark on the turntable, not just Lotron (Lloyd: it must not
  // intersect any logo as they come round)
+ markPlaneBuild();   /* the image planes, so the finale's layout sees the partners' image sizes */
  tagY=Math.max(tagY, Math.max(...partners.map(p=>p.userData.top))+H*0.8);
  if(buildCourt.font)addTag(buildCourt.font); else new FontLoader().load('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json',f=>{buildCourt.font=f; addTag(f);});
  court.visible=document.getElementById('court').checked;
@@ -3649,7 +3653,22 @@ function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.pos
  if(wedding){ wedding.fin=null; wedding.gone=true; }
  finaleLights(false); finale=null; }
 // the world off (the court's paving, the hall, the sky) and back on
-function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark;
+// (Lloyd, 2026-09-03: use the real logos we have on the proposal page) on the black the three marks
+// are the proposal page's own logo images on flat planes: LOTRON+ELECTRICAL as wide as the
+// sculpture's LOTRON, and ENTTEC and Shadow AV in EQUAL widths (Lloyd), 0.45 W each with a tenth
+// of W between them, each at its image's own aspect and centred on one another. The planes are
+// built with the court (the finale's layout reads the partners' sizes from them), shown on the
+// black and hidden when the world comes back; the sculptures do the reverse
+function markPlaneBuild(){ if(!logo||partners.length<2||logo.userData.plane)return; const {W}=logo.userData, wP=W*0.45;
+ const mk=(grp,file,a,w,yc)=>{ const h=w/a, tex=new THREE.TextureLoader().load(file); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
+  m.position.set(0,yc==null?h/2:yc,0); m.frustumCulled=false; m.visible=false; m.userData.img=true; grp.add(m); grp.userData.plane=m; return h; };
+ mk(logo,MARK_IMG.lotron[0],MARK_IMG.lotron[1],W);
+ const h0=wP/MARK_IMG.enttec[1], h1=wP/MARK_IMG.shadow[1], hm=Math.max(h0,h1);
+ mk(partners[0],MARK_IMG.enttec[0],MARK_IMG.enttec[1],wP,hm/2); mk(partners[1],MARK_IMG.shadow[0],MARK_IMG.shadow[1],wP,hm/2);
+ for(const g of partners){ g.userData.w=wP; g.userData.top=hm; } }
+function markPlanes(dark){ markPlaneBuild(); for(const grp of [logo,...partners]){ if(!grp||!grp.userData.plane)continue; for(const c of grp.children){ if(c.userData.img)c.visible=dark; else c.visible=!dark; } } }
+function finaleLights(dark){ if(finaleDark===dark)return; finaleDark=dark; markPlanes(dark);
  // (Lloyd, V11) the whites on the black were too hard: ENTTEC, ELECTRICAL, Shadow AV's silver and the
  // line above all drop to a soft light grey while the world is black, and come back after
  // (Lloyd, 2026-09-03: the real logos) on the black the marks wear their own colours: ENTTEC white,

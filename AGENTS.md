@@ -308,9 +308,11 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
 - Soundtrack drift (2026-09-03, Lloyd: the sounds glitch/skip): the file is no longer seeked on small
   drift (a seek is a dropout on a phone); drift under 0.6 s is pulled in by playbackRate 0.95-1.05
   (`preservesPitch=false`), only a miss of 0.6 s+ seeks, and boomStart re-cues only past 0.6 s.
-- The finale marks are the REAL logos (2026-09-03): LOTRON's faces sample tools/lotron-logo.png at the
-  traced px (the trace mapping run backwards in `logoMat`), ENTTEC white + blue, Shadow AV a white
-  shield; on the black nothing is dimmed but the tag. BROUGHT TO LIGHT BY is flat. The lock holds
+- The finale marks on the black are the PROPOSAL PAGE'S OWN LOGO IMAGES (2026-09-03) on flat planes
+  (`MARK_IMG`, `markPlaneBuild` with the court, `markPlanes(dark)` swaps them for the sculptures):
+  LOTRON+ELECTRICAL at W wide, ENTTEC and Shadow AV in EQUAL widths (0.45 W) centred on each other;
+  the finale layout reads the partners' sizes from the planes. The court's 3D sculptures still wear
+  the real colours (LOTRON samples tools/lotron-logo.png at the traced px in `logoMat`). BROUGHT TO LIGHT BY is flat. The lock holds
   through the tour and its rest (`locked`), so a thumb cannot turn the rest frame.
 - The LOOK knob moves as MOVE's does: displacement from the ring's centre or the thumb's own spot.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
