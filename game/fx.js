@@ -16,8 +16,9 @@ export class Fx {
     this.bg = scene.background ? scene.background.clone() : new THREE.Color(0x08090b);
   }
 
-  // the level is 0 before 03:00, 1 at 04:00, 1.8 at 05:00: the last hour is the worst (Lloyd)
-  levelFor(clock) { const h = clock.minute / 60; return h < 27 ? 0 : h < 28 ? (h - 27) : 1 + (h - 28) * 0.8; }
+  // the level follows the BODY (Lloyd, 2026-09-04: a stamina and fatigue system): nothing under 70
+  // fatigue, 1 at 85, 1.8 at 100. Working hard through the night brings it on sooner
+  levelFor(clock, body) { const f = body ? body.fatigue : 0; return f < 70 ? 0 : f < 85 ? (f - 70) / 15 : 1 + (f - 85) / 15 * 0.8; }
 
   onFit(slot, player) {
     if (this.level <= 0 || !slot.mesh) return;
@@ -25,12 +26,12 @@ export class Fx {
     if (Math.random() < 0.25 + 0.3 * Math.min(1, this.level)) this.vanish = { slot, yaw0: player.yaw, hidden: false, until: 0 };
   }
 
-  update(dt, clock, player) {
+  update(dt, clock, player, body) {
     this.t += dt;
-    this.level = this.levelFor(clock);
+    this.level = this.levelFor(clock, body);
     const L = this.level, k = Math.min(1, L);
     // the tired eye: a vignette that closes in from 01:00 and pulses in the small hours
-    const tired = Math.max(0, Math.min(1, (clock.minute / 60 - 25) / 3));
+    const tired = body ? Math.max(0, Math.min(1, (body.fatigue - 30) / 50)) : 0;
     if (this.vignette) this.vignette.style.opacity = (tired * 0.55 + k * 0.25 * (0.5 + 0.5 * Math.sin(this.t * 0.7))).toFixed(3);
     if (L <= 0) { this.reset(); return; }
     // the view breathes and rolls a little; the columns lean

@@ -435,3 +435,11 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   fatigue vignette from 01:00, from 03:00 vanishing fitted lights, leaning columns, colour drift,
   breathing FOV, a ghost lift. Clean-up counts the lift, jack and bags. Off the lift only at ground.
   Visual checks: `tools/game-look.mjs`, `tools/game-look2.mjs` (contact sheets in %TMP%).
+- Stamina + fatigue (Lloyd, 2026-09-04): `body.js`. Stamina drains with effort (carry 4/s, jacked
+  pallet 7/s, riding the lift 1.2/s), recovers at rest (9/s standing, 4/s walking, slower as
+  fatigue rises); under 15 you crawl, under 10/15 you cannot take a box / jack a pallet. Fatigue
+  climbs with the clock (2/h to 01:00, 6, 12, 20/h in the last hours) plus a tenth of stamina
+  spent; it lowers the stamina ceiling (to 40 at 100) and speed (to 55%), and drives the small
+  hours (`fx.levelFor`: from 70 fatigue). Two bars under the HUD. Reach is measured on the floor
+  plan (`items.js near`): the old straight-line reach from the eye never got a bag on the floor.
+  Boarding the lift is by ACTION only; the lift parks at (53.6, 9.6), the jack at (55.8, 9.6).

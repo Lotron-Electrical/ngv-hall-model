@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { loadWorld, collideWorld, updateDoors, hallToWorld } from './world.js';
 import { Fx } from './fx.js';
+import { Body } from './body.js';
 import { Player } from './player.js';
 import { Lift } from './lift.js';
 import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight } from './items.js';
@@ -23,7 +24,7 @@ player.bind({
 });
 scene.add(camera);
 
-let world, lift, items, install, clock, currentAction, fx;
+let world, lift, items, install, clock, currentAction, fx, body;
 let last = performance.now();
 let fitClick = null;
 let liftBeep = null;
@@ -59,6 +60,8 @@ async function init() {
   items = createItems(scene, world, camera);
   lift = new Lift(scene, world.floorY);
   clock = new GameClock(saved);
+  body = new Body();
+  player.body = body;
   fx = new Fx(scene, camera, world.hallScene, lift, install);
   clock.fittedAtStart = install.counts().fitted;
   player.pos.copy(hallToWorld(56.4, 7.5, world.floorY));
@@ -66,7 +69,7 @@ async function init() {
   fitClick = () => tone(880, 0.07);
   liftBeep = () => tone(330, 0.05);
   document.querySelector('#prompt').textContent = 'Press Start Shift';
-  window.game = { player, lift, items, install, clock, world, fx, hallToWorld };   // for headless checks
+  window.game = { player, lift, items, install, clock, world, fx, body, hallToWorld };   // for headless checks
   requestAnimationFrame(loop);
 }
 
@@ -94,7 +97,11 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   resize();
-  player.speedScale = clock.fatigue();
+  // the body: what it carries and whether it moves this frame set the drain
+  const load = items.jack.held && items.jack.carrying ? 3 : (player.carry && player.carry.type !== 'wrap') || (items.jack.held) ? 2 : player.carry ? 1 : (lift.aboard ? 1 : 0);
+  const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.aboard && (player.liftUp || player.liftDown));
+  if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving);
+  player.speedScale = body.speedScale();
   player.update(dt, world, collideWorld);
   const oldLift = lift.height;
   lift.update(dt, player, world, collideWorld);
@@ -107,13 +114,13 @@ function loop(now) {
   camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
   updateDoors(dt, world, lift.aboard ? [lift.pos] : [player.pos]);   // the parked lift does not hold the doors open
-  fx.update(dt, clock, player);
+  fx.update(dt, clock, player, body);
   updateItems(player, lift, items);
   if (player.takeDrop()) dropCarry(player, items);
   currentAction = nearestAction(player, lift, install, items);
   if (player.takeAction()) interact();
   clock.update(dt);
-  updateHud(document.querySelector('#stats'), document.querySelector('#prompt'), clock, install, currentAction, player.carry);
+  updateHud(document.querySelector('#stats'), document.querySelector('#prompt'), clock, install, currentAction, player.carry, body);
   if (clock.ended && !document.querySelector('#summary').classList.contains('up')) {
     const fittedTonight = install.counts().fitted - clock.fittedAtStart;
     clock.running = false;
@@ -129,6 +136,7 @@ document.querySelector('#nextNight').addEventListener('click', () => {
   document.querySelector('#summary').classList.remove('up');
   resetForNight(player, lift, items);
   clock.nextNight(install.counts().fitted);
+  body.nextNight();
   document.querySelector('#overlay').classList.remove('gone');
   document.body.classList.remove('playing');
   saveGame(clock, install);

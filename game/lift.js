@@ -4,7 +4,7 @@ import { hallToWorld } from './world.js';
 export class Lift {
   constructor(scene, floorY) {
     this.floorY = floorY;
-    this.pos = hallToWorld(51.2, 5.5, floorY);
+    this.pos = hallToWorld(53.6, 9.6, floorY);   // parked along the corridor's far wall, clear of the pallet rows
     this.yaw = 0;
     this.deckY = 0.85;
     this.height = 0;
@@ -82,7 +82,7 @@ export class Lift {
   }
 
   update(dt, player, world, collide) {
-    this.aboard = this.contains(player.pos);
+    // aboard is set by ACTION (get on / get off), never by walking into the footprint
     if (this.aboard) {
       if (player.liftUp) this.height += dt * 0.5 * player.speedScale;
       if (player.liftDown) this.height -= dt * 0.5 * player.speedScale;

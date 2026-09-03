@@ -131,7 +131,7 @@ export function createItems(scene, world, camera) {
     items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
   }
   const jackMesh = makeJack();
-  jackMesh.position.copy(hallToWorld(50.2, 10.0, world.floorY));
+  jackMesh.position.copy(hallToWorld(55.8, 9.6, world.floorY));
   scene.add(jackMesh);
   items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
   return items;
@@ -139,7 +139,9 @@ export function createItems(scene, world, camera) {
 
 export function nearestAction(player, lift, install, items) {
   const p = player.camera.position;
-  const near = (obj, r) => !obj.disposed && obj.mesh.position.distanceTo(p) < r;
+  // reach is measured on the floor plan: the eye is 1.7 m up, so a straight distance to a bag on
+  // the floor was never inside 1.4 m (2026-09-04: nothing at a pallet was reachable)
+  const near = (obj, r) => !obj.disposed && Math.hypot(obj.mesh.position.x - p.x, obj.mesh.position.z - p.z) < r && Math.abs(obj.mesh.position.y - p.y) < 3;
   const skipNear = items.world.skip.distanceTo(p) < 2.2;
 
   if (player.carry?.type === 'box' && lift.deckWorld().distanceTo(p) < 2 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
@@ -176,12 +178,12 @@ export function nearestAction(player, lift, install, items) {
   if (items.jack.held) {
     if (items.jack.carrying) return { label: 'Set pallet down', run: () => items.jack.carrying = null };
     const pal = items.pallets.find((b) => b.boxes > 0 && b.mesh.position.distanceTo(items.jack.mesh.position) < 1.25);
-    if (pal) return { label: `Lift ${pal.column} pallet`, run: () => items.jack.carrying = pal };
+    if (pal) return player.body && !player.body.canLift(15) ? { label: 'Too puffed to jack a pallet: rest a moment', run: null } : { label: `Lift ${pal.column} pallet`, run: () => items.jack.carrying = pal };
   }
   if (near(items.jack, 1.4)) return { label: items.jack.held ? 'Release pallet jack' : 'Take pallet jack', run: () => items.jack.held = !items.jack.held };
 
   const pallet = items.pallets.find((b) => b.boxes > 0 && near(b, 1.55));
-  if (pallet) return { label: `Take box from ${pallet.column} pallet`, run: () => spawnBox(player, items, pallet) };
+  if (pallet) return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a box: rest a moment', run: null } : { label: `Take box from ${pallet.column} pallet`, run: () => spawnBox(player, items, pallet) };
   return { label: 'No action nearby', run: null };
 }
 
@@ -332,8 +334,8 @@ export function resetForNight(player, lift, items) {
   }
   items.jack.held = false;
   items.jack.carrying = null;
-  items.jack.mesh.position.copy(hallToWorld(50.2, 10.0, items.world.floorY));
-  lift.pos.copy(hallToWorld(51.2, 6.25, items.world.floorY));
+  items.jack.mesh.position.copy(hallToWorld(55.8, 9.6, items.world.floorY));
+  lift.pos.copy(hallToWorld(53.6, 9.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false;
   lift.height = 0;
   lift.box = null;
   lift.refresh();
