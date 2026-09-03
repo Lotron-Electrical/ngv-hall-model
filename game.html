@@ -26,7 +26,7 @@ button:focus-visible{outline:2px solid var(--accent)}
 #summary .box{width:min(420px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:18px}
 #summary h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:30px;font-weight:500;margin:0 0 8px;color:var(--accent)}
 #touch{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
-.stick{position:absolute;bottom:30px;width:118px;height:118px;border-radius:50%;border:1px solid rgba(255,255,255,.36);background:rgba(255,255,255,.06);opacity:.65}
+.stick{position:absolute;bottom:30px;width:118px;height:118px;border-radius:50%;border:1px solid rgba(255,255,255,.36);background:rgba(255,255,255,.06);opacity:.65;pointer-events:auto;touch-action:none}   /* the #touch layer is pointer-events:none; the sticks must opt back in or no touch ever reaches them (2026-09-04: the controls did nothing on the phone) */
 .stick i{position:absolute;left:39px;top:39px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.75)}
 #move{left:24px}
 #look{right:24px}

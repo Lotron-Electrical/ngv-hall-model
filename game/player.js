@@ -82,9 +82,6 @@ export class Player {
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
-    if (isLook) {
-      el.addEventListener('pointermove', () => this.lookBy(out.x * 0.01, out.y * 0.006));
-    }
   }
 
   lookBy(dx, dy) {
@@ -93,6 +90,8 @@ export class Player {
   }
 
   update(dt, world, collide) {
+    // the look stick turns the view for as long as it is held, not only while the thumb moves
+    if (this.look.lengthSq() > 0) this.lookBy(this.look.x * dt * 2.4, this.look.y * dt * 1.6);
     const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;
     const strafe = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0) + this.move.x;
     const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);

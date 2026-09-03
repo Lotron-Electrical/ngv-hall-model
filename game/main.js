@@ -64,6 +64,7 @@ async function init() {
   fitClick = () => tone(880, 0.07);
   liftBeep = () => tone(330, 0.05);
   document.querySelector('#prompt').textContent = 'Press Start Shift';
+  window.game = { player, lift, items, install, clock, world };   // for headless checks
   requestAnimationFrame(loop);
 }
 
