@@ -399,3 +399,10 @@ and what does not survive a restart:
 - Kiss heads (Lloyd, later): the heads must TOUCH, not clip and not hover. Tuned by measurement
   through `window.dbg.wedding.cp.hm` instance matrices: target 23 cm ahead / 14 cm across lands
   the centres 23.0-23.2 cm apart against a 23.1 cm touch distance (the solve undershoots ~4.5 cm).
+- Tap sound latency (Lloyd, 2026-09-04: the sounds on the tesseract tap still came in late). Two
+  causes, both fixed: the join was a slow crossfade (file in 1.5 s, float out 2 s), now file in
+  0.5 s and float out 0.8 s (`trackStep` join, `floatStep`; the void-close fade keeps its 2 s,
+  scaled onto the same 0.8 s curve); and the file was parked at a FIXED 17.0 s (sw - 4.9), which
+  is only right for a tap from the orbit: `trackPark` now re-reads the landing time from the eye
+  twice a second (`approachArr`, the same walk `approachStart` uses) and re-parks past 1 s out, so
+  a tap on the fly-in is not a 5 s seek. `window.dbg.approach` exposes the dive for checks.
