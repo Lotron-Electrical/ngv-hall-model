@@ -221,6 +221,7 @@ addressed`. `L` reaching 73,536 means every pixel in the map found a universe in
 | `index.html` | the whole viewer: geometry, pixel map, ELM export, live input |
 | `model.glb` | 6 MB scanned hall |
 | `sound/tour.mp3` | the sound designer's 163 s mix for the ride (MP3 CBR 192k; the 24-bit master is `sound/llyod_gandelhall.wav`, ignored by git, and on Lloyd's Drive) |
+| `sound/tap.mp3` | Lloyd's own synth pad for the dive (first 10 s of `legacy_synth_v9_detuned_nosuck_x2.wav`, kept as `sound/tap-synth.wav`, git-ignored): a low chord, the lift at 5.4 s, the high chord to 10 s |
 | `sound/float.mp3` | the tesseract's float: 1.0 to 16.0 s of the master, ends crossfaded into a seamless 14 s loop, brought up 4.5 dB with the harmonics above 100 Hz lifted 6 dB; plays from Enter until the dive's file has joined |
 | `tools/dmx_bridge.js` | Art-Net / sACN → WebSocket bridge, zero dependencies |
 | `tools/agent-setup.js` | the one command above, JSON-line output, zero dependencies |
@@ -247,7 +248,19 @@ is a WebAudio buffer looping on `SND.ctx` (sample-exact wrap, a gain fade that i
 notification): wanted from Enter while the object floats, fading out over 2 s from the moment the
 dive's file is actually heard (which itself fades in over 3.5 s from that moment), off in a tour, a
 roam, the rest, the tool's clips, or once the object has gone. On a free flight by hand the bed's
-chord and riser stay up over the float as the build-up. The master's first 17 s were
+chord and riser stay up over the float as the build-up.
+
+The dive and the kaleidoscope (2026-09-03) are the tap synth's (`TAP`, `tapStep`): the low chord
+starts on the tap on a seamless loop of itself (`TAP.a` to `TAP.b`), a second copy takes over from
+`TAP.o2` s before the lift so that the lift (`TAP.tr` = 5.4 s in the file) lands on the flash to the
+frame (re-cued at `boomStart` if more than 120 ms out), the high chord holds through the spin and
+dies through the iris. Through the dive and the kaleidoscope the tour's file is cued to 25.85 s and
+held, so the designer's riser and crash are no longer heard; the tour starts on the black beat.
+Without a synth (not yet decoded, decode failed) the designer's riser and crash are the fallback.
+The loop's end is found by phase once decoded (`TAP.bFound`, ~4.415 s: a blend of anti-phase windows
+dipped 6 dB at every wrap). Every WebAudio sound goes through `sndBus()`, a limiter, and while any
+WebAudio sound is heard with the file paused a one-second silent element loops (`TRACK.keep`) so
+iOS's ring/silent switch does not mute WebAudio. The master's first 17 s were
 lifted the same way in `tour.mp3` so the crossfade is level-matched.
 
 ## Rules for an agent working in this repo

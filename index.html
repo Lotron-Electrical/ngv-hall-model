@@ -1607,7 +1607,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -4119,7 +4119,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
- if(TRACK.on&&Math.abs(TRACK.el.currentTime-TRACK.sw)>0.15)TRACK.el.currentTime=TRACK.sw;   // the crash on the flash, to the frame
+ if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) the lift on the flash, to the frame: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#fff'; f.style.opacity=0.5; /* (Lloyd, V4) the flash is back as it was before V2: toned down, and quicker off */ requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s ease-out'; f.style.opacity=0; }); }
@@ -4129,15 +4129,16 @@ function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noc
 // the kaleidoscope runs 2.5 s (Lloyd: it went on too long, half of the 5 it was)
 const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
 // THE SOUNDTRACK (Lloyd, 2026-09-02): the sound designer's mix for the whole ride, sound/tour.mp3,
-// 163 s of it: the last second of the dive, the crash on the flash, the kaleidoscope, the beat of
-// black, the tour and a tail that plays out over the resting frame. The file rides the page's
+// 163 s of it: the dive, a crash on the flash, the kaleidoscope, the beat of black, the tour and a
+// tail that plays out over the resting frame. Since 2026-09-03 the dive and the kaleidoscope are
+// Lloyd's own tap synth (TAP below) and the file is heard from the black beat on. The file rides the page's
 // clocks rather than its own. Two marks place it: its crash peaks at `sw` and the tour's first
 // frame is at `t0` (read off the file's envelope against the tour's cues: the finale starts at
 // 136.3 s in the file, the ceremony cuts to the aisle at 125.6 s, the marks land at 148.1 s). Every
 // frame asks where the file should be for the state the page is in and pulls it back into line
 // when the two clocks drift apart (a pause, a seek, the tool's loop). While the file plays the
 // synthesised bed is muted; it comes back once the file has nothing to play under.
-const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0, join:null};
+const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0, join:null, bus:null, keep:null};
 // ?mute=1 is the storyboard tool's second, phone-sized frame of the same clip: that copy is silent,
 // or the two frames play the mix twice a few hundred ms apart
 const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=false; document.getElementById('sound').checked=false; }
@@ -4161,42 +4162,104 @@ function floatDecode(){ const c=SND.ctx; if(!c||TRACK.flBuf||!TRACK.flData||TRAC
 // a sound element later only if a gesture touched THAT element, so play() runs inside the gesture
 // and is paused on the spot (nothing is heard, the download starts, the element is unlocked). A
 // NotAllowedError means the browser did not count the gesture; the next one tries again
-function trackWarm(){ const a=TRACK.el; if(!a||TRACK.warm||!a.paused)return; TRACK.warm=true; a.preload='auto'; const p=a.play(); a.pause(); a.currentTime=0; if(p)p.catch(e=>{ if(e&&e.name==='NotAllowedError')TRACK.warm=false; }); }
+function trackWarm(){ const a=TRACK.el; if(!a||TRACK.warm||!a.paused)return; TRACK.warm=true; a.preload='auto'; const p=a.play(); a.pause(); a.currentTime=0; if(p)p.catch(e=>{ if(e&&e.name==='NotAllowedError')TRACK.warm=false; });
+ const k=TRACK.keep; if(k&&k.paused){ const q=k.play(); k.pause(); if(q)q.catch(()=>{}); } }
 // media keys, the lock screen, a headset button: they pause and resume the TOUR, not the file on
 // its own (trackStep would otherwise restart the file within half a second); on the resting frame
 // the tail simply holds until play
 if('mediaSession' in navigator){ try{ navigator.mediaSession.metadata=new MediaMetadata({title:'Gandel Hall',artist:'Lotron Electrical'});
  navigator.mediaSession.setActionHandler('pause',()=>{ if(tour)window.tourCtl.pause(); else TRACK.hold=true; });
  navigator.mediaSession.setActionHandler('play',()=>{ TRACK.hold=false; if(tour)window.tourCtl.play(); }); }catch(e){} }
+// THE TAP SYNTH (Lloyd, 2026-09-03): his own pad, sound/tap.mp3 (the first cycle of
+// legacy_synth_v9_detuned_nosuck_x2.wav, 10 s, 2 dB down): a low chord, and at TAP.tr the chord
+// lifts. It plays from the tap on the object and the lift lands on the flash, to the frame; the high
+// chord then carries the kaleidoscope and dies through the iris, so the tour's file starts on the
+// black beat as before. The dive's length varies with where the tap comes from, so the low chord
+// waits on a seamless loop of itself (TAP.a to TAP.b, its tail blended into its head once decoded)
+// until the lift is exactly TAP.o2 s of file away, and a second copy then takes over from that spot
+// on a short crossfade and runs through the lift. On the flash the copy's position is checked
+// against TAP.tr and re-cued if a prediction or a hidden tab has put it out. The designer's riser
+// and crash no longer play under the dive: the tour's file is cued to its first tour frame during
+// the dive and held there.
+const TAP={tr:5.4, a:1.0, b:4.4, o2:0.3, gain:0.6, buf:null, loopBuf:null, data:null, dec:false, lp:null, lg:null, src:null, g:null, t0:0, o:0, on:false, at:null};
+fetch('sound/tap.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ TAP.data=b; }).catch(()=>{});
+function tapDecode(){ const c=SND.ctx; if(!c||TAP.buf||!TAP.data||TAP.dec||TAP.failed)return; TAP.dec=true; c.decodeAudioData(TAP.data.slice(0),b=>{ TAP.buf=b; tapLoopBuf(b); },e=>{ TAP.dec=false; TAP.failed=true; console.warn('tap synth: decode failed',e); }); }
+// the low chord's loop: its last quarter second blended into its first, so the wrap is silent. The
+// end is moved within 30 ms to where its tail is in phase with the head: the pad's fundamentals do
+// not complete a whole number of cycles in the loop, and a blend of two windows in anti-phase
+// cancels (a 6 dB dip at every wrap, measured before this)
+function tapLoopBuf(b){ const sr=b.sampleRate, a=Math.round(TAP.a*sr), X=Math.round(0.25*sr); let e=Math.round(TAP.b*sr);
+ { const m=b.getChannelData(0), D=4, R=Math.round(0.03*sr), H=[]; for(let i=a-X;i<a;i+=D)H.push(m[i]); let best=-Infinity, bestE=e;
+   for(let cand=e-R;cand<=e+R;cand+=D){ let dot=0; for(let j=0,i=cand-X;j<H.length;j++,i+=D)dot+=m[i]*H[j]; if(dot>best){ best=dot; bestE=cand; } } e=bestE; TAP.bFound=e/sr; }
+ const n=e-a; const L=SND.ctx.createBuffer(b.numberOfChannels,n,sr);
+ for(let ch=0;ch<b.numberOfChannels;ch++){ const src=b.getChannelData(ch), d=L.getChannelData(ch); for(let i=0;i<n;i++)d[i]=src[a+i]; for(let i=0;i<X;i++){ const w=Math.sin((i/X)*Math.PI/2)**2; d[n-X+i]=d[n-X+i]*(1-w)+src[a-X+i]*w; } } TAP.loopBuf=L; }
+function tapGain(){ const c=SND.ctx, g=c.createGain(); g.gain.value=0; g.connect(sndBus()); return g; }
+// the tap: the low chord starts, on its loop
+function tapStart(){ const c=SND.ctx; if(!c||!TAP.loopBuf||TAP.on||c.state!=='running')return false; const t=c.currentTime;
+ const l=c.createBufferSource(); l.buffer=TAP.loopBuf; l.loop=true; const g=tapGain(); l.connect(g); l.start(t); g.gain.setTargetAtTime(TAP.gain*(SND.on?1:0),t,0.15);
+ TAP.lp=l; TAP.lg=g; TAP.on=true; TAP.at=performance.now()/1000; return true; }
+// the copy that runs through the lift, from `o` seconds into the file, taking over from whatever plays
+function tapCue(o){ const c=SND.ctx, t=c.currentTime;
+ for(const [k,gk] of [['lp','lg'],['src','g']]){ const old=TAP[k]; if(!old)continue; const og=TAP[gk]; TAP[k]=null; og.gain.setTargetAtTime(0,t,0.04); try{ old.stop(t+0.3); }catch(e){} }
+ const n=c.createBufferSource(); n.buffer=TAP.buf; const g=tapGain(); n.connect(g); n.start(t,Math.max(0,o)); g.gain.setTargetAtTime(TAP.gain*(SND.on?1:0),t,0.05); TAP.src=n; TAP.g=g; TAP.t0=t; TAP.o=o; TAP.on=true; if(TAP.at==null)TAP.at=performance.now()/1000; }
+function tapPos(){ return TAP.src?TAP.o+SND.ctx.currentTime-TAP.t0:null; }
+function tapStop(fast){ const c=SND.ctx; if(!c)return; const t=c.currentTime; for(const [k,gk] of [['lp','lg'],['src','g']]){ const old=TAP[k]; if(!old)continue; const og=TAP[gk]; TAP[k]=null; og.gain.setTargetAtTime(0,t,fast?0.08:0.3); try{ old.stop(t+(fast?0.4:1.2)); }catch(e){} } TAP.on=false; TAP.at=null; }
+// every frame: the wait, the take-over, the flash, the fade through the iris, the end
+function tapStep(now){ const c=SND.ctx; if(!c)return; tapDecode();
+ if(c.state!=='running'){ if(TAP.on||TAP.src)TAP.stale=true; return; }
+ if(TAP.stale){ TAP.stale=false; tapStop(true); }   // the audio clock stood still while the page's ran on: start over from where the page is
+ if(approach&&!boom){ const A=approach; if(A.arr==null||!portal.group.visible){ if(TAP.on)tapStop(true); return; }   // the dive parked at a hidden object: nothing to lift for
+  if(!TAP.on&&!tapStart())return;
+  const left=A.t0+A.arr-now;   // the lift is due in `left` s
+  if(!TAP.src&&left<=TAP.tr-TAP.o2&&TAP.buf)tapCue(TAP.tr-left);
+  if(TAP.src)TAP.g.gain.setTargetAtTime(TAP.gain*(SND.on?1:0),c.currentTime,0.05); else if(TAP.lg)TAP.lg.gain.setTargetAtTime(TAP.gain*(SND.on?1:0),c.currentTime,0.15);   // the Sound box
+  return; }
+ if(boom){ if(!TAP.src&&TAP.buf)tapCue(TAP.tr+(now-boom.t0));   // a free flight by hand: the lift is now
+  if(TAP.src){ const s=now-boom.t0, T=BOOM_T, v=TAP.gain*(SND.on?1:0)*(1-smooth(Math.max(0,Math.min(1,(s-T.kal)/T.iris)))); TAP.g.gain.setTargetAtTime(v,c.currentTime,0.05); }
+  return; }
+ if(TAP.on||TAP.src)tapStop(true);   // the tour has begun, or the dive was called off
+}
 // the float is wanted while the object floats: from Enter, through the orbit and the dive, until the
 // dive's file has joined; never in a tour, a roam, the rest, or once the object has gone
 function floatWant(){ return entered&&!tour&&!boom&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&portal.group.visible; }
 function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); const want=floatWant()&&!TRACK.hidden&&!(joined!=null&&joined>=2);
  if(!want){ if(TRACK.flSrc){ const src=TRACK.flSrc, g=TRACK.flGain; TRACK.flSrc=null; g.gain.setTargetAtTime(0,c.currentTime,0.03); try{ src.stop(c.currentTime+0.25); }catch(e){} } TRACK.flOn=false; return; }
  if(!TRACK.flBuf||c.state!=='running')return;
- if(!TRACK.flSrc){ const g=c.createGain(); g.gain.value=0; g.connect(c.destination); const src=c.createBufferSource(); src.buffer=TRACK.flBuf; src.loop=true; src.connect(g); src.start(); TRACK.flSrc=src; TRACK.flGain=g; }
+ if(!TRACK.flSrc){ const g=c.createGain(); g.gain.value=0; g.connect(sndBus()); const src=c.createBufferSource(); src.buffer=TRACK.flBuf; src.loop=true; src.connect(g); src.start(); TRACK.flSrc=src; TRACK.flGain=g; }
  TRACK.flOn=true; const v=(SND.on?1:0)*(joined==null?1:1-smooth(Math.min(1,joined/2)));   // out under the dive's file; the Sound box takes it to nothing
  TRACK.flGain.gain.setTargetAtTime(v,c.currentTime,0.05); }
 // where the file should be for the state the page is in, in seconds; null means silent
 function trackWant(now){
  if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
   return {t:TRACK.t0+acc+Math.max(0,Math.min(1,(now-T.t0)/sg.dur))*sg.dur, paused:tourPaused}; }
- if(boom)return {t:TRACK.sw+(now-boom.t0)};
- // it joins the dive once its crash is due. An Event ticked mid-dive hides the object and the touch
- // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
- // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
- // itself is never seeked
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
+ // (Lloyd, 2026-09-03) the dive and the kaleidoscope are the tap synth's: through both the file is
+ // cued to its first tour frame and held, so the tour starts on the black beat the instant the
+ // kaleidoscope hands over. The designer's riser and crash (17 to 25.85 s) are not played.
+ if(boom)return TAP.src?{t:TRACK.t0, paused:true}:{t:TRACK.sw+(now-boom.t0)};   // no synth (not decoded, failed): the designer's crash
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; if(TAP.on||TAP.loopBuf)return {t:TRACK.t0, paused:true};
+  const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2,join:true}:null; }   // no synth: the designer's riser joins the dive as before
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
+// the bus every WebAudio sound (the float, the tap synth) goes through: a limiter, so the two
+// summing over a crossfade cannot clip at the destination
+function sndBus(){ const c=SND.ctx; if(!c)return null; if(!TRACK.bus){ const d=c.createDynamicsCompressor(); d.threshold.value=-6; d.knee.value=6; d.ratio.value=12; d.attack.value=0.003; d.release.value=0.15; d.connect(c.destination); TRACK.bus=d; } return TRACK.bus; }
+// iOS: with the ring/silent switch on, WebAudio is muted unless a media element is playing, which
+// puts the page in the playback session. A one-second silent wave loops on an element while any
+// WebAudio sound is heard (too short to raise a media notification anywhere)
+{ const n=8000, h=new DataView(new ArrayBuffer(44)); const w=(o,str)=>{ for(let i=0;i<str.length;i++)h.setUint8(o+i,str.charCodeAt(i)); };
+  w(0,'RIFF'); h.setUint32(4,36+n,true); w(8,'WAVE'); w(12,'fmt '); h.setUint32(16,16,true); h.setUint16(20,1,true); h.setUint16(22,1,true); h.setUint32(24,8000,true); h.setUint32(28,8000,true); h.setUint16(32,1,true); h.setUint16(34,8,true); w(36,'data'); h.setUint32(40,n,true);
+  const k=new Audio(URL.createObjectURL(new Blob([h.buffer,new Uint8Array(n).fill(128)],{type:'audio/wav'}))); k.loop=true; k.setAttribute('playsinline',''); TRACK.keep=k; TRACK.keepAsk=0; }
+function keepStep(now,on){ const k=TRACK.keep; if(!k)return; if(!on){ if(!k.paused)k.pause(); return; } if(k.paused&&now>TRACK.keepAsk){ TRACK.keepAsk=now+0.5; const p=k.play(); if(p)p.catch(()=>{}); } }
 function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?0.6:0,c.currentTime,0.3); }
 function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
  // that never arrived or the tail's end leave the bed up rather than silence
- const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc)&&!TRACK.hidden;
+ tapStep(now);
+ const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc||TAP.on)&&!TRACK.hidden;
  // on a free flight by hand (no dive) the bed's chord and riser are the build-up, so the bed stays up over the float
  const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
- floatStep(now,TRACK.on&&TRACK.join!=null?now-TRACK.join:null);
+ floatStep(now,TAP.at!=null?now-TAP.at:(TRACK.join!=null?now-TRACK.join:null));   // the float goes out under the synth (or, without one, under the file)
+ keepStep(now,(!!TRACK.flSrc||TAP.on)&&a.paused&&!TRACK.hidden);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
  if(!TRACK.on)TRACK.join=null; TRACK.on=true;
  // (Lloyd: the first seconds after the tap were loud) the file joins the dive on a 3.5 s fade, its
