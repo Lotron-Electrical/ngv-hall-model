@@ -260,7 +260,10 @@ background backing track, the other sounds stay.
 The loop's end is found by phase once decoded (`TAP.bFound`, ~4.415 s: a blend of anti-phase windows
 dipped 6 dB at every wrap). Every WebAudio sound goes through `sndBus()`, a limiter, and while any
 WebAudio sound is heard with the file paused a one-second silent element loops (`TRACK.keep`) so
-iOS's ring/silent switch does not mute WebAudio. The master's first 17 s were
+iOS's ring/silent switch does not mute WebAudio. Levels (Lloyd, 2026-09-03 02:30: all a touch too
+loud, the treble a touch too much): `LEVEL` = 0.708 (3 dB down) scales the float and the pad, the
+bed's master is `SND.BED`, every WebAudio sound leaves through `SND.shelf` (3 dB down above 5 kHz),
+and `tour.mp3` is encoded 3 dB down with the same shelf. The pad eases in over `TAP.ease` (2.5 s). The master's first 17 s were
 lifted the same way in `tour.mp3` so the crossfade is level-matched.
 
 ## Rules for an agent working in this repo
