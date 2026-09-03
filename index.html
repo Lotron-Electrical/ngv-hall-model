@@ -4246,7 +4246,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
 function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
- if(TRACK.on&&Math.abs(TRACK.el.currentTime-TRACK.sw)>0.15)TRACK.el.currentTime=TRACK.sw;   // the crash on the flash, to the frame
+ if(TRACK.on&&Math.abs(TRACK.el.currentTime-TRACK.sw)>0.6)TRACK.el.currentTime=TRACK.sw;   // the crash on the flash; (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
@@ -4272,7 +4272,7 @@ const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:fa
 const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=false; document.getElementById('sound').checked=false; }
 // preload stays at metadata until a gesture asks for more: a visitor who never taps the object
 // never downloads 3.9 MB alongside the model
-{ const a=new Audio('sound/tour.mp3'); a.preload='metadata'; a.muted=!SND.on; TRACK.el=a; }
+{ const a=new Audio('sound/tour.mp3'); a.preload='metadata'; a.muted=!SND.on; a.preservesPitch=false; TRACK.el=a; }   /* preservesPitch off: a rate nudge is a hair of pitch, not a time-stretch artefact */
 // THE FLOAT (Lloyd): the file's first sixteen seconds are the sound of the tesseract floating, so
 // that stretch is its own loop, sound/float.mp3 (1.0 to 16.0 s of the master, its last second
 // crossfaded into its first so the wrap has no seam, brought up 4.5 dB with the harmonics above
@@ -4421,7 +4421,15 @@ function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=
  if(w.join&&TRACK.join==null){ if(!a.paused&&a.readyState>=2&&a.currentTime>0)TRACK.join=now; else if(a.volume!==0)a.volume=0; }
  if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/1.5));   /* (2026-09-03) 3.5 s read as late; 1.5 s is felt at once and is still not a slam */ if(Math.abs(a.volume-v)>0.01||(v===1&&a.volume!==1))a.volume=v; } else if(!w.join&&a.volume!==1)a.volume=1;
  if(TRACK.hidden||w.paused||(w.free&&TRACK.hold)){ if(!a.paused)a.pause(); if(w.t!=null&&!a.seeking&&Math.abs(a.currentTime-w.t)>0.3)a.currentTime=w.t; return; }
- if(!w.free){ const tol=w.tight?0.08:0.3; if(!a.seeking&&Math.abs(a.currentTime-w.t)>tol)a.currentTime=w.t; }   // the page's clock wins; a seek still landing is left alone
+ // (Lloyd, 2026-09-03: the sounds glitch and skip) every seek of an <audio> is a dropout on a phone,
+ // and the old rule seeked on 0.3 s of drift, 0.08 s on the way to the crash: a heavy frame in the
+ // kaleidoscope put the page's clock ahead and the file skipped to catch up. Now small drift is
+ // pulled in by playing a touch faster or slower (up to 5%, the pitch going with it, a fraction of a
+ // semitone), and only a real miss, 0.6 s or more, is seeked. The page's clock still wins, gently
+ if(!w.free&&!a.seeking){ const drift=a.currentTime-w.t;
+  if(Math.abs(drift)>0.6){ a.currentTime=w.t; a.playbackRate=1; }
+  else { const rate=Math.abs(drift)<0.02?1:Math.max(0.95,Math.min(1.05,1-drift*0.5)); if(Math.abs(a.playbackRate-rate)>0.002)a.playbackRate=rate; } }
+ else if(a.playbackRate!==1)a.playbackRate=1;
  if(a.paused&&!a.ended&&now>TRACK.ask){ TRACK.ask=now+0.5; const p=a.play(); if(p)p.catch(()=>{}); } }   // asked again every half second until the browser allows it
 function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
