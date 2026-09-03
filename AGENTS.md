@@ -298,6 +298,9 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
+- The glass glitters like a diamond (GLASS_FRAG, 2026-09-03): 3 cm microfacets cut in each pane's own
+  plane, 40% of them tilted a little; one flashes white when its mirror direction meets the spot
+  above, the eye, or a fixed side light, so points come and go as the object turns.
 - The object sparkles (`SPARK`): ~2.5% of its edge pixels flash white and die away over ~1.1 s,
   additive, only while it floats (not in the dive or the kaleidoscope).
 - The veil's button reads "Enter Gandel Hall" on every device.
