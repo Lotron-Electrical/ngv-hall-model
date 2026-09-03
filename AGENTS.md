@@ -406,3 +406,8 @@ and what does not survive a restart:
   is only right for a tap from the orbit: `trackPark` now re-reads the landing time from the eye
   twice a second (`approachArr`, the same walk `approachStart` uses) and re-parks past 1 s out, so
   a tap on the fly-in is not a 5 s seek. `window.dbg.approach` exposes the dive for checks.
+- Finale marks (Lloyd, 2026-09-04: took too long to arrive, then came in too fast): `FIN.pan`
+  1.5 -> 0.6 s (the aisle shot already ends on ~0.7 s of black), `FIN.drop` 5 -> 3.2 s, and the
+  drop's curve is `smooth` (ease-in-out glide) instead of the cubic ease-out that entered at full
+  speed. The finale is now 6.3 s, so a script placing the wedding by the tour's total uses
+  total - 6.3 - 13 - 14.

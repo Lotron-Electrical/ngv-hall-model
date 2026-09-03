@@ -3670,7 +3670,7 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:0, pan:1.5, drop:5, flat:2.5, hold:0, fade:0};   /* walk 0 (Lloyd, 2026-09-03): the walk out through the door is gone; the finale opens on the black the aisle shot fades to */   // (V11, Lloyd) once the marks are down nothing else happens: no fade, no cut; the tour ends 2.5 s later and rests on that frame, and the buttons fade in   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
+const FIN={walk:0, pan:0.6, drop:3.2, flat:2.5, hold:0, fade:0};   /* (Lloyd, 2026-09-04) the marks took too long to arrive and then came in too fast: less black (pan 1.5 -> 0.6; the aisle shot already ends on 0.7 s of it) and a 3.2 s glide in on an ease-in-out, not a 5 s drop that slammed in at speed */   /* walk 0 (Lloyd, 2026-09-03): the walk out through the door is gone; the finale opens on the black the aisle shot fades to */   // (V11, Lloyd) once the marks are down nothing else happens: no fade, no cut; the tour ends 2.5 s later and rests on that frame, and the buttons fade in   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
 // (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
 // down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
@@ -3765,7 +3765,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const pk=smooth(Math.max(0,Math.min(1,(s-tP)/(FIN.pan-0.5))));   // the pan up: the marks lift away and take their places above, done 0.5 s before the drop
  // the drop: down from the top of the frame into the triangle; it comes in at speed and lands
  // softly (V10: an ease-out, so the black before the marks appear is short)
- const dx=Math.max(0,Math.min(1,(s-tD)/FIN.drop)), dk=1-(1-dx)*(1-dx)*(1-dx);
+ const dx=Math.max(0,Math.min(1,(s-tD)/FIN.drop)), dk=smooth(dx);   /* (Lloyd, 2026-09-04) a glide, in and out, instead of the ease-out that slammed in */
  // the eye stays a metre outside the glass at least; where the triangle would not fit from there
  // (a phone's narrow picture) the whole sculpture shrinks instead
  const th=Math.tan(cam.fov*Math.PI/360), D0=Math.max(0.7*L.top/th,0.55*L.wTot/(th*cam.aspect)), Dmax=COURT.logoZ-1.0, sf=Math.min(1,Dmax/D0), D=Math.min(D0,Dmax);
