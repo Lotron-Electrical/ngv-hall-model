@@ -100,6 +100,9 @@ button.i:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
  padding:12px 26px;font-size:15px;font-weight:600;letter-spacing:.04em;cursor:pointer;
  box-shadow:0 6px 20px rgba(0,0,0,.5)}
 #celebratefab:active{transform:translateX(-50%) scale(.96)}
+/* Free roam (Lloyd, 2026-09-03): not on the veil any more; on the stage above the bar once the hall has been entered */
+#roamfab{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:24px;padding:11px 24px;font:inherit;font-size:14px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#roamfab:active{transform:translateX(-50%) scale(.96)}
 /* the tour's own door, front and centre of the view (Lloyd, 2026-09-01); gone while it runs */
 #tourfab{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;
  background:#1c1e24;color:var(--ink);border:1px solid var(--accent);border-radius:30px;
@@ -155,7 +158,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="roam">Free roam</button></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
@@ -163,6 +166,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
  <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
+ <button type="button" id="roamfab" hidden>Free roam</button>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -1538,10 +1542,13 @@ paintUI();
 
 // ---- desktop: keys + hold-left-mouse look (live_viewer.py convention)
 const keys={};
-addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; keys[e.code]=true; idle=false; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
+// THE LOCK (Lloyd, 2026-09-03): from Enter until Free roam nothing moves the eye by hand, not the sticks,
+// the keys, the mouse or the phone remote; the visitor taps the object or presses Free roam
+const locked=()=>entered&&!roam&&!roamed&&!SHOT&&!TOURQ;
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); if(locked())return; keys[e.code]=true; idle=false; });
 addEventListener('keyup',e=>{keys[e.code]=false;});
 let looking=false,lx=0,ly=0;
-cv.addEventListener('mousedown',e=>{if(e.button===0){looking=true;lx=e.clientX;ly=e.clientY; idle=false;}});
+cv.addEventListener('mousedown',e=>{if(e.button===0&&!locked()){looking=true;lx=e.clientX;ly=e.clientY; idle=false;}});
 addEventListener('mouseup',()=>looking=false);
 addEventListener('mousemove',e=>{if(!looking)return; yaw-=(e.clientX-lx)*0.003; pitch-=(e.clientY-ly)*0.003; pitch=Math.max(-1.5,Math.min(1.5,pitch)); lx=e.clientX; ly=e.clientY;});
 cv.addEventListener('wheel',e=>{e.preventDefault(); speed*=Math.exp(-e.deltaY*0.0012); speed=Math.max(0.05,Math.min(30,speed));},{passive:false});
@@ -1554,7 +1561,7 @@ function touchList(e){return [...e.changedTouches];}
 // Each half of the view belongs to one thumb, so moving and looking happen together. A second
 // finger landing on a half that is already taken becomes the rise finger: drag up to climb,
 // down to sink.
-cv.addEventListener('touchstart',e=>{e.preventDefault(); idle=false; const rect=cv.getBoundingClientRect();
+cv.addEventListener('touchstart',e=>{e.preventDefault(); if(locked())return; idle=false; const rect=cv.getBoundingClientRect();
  for(const t of touchList(e)){ const leftHalf=t.clientX-rect.left<rect.width/2;
   if(leftHalf&&!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)};
   else if(!leftHalf&&!look)look={id:t.identifier,x:t.clientX,y:t.clientY};
@@ -1607,7 +1614,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>!document.getElementById('roamfab').hidden,sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -1619,8 +1626,8 @@ function rcSync(){if(rc.conn&&rc.conn.open)rc.conn.send({t:'sync', s:rcState()})
 function rcApply(m){
  sceneDirty=true;
  switch(m.t){
-  case 'move': idle=false; rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
-  case 'look': idle=false; yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
+  case 'move': if(locked()){ rc.mv.f=rc.mv.r=rc.mv.u=0; return; } idle=false; rc.mv.f=+m.f||0; rc.mv.r=+m.r||0; rc.mv.u=+m.u||0; return;
+  case 'look': if(locked())return; idle=false; yaw-=(+m.dx||0); pitch=Math.max(-1.5,Math.min(1.5,pitch-(+m.dy||0))); return;
   case 'home': stopTour(); home(); break;
   case 'tour': if(tour)stopTour(); else startTour(); break;
   case 'full': document.getElementById('full').click(); break;
@@ -3788,6 +3795,7 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   {dur:finaleTotal(), cam:k=>finaleStep(k*finaleTotal())},
  ]; }
 function startTour(){ if(tour||boom)return; /* the kaleidoscope hands over to the tour by itself in a few seconds; a Tour press in the middle of it would run the tour under the spin and jump the soundtrack */ tourDone=false; restFinale=false; restHide(); idle=false; tourPaused=false;
+ if(roam&&roam.sink){ roamed=true; if(portal)portal.sunk=true; }   /* a sink cut short is finished on the spot, so the object comes back whole on Start again */
  // the tour starts on its own look, whatever was set (Lloyd: started with other lights, the opening
  // shot was wrong): no event, the launch rainbow at full level; the event shots set theirs from here
  if(document.getElementById('event').checked)setEvent(null); roam=null;   /* a Free roam still fading would keep raising the house through the first shot */
@@ -3861,20 +3869,45 @@ let entered=false;
 // nothing, then both come up slowly, the house over 6 s and the columns to warm white over 8 s,
 // and the hall is left to walk. The object never comes back.
 let roam=null, roamed=false;
-const ROAM={fade:2,house:6,warm:8};
+const ROAM={fade:2,house:6,warm:8, sink:4,close:1.5,sinkHouse:4,sinkWarm:6,houseTo:0.5};
 const WARM=()=>({name:'Warm white',on:true,anim:'solid',speed:0,opacity:0,blend:'over',A:{h:35,s:0.22,v:1},B:{h:35,s:0.22,v:1}});
-function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false; roamed=true; roam={t0:performance.now()/1000};
+function roamStart(){ if(roam||roamed||tour)return; entered=true; idle=false;
+ // FROM THE FLOAT (Lloyd, 2026-09-03): the object and its name float down into the void, the void
+ // closes over them, then the columns fade to warm white and the house comes up to half. The
+ // camera holds where the orbit left it and the sticks are free from here
+ if(portal&&portal.group.visible&&!approach&&!boom){ roam={t0:performance.now()/1000,sink:true,phase:0}; fabSync(); return; }
+ roamed=true; roam={t0:performance.now()/1000};
  // the eye starts where the orbit starts, in the hall looking at its middle (Lloyd: Free roam after
  // the finale spawned the camera outside, in a wall)
  if(portal&&hallGroup){ const C=portal.centre, a=clearAngle(eye,C,ORBIT_R); poseAt(orbitAt(C,a,C.y+0.2),C.clone().setY(C.y-0.2)); safeEye=eye.clone(); }   /* safeEye too: resolveMove was walking the eye there from the finale's spot and the walls stopped it */
  lit.house=0; state.layers=[WARM()]; state.sel=0; sceneDirty=true;
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; fabSync(); }
 function roamStep(now){ const R=roam; if(!R)return; const s=now-R.t0;
+ if(R.sink){ roamSinkStep(now,s); return; }
  const f=document.getElementById('flash'); f.style.opacity=1-smooth(Math.min(1,s/ROAM.fade));
  const s3=Math.max(0,s-0.6), qh=smooth(Math.min(1,s3/ROAM.house)), qw=smooth(Math.min(1,s3/ROAM.warm));
  lit.house=qh; const W=state.layers[0]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
  if(s3>=ROAM.warm){ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';} paintUI(); f.style.opacity=0; f.style.background='#fff'; roam=null; }
 }
+// the sink (Lloyd, 2026-09-03; first cut 2026-09-01): over ROAM.sink s the object shrinks and drops to the
+// disc with its name, then over ROAM.close the disc, the hole in the carpet and the spot close up,
+// then the house rises to ROAM.houseTo and a warm white comes over the columns
+function roamSinkStep(now,s){ const R=roam, Q=portal; if(!Q)return;
+ if(R.phase<2&&!Q.group.visible){ roamed=true; Q.sunk=true; roam=null; fabSync(); return; }   /* an Event ticked mid-sink took the object away: the sink is over, the event's lighting stands (past phase 2 the object is meant to be gone) */
+ if(s<ROAM.sink){ const q=smooth(s/ROAM.sink); Q.body.scale.setScalar(Math.max(0.001,1-q)); Q.body.position.y=Q.body.position.y*(1-q)+Q.disc.position.y*q; Q.words.scale.setScalar(Math.max(0.001,1-q)); Q.words.position.y=3.1*(1-q)+Q.body.position.y;
+  Q.spray.visible=false; return; }
+ Q.body.visible=false; Q.words.visible=false;
+ const s2=s-ROAM.sink;
+ if(s2<ROAM.close){ const q=smooth(s2/ROAM.close); Q.disc.scale.setScalar(Math.max(0.001,1-q)); Q.suck.visible=false; Q.cone.visible=false; if(Q.spot)Q.spot.intensity=60*(1-q);
+  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w>0.5)m.uniforms.hole.value.z=Q.holeR*(1-q); return; }
+ if(R.phase<2){ R.phase=2; roamed=true; Q.sunk=true; R.h0=lit.house; state.layers.push(Object.assign(WARM(),{opacity:0})); fabSync(); }   /* the hole's radius stays shut: portalReset opens it again with the object */
+ const s3=s2-ROAM.close, qh=smooth(Math.min(1,s3/ROAM.sinkHouse)), qw=smooth(Math.min(1,s3/ROAM.sinkWarm));
+ lit.house=R.h0+(ROAM.houseTo-R.h0)*qh; const W=state.layers[state.layers.length-1]; if(W&&W.name==='Warm white')W.opacity=qw; sceneDirty=true;
+ if(s3>=ROAM.sinkWarm){ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; lit.house=ROAM.houseTo; {const h=document.getElementById('house'); h.value=Math.round(ROAM.houseTo*100); document.getElementById('houseval').textContent=h.value+'%';} paintUI(); roam=null; }
+}
+// whatever the sink left at nothing comes back whole the next time the object is shown (Start again)
+function portalReset(){ const Q=portal; if(!Q||!Q.sunk)return; Q.sunk=false; Q.body.visible=true; Q.body.scale.setScalar(1); Q.words.visible=true; Q.words.scale.setScalar(1); Q.disc.scale.setScalar(1); Q.suck.visible=true; Q.cone.visible=true; Q.spray.visible=true; if(Q.spot)Q.spot.intensity=60;
+ for(const m of photoMats)if(m.uniforms.hole)m.uniforms.hole.value.z=Q.holeR; }
 // the Celebrate button is up only with an event loaded, inside the hall, and nothing playing:
 // not before the Enter tap, not on the fly-in, not in the tour or a shot (Lloyd: it was stuck
 // floating). Every path that changes one of those calls this.
@@ -3941,7 +3974,7 @@ const TOUCH=('ontouchstart' in window);   // a phone: every render pass costs, s
 // far: where the widening and the shake begin (Lloyd: a bit closer before the trippy sequence starts)
 const WARP={far:5, near:1.6, k:0, cc:new THREE.Color(), rt:null, n:0, cube:null, tiny:null, qscene:null, qcam:null, quad:null};
 // (the idle orbit is not an approach, so it never triggers this)
-function warpK(){ if(!portal||!portal.group.visible||tour||idle)return 0; const d=eye.distanceTo(portal.centre);
+function warpK(){ if(!portal||!portal.group.visible||tour||idle||roam||roamed)return 0; const d=eye.distanceTo(portal.centre);
  const x=1-Math.min(1,Math.max(0,(d-WARP.near)/(WARP.far-WARP.near))); return x*x; }
 // two cube maps: 1024 is sharp everywhere (Lloyd: no blur) and is the one used whenever the frame
 // rate holds; if the six extra scene renders drag the rate under 50 the pass drops to 512 until it
@@ -3988,7 +4021,7 @@ function warpShake(k,now){ const a=k*k, j=a*0.12;
  cam.rotateX(sn(now,11.0)*a*0.12+(Math.random()-0.5)*j); cam.rotateY(sn(now,8.7)*a*0.12+(Math.random()-0.5)*j); cam.rotateZ(sn(now,5.3)*a*0.25);
  cam.updateMatrixWorld(); }
 const WARP_SW=2.0944;   // 120 degrees: up to here the real perspective camera draws the frame, past it the cube map
-function warpRender(k,angOv){ warpInit(); const W=WARP;
+function warpRender(k,angOv,everyOv){ warpInit(); const W=WARP;
  // the slider's fov is vertical; the widening is built on the horizontal one, so it starts where the perspective view ends
  const th=Math.tan(cam.fov*Math.PI/360)*cam.aspect, base=2*Math.atan(th), ang=angOv||(base+k*(2*Math.PI-base));
  if(!angOv&&ang<WARP_SW){   // still narrow enough for a perspective camera: sharpest, and no cube pass at all (Lloyd: the cube map was a blur up close)
@@ -3996,19 +4029,20 @@ function warpRender(k,angOv){ warpInit(); const W=WARP;
   R.render(scene,cam); cam.fov=keep; cam.updateProjectionMatrix(); W.stale=true; return; }
  // the twelve mirrors refresh here; on a phone only every other frame (Lloyd: it lagged)
  W.n++;
- if(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
+ if(everyOv?(W.n%everyOv===0):(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1))){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }   /* in the kaleidoscope the mirrors keep the cube's cadence */
  // pick the cube map by the measured frame rate, with hysteresis so it does not flap
  { const fps=animate.fps||60, now=performance.now();
    if(W.res===1024&&fps<50){ W.res=512; W.okSince=0; }
    else if(W.res===512){ if(fps<58)W.okSince=0; else if(!W.okSince)W.okSince=now; else if(now-W.okSince>2000)W.res=1024; }
    // still short of 60 at 512: the cube map is refreshed every other frame (the shake hides the half-frame lag)
    W.half=W.res===512&&fps<50;
+   if(W.rt!==W.rts[W.res])W.stale=true;   /* a size switch is drawn fresh, not from the other cube's last frame */
    W.rt=W.rts[W.res]; W.cube.renderTarget=W.rt; W.quad.material.uniforms.cube.value=W.rt.texture; }
  // the cube's refresh eases in: every third frame at the hand-over, every other frame past half
  // way, every frame from 0.8 (Lloyd: the frame rate dropped right where the view widened). The
  // cube pass is six more renders of the hall; early in the widening the eye moves slowly and the
  // fisheye edge shows little of it, so a cube a few frames old is not seen
- const every=Math.max(W.half?2:1,k<0.5?3:k<0.8?2:1);
+ const every=everyOv||Math.max(W.half?2:1,k<0.5?3:k<0.8?2:1);
  // the first cube frame after the perspective pass always refreshes: the cube it would otherwise
  // show is the warm-up one from the end of the hall (Lloyd: a brief flash before the FOV change)
  if(W.stale||W.n%every===0){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
@@ -4229,7 +4263,7 @@ function tapStep(now){ const c=SND.ctx; if(!c)return; tapDecode();
 }
 // the float is wanted while the object floats: from Enter, through the orbit and the dive, until the
 // dive's file has joined; never in a tour, a roam, the rest, or once the object has gone
-function floatWant(){ return entered&&!tour&&!boom&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&portal.group.visible; }
+function floatWant(){ return entered&&!tour&&!boom&&!(roam&&!roam.sink)&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&portal.group.visible; }
 function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); const want=floatWant()&&!TRACK.hidden&&!(joined!=null&&joined>=2);
  if(!want){ if(TRACK.flSrc){ const src=TRACK.flSrc, g=TRACK.flGain; TRACK.flSrc=null; g.gain.setTargetAtTime(0,c.currentTime,0.03); try{ src.stop(c.currentTime+0.25); }catch(e){} } TRACK.flOn=false; return; }
  if(!TRACK.flBuf||c.state!=='running')return;
@@ -4266,7 +4300,7 @@ function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
  const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc||TAP.on)&&!TRACK.hidden;
  // on a free flight by hand (no dive) the bed's chord and riser are the build-up, so the bed stays up over the float
  const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
- floatStep(now,TRACK.join!=null?now-TRACK.join:null);   // the float goes out under the file's join; the pad is under everything
+ floatStep(now,TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1)):null));   // the float goes out under the file's join, or with the void closing
  keepStep(now,(!!TRACK.flSrc||TAP.on)&&a.paused&&!TRACK.hidden);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; } return; }
  if(!TRACK.on)TRACK.join=null; TRACK.on=true;
@@ -4294,7 +4328,10 @@ function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  // no shake here: the kaleidoscope is smooth (Lloyd)
  // (Lloyd, V4) the cut is back: the kaleidoscope starts at its own angle on its first frame, under
  // the flash, as it did before V3's pull from the tesseract's 2pi wrap
- cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal))); u.kal.value=0; u.iris.value=-1; return true; }
+ // (Lloyd, 2026-09-03: the frame rate fell to 30 in the kaleidoscope) the eye does not move here and
+ // the spin and the draw-in are the shader's, so the six-face cube pass, which was six renders of
+ // the hall every frame, now refreshes every fourth frame: the strips still animate, at 15 Hz
+ cam.updateMatrixWorld(); warpRender(1,Math.PI*(0.55-0.05*Math.min(s,T.kal)),4); u.kal.value=0; u.iris.value=-1; return true; }
 const GLASS_VERT=`varying vec3 vN; varying vec3 vW; varying vec3 vP; varying vec3 vLV;
  void main(){ mat3 m=mat3(modelMatrix); vN=normalize(m*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vP=position;
   // the eye, seen from inside the object's own frame (m is rotation and uniform scale, so its transpose undoes the turn)
@@ -4532,11 +4569,14 @@ function buildPortal(){
  scene.add(g);
  portal={group:g,centre:C,body,outer,inner,spray,disc,suck,cone,spot,holeR:1.69,words,leds,edgePx:EDGE_PX,mats:[inner.material,sprayMat,portalMat,suckMat,shimmerMat,wordsGlass],hit:[...mirrors,inner,disc]};
 }
+const SPARK={rate:0.025, amp:0.5};   // the object's sparkle: the share of pixels alight at once, and how bright
+const HASH=x=>{ const v=Math.sin(x)*43758.5453; return v-Math.floor(v); };
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
  // once a tour has run (even stopped in its first shot) the tesseract does not come back (Lloyd)
  Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed;
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
+ if(Q.sunk)portalReset();
  for(const m of Q.mats)m.uniforms.t.value=now;
  Q.body.position.y=FLOAT(now);                                   // the float
  { const want=hover&&!approach&&!boom?1:0; Q.hov=(Q.hov||0)+(want-(Q.hov||0))*0.12; Q.body.scale.setScalar(1+Q.hov*(0.03+0.03*Math.sin((now-hoverT0)*1.6))); }   // the pulse under the mouse
@@ -4555,10 +4595,15 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
    // the peak is remembered and let go of slowly: a pattern whose brightest pixel goes dark used to
    // lift every other pixel in one frame (Lloyd: it looked like a flash when something rendered in)
    G.mx=Math.max(mx,(G.mx||mx)*0.985); mx=G.mx;
+   // (Lloyd, 2026-09-03) a sparkle, very subtle: now and then a pixel flashes white and dies away over
+   // a third of a second, SPARK.rate of them at any moment, to go with the chimes while the object
+   // floats. Each pixel keeps its own clock (a hash of its index) so the flashes never line up
+   const spark=!approach&&!boom, ST=now*0.9; let sparkN=0;
    for(const m of G.leds){ const c=m.geometry.attributes.color.array, n=c.length/3;
     for(let i=0;i<n;i++){ const k=G.runIdx[Math.min(L-1,Math.floor(((i%G.edgePx)+0.5)/G.edgePx*L))]*3;
-     c[i*3]=1-Math.min(1,a[k]/mx); c[i*3+1]=1-Math.min(1,a[k+1]/mx); c[i*3+2]=1-Math.min(1,a[k+2]/mx); }
-    m.geometry.attributes.color.needsUpdate=true; } } }
+     c[i*3]=1-Math.min(1,a[k]/mx); c[i*3+1]=1-Math.min(1,a[k+1]/mx); c[i*3+2]=1-Math.min(1,a[k+2]/mx);
+     if(spark){ const h=HASH(i*12.9898), tt=ST+h*97.0, ph=tt-Math.floor(tt); if(HASH(Math.floor(tt)*78.233+h*31.7)<SPARK.rate){ const f=SPARK.amp*Math.pow(1-ph,2.5); c[i*3]=Math.min(1,c[i*3]+f); c[i*3+1]=Math.min(1,c[i*3+1]+f); c[i*3+2]=Math.min(1,c[i*3+2]+f); sparkN++; } } }
+    m.geometry.attributes.color.needsUpdate=true; } G.sparkN=sparkN; } }
  sceneDirty=true; }
 
 // click or tap the object: the tour begins
@@ -4575,7 +4620,7 @@ cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.cl
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
  if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if(logoMat)logoMat.uniforms.t.value=now/1000; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }
@@ -4592,7 +4637,7 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
  if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
  if(stick){const g=speed*dt*2; eye.addScaledVector(f,-stick.dy/60*g); eye.addScaledVector(r,stick.dx/60*g);}
  // the phone remote: its stick is a velocity, held until it sends zero
- if(rc.mv.f||rc.mv.r||rc.mv.u){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
+ if(!locked()&&(rc.mv.f||rc.mv.r||rc.mv.u)){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
  animate(now/1000); govern(now);
  cam.position.copy(eye); cam.lookAt(eye.clone().add(f));
@@ -4613,11 +4658,15 @@ function frame(now){ portalStep(now/1000); if(roam)roamStep(now/1000); if(tour)t
  if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
-document.getElementById('enter').textContent=(TOUCH?'Tap':'Click')+' to enter Gandel Hall';
+document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2026-09-03) just that, on every device */
 // (Lloyd) Enter always starts the orbit: a touch on the canvas while the loader was still
 // loading (its pointer-events off) had switched idle off, and the orbit then never began
 document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
-document.getElementById('roam').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); document.getElementById('loader').classList.add('gone'); roamStart(); };
+document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); roamStart(); };
+// the button is up while the object floats and nothing else is happening: the same state the float's sound plays in
+// (review) after Stop tour the object is gone and the lock holds, so the button stays up then too:
+// roamStart takes the fade flow when there is no object to sink
+function roamFabSync(){ const b=document.getElementById('roamfab'); const want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&(portal.group.visible||tourDone); if(b.hidden!==!want)b.hidden=!want; }
 requestAnimationFrame(frame);
 </script>
 <h2>What is in the model</h2>

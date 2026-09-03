@@ -266,6 +266,27 @@ bed's master is `SND.BED`, every WebAudio sound leaves through `SND.shelf` (3 dB
 and `tour.mp3` is encoded 3 dB down with the same shelf. The pad eases in over `TAP.ease` (2.5 s). The master's first 17 s were
 lifted the same way in `tour.mp3` so the crossfade is level-matched.
 
+## The float, the lock, Free roam, the kaleidoscope (2026-09-03)
+
+- After Enter the sticks, keys, mouse look and the phone remote's move/look are LOCKED (`locked()`)
+  until Free roam; the visitor taps the object or presses **Free roam**. The veil has no Free roam
+  button any more: `#roamfab` sits on the stage above the bar while the object floats
+  (`roamFabSync()` every frame, the same state the float's sound plays in), and after Stop tour
+  (the object is gone then; Free roam is the way out of the lock).
+- Free roam from the float (`roamStart` with the portal visible) is the SINK: over `ROAM.sink` (4 s)
+  the object and its name shrink and drop into the void, over `ROAM.close` (1.5 s) the disc, the
+  carpet hole and the spot close, then the house rises to `ROAM.houseTo` (0.5) and a warm white
+  comes over the columns (`roamSinkStep`). From the tour's rest, Free roam is still the fade from
+  black. `portalReset()` brings the sunk object back whole on Start again; a sink cut short by Tour,
+  or by an Event ticked mid-way, is closed out on the spot (`roamed`, `sunk`) for the same reason.
+  The float's sound plays through the sink and goes out with the close.
+- The kaleidoscope refreshes its cube map and the mirrors every 4th frame (`warpRender(1, ang, 4)`):
+  the spin and the draw-in are the shader's. Measured 66 -> 132 fps uncapped on the PC. A 512/1024
+  cube switch forces a fresh cube.
+- The object sparkles (`SPARK`): ~2.5% of its edge pixels flash white and die away over ~1.1 s,
+  additive, only while it floats (not in the dive or the kaleidoscope).
+- The veil's button reads "Enter Gandel Hall" on every device.
+
 ## Rules for an agent working in this repo
 
 - Node 14+ is the only prerequisite. Nothing here uses npm packages; keep it that way.
