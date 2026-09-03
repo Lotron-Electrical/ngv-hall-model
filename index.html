@@ -3590,6 +3590,9 @@ function titlesOff(){ if(titles)for(const g of titles.children)g.visible=false; 
 // time, and the wall is whole
 let doorLeaf=null; const DOOR={W:1.1,H:2.4};
 function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
+ // (Lloyd, 2026-09-03) the door is back to glass: nobody walks out through it any more. The leaf and
+ // the opening are not built; the code stays below for a change of mind
+ return;
  const legs=collectLegs(); if(!legs.length)return; const P0=COURT.origin.clone().addScaledVector(COURT.u,COURT.uMid);
  // the pane whose run along the wall takes in the axis (or the nearest)
  let best=null, bd=1e9;
@@ -3620,7 +3623,7 @@ function buildDoor(){ if(doorLeaf){ scene.remove(doorLeaf); doorLeaf=null; }
 // Lotron on top, ENTTEC bottom left, Shadow AV bottom right, BROUGHT TO LIGHT BY above them; the
 // triangle flattens from 3D to 2D, GANDEL HALL 2026 comes up beneath it in shimmering rainbow,
 // holds, and the picture fades to black. The tour ends there.
-const FIN={walk:6.5, pan:1.5, drop:5, flat:2.5, hold:0, fade:0};   // (V11, Lloyd) once the marks are down nothing else happens: no fade, no cut; the tour ends 2.5 s later and rests on that frame, and the buttons fade in   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
+const FIN={walk:0, pan:1.5, drop:5, flat:2.5, hold:0, fade:0};   /* walk 0 (Lloyd, 2026-09-03): the walk out through the door is gone; the finale opens on the black the aisle shot fades to */   // (V11, Lloyd) once the marks are down nothing else happens: no fade, no cut; the tour ends 2.5 s later and rests on that frame, and the buttons fade in   // seconds per phase; the pan's last 0.5 s is pure black (Lloyd, V9); pan and drop shorter, the black about 2 s less (V10)
 // (Lloyd, V5) the walk ends on the groom's back filling the frame, then black; the marks come
 // down from the top of the frame onto the black, so nothing outside is ever seen
 // (Lloyd, V2) the last scene is the marks alone on black: as the flattening begins the court,
@@ -3659,9 +3662,8 @@ function gandelTopBuild(L){ if(gandelTop||!buildCourt.font)return;
 function finaleStart(){ if(finale)finaleEnd(); if(!logo||!turntable||partners.length<2)return; const L=finaleLayout(); gandelBuild(L);
  const home=o=>({p:o.position.clone(),r:o.rotation.y,s:o.scale.clone()});
  const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=0;
- for(const m of glazingMats)m.uniforms.door.value.x=1;
- // the couple are the finale's now: their walk handed over, placed by finaleStep each frame
- if(wedding){ wedding.walk=null; wedding.gone=false; wedding.fin={pos:null}; }
+ // (2026-09-03) the couple keep their own walk: the finale no longer takes them through the door
+ if(wedding)wedding.fin=null;
  finale={L,homes:new Map([[logo,home(logo)],...partners.map(p=>[p,home(p)])]),yaw:turntable.rotation.y,scale:turntable.scale.x,tagY:tag?tag.userData.baseY:0,f}; }
 // everything back where the court had it (the tour's end, or the tool looping the shot)
 function finaleEnd(){ if(!finale)return; for(const [o,h] of finale.homes){ o.position.copy(h.p); o.rotation.y=h.r; o.scale.copy(h.s); }
@@ -3748,7 +3750,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  // black: the groom's back fills the frame by 6 s and the fade to black follows it (Lloyd, V9);
  // held through the lift; clears in the pan's last half second, on a scene that is pure black
  // with the marks above the frame, so they enter from outside it
- const bo=s<tD-0.5?smooth(Math.max(0,Math.min(1,(s-6.0)/0.5))):1-smooth(Math.min(1,(s-tD+0.5)/0.5));
+ const bo=s<tD-0.5?1:1-smooth(Math.min(1,(s-tD+0.5)/0.5));   /* (2026-09-03) black from the start: the aisle shot faded to it */
  F.f.style.opacity=Math.max(fd,bo,1-Math.min(1,s/1.2));
  // THE CAMERA. The walk: 1.3 m behind the couple at their shoulders, through the door on their
  // backs; from 2 m outside it stops and turns to the sculpture as they walk out of the picture
@@ -3855,9 +3857,15 @@ function tourSegments(){ const uM=EVENT.wallLen/2, c=EVENT.cols;
   // Celebrate starts the walk; the camera keeps 3.5 m behind the couple, at their shoulder height
   // (Lloyd, V6) the shot cuts at 23 s, fading out over its last 1.5 s, and the finale fades in
   // (Lloyd, V8) the shot ends at 10.4 s, mid-aisle, fading out over its last 1.5 s into the finale
-  {celebrate:true,dur:10.4, cam:k=>{ const tw=k*10.4, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-8.9)/1.5))));
+  // (Lloyd, 2026-09-03) the shot is 14 s and ENDS OVER THEIR HEADS: it follows as before, then from
+  // 6 s the eye rises and drifts forward over the couple until it looks down on them from 5.5 m,
+  // and fades to black over its last 1.5 s; the marks follow on the black. The walk out through
+  // the door is gone, and the door with it
+  {celebrate:true,dur:14, cam:k=>{ const tw=k*14, cp=couple(tw), ahead=couple(Math.min(26,tw+1.5)); veil(smooth(Math.max(0,Math.min(1,(tw-12.5)/1.5))));
     // (Lloyd, V3) no sculpture outside the glass in this shot
-    const back=cp.d-3.6, u=tw<=20?uM:cp.u-(cp.u-uM)*0.35; poseAt(EP(u,1.8,Math.max(3.0,back)),EP(ahead.u,1.3,ahead.d)); if(court)court.visible=false;
+    const fl=smooth(Math.max(0,Math.min(1,(tw-6)/7))), back=cp.d-3.6;
+    const eyeF=EP(uM,1.8,Math.max(3.0,back)), eyeO=EP(cp.u,5.5,cp.d-0.6), lookF=EP(ahead.u,1.3,ahead.d), lookO=EP(cp.u,1.0,cp.d+0.5);
+    poseAt(eyeF.lerp(eyeO,fl),lookF.lerp(lookO,fl)); if(court)court.visible=false;
     confettiUntil=Math.max(confettiUntil,performance.now()/1000+0.3); }},   /* (Lloyd, V5) the guests keep jumping the whole walk */
   // the finale (Lloyd's storyboard): out through the doorway to the sculpture, the marks rise into
   // their triangle, flatten, the year beneath, hold, fade; the half-turn round the sculpture is gone
