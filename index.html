@@ -4123,7 +4123,11 @@ const SND={ctx:null,on:true,parts:[],chime:0,BED:0.6*0.708};
 function sndInit(){ if(SND.ctx||!entered)return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; const c=new AC(); SND.ctx=c;
  // (Lloyd, 2026-09-03: all of it a touch too loud, and the treble a touch too much) every WebAudio
  // sound leaves through one shelf, 3 dB down above 5 kHz, and the bed sits at LEVEL below what it was
- const shelf=c.createBiquadFilter(); shelf.type='highshelf'; shelf.frequency.value=5000; shelf.gain.value=-3; shelf.connect(c.destination); SND.shelf=shelf;
+ const shelf=c.createBiquadFilter(); shelf.type='highshelf'; shelf.frequency.value=5000; shelf.gain.value=-3; SND.shelf=shelf;
+ // PROXIMITY (Lloyd, 2026-09-03): everything sounds as if it comes from the object. One gain on
+ // the way out, set every frame from the eye's distance to it: quiet from the end of the hall on
+ // Enter, up to the level everything is set at when the eye is right up at the shell (proxStep)
+ const prox=c.createGain(); prox.gain.value=PROX.floor; shelf.connect(prox); prox.connect(c.destination); SND.prox=prox;
  const master=c.createGain(); master.gain.value=SND.on?SND.BED:0; master.connect(shelf); SND.master=master;
  // a hall's worth of reverb: noise dying away over three seconds
  const irLen=3*c.sampleRate, ir=c.createBuffer(2,irLen,c.sampleRate); for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<irLen;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,3); }
@@ -4349,7 +4353,16 @@ function sndBus(){ const c=SND.ctx; if(!c)return null; if(!TRACK.bus){ const d=c
   const k=new Audio(URL.createObjectURL(new Blob([h.buffer,new Uint8Array(n).fill(128)],{type:'audio/wav'}))); k.loop=true; k.setAttribute('playsinline',''); TRACK.keep=k; TRACK.keepAsk=0; }
 function keepStep(now,on){ const k=TRACK.keep; if(!k)return; if(!on){ if(!k.paused)k.pause(); return; } if(k.paused&&now>TRACK.keepAsk){ TRACK.keepAsk=now+0.5; const p=k.play(); if(p)p.catch(()=>{}); } }
 function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?SND.BED:0,c.currentTime,0.3); }
-function trackStep(now){ const a=TRACK.el; if(!a)return; const w=trackWant(now);
+// quiet far off, full close up: the square root of PROX.near over the eye's distance to the object,
+// full at PROX.near (a step outside the shell), about 0.6 on the orbit, a third at the end of the
+// hall where the page opens, never under PROX.floor (a linear ramp hit 0.93 by the orbit: too early).
+// It only follows the eye while the object is the thing to walk up to; the tour, the crash and the
+// kaleidoscope are at level, and once the object has sunk the hall is at level too
+const PROX={floor:0.25,near:2.0};
+function proxStep(now){ const c=SND.ctx, g=SND.prox; if(!c||!g)return; let v=1;
+ if(portal&&portal.group.visible&&!tour&&!boom&&!restFinale&&!SHOT&&!TOURQ){ const d=Math.max(PROX.near,eye.distanceTo(portal.centre)); v=Math.max(PROX.floor,Math.sqrt(PROX.near/d)); }
+ if(Math.abs(g.gain.value-v)>0.002)g.gain.setTargetAtTime(v,c.currentTime,0.08); }
+function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
  // that never arrived or the tail's end leave the bed up rather than silence
  tapStep(now);
