@@ -4009,15 +4009,16 @@ function warpInit(){ if(WARP.rt)return;
  WARP.tiny=new THREE.WebGLRenderTarget(16,16);   // the mirrors update on a normal render; it goes nowhere
  WARP.qscene=new THREE.Scene(); WARP.qcam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
  WARP.quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({depthTest:false,depthWrite:false,
-  uniforms:{cube:{value:WARP.rt.texture},ang:{value:1.1},tanh:{value:0.6},mixf:{value:0},aspect:{value:1},basis:{value:new THREE.Matrix3()},kal:{value:0},spin:{value:0},iris:{value:-1}},
+  uniforms:{cube:{value:WARP.rt.texture},cube2:{value:WARP.rt.texture},obj:{value:0},ang:{value:1.1},tanh:{value:0.6},mixf:{value:0},aspect:{value:1},basis:{value:new THREE.Matrix3()},kal:{value:0},spin:{value:0},iris:{value:-1}},
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }`,
-  fragmentShader:`uniform samplerCube cube; uniform float ang; uniform float tanh; uniform float mixf; uniform float aspect; uniform mat3 basis; uniform float kal; uniform float spin; uniform float iris; varying vec2 vUv;
+  fragmentShader:`uniform samplerCube cube; uniform samplerCube cube2; uniform float obj; uniform float ang; uniform float tanh; uniform float mixf; uniform float aspect; uniform mat3 basis; uniform float kal; uniform float spin; uniform float iris; varying vec2 vUv;
    void main(){ vec2 p=vUv*2.0-1.0; p.x*=aspect; float l=length(p); float r=l/aspect;   // r is 1 at the left and right edges
     if(kal>0.5){ float seg=6.2831853/kal, a=mod(atan(p.y,p.x)+spin,seg); if(a>seg*0.5)a=seg-a; p=vec2(cos(a),sin(a))*l; }   // the kaleidoscope: the picture folded into wedges
     float th=mix(atan(r*tanh),r*ang*0.5,mixf);                                          // rectilinear blending into equidistant fisheye
     if(th>3.14159){ gl_FragColor=vec4(0.0,0.0,0.0,1.0); return; }
     vec2 d=l>1e-5?p/l:vec2(0.0); vec3 dir=basis*vec3(sin(th)*d.x,sin(th)*d.y,-cos(th));
-    gl_FragColor=vec4(textureCube(cube,dir).rgb,1.0);
+    vec4 h=textureCube(cube,dir); if(obj>0.5){ vec4 o=textureCube(cube2,dir); h.rgb=o.rgb+h.rgb*(1.0-o.a); }   // the kaleidoscope: the object, drawn every frame, over the hall drawn once
+    gl_FragColor=vec4(h.rgb,1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     // the iris: the picture squeezed down to a point of white light with black all round (Lloyd)
@@ -4053,15 +4054,18 @@ function warpRender(k,angOv,everyOv){ warpInit(); const W=WARP;
  // (Lloyd, 2026-09-03: the kaleidoscope stutters on the phone, then runs smooth, then stutters) every
  // fourth frame carried the whole cube pass, six renders of the hall, AND the twelve mirrors: eight
  // renders in one frame against one in each of the next three, and a phone missed a vsync on every
- // heavy one, a judder at 15 Hz that came and went with the phone's headroom. Now the six faces are
- // dealt out over the four frames (two, one, two, one) and so are the mirrors, three a frame (each
- // mirror is a render of the hall too: all twelve in one frame was the heavier burst, measured 13
- // renders against 2), so every frame costs about the same, six or seven renders. The cube's size is pinned through it as well: the 512/1024
- // governor below flapped on the very dip its own switch caused, and each switch drew a fresh cube
- const ph=everyOv?W.n%everyOv:-1;
- if(everyOv){ MIRROR_DEAL.n=ph; MIRROR_DEAL.of=everyOv; }
- if(everyOv||!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1)){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
- MIRROR_DEAL.of=0;
+ // heavy one, a judder at 15 Hz that came and went with the phone's headroom. A first fix dealt the
+ // faces and mirrors out over the four frames; the split below replaced it. The cube's size is pinned
+ // through the kaleidoscope as well: the 512/1024 governor below flapped on the very dip its own
+ // switch caused, and each switch drew a fresh cube
+ // (Lloyd, 2026-09-03, second pass: the frame rate held but the picture itself was choppy) the deal
+ // above left the object stepping at 15 Hz. Now the eye being still is used the other way round:
+ // the hall is drawn into the cube ONCE, without the object, and only the object is drawn every
+ // frame, into a second cube with a clear background, cheap enough for a phone; the fisheye lays the
+ // one over the other. The mirrors are frozen on their last frame through it (each is a render of
+ // the hall) and the twelve panes still turn with the object
+ if(everyOv&&!W.kalOn){ W.kalOn=true; W.stale=true; } else if(!everyOv)W.kalOn=false;   /* the kaleidoscope's first frame draws its hall cube fresh: the approach's last cube has the object in it */
+ if(!everyOv&&(!(TOUCH||(animate.fps&&animate.fps<57))||(W.n&1))){ R.setRenderTarget(W.tiny); R.render(scene,cam); R.setRenderTarget(null); }
  // pick the cube map by the measured frame rate, with hysteresis so it does not flap
  { const fps=animate.fps||60, now=performance.now();
    if(everyOv){ /* pinned */ }
@@ -4079,20 +4083,28 @@ function warpRender(k,angOv,everyOv){ warpInit(); const W=WARP;
  // the first cube frame after the perspective pass always refreshes: the cube it would otherwise
  // show is the warm-up one from the end of the hall (Lloyd: a brief flash before the FOV change)
  if(W.stale||(!everyOv&&W.n%every===0)){ W.cube.position.copy(cam.position); reflecting=true;   // the cube pass must not nest twelve more mirror renders per face
-  try{ W.cube.update(R,scene); } finally{ reflecting=false; W.stale=false; } }
- else if(everyOv){ const f=[]; for(let i=0;i<6;i++)if(Math.floor(i*everyOv/6)===ph)f.push(i); warpFaces(f); }
+  const hide=everyOv&&portal&&portal.group.visible; if(hide)portal.group.visible=false;   /* the kaleidoscope's hall cube is the hall alone */
+  try{ W.cube.update(R,scene); } finally{ reflecting=false; W.stale=false; if(hide)portal.group.visible=true; } }
+ if(everyOv)warpObject();
+ W.quad.material.uniforms.obj.value=everyOv?1:0;
  // the projection picks up as the exact rectilinear view at the hand-over angle and blends into the fisheye from there
  const u=W.quad.material.uniforms;
  u.ang.value=ang; u.tanh.value=Math.tan(WARP_SW/2); u.mixf.value=angOv?1:Math.min(1,(ang-WARP_SW)/0.6); u.aspect.value=cam.aspect;
  u.basis.value.setFromMatrix4(cam.matrixWorld);
  R.render(W.qscene,W.qcam); }
-// a few of the cube's six faces, drawn on their own (CubeCamera.update draws all six at once; this is
-// its body, one face at a time, for the kaleidoscope's deal above). Mipmaps are off on these
-// targets, so a face drawn on its own is a face done
-function warpFaces(list){ const W=WARP, C=W.cube; C.position.copy(cam.position); C.updateMatrixWorld();
+// the object alone, all six faces, into the second cube over a clear background: the cube cameras
+// see layer 1 only for it, and the object's every part (and the lights) sit on layer 1 as well as 0
+const OBJ_LAYER=1; let objLayered=false;
+function warpObject(){ const W=WARP, C=W.cube, Q=portal; if(!Q)return;
+ if(!objLayered){ objLayered=true; Q.group.traverse(o=>o.layers.enable(OBJ_LAYER)); scene.traverse(o=>{ if(o.isLight)o.layers.enable(OBJ_LAYER); }); }
+ if(!W.objRts)W.objRts={}; if(!W.objRts[W.res])W.objRts[W.res]=new THREE.WebGLCubeRenderTarget(W.res,{type:TOUCH?THREE.UnsignedByteType:THREE.HalfFloatType,generateMipmaps:false});
+ const rt=W.objRts[W.res]; C.position.copy(cam.position); C.updateMatrixWorld();
  if(C.coordinateSystem!==R.coordinateSystem){ C.coordinateSystem=R.coordinateSystem; C.updateCoordinateSystem(); }
- const cur=R.getRenderTarget(), xr=R.xr.enabled; R.xr.enabled=false; reflecting=true;
- try{ for(const i of list){ R.setRenderTarget(W.rt,i); R.render(scene,C.children[i]); } } finally{ reflecting=false; R.setRenderTarget(cur); R.xr.enabled=xr; } }
+ const cur=R.getRenderTarget(), xr=R.xr.enabled, bg=scene.background, env=scene.environment, fog=scene.fog, cc=new THREE.Color(); R.getClearColor(cc); const ca=R.getClearAlpha();
+ R.xr.enabled=false; reflecting=true; scene.background=null; scene.environment=null; scene.fog=null; R.setClearColor(0x000000,0); MIRROR_DEAL.n=-1; MIRROR_DEAL.of=1;
+ try{ for(let i=0;i<6;i++){ const k=C.children[i], m=k.layers.mask; k.layers.set(OBJ_LAYER); R.setRenderTarget(rt,i); R.render(scene,k); k.layers.mask=m; } }
+ finally{ reflecting=false; MIRROR_DEAL.of=0; scene.background=bg; scene.environment=env; scene.fog=fog; R.setClearColor(cc,ca); R.setRenderTarget(cur); R.xr.enabled=xr; }
+ W.quad.material.uniforms.cube2.value=rt.texture; }
 // one throwaway pass at both sizes as soon as the object exists: allocating the cube maps and
 // compiling every material for the cube cameras on the first real frame was a visible hitch
 // (Lloyd: it noticeably lags when we enter the field of view sequence)
