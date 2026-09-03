@@ -301,6 +301,9 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   release. They are live: a thumb within 64 px of the MOVE ring drives from its centre (`stickRing`,
   its knob follows), elsewhere on the left half the floating `#pad` appears as before; the LOOK knob
   leans with the drag and springs back. Gone with a tour or a shot.
+- The soundtrack file is PARKED at its join point (TRACK.sw - 4.9 s = 17.0 s) while the object floats
+  (`trackStep`, no-want branch), so the tap's seek is nil and the bytes are buffered; the join fade is
+  1.5 s (was 3.5; Lloyd, 2026-09-03: the sound designer's sounds came in a little late on the tap).
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
   from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
   the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
