@@ -3633,7 +3633,8 @@ function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partn
  // the year sits at the foot (0.3 up, 0.6 H tall), the partners clear of it, Lotron clear of them
  // (Lloyd, V2) closer together: the partners nearer the middle and Lotron nearer them; and the
  // big GANDEL HALL above the tag, its height in the framing
- const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5, dx=W*0.45, tagY=yTop+T+H*0.5, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*0.9, gH=H*0.95;   /* (Lloyd, V11) GANDEL HALL sits higher, in its own space: it is the hero */
+ // (Lloyd, 2026-09-03) a bit more air between the marks: the partners to Lotron, Lotron to the line, the line to GANDEL HALL
+ const yearTxt=TX1('finale',''), yBot=yearTxt?0.3+0.45*H+1.0:0.5, yTop=yBot+pt+0.5+H*0.7, dx=W*0.45, tagY=yTop+T+H*0.9, ts=tag&&tag.userData.size||H*0.34, gBot=tagY+ts*0.85+H*1.3, gH=H*0.95;   /* (Lloyd, V11) GANDEL HALL sits higher, in its own space: it is the hero */
  // (Lloyd, V5) ENTTEC's left edge on LOTRON's left, Shadow AV's right edge on LOTRON's right
  const dx0=W/2-(partners[0].userData.w||W*0.5)/2, dx1=W/2-(partners[1].userData.w||W*0.5)/2;
  return {H,W,T,yTop,yBot,dx,dx0,dx1,top:gBot+gH+H*0.2,tagY,gBot,gH,wTot:1.1*W}; }
