@@ -34,11 +34,14 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #knob{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.55)}
 /* the resting sticks (Lloyd, 2026-09-03): once Free roam has landed the eye, a phone shows where the two
    thumbs go, MOVE bottom-left and LOOK bottom-right, at half strength, fading in over 1.2 s */
-#sticks{position:absolute;left:0;right:0;bottom:70px;display:flex;justify-content:space-between;padding:0 28px;pointer-events:none;opacity:0;visibility:hidden;transition:opacity 1.2s ease,visibility 0s linear 1.2s;z-index:6}
-#sticks.up{opacity:.5;visibility:visible;transition:opacity 1.2s ease}
-#sticks div{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
-#sticks i{display:block;width:100px;height:100px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);position:relative}
-#sticks i::after{content:'';position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:#fff}
+#sticks{position:absolute;left:0;right:0;bottom:70px;display:flex;justify-content:space-between;padding:0 28px;pointer-events:none;z-index:6}
+/* each stick shows on its own: up from the landing until its first touch, then while held and for a
+   moment after (Lloyd: after the first touch they fade away; when used they appear, then fade) */
+#sticks div{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:0;visibility:hidden;transition:opacity .8s ease,visibility 0s linear .8s}
+#sticks div.show{opacity:.5;visibility:visible;transition:opacity 1.2s ease}
+#sticks i{display:block;width:80px;height:80px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);position:relative}
+#sticks b{position:absolute;left:24px;top:24px;width:32px;height:32px;border-radius:50%;background:#fff;transition:transform .25s ease}
+#sticks b.held{transition:none}
 .ctl{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;gap:0;background:#000;border-top:1px solid var(--rule);z-index:7}
 .ctl button{flex:1 1 0;border:0;border-right:1px solid var(--rule);background:#000;min-width:0;padding:0 4px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15}
 .ctl button:last-child{border-right:0}
@@ -170,7 +173,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
 <div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
- <div id="sticks"><div>Move<i></i></div><div>Look<i></i></div></div>
+ <div id="sticks"><div id="stkmove">Move<i><b></b></i></div><div id="stklook">Look<i><b></b></i></div></div>
  <div class="ctl"><button id="menubtn" type="button">Menu</button><button id="tourbtn" type="button">Tour</button><button id="full" type="button">Full screen</button><button id="hudb" type="button" aria-pressed="false">Stats</button><button id="remote" type="button">Phone remote</button></div>
  <div id="hud" hidden></div>
  <div id="qr" class="qr" hidden><div class="qrbox"><div id="qrimg"></div><div class="qrtxt"><b>Scan to drive this view from a phone</b><br><span id="qrurl"></span><br><span id="qrstat">waiting for the phone</span></div><button type="button" id="qrclose">Close</button></div></div>
@@ -1573,20 +1576,28 @@ function touchList(e){return [...e.changedTouches];}
 // down to sink.
 cv.addEventListener('touchstart',e=>{e.preventDefault(); if(locked())return; idle=false; const rect=cv.getBoundingClientRect();
  for(const t of touchList(e)){ const leftHalf=t.clientX-rect.left<rect.width/2;
-  if(leftHalf&&!stick)stick={id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)};
-  else if(!leftHalf&&!look)look={id:t.identifier,x:t.clientX,y:t.clientY};
+  // (Lloyd, 2026-09-03) the resting sticks are live: a thumb landing on the MOVE ring drives it from
+  // the ring's centre (its knob follows the thumb), anywhere else on the left half the pad appears
+  // under the thumb as before; the LOOK knob leans with the look drag and springs back
+  const ring=leftHalf?stickRing('stkmove',t):null;
+  if(leftHalf&&!stick){ stick=ring?{id:t.identifier,x0:ring.cx,y0:ring.cy,dx:0,dy:0,el:null,knob:ring.knob}:{id:t.identifier,x0:t.clientX,y0:t.clientY,dx:0,dy:0,el:showStick(t.clientX-rect.left,t.clientY-rect.top)}; stkHold('move',true); }
+  else if(!leftHalf&&!look){ look={id:t.identifier,x:t.clientX,y:t.clientY,lx:0,ly:0,knob:document.querySelector('#stklook b')}; stkHold('look',true); }
   else if(!rise)rise={id:t.identifier,y:t.clientY}; }},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
  for(const t of touchList(e)){
   if(stick&&t.identifier===stick.id){stick.dx=Math.max(-60,Math.min(60,t.clientX-stick.x0)); stick.dy=Math.max(-60,Math.min(60,t.clientY-stick.y0)); moveStick(stick);}
-  else if(look&&t.identifier===look.id){yaw-=(t.clientX-look.x)*0.005; pitch-=(t.clientY-look.y)*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;}
+  else if(look&&t.identifier===look.id){const mx=t.clientX-look.x, my=t.clientY-look.y; yaw-=mx*0.005; pitch-=my*0.005; pitch=Math.max(-1.5,Math.min(1.5,pitch)); look.x=t.clientX; look.y=t.clientY;
+   look.lx=Math.max(-24,Math.min(24,look.lx*0.85+mx*0.6)); look.ly=Math.max(-24,Math.min(24,look.ly*0.85+my*0.6)); look.knob.classList.add('held'); look.knob.style.transform='translate('+look.lx+'px,'+look.ly+'px)';}
   else if(rise&&t.identifier===rise.id){eye.y-=(t.clientY-rise.y)*0.01; rise.y=t.clientY;}}},{passive:false});
-function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null;} if(look&&t.identifier===look.id)look=null; if(rise&&t.identifier===rise.id)rise=null;}}
+function endTouch(e){for(const t of touchList(e)){ if(stick&&t.identifier===stick.id){hideStick(stick); stick=null; stkHold('move',false);} if(look&&t.identifier===look.id){ look.knob.classList.remove('held'); look.knob.style.transform='translate(0,0)'; look=null; stkHold('look',false); } if(rise&&t.identifier===rise.id)rise=null;}}
 cv.addEventListener('touchend',endTouch); cv.addEventListener('touchcancel',endTouch);
 const pad=document.getElementById('pad'), knob=document.getElementById('knob');
 function showStick(x,y){pad.style.display='block'; pad.style.left=(x-50)+'px'; pad.style.top=(y-50)+'px'; knob.style.transform='translate(0,0)'; return pad;}
-function moveStick(st){knob.style.transform=`translate(${st.dx*0.6}px,${st.dy*0.6}px)`;}
-function hideStick(){pad.style.display='none';}
+function moveStick(st){ if(st.knob){ st.knob.classList.add('held'); st.knob.style.transform='translate('+(st.dx*0.4)+'px,'+(st.dy*0.4)+'px)'; } else knob.style.transform='translate('+(st.dx*0.6)+'px,'+(st.dy*0.6)+'px)';}
+function hideStick(st){ if(st&&st.knob){ st.knob.classList.remove('held'); st.knob.style.transform='translate(0,0)'; } else pad.style.display='none';}
+// the resting MOVE ring under a touch, if it is showing and the touch is within `reach` px of its centre
+function stickRing(id,t,reach=64){ const el=document.getElementById(id); if(!el.classList.contains('show'))return null; const r=el.querySelector('i').getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+ return Math.hypot(t.clientX-cx,t.clientY-cy)<=reach?{cx,cy,knob:el.querySelector('b')}:null; }
 function fwd(){return new THREE.Vector3(Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),-Math.cos(pitch)*Math.sin(yaw));}
 function right(){return new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));}
 // the Reset view button is gone (Lloyd, 2026-09-02); the guard keeps the wiring harmless
@@ -1624,7 +1635,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,R,THREE,get EVENT(){return EVENT;},get WARP(){return WARP;},get hall(){return hallGroup;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sticks:()=>document.getElementById('sticks').classList.contains('up'),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,R,THREE,get EVENT(){return EVENT;},get WARP(){return WARP;},get hall(){return hallGroup;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sticks:()=>['stkmove','stklook'].map(i=>document.getElementById(i).classList.contains('show')),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -4769,8 +4780,11 @@ document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.
 // in idleStep), not the moment Enter is pressed; the fade is the rest buttons' 1.2 s
 // the resting sticks come up once the eye has LANDED (the sink's glide done, or the fade from black
 // done), on a phone only, and go with anything that takes the eye back (a tour, a shot)
-function sticksSync(){ const el=document.getElementById('sticks'); const landed=roamed&&!(roam&&roam.sink&&roam.phase<2)&&!(roam&&!roam.sink&&performance.now()/1000-roam.t0<ROAM.fade);
- el.classList.toggle('up',TOUCH&&landed&&!tour&&!boom&&!approach&&!SHOT&&!TOURQ); }
+const STK={move:{touched:false,held:false,t:0},look:{touched:false,held:false,t:0},linger:1.0};
+function sticksSync(){ const now=performance.now()/1000, landed=roamed&&!(roam&&roam.sink&&roam.phase<2)&&!(roam&&!roam.sink&&now-roam.t0<ROAM.fade);
+ const up=TOUCH&&landed&&!tour&&!boom&&!approach&&!SHOT&&!TOURQ; if(!up){ STK.move.touched=STK.look.touched=false; }
+ for(const k of ['move','look']){ const S=STK[k]; document.getElementById('stk'+k).classList.toggle('show',up&&(!S.touched||S.held||now-S.t<STK.linger)); } }
+function stkHold(k,on){ const S=STK[k]; S.touched=true; S.held=on; S.t=performance.now()/1000; }
 function roamFabSync(){ sticksSync(); const b=document.getElementById('roamfab'); let want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&(portal.group.visible||tourDone);
  if(want&&idle&&!tourDone&&(idleT0===null||performance.now()/1000-idleT0<5))want=false;
  b.classList.toggle('up',want); }
