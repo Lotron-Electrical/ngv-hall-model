@@ -291,8 +291,8 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
 - `#roamfab` fades in (1.2 s, class `up`) only once the 5 s fly-in has landed on the orbit, and no
   sound at all starts before Enter Gandel Hall (`sndInit` refuses until `entered`).
 - PROXIMITY (2026-09-03): every WebAudio sound leaves through `SND.prox`, set each frame by `proxStep`
-  to sqrt(ORBIT_R / distance to the object), floor 0.25: about half at the hall end, full from the
-  orbit inwards. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
+  from the eye's distance to the object: a tenth at the hall end (HOME), a smooth curve to full at
+  the orbit radius and full from there in, times a 2.5 s fade-in from nothing after Enter. Held at 1 through the crash, kaleidoscope, tour and rest, and once the object has sunk.
 - The object sparkles (`SPARK`): ~2.5% of its edge pixels flash white and die away over ~1.1 s,
   additive, only while it floats (not in the dive or the kaleidoscope).
 - The veil's button reads "Enter Gandel Hall" on every device.

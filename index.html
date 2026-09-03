@@ -4127,7 +4127,7 @@ function sndInit(){ if(SND.ctx||!entered)return; const AC=window.AudioContext||w
  // PROXIMITY (Lloyd, 2026-09-03): everything sounds as if it comes from the object. One gain on
  // the way out, set every frame from the eye's distance to it: quiet from the end of the hall on
  // Enter, up to the level everything is set at when the eye is right up at the shell (proxStep)
- const prox=c.createGain(); prox.gain.value=PROX.floor; shelf.connect(prox); prox.connect(c.destination); SND.prox=prox;
+ const prox=c.createGain(); prox.gain.value=0; shelf.connect(prox); prox.connect(c.destination); SND.prox=prox;
  const master=c.createGain(); master.gain.value=SND.on?SND.BED:0; master.connect(shelf); SND.master=master;
  // a hall's worth of reverb: noise dying away over three seconds
  const irLen=3*c.sampleRate, ir=c.createBuffer(2,irLen,c.sampleRate); for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<irLen;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,3); }
@@ -4353,14 +4353,16 @@ function sndBus(){ const c=SND.ctx; if(!c)return null; if(!TRACK.bus){ const d=c
   const k=new Audio(URL.createObjectURL(new Blob([h.buffer,new Uint8Array(n).fill(128)],{type:'audio/wav'}))); k.loop=true; k.setAttribute('playsinline',''); TRACK.keep=k; TRACK.keepAsk=0; }
 function keepStep(now,on){ const k=TRACK.keep; if(!k)return; if(!on){ if(!k.paused)k.pause(); return; } if(k.paused&&now>TRACK.keepAsk){ TRACK.keepAsk=now+0.5; const p=k.play(); if(p)p.catch(()=>{}); } }
 function trackDuck(on){ TRACK.duck=on; const c=SND.ctx; if(c&&SND.master)SND.master.gain.setTargetAtTime(SND.on&&!on?SND.BED:0,c.currentTime,0.3); }
-// quiet far off, full on the orbit: the square root of PROX.near over the eye's distance to the
-// object, full from PROX.near (the orbit's radius; Lloyd: full volume at the orbit, not the shell)
-// inwards, about half at the end of the hall where the page opens, never under PROX.floor. It only
-// follows the eye while the object is the thing to walk up to; the tour, the crash and the
-// kaleidoscope are at level, and once the object has sunk the hall is at level too
-const PROX={floor:0.25,near:ORBIT_R};
-function proxStep(now){ const c=SND.ctx, g=SND.prox; if(!c||!g)return; let v=1;
- if(portal&&portal.group.visible&&!tour&&!boom&&!restFinale&&!SHOT&&!TOURQ){ const d=Math.max(PROX.near,eye.distanceTo(portal.centre)); v=Math.max(PROX.floor,Math.sqrt(PROX.near/d)); }
+// quiet far off, full on the orbit (Lloyd): a tenth at the end of the hall where the page opens
+// (PROX.far, measured to the object), rising on a smooth curve to full at PROX.near, the orbit's
+// radius, and full from there in. On top, everything fades in from nothing over PROX.fade s after
+// Enter. It only follows the eye while the object is the thing to walk up to; the tour, the crash
+// and the kaleidoscope are at level, and once the object has sunk the hall is at level too
+const PROX={floor:0.1,near:ORBIT_R,far:null,fade:2.5,t0:null};
+function proxStep(now){ const c=SND.ctx, g=SND.prox; if(!c||!g)return; let v=1; if(PROX.t0==null)PROX.t0=now;
+ if(portal&&portal.group.visible&&!tour&&!boom&&!restFinale&&!SHOT&&!TOURQ){ const C=portal.centre; if(PROX.far==null)PROX.far=Math.max(PROX.near+1,new THREE.Vector3(...HOME.eye).distanceTo(C));
+  const d=eye.distanceTo(C), q=smooth(Math.max(0,Math.min(1,(PROX.far-d)/(PROX.far-PROX.near)))); v=PROX.floor+(1-PROX.floor)*q; }
+ v*=smooth(Math.min(1,(now-PROX.t0)/PROX.fade));
  if(Math.abs(g.gain.value-v)>0.002)g.gain.setTargetAtTime(v,c.currentTime,0.08); }
 function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
