@@ -1,0 +1,357 @@
+import * as THREE from 'three';
+import { hallToWorld } from './world.js';
+
+const COLUMNS = ['N1','N2','N3','N4','N5','N6','S1','S2','S3','S4','S5','S6'];
+const BOX = { x: 0.5, y: 0.34, z: 0.42 };
+
+function mat(color, roughness = 0.75, extra = {}) {
+  return new THREE.MeshStandardMaterial({ color, roughness, ...extra });
+}
+
+function meshBox(color, sx, sy, sz, extra = {}) {
+  return new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat(color, 0.75, extra));
+}
+
+function makeLabel(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const g = canvas.getContext('2d');
+  g.fillStyle = '#111318';
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.strokeStyle = '#b9a887';
+  g.lineWidth = 8;
+  g.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+  g.fillStyle = '#f1eee5';
+  g.font = '700 72px IBM Plex Sans, Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 128, 64);
+  const tex = new THREE.CanvasTexture(canvas);
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.36), new THREE.MeshBasicMaterial({ map: tex }));
+  label.position.set(0, 0.92, -0.54);
+  label.userData.texture = tex;
+  return label;
+}
+
+function makePallet(column) {
+  const group = new THREE.Group();
+  const wood = mat(0x6b4d2e);
+  for (const z of [-0.38, 0, 0.38]) {
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.18), wood);
+    slat.position.set(0, 0.04, z);
+    group.add(slat);
+  }
+  const boxes = [];
+  for (let y = 0; y < 2; y++) {
+    for (let z = 0; z < 2; z++) {
+      for (let x = 0; x < 2; x++) {
+        const b = meshBox(0x9a7b55, BOX.x, BOX.y, BOX.z);
+        b.position.set((x - 0.5) * 0.55, 0.22 + y * 0.37, (z - 0.5) * 0.46);
+        group.add(b);
+        boxes.push(b);
+      }
+    }
+  }
+  group.add(makeLabel(column));
+  return { group, boxes };
+}
+
+function makeJack() {
+  const group = new THREE.Group();
+  const red = mat(0xaa2f2a, 0.62);
+  const dark = mat(0x30343a, 0.65);
+  for (const x of [-0.28, 0.28]) {
+    const tine = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 1.35), red);
+    tine.position.set(x, 0.08, -0.28);
+    group.add(tine);
+  }
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.22, 0.35), red);
+  body.position.set(0, 0.16, 0.48);
+  group.add(body);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.25, 10), dark);
+  handle.position.set(0, 0.75, 0.74);
+  handle.rotation.x = -0.42;
+  group.add(handle);
+  return group;
+}
+
+function makeBag() {
+  const bag = meshBox(0x273b2d, 0.65, 0.82, 0.65);
+  bag.scale.set(1, 1, 0.85);
+  return bag;
+}
+
+function makeBoxObject(lights = 8) {
+  const mesh = meshBox(0x9a7b55, BOX.x, BOX.y, BOX.z);
+  return { type: 'box', lights, carried: false, disposed: false, mesh };
+}
+
+function makeCarryLight(wrapped) {
+  const group = new THREE.Group();
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(0.08, 0.08, 1.5),
+    wrapped
+      ? mat(0xf4f4ee, 0.25, { transparent: true, opacity: 0.56 })
+      : mat(0xffffff, 0.35, { emissive: 0xe4f5ff, emissiveIntensity: 0.55 })
+  );
+  group.add(bar);
+  group.position.set(0.36, -0.38, -0.9);
+  group.rotation.set(0.2, -0.22, 0.05);
+  return group;
+}
+
+function carry(player, item) {
+  if (item.mesh) {
+    item.mesh.removeFromParent();
+    player.camera.add(item.mesh);
+    item.mesh.position.set(0.34, -0.42, -0.9);
+    item.mesh.rotation.set(0.06, -0.18, 0);
+    item.mesh.visible = true;
+  }
+  item.carried = true;
+  player.carry = item;
+}
+
+export function createItems(scene, world, camera) {
+  const items = { pallets: [], boxes: [], wraps: [], bags: [], jack: null, scene, world, camera };
+  for (const [i, column] of COLUMNS.entries()) {
+    const u = 50.4 + Math.floor(i / 3) * 1.55;
+    const d = 4.85 + (i % 3) * 1.65;
+    const made = makePallet(column);
+    made.group.position.copy(hallToWorld(u, d, world.floorY));
+    made.group.rotation.y = -0.22;
+    scene.add(made.group);
+    items.pallets.push({ type: 'pallet', column, boxes: 8, held: false, mesh: made.group, boxMeshes: made.boxes });
+  }
+  for (let i = 0; i < 4; i++) {
+    const mesh = makeBag();
+    mesh.position.copy(hallToWorld(56.4, 5.05 + i * 0.82, world.floorY + 0.41));
+    scene.add(mesh);
+    items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
+  }
+  const jackMesh = makeJack();
+  jackMesh.position.copy(hallToWorld(50.2, 10.0, world.floorY));
+  scene.add(jackMesh);
+  items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
+  return items;
+}
+
+export function nearestAction(player, lift, install, items) {
+  const p = player.camera.position;
+  const near = (obj, r) => !obj.disposed && obj.mesh.position.distanceTo(p) < r;
+  const skipNear = items.world.skip.distanceTo(p) < 2.2;
+
+  if (player.carry?.type === 'box' && lift.deckWorld().distanceTo(p) < 2 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
+  if ((player.carry?.type === 'box' || player.carry?.type === 'emptyBox' || player.carry?.type === 'bag') && skipNear) return { label: `Dispose ${player.carry.type}`, run: () => disposeCarry(player, items) };
+  if (player.carry?.type === 'box') return { label: 'Set down box', run: () => dropCarry(player, items) };
+  if (player.carry?.type === 'emptyBox') return { label: 'Carry empty box to skip', run: null };
+  if (player.carry?.type === 'wrapped') return { label: 'Unwrap light', run: () => unwrapLight(player, items) };
+  if (player.carry?.type === 'light') {
+    const slot = install.findFitSlot(lift.deckWorld());
+    if (slot && lift.aboard) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
+    return { label: 'Raise lift to the next slot', run: null };
+  }
+  if (player.carry?.type === 'wrap') {
+    const bag = items.bags.find((b) => near(b, 1.4) && !b.full);
+    if (bag) return { label: 'Bag the wrap', run: () => bagWrap(player, bag, items) };
+    return { label: 'Find a rubbish bag', run: null };
+  }
+
+  if (lift.aboard && lift.box && lift.box.lights > 0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
+  if (lift.aboard && lift.box && lift.box.lights <= 0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
+  if (lift.deckWorld().distanceTo(p) < 1.6 && !lift.aboard) return { label: 'Get on lift', run: () => { player.pos.copy(lift.deckWorld()); lift.aboard = true; } };
+  if (lift.deckWorld().distanceTo(p) < 1.8 && lift.aboard) return { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); lift.aboard = false; } };
+
+  const box = items.boxes.find((b) => !b.carried && !b.onLift && !b.disposed && near(b, 1.25));
+  if (box) return { label: box.lights > 0 ? 'Take wrapped light from box' : 'Take empty box', run: () => box.lights > 0 ? takeLightFromBox(player, box, items) : carryEmptyBox(player, box, items) };
+  const wrap = items.wraps.find((w) => !w.carried && !w.bagged && near(w, 1.15));
+  if (wrap) return { label: 'Pick up wrap', run: () => carry(player, wrap) };
+  const fullBag = items.bags.find((b) => b.full && !b.carried && !b.disposed && near(b, 1.25));
+  if (fullBag) return { label: 'Take rubbish bag', run: () => carry(player, fullBag) };
+
+  if (items.jack.held) {
+    if (items.jack.carrying) return { label: 'Set pallet down', run: () => items.jack.carrying = null };
+    const pal = items.pallets.find((b) => b.boxes > 0 && b.mesh.position.distanceTo(items.jack.mesh.position) < 1.25);
+    if (pal) return { label: `Lift ${pal.column} pallet`, run: () => items.jack.carrying = pal };
+  }
+  if (near(items.jack, 1.4)) return { label: items.jack.held ? 'Release pallet jack' : 'Take pallet jack', run: () => items.jack.held = !items.jack.held };
+
+  const pallet = items.pallets.find((b) => b.boxes > 0 && near(b, 1.55));
+  if (pallet) return { label: `Take box from ${pallet.column} pallet`, run: () => spawnBox(player, items, pallet) };
+  return { label: 'No action nearby', run: null };
+}
+
+function updatePalletStack(pallet) {
+  pallet.boxMeshes.forEach((m, i) => m.visible = i < pallet.boxes);
+}
+
+function spawnBox(player, items, pallet) {
+  pallet.boxes--;
+  updatePalletStack(pallet);
+  const box = makeBoxObject(8);
+  items.boxes.push(box);
+  items.scene.add(box.mesh);
+  carry(player, box);
+}
+
+function takeLightFromBox(player, box, items) {
+  box.lights--;
+  if (box.mesh?.material?.color) box.mesh.material.color.setHex(box.lights > 0 ? 0x9a7b55 : 0x6f6250);
+  const mesh = makeCarryLight(true);
+  player.camera.add(mesh);
+  player.carry = { type: 'wrapped', mesh };
+  if (box.lights <= 0) box.type = 'emptyBox';
+  saveLooseBoxPosition(box, items);
+}
+
+function putBoxOnLift(player, lift, items) {
+  lift.box = player.carry;
+  lift.box.carried = false;
+  lift.box.onLift = true;
+  lift.box.mesh.removeFromParent();
+  items.scene.add(lift.box.mesh);
+  player.carry = null;
+  lift.refresh();
+}
+
+function unwrapLight(player, items) {
+  if (player.carry?.mesh) {
+    player.carry.mesh.removeFromParent();
+    items.scene.remove(player.carry.mesh);
+  }
+  const wrapMesh = meshBox(0xf4f4ee, 0.42, 0.08, 0.34, { transparent: true, opacity: 0.42 });
+  wrapMesh.position.copy(player.camera.position).y = items.world.floorY + 0.05;
+  items.scene.add(wrapMesh);
+  items.wraps.push({ type: 'wrap', mesh: wrapMesh, bagged: false });
+  const lightMesh = makeCarryLight(false);
+  player.camera.add(lightMesh);
+  player.carry = { type: 'light', mesh: lightMesh };
+}
+
+function fitLight(slot, player, install, items) {
+  if (player.carry?.mesh) {
+    player.carry.mesh.removeFromParent();
+    items.scene.remove(player.carry.mesh);
+  }
+  install.fit(slot, player);
+  player.carry = null;
+}
+
+function bagWrap(player, bag, items) {
+  if (player.carry.mesh) {
+    player.carry.mesh.removeFromParent();
+    items.scene.remove(player.carry.mesh);
+  }
+  bag.wraps++;
+  player.carry.bagged = true;
+  if (bag.wraps >= 8) {
+    bag.full = true;
+    bag.type = 'bag';
+    bag.mesh.material.color.setHex(0x41523d);
+  }
+  player.carry = null;
+}
+
+function carryEmptyBox(player, box) {
+  box.type = 'emptyBox';
+  carry(player, box);
+}
+
+function takeEmptyLiftBox(player, lift) {
+  const box = lift.box;
+  lift.box = null;
+  box.onLift = false;
+  box.type = 'emptyBox';
+  carry(player, box);
+}
+
+function disposeCarry(player, items) {
+  if (player.carry.mesh) {
+    player.carry.mesh.removeFromParent();
+    items.scene.remove(player.carry.mesh);
+  }
+  player.carry.disposed = true;
+  player.carry = null;
+}
+
+function saveLooseBoxPosition(box, items) {
+  if (box.lights <= 0 && !box.carried && !box.onLift) box.mesh.material.color.setHex(0x6f6250);
+  if (!box.mesh.parent) items.scene.add(box.mesh);
+}
+
+export function dropCarry(player, items) {
+  if (!player.carry) return;
+  const item = player.carry;
+  if (item.mesh) {
+    item.mesh.removeFromParent();
+    items.scene.add(item.mesh);
+    item.mesh.position.copy(player.camera.position).add(new THREE.Vector3(0, -1.0, -0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw));
+    item.mesh.position.y = items.world.floorY + (item.type === 'wrap' ? 0.05 : 0.2);
+    item.mesh.rotation.set(0, player.yaw, 0);
+    item.carried = false;
+  }
+  player.carry = null;
+}
+
+export function updateItems(player, lift, items) {
+  if (items.jack.held) {
+    items.jack.mesh.position.copy(player.camera.position).add(new THREE.Vector3(0, -1.35, -1.05).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw));
+    items.jack.mesh.position.y = items.world.floorY;
+    items.jack.mesh.rotation.y = player.yaw;
+    if (items.jack.carrying) {
+      const off = new THREE.Vector3(0, 0.2, -0.55).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
+      items.jack.carrying.mesh.position.copy(items.jack.mesh.position).add(off);
+      items.jack.carrying.mesh.rotation.y = player.yaw;
+    }
+  }
+  if (lift.box) lift.refresh();
+}
+
+export function resetForNight(player, lift, items) {
+  for (const [i, pallet] of items.pallets.entries()) {
+    const u = 50.4 + Math.floor(i / 3) * 1.55;
+    const d = 4.85 + (i % 3) * 1.65;
+    pallet.mesh.position.copy(hallToWorld(u, d, items.world.floorY));
+    pallet.mesh.rotation.y = -0.22;
+  }
+  for (const [i, box] of items.boxes.entries()) {
+    if (box.disposed) continue;
+    box.carried = false;
+    box.onLift = false;
+    box.mesh.removeFromParent();
+    items.scene.add(box.mesh);
+    box.mesh.position.copy(hallToWorld(55.5 + (i % 3) * 0.62, 8.9 + Math.floor(i / 3) * 0.48, items.world.floorY + 0.2));
+  }
+  for (const [i, wrap] of items.wraps.entries()) {
+    if (wrap.bagged) continue;
+    wrap.mesh.position.copy(hallToWorld(56.4, 4.8 + (i % 8) * 0.12, items.world.floorY + 0.05));
+  }
+  items.jack.held = false;
+  items.jack.carrying = null;
+  items.jack.mesh.position.copy(hallToWorld(50.2, 10.0, items.world.floorY));
+  lift.pos.copy(hallToWorld(51.2, 6.25, items.world.floorY));
+  lift.height = 0;
+  lift.box = null;
+  lift.refresh();
+  if (player.carry?.mesh) {
+    player.carry.mesh.removeFromParent();
+    items.scene.remove(player.carry.mesh);
+  }
+  player.carry = null;
+  player.pos.copy(hallToWorld(56.4, 7.5, items.world.floorY));
+}
+
+export function cleanupClear(items, lift) {
+  const left = [];
+  const outside = (m) => {
+    const dStorage = m.position.distanceTo(items.world.storage);
+    const dSkip = m.position.distanceTo(items.world.skip);
+    return dStorage < 12 || dSkip < 5;
+  };
+  if (!items.pallets.every((p) => outside(p.mesh))) left.push('pallets');
+  if (!items.boxes.every((b) => b.disposed || (!b.carried && outside(b.mesh)))) left.push('boxes');
+  if (!items.wraps.every((w) => w.bagged || outside(w.mesh))) left.push('wrap');
+  if (lift.box && !outside(lift.box.mesh)) left.push('lift box');
+  return { ok: left.length === 0, left };
+}

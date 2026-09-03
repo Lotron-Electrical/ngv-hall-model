@@ -417,3 +417,12 @@ and what does not survive a restart:
   `userData.img` so `markPlanes` shows it on the black), placed by `finaleLayout` (`credY`,
   `credH`); the whole stack above moved up by `credH + 0.55 H`. Checked at 412x915: clear of the
   rest buttons.
+
+## The Install (game mode, 2026-09-04, PRIVATE: not linked from the proposal page)
+`game.html` + `game/*.js`, spec in `GAME-PLAN.md`. Shares only `model.glb` and `runs.json` with the
+viewer; `index.html` is never touched by game work. Built by Codex from the spec (two rounds; round
+one had the clock at an hour per second and the spawn inside a solid box). Check it headless with
+`node tools/game-check.mjs` (serve on :8877, chrome via headless-chrome.sh on 9333; it prints the
+HUD text and console errors and saves %TMP%/game-1.jpg, the phone view after Start Shift).
+Phase 1 = world, controls, lift, pallets/boxes/wrap, fitting, clock, clean-up rule, save.
+Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
