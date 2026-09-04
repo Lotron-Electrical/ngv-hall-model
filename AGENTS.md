@@ -525,3 +525,8 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   a STANDING RULE for every 3D change) that the camera point never entered any lift mesh's world
   box during the climb, both ways; `tools/game-liftlook.mjs`
   shoots the lift from the back quarter, raised, mid-climb and aboard.
+
+### Wheels in the floor (Lloyd, 2026-09-04, phone screenshot 14:13)
+- The scan floor is not level: measured by rays, it rises 0.0092 m per metre across d and 0.0005 m per metre along u (10 cm over the hall). The lift, the crew and every dropped thing stand on the flat `HALL.floorY`, so the tyres sat up to 10 cm inside the tiles.
+- Fix: `world.js levelScan()` fits the floor plane at load and rotates the scan about a floor point until it is flat at `HALL.floorY`. The scan lives inside `world.hallSway` because `fx.js` writes that group's `rotation.z` for the sway (writing the scan's own rotation wiped the levelling, which is how the first attempt failed).
+- Proof: `node tools/game-floorcheck.mjs` (needs the :8877 serve and headless Chrome on :9333). Samples the floor under 274 hall points and every lift part stowed, raised and parked in the hall: PASS = level within 1 mm and nothing below the floor. CDP drivers must `Network.setCacheDisabled` or they test the cached modules.

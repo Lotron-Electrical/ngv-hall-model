@@ -56,7 +56,7 @@ async function init() {
   clock = new GameClock(saved);
   body = new Body();
   player.body = body;
-  fx = new Fx(scene, camera, world.hallScene, lift, install);
+  fx = new Fx(scene, camera, world.hallSway, lift, install);
   crew = new Crew(scene, world, items, install, collideWorld, lift);
   clock.fittedAtStart = install.counts().fitted;
   player.pos.copy(hallToWorld(52.0, 7.5, world.floorY));

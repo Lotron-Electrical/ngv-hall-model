@@ -46,6 +46,46 @@ function makeHallBox(scene, u, d, y, len, dep, h, mat) {
   return mesh;
 }
 
+// (Lloyd, 2026-09-04: "the wheels are clipping into the floor") the scanned floor is not level:
+// it rises about 10 cm from the d=3 side to the d=12 side and 2 cm along u, while the lift, the
+// crew and everything dropped stand on the flat HALL.floorY. Measure the scan's floor plane
+// (a ray down at each of a grid of hall points), then rotate the whole scan about a floor point
+// so that plane is horizontal and slide it so the floor sits exactly at HALL.floorY. Half a
+// degree: the ceiling moves 11 cm sideways, the floor points move under a millimetre.
+function levelScan(hall) {
+  hall.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster();
+  const down = new THREE.Vector3(0, -1, 0);
+  const pts = [];
+  for (let u = 3; u <= 46; u += 4.3) {
+    for (let d = 2.5; d <= 12.5; d += 2.5) {
+      ray.set(hallToWorld(u, d, HALL.floorY + 1.0), down);
+      const hit = ray.intersectObject(hall, true).find((h) => Math.abs(h.point.y - HALL.floorY) < 0.35);
+      if (hit) pts.push([u, d, hit.point.y]);
+    }
+  }
+  if (pts.length < 6) { console.warn('levelScan: floor not found, scan left as loaded'); return; }
+  // least squares y = c + a u + b d
+  let Suu = 0, Sud = 0, Sdd = 0, Su = 0, Sd = 0, Suy = 0, Sdy = 0, Sy = 0;
+  const n = pts.length;
+  for (const [u, d, y] of pts) { Suu += u * u; Sud += u * d; Sdd += d * d; Su += u; Sd += d; Suy += u * y; Sdy += d * y; Sy += y; }
+  const M = new THREE.Matrix3().set(Suu, Sud, Su, Sud, Sdd, Sd, Su, Sd, n).invert();
+  const abc = new THREE.Vector3(Suy, Sdy, Sy).applyMatrix3(M);
+  const [a, b, c] = [abc.x, abc.y, abc.z];
+  // the plane's upward normal in world axes, then the rotation that makes it vertical
+  const normal = new THREE.Vector3(0, 1, 0).addScaledVector(HALL.u, -a).addScaledVector(HALL.inRoom, -b).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(normal, new THREE.Vector3(0, 1, 0));
+  const pivot = hallToWorld(HALL.length * 0.5, HALL.depth * 0.5, c + a * HALL.length * 0.5 + b * HALL.depth * 0.5);
+  // rotate the loaded scene about the pivot as one rigid thing, then drop it onto the datum
+  const R = new THREE.Matrix4().makeRotationFromQuaternion(q);
+  hall.applyMatrix4(new THREE.Matrix4().makeTranslation(pivot.x, pivot.y, pivot.z).multiply(R).multiply(new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z)));
+  hall.position.y += HALL.floorY - pivot.y;
+  hall.updateMatrixWorld(true);
+  world_levelling = { a, b, c, points: n };
+}
+let world_levelling = null;
+export function scanLevelling() { return world_levelling; }
+
 export async function loadWorld(scene) {
   const world = {
     floorY: HALL.floorY,
@@ -76,8 +116,13 @@ export async function loadWorld(scene) {
       world.floorY = box.min.y;
     }
   });
-  scene.add(gltf.scene);
+  levelScan(gltf.scene);
+  // the scan sits inside its own group: fx.js sways the hall by writing that group's rotation,
+  // which would wipe the levelling's tilt if it wrote the scan's own rotation
+  const sway = new THREE.Group(); sway.name = 'hall-sway'; sway.add(gltf.scene);
+  scene.add(sway);
   world.hallScene = gltf.scene;
+  world.hallSway = sway;
   dressHall(gltf.scene, HALL);   // the viewer's materials: photographs unlit, columns glossy, the doorway cut (hallmat.js)
 
   const floor = new THREE.GridHelper(62, 62, 0x3b3f48, 0x20232a);
