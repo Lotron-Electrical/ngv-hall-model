@@ -4,7 +4,7 @@ import { hallToWorld } from './world.js';
 export class Lift {
   constructor(scene, floorY) {
     this.floorY = floorY;
-    this.pos = hallToWorld(53.6, 9.6, floorY);   // parked along the corridor's far wall, clear of the pallet rows
+    this.pos = hallToWorld(63.6, 6.6, floorY);   // parked at the aisle's end, clear of both pallet rows
     this.yaw = 0;
     this.deckY = 0.85;
     this.height = 0;
@@ -91,7 +91,7 @@ export class Lift {
       const strafe = (player.keys.has('KeyD') ? 1 : 0) - (player.keys.has('KeyA') ? 1 : 0) + player.move.x;
       const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
       this.pos.addScaledVector(v, dt * 1.7 * player.speedScale);
-      collide(this.pos, 0.9, world);
+      collide(this.pos, 0.9, world, [this, this.box]);
       player.pos.x = this.pos.x;
       player.pos.z = this.pos.z;
       player.pos.y = this.floorY + this.deckY + this.height;

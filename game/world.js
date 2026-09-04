@@ -48,9 +48,12 @@ export async function loadWorld(scene) {
     floorY: HALL.floorY,
     columns: [],
     solids: [],
-    storage: hallToWorld(52.2, 7.5, HALL.floorY),
-    skip: hallToWorld(60.0, 7.5, HALL.floorY),
-    corridor: { u0: 48.9, u1: 58.8, d0: 4.35, d1: 10.65, skipD0: 6.05, skipD1: 8.95 }
+    // (Lloyd, 2026-09-04: make the storage space larger) 17 m x 9 m: two rows of six pallets
+    // along the walls, a 4 m aisle between them for the lifts, the skip out through the end
+    storage: hallToWorld(57.5, 7.5, HALL.floorY),
+    skip: hallToWorld(68.6, 7.5, HALL.floorY),
+    corridor: { u0: 48.9, u1: 66.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
+    obstacles: []
   };
 
   scene.background = new THREE.Color(0x08090b);
@@ -98,10 +101,10 @@ export async function loadWorld(scene) {
   makeHallBox(scene, midU, c.d0 - 0.12, world.floorY + 1.55, c.u1 - c.u0, 0.24, 3.1, wallMat);
   makeHallBox(scene, midU, c.d1 + 0.12, world.floorY + 1.55, c.u1 - c.u0, 0.24, 3.1, wallMat);
   makeHallBox(scene, midU, midD, world.floorY + 3.14, c.u1 - c.u0, c.d1 - c.d0, 0.22, wallMat);
-  makeHallBox(scene, c.u1 + 0.12, 5.15, world.floorY + 1.55, 0.24, 1.6, 3.1, wallMat);
-  makeHallBox(scene, c.u1 + 0.12, 9.85, world.floorY + 1.55, 0.24, 1.6, 3.1, wallMat);
+  makeHallBox(scene, c.u1 + 0.12, (c.d0 + c.skipD0) * 0.5, world.floorY + 1.55, 0.24, c.skipD0 - c.d0, 3.1, wallMat);
+  makeHallBox(scene, c.u1 + 0.12, (c.skipD1 + c.d1) * 0.5, world.floorY + 1.55, 0.24, c.d1 - c.skipD1, 3.1, wallMat);
   makeHallBox(scene, c.u1 + 0.12, midD, world.floorY + 3.05, 0.24, c.d1 - c.d0, 0.25, wallMat);
-  for (const [u, d] of [[50.4, 5.2], [53.2, 9.4], [56.5, 6.0]]) {
+  for (const [u, d] of [[51.5, 5.5], [51.5, 9.5], [56, 5.5], [56, 9.5], [60.5, 5.5], [60.5, 9.5], [65, 7.5]]) {
     const l = new THREE.PointLight(0xffddb0, 2.2, 8, 1.7);
     l.position.copy(hallToWorld(u, d, world.floorY + 2.65));
     scene.add(l);
@@ -150,31 +153,33 @@ export function updateDoors(dt, world, points) {
   world.doorsShut = world.doors.every((d) => d.open < 0.15);
 }
 
-export function collideWorld(pos, radius, world) {
+export function collideWorld(pos, radius, world, ignore) {
   const hd = worldToHall(pos);
   const inDoor = Math.abs(hd.u - HALL.doorU) < 1.2 && Math.abs(hd.d - HALL.doorD) < HALL.doorW * 0.5;
   const inCorridor = hd.u >= HALL.length - 0.1;
   // shut doors are a wall: nothing crosses the door line until they have swung
   if (world.doorsShut) { const inHall = hd.u < HALL.doorU; if (inHall && hd.u > HALL.doorU - radius - 0.05) hd.u = HALL.doorU - radius - 0.05; if (!inHall && hd.u < HALL.doorU + radius + 0.05) hd.u = HALL.doorU + radius + 0.05; }
-  hd.u = THREE.MathUtils.clamp(hd.u, -0.8, 61);
+  hd.u = THREE.MathUtils.clamp(hd.u, -0.8, 72);
   if (inCorridor) {
     const c = world.corridor;
     hd.d = THREE.MathUtils.clamp(hd.d, c.d0 + radius, c.d1 - radius);
-    if (hd.u > c.u1 - radius && (hd.d < c.skipD0 || hd.d > c.skipD1)) hd.u = c.u1 - radius;
+    // the opening to the skip is a person-sized one: a lift (radius 0.9) stops at the end wall
+    if (hd.u > c.u1 - radius && (radius > 0.5 || hd.d < c.skipD0 || hd.d > c.skipD1)) hd.u = c.u1 - radius;
   } else {
     hd.d = THREE.MathUtils.clamp(hd.d, radius, HALL.depth - radius);
     if (hd.u > HALL.length - radius && !inDoor) hd.u = HALL.length - radius;
   }
   pos.copy(hallToWorld(hd.u, hd.d, pos.y));
-  for (const col of world.columns) {
-    const a = new THREE.Vector2(pos.x - col.pos.x, pos.z - col.pos.z);
-    const min = col.radius + radius;
+  const push = (cx, cz, r) => {
+    const a = new THREE.Vector2(pos.x - cx, pos.z - cz);
+    const min = r + radius;
     const len = a.length();
-    if (len > 0.001 && len < min) {
-      a.setLength(min - len);
-      pos.x += a.x;
-      pos.z += a.y;
-    }
-  }
+    if (len > 0.001 && len < min) { a.setLength(min - len); pos.x += a.x; pos.z += a.y; }
+  };
+  for (const col of world.columns) push(col.pos.x, col.pos.z, col.radius);
+  // (Lloyd, 2026-09-04: nothing clips into anything) everything standing on the floor is a
+  // circle on the plan: pallets, boxes, bags, lifts (two circles), the skip. `ignore` names the
+  // things the mover is part of or carrying
+  for (const o of world.obstacles) { if (ignore && ignore.includes(o.ref)) continue; push(o.x, o.z, o.r); }
   pos.y = Math.max(pos.y, world.floorY);
 }

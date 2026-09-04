@@ -56,6 +56,7 @@ class Worker {
     this.speed = 2.1;
   }
   place(p) { this.pos.copy(p); this.pos.y = this.world.floorY; }
+  ignore() { const out = []; if (this.carry) out.push(this.carry); if (this.jack && this.jack.carrying) out.push(this.jack.carrying); if (this.lift) out.push(this.lift); return out; }
   // walk toward a point on the floor; true once within `reach`
   walkTo(target, dt, collide, scale, reach = 0.9) {
     const dx = target.x - this.pos.x, dz = target.z - this.pos.z, dist = Math.hypot(dx, dz);
@@ -63,7 +64,7 @@ class Worker {
     const step = Math.min(dist, this.speed * scale * dt);
     this.pos.x += dx / dist * step; this.pos.z += dz / dist * step;
     this.yaw = Math.atan2(dx, dz); this.mesh.rotation.y = this.yaw;
-    collide(this.pos, 0.3, this.world);
+    collide(this.pos, 0.3, this.world, this.ignore());
     this.pos.y = this.world.floorY;
     this.mesh.position.y = this.world.floorY + 0.04 * Math.abs(Math.sin(performance.now() / 180));
     return false;
@@ -87,7 +88,7 @@ export class Crew {
     this.scene = scene; this.world = world; this.items = items; this.install = install; this.collide = collide; this.playerLift = playerLift;
     this.helper = null; this.teams = []; this.toasts = [];
     this.names = ['Dave', 'Priya', 'Marco', 'Jules', 'Tom', 'Aisha', 'Ben'];
-    this.corridorSpot = (i) => hallToWorld(57.0, 5.0 + i * 0.9, world.floorY);
+    this.corridorSpot = (i) => hallToWorld(64.8 - (i % 2) * 0.8, 6.2 + Math.floor(i / 2) * 0.8, world.floorY);
   }
 
   toast(msg) { this.toasts.push(msg); }
@@ -106,8 +107,9 @@ export class Crew {
       const i = this.teams.length;
       const a = new Worker(this.scene, this.world, 0xffd21a, this.takeName()), b = new Worker(this.scene, this.world, 0xffd21a, this.takeName());
       a.place(this.corridorSpot(2 + i * 2)); b.place(this.corridorSpot(3 + i * 2));
-      const lift = new Lift(this.scene, this.world.floorY); lift.pos.copy(hallToWorld(52.0 + i * 3.2, 9.6, this.world.floorY)); lift.home = lift.pos.clone(); lift.refresh();
-      const jack = this.items.spawnJack(hallToWorld(52.0 + i * 3.2, 5.0, this.world.floorY));
+      const lift = new Lift(this.scene, this.world.floorY); lift.pos.copy(hallToWorld(56.5 + i * 3.4, 8.4, this.world.floorY)); lift.home = lift.pos.clone(); lift.refresh();
+      const jack = this.items.spawnJack(hallToWorld(56.5 + i * 3.4, 6.4, this.world.floorY));
+      a.lift = lift;
       this.teams.push({ a, b, lift, jack, column: null, state: 'idle', timer: 0, run: null });
       this.toast(`A team of two has joined: ${a.name} and ${b.name}, with their own lift`);
     }
@@ -145,7 +147,7 @@ export class Crew {
     // the column's pallet is still in the corridor and has boxes: fetch the jack, then the pallet
     if (pallet && pallet.boxes > 0 && !inHall(pallet.mesh) && (!I.jack.held || H.jack) && !H.carry) {
       if (!H.jack) { if (walk(I.jack.mesh.position, 1.0)) { H.jack = I.jack; I.jack.held = true; I.jack.by = 'helper'; } return; }
-      if (walk(pallet.mesh.position, 1.2)) H.jack.carrying = pallet;
+      if (walk(pallet.mesh.position, 1.5)) H.jack.carrying = pallet;
       return;
     }
     if (H.jack) { H.jack.held = false; I.jack.by = null; H.jack = null; }
@@ -157,7 +159,7 @@ export class Crew {
       return;
     }
     // 3. wrap on the floor near the column: bag it; a full bag: to the skip
-    if (H.carry && H.carry.type === 'bag') { if (walk(this.world.skip, 2.0)) { H.carry.disposed = true; H.carry.mesh.removeFromParent(); H.carry = null; } return; }
+    if (H.carry && H.carry.type === 'bag') { if (walk(this.world.skip, 2.6)) { H.carry.disposed = true; H.carry.mesh.removeFromParent(); H.carry = null; } return; }
     if (H.carry && H.carry.type === 'wrap') { const bag = I.bags.find((b) => !b.full && !b.disposed); if (!bag) { this.putDown(H, H.pos); return; } if (walk(bag.mesh.position, 1.2)) { bag.wraps++; H.carry.bagged = true; H.carry.mesh.removeFromParent(); H.carry = null; if (bag.wraps >= 8) { bag.full = true; bag.mesh.material.color.setHex(0x41523d); } } return; }
     const wrap = I.wraps.find((w) => !w.bagged && !w.carried && inHall(w.mesh));
     const fullBag = I.bags.find((b) => b.full && !b.disposed && !b.carried);
@@ -191,13 +193,13 @@ export class Crew {
     if (packing) {
       // the fitter brings the lift down and drives it home; the feeder takes the pallet back
       lift.height = Math.max(0, lift.height - dt * 0.5 * scale);
-      if (lift.height <= 0.01) { const d = home.clone().sub(lift.pos); d.y = 0; const dist = d.length(); if (dist > 0.2) { lift.pos.addScaledVector(d.normalize(), Math.min(dist, 1.5 * scale * dt)); this.collide(lift.pos, 0.9, this.world); } }
+      if (lift.height <= 0.01) { const d = home.clone().sub(lift.pos); d.y = 0; const dist = d.length(); if (dist > 0.2) { lift.pos.addScaledVector(d.normalize(), Math.min(dist, 1.5 * scale * dt)); this.collide(lift.pos, 0.9, this.world, [lift]); } }
       lift.refresh(); a.place(lift.pos.clone().add(new THREE.Vector3(0, 0, 0))); a.mesh.position.y = this.world.floorY + lift.deckY + lift.height;
       const pallet = T.column && I.pallets.find((p) => p.column === T.column.label);
       if (pallet && worldToHall(pallet.mesh.position).u < HALL.doorU) {
         if (!b.jack) { if (walkB(jack.mesh.position, 1.0)) { b.jack = jack; jack.held = true; } return; }
-        if (!b.jack.carrying) { if (walkB(pallet.mesh.position, 1.2)) b.jack.carrying = pallet; return; }
-        if (walkB(this.corridorSpot(4), 1.2)) { pallet.mesh.position.copy(this.corridorSpot(4)); b.jack.carrying = null; b.jack.held = false; b.jack = null; }
+        if (!b.jack.carrying) { if (walkB(pallet.mesh.position, 1.5)) b.jack.carrying = pallet; return; }
+        if (walkB(pallet.home, 1.5)) { pallet.mesh.position.copy(pallet.home); pallet.mesh.rotation.y = 0; b.jack.carrying = null; b.jack.held = false; b.jack = null; }
         return;
       }
       if (b.jack) { b.jack.held = false; b.jack = null; }
@@ -212,7 +214,7 @@ export class Crew {
     if (b.jack && b.jack.carrying) { if (walkB(foot, 1.0)) { b.jack.carrying.mesh.position.copy(foot); b.jack.carrying.mesh.rotation.y = 0; b.jack.carrying = null; b.jack.held = false; b.jack = null; } }
     else if (pallet && pallet.boxes > 0 && worldToHall(pallet.mesh.position).u > HALL.doorU - 0.5) {
       if (!b.jack) { if (walkB(jack.mesh.position, 1.0)) { b.jack = jack; jack.held = true; } }
-      else if (walkB(pallet.mesh.position, 1.2)) b.jack.carrying = pallet;
+      else if (walkB(pallet.mesh.position, 1.5)) b.jack.carrying = pallet;
     } else { if (b.jack) { b.jack.held = false; b.jack = null; } walkB(foot.clone().add(new THREE.Vector3(1.4, 0, 1.2)), 0.6); }
     const stocked = pallet && worldToHall(pallet.mesh.position).u < HALL.doorU - 0.5;
     // the fitter (a): on the lift; the lift goes to the next slot, rises to it, fits a light every few seconds
@@ -227,7 +229,7 @@ export class Crew {
     if (dist > 0.35) {
       // travel low: come down first, then drive
       if (lift.height > 0.05) lift.height = Math.max(0, lift.height - dt * 0.5 * scale);
-      else { lift.pos.addScaledVector(d.normalize(), Math.min(dist, 1.4 * scale * dt)); this.collide(lift.pos, 0.9, this.world); }
+      else { lift.pos.addScaledVector(d.normalize(), Math.min(dist, 1.4 * scale * dt)); this.collide(lift.pos, 0.9, this.world, [lift]); }
     } else if (Math.abs(lift.height - want) > 0.05) {
       lift.height += Math.sign(want - lift.height) * Math.min(Math.abs(want - lift.height), dt * 0.5 * scale);
     } else if (stocked || T.box > 0) {
@@ -246,7 +248,7 @@ export class Crew {
   // the night's end: everything of the crew's back in the corridor
   resetForNight() {
     if (this.helper) { this.helper.carry = null; this.helper.jack = null; this.helper.place(this.corridorSpot(0)); }
-    for (const [i, t] of this.teams.entries()) { t.lift.height = 0; t.lift.pos.copy(t.lift.home); t.lift.refresh(); t.a.place(this.corridorSpot(2 + i * 2)); t.b.place(this.corridorSpot(3 + i * 2)); t.b.jack = null; t.jack.held = false; t.jack.carrying = null; t.jack.mesh.position.copy(hallToWorld(52.0 + i * 3.2, 5.0, this.world.floorY)); t.timer = 0; }
+    for (const [i, t] of this.teams.entries()) { t.lift.height = 0; t.lift.pos.copy(t.lift.home); t.lift.refresh(); t.a.place(this.corridorSpot(2 + i * 2)); t.b.place(this.corridorSpot(3 + i * 2)); t.b.jack = null; t.jack.held = false; t.jack.carrying = null; t.jack.mesh.position.copy(hallToWorld(56.5 + i * 3.4, 6.4, this.world.floorY)); t.timer = 0; }
   }
 
   // for the clean-up check: any crew gear left in the hall

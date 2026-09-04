@@ -7,7 +7,7 @@ import { setupRenderer, updateRunLights } from './hallmat.js';
 import { Sound } from './sound.js';
 import { Player } from './player.js';
 import { Lift } from './lift.js';
-import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight } from './items.js';
+import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight, refreshObstacles } from './items.js';
 import { Install } from './install.js';
 import { GameClock, loadSave, saveGame } from './clock.js';
 import { updateHud, showSummary } from './hud.js';
@@ -57,7 +57,7 @@ async function init() {
   fx = new Fx(scene, camera, world.hallScene, lift, install);
   crew = new Crew(scene, world, items, install, collideWorld, lift);
   clock.fittedAtStart = install.counts().fitted;
-  player.pos.copy(hallToWorld(56.4, 7.5, world.floorY));
+  player.pos.copy(hallToWorld(52.0, 7.5, world.floorY));
   player.yaw = 1.35;
   document.querySelector('#prompt').textContent = 'Press Start Shift';
   window.game = { player, lift, items, install, clock, world, fx, body, crew, hallToWorld, dbg: { dt: 0, frames: 0 } };
@@ -105,6 +105,8 @@ function loop(now) {
   const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.aboard && (player.liftUp || player.liftDown));
   if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving);
   player.speedScale = body.speedScale();
+  refreshObstacles(items, [lift].concat(crew.teams.map((t) => t.lift)));
+  player.ignore = lift.aboard ? [lift, lift.box] : [player.carry];
   player.update(dt, world, collideWorld);
   const oldLift = lift.height;
   lift.update(dt, player, world, collideWorld);

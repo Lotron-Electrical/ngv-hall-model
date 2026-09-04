@@ -463,3 +463,11 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   box (12 m at 0.5 m/s each way), so a solo column is ~12-13 min = about one night, the helper
   night ~1.5 columns, then a column per team per night. The lift already rises 2-3x faster than
   a real GS-4046.
+- Storage + collisions (Lloyd, 2026-09-04: larger storage, nothing clips): the corridor is 17 x 9 m
+  (u 48.9-66, d 3-12), pallets in two rows of six (`palletHome`: N row d 4.5, S row d 10.5, 2.3 m
+  apart) with a 4 m aisle, lifts and jacks at the aisle's end, bags by the end wall, the skip
+  outside a person-sized opening (a lift stops at the wall). `refreshObstacles` (items.js) rebuilds
+  a plan of circles every frame (pallets 0.95, boxes 0.4, bags 0.45, lifts two of 0.85, skip 1.9)
+  and `collideWorld(pos, r, world, ignore)` pushes every mover out of them; a mover ignores what
+  it carries and the lift it rides. Reaches must sit OUTSIDE the collision radii (pallet 1.5,
+  skip 2.6/2.9) or the crew walk forever.

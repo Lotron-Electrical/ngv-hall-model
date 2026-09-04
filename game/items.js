@@ -114,29 +114,43 @@ function carry(player, item) {
   player.carry = item;
 }
 
+// two rows of six, N along the near wall and S along the far one, 2.3 m apart, labels to the aisle
+function palletHome(i, world) { const row = i < 6 ? 0 : 1; return hallToWorld(51.6 + (i % 6) * 2.3, row ? 10.5 : 4.5, world.floorY); }
+
+// the plan's obstacles for collideWorld, rebuilt every frame from what stands on the floor
+export function refreshObstacles(items, lifts) {
+  const O = items.world.obstacles; O.length = 0;
+  for (const p of items.pallets) { if (isCarriedPallet(p, items)) continue; O.push({ x: p.mesh.position.x, z: p.mesh.position.z, r: 0.95, ref: p }); }
+  for (const b of items.boxes) { if (b.carried || b.onLift || b.disposed) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.4, ref: b }); }
+  for (const b of items.bags) { if (b.carried || b.disposed) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.45, ref: b }); }
+  for (const L of lifts) { const ax = new THREE.Vector3(0.75, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), L.yaw); O.push({ x: L.pos.x + ax.x, z: L.pos.z + ax.z, r: 0.85, ref: L }, { x: L.pos.x - ax.x, z: L.pos.z - ax.z, r: 0.85, ref: L }); }
+  O.push({ x: items.world.skip.x, z: items.world.skip.z, r: 1.9, ref: 'skip' });
+}
+function isCarriedPallet(p, items) { if (items.jack.carrying === p) return true; for (const j of items.jacks || []) if (j.carrying === p) return true; return false; }
+
 export function createItems(scene, world, camera) {
   const items = { pallets: [], boxes: [], wraps: [], bags: [], lights: [], jack: null, scene, world, camera };
   for (const [i, column] of COLUMNS.entries()) {
-    const u = 50.4 + Math.floor(i / 3) * 1.55;
-    const d = 4.85 + (i % 3) * 1.65;
+    const home = palletHome(i, world);
     const made = makePallet(column);
-    made.group.position.copy(hallToWorld(u, d, world.floorY));
-    made.group.rotation.y = -0.22;
+    made.group.position.copy(home);
+    made.group.rotation.y = 0;
     scene.add(made.group);
-    items.pallets.push({ type: 'pallet', column, boxes: 8, held: false, mesh: made.group, boxMeshes: made.boxes });
+    items.pallets.push({ type: 'pallet', column, boxes: 8, held: false, mesh: made.group, boxMeshes: made.boxes, home });
   }
   for (let i = 0; i < 4; i++) {
     const mesh = makeBag();
-    mesh.position.copy(hallToWorld(56.4, 5.05 + i * 0.82, world.floorY + 0.41));
+    mesh.position.copy(hallToWorld(65.3, 9.5 + i * 0.7, world.floorY + 0.41));
     scene.add(mesh);
     items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
   }
   const jackMesh = makeJack();
-  jackMesh.position.copy(hallToWorld(56.6, 5.0, world.floorY));
+  jackMesh.position.copy(hallToWorld(65.0, 4.4, world.floorY));
   scene.add(jackMesh);
   items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
   // for the crew (crew.js): their own jacks, boxes off a pallet without a carrier, loose wrap
-  items.spawnJack = (pos) => { const m = makeJack(); m.position.copy(pos); scene.add(m); return { type: 'jack', carrying: null, held: false, mesh: m }; };
+  items.jacks = [];
+  items.spawnJack = (pos) => { const m = makeJack(); m.position.copy(pos); scene.add(m); const j = { type: 'jack', carrying: null, held: false, mesh: m }; items.jacks.push(j); return j; };
   items.spawnBoxFor = (pallet) => { pallet.boxes--; updatePalletStack(pallet); const box = makeBoxObject(8); items.boxes.push(box); scene.add(box.mesh); return box; };
   items.updatePalletStack = updatePalletStack;
   items.makeWrap = () => meshBox(0xf4f4ee, 0.42, 0.08, 0.34, { transparent: true, opacity: 0.42 });
@@ -148,7 +162,7 @@ export function nearestAction(player, lift, install, items) {
   // reach is measured on the floor plan: the eye is 1.7 m up, so a straight distance to a bag on
   // the floor was never inside 1.4 m (2026-09-04: nothing at a pallet was reachable)
   const near = (obj, r) => !obj.disposed && Math.hypot(obj.mesh.position.x - p.x, obj.mesh.position.z - p.z) < r && Math.abs(obj.mesh.position.y - p.y) < 3;
-  const skipNear = items.world.skip.distanceTo(p) < 2.2;
+  const skipNear = Math.hypot(items.world.skip.x - p.x, items.world.skip.z - p.z) < 2.9;   // the skip's collision circle is 1.9: reach past it
   // the lift on the floor plan: the deck is a metre up, so a straight distance to it kept "Get on"
   // from showing until you stood inside the machine (2026-09-04)
   const liftNear = (r) => Math.hypot(lift.pos.x - p.x, lift.pos.z - p.z) < r;
@@ -348,29 +362,24 @@ export function updateItems(player, lift, items) {
 }
 
 export function resetForNight(player, lift, items) {
-  for (const [i, pallet] of items.pallets.entries()) {
-    const u = 50.4 + Math.floor(i / 3) * 1.55;
-    const d = 4.85 + (i % 3) * 1.65;
-    pallet.mesh.position.copy(hallToWorld(u, d, items.world.floorY));
-    pallet.mesh.rotation.y = -0.22;
-  }
+  for (const pallet of items.pallets) { pallet.mesh.position.copy(pallet.home); pallet.mesh.rotation.y = 0; }
   for (const [i, box] of items.boxes.entries()) {
     if (box.disposed) continue;
     box.carried = false;
     box.onLift = false;
     box.mesh.removeFromParent();
     items.scene.add(box.mesh);
-    box.mesh.position.copy(hallToWorld(55.5 + (i % 3) * 0.62, 8.9 + Math.floor(i / 3) * 0.48, items.world.floorY + 0.2));
+    box.mesh.position.copy(hallToWorld(50.2 + (i % 6) * 0.62, 11.5 - Math.floor(i / 6) * 0.5, items.world.floorY + 0.2));
   }
   for (const [i, wrap] of items.wraps.entries()) {
     if (wrap.bagged) continue;
-    wrap.mesh.position.copy(hallToWorld(56.4, 4.8 + (i % 8) * 0.12, items.world.floorY + 0.05));
+    wrap.mesh.position.copy(hallToWorld(64.6, 9.3 + (i % 8) * 0.12, items.world.floorY + 0.05));
   }
-  for (const [i, l] of items.lights.entries()) l.mesh.position.copy(hallToWorld(56.0 + (i % 4) * 0.3, 4.9 + Math.floor(i / 4) * 0.25, items.world.floorY + 0.05));
+  for (const [i, l] of items.lights.entries()) l.mesh.position.copy(hallToWorld(50.0 + (i % 6) * 0.3, 3.5 + Math.floor(i / 6) * 0.25, items.world.floorY + 0.05));
   items.jack.held = false;
   items.jack.carrying = null;
-  items.jack.mesh.position.copy(hallToWorld(56.6, 5.0, items.world.floorY));
-  lift.pos.copy(hallToWorld(53.6, 9.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false;
+  items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));
+  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false;
   lift.height = 0;
   lift.box = null;
   lift.refresh();
@@ -379,7 +388,7 @@ export function resetForNight(player, lift, items) {
     items.scene.remove(player.carry.mesh);
   }
   player.carry = null;
-  player.pos.copy(hallToWorld(56.4, 7.5, items.world.floorY));
+  player.pos.copy(hallToWorld(52.0, 7.5, items.world.floorY));
 }
 
 export function cleanupClear(items, lift) {
