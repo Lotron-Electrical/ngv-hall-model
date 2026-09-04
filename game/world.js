@@ -4,8 +4,11 @@ import { dressHall, AMBIENT } from './hallmat.js';
 
 export const HALL = {
   origin: new THREE.Vector3(-54.907447, -1.43545, 3.040286),
-  u: new THREE.Vector3(0.975681, 0, 0.219196),
-  inRoom: new THREE.Vector3(0.219186, 0, -0.975639),
+  // (Lloyd, 2026-09-04: "the camera is literally moving towards one of the walls") these two
+  // MUST be unit length and perpendicular: collideWorld goes world -> hall -> world every frame,
+  // and a basis 0.0001 short slid every mover 0.6 mm towards the d=0 wall per pass, with no input
+  u: new THREE.Vector3(0.975681, 0, 0.219196).normalize(),
+  inRoom: new THREE.Vector3(0.219196, 0, -0.975681).normalize(),
   floorY: -1.435,
   length: 48.9,
   depth: 15,
@@ -153,7 +156,15 @@ export function updateDoors(dt, world, points) {
   world.doorsShut = world.doors.every((d) => d.open < 0.15);
 }
 
+// (Lloyd, 2026-09-04: "the camera is literally moving towards one of the walls") one pass of
+// pushes left a mover still inside the next circle or the wall, and the next frame's pass moved
+// it again: a slide with no input. Now the walls and circles are settled together, a few passes
+// per call, so a frame ends with nothing left to push, and the callers only collide when they
+// actually moved
 export function collideWorld(pos, radius, world, ignore) {
+  for (let pass = 0; pass < 4; pass++) collideOnce(pos, radius, world, ignore);
+}
+function collideOnce(pos, radius, world, ignore) {
   const hd = worldToHall(pos);
   const inDoor = Math.abs(hd.u - HALL.doorU) < 1.2 && Math.abs(hd.d - HALL.doorD) < HALL.doorW * 0.5;
   const inCorridor = hd.u >= HALL.length - 0.1;

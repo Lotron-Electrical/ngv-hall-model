@@ -207,13 +207,16 @@ export class Lift {
 
     const heading = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const before = this.pos.clone();
+    if (this.speed === 0) { this.place(player); return; }   // parked is parked: no push, no slide
     this.pos.addScaledVector(heading, this.speed * dt);
     const wanted = this.pos.clone();
     collide(this.pos, 0.9, world, [this, this.box]);
     // pushed back against the travel = bumped into something, and the machine stops; a sideways
     // nudge (sliding along a wall) is not a bump
+    // (2026-09-04) head-on means the push points mostly back along the travel; a glancing push
+    // off a pallet corner slides the machine along instead of wedging it
     const push = this.pos.clone().sub(wanted);
-    if (push.lengthSq() > 1e-6 && push.dot(heading) * Math.sign(this.speed || 1) < -1e-4) this.speed = 0;
+    if (push.lengthSq() > 1e-6 && push.dot(heading) * Math.sign(this.speed || 1) < -0.6 * push.length()) this.speed = 0;
     this.travelled = (this.travelled || 0) + this.pos.distanceTo(before);
     for (const W of this.wheels) W.w.rotation.z -= (this.speed * dt) / 0.22;
     this.place(player);

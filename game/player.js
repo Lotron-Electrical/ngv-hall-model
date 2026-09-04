@@ -132,7 +132,8 @@ export class Player {
       const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);
       v.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
       this.pos.addScaledVector(v, dt * 3.3 * this.speedScale);
-      collide(this.pos, 0.32, world, this.ignore || []);
+      // standing still is standing still: no push, so nothing can slide you (2026-09-04)
+      if (v.lengthSq() > 0) collide(this.pos, 0.32, world, this.ignore || []);
     }
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
