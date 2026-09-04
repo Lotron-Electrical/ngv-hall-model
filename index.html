@@ -17,6 +17,7 @@ h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font
 #loader button{display:none;background:none;border:1px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:min(17px,3.4vw);letter-spacing:.1em;text-transform:uppercase;padding:14px 30px;cursor:pointer;border-radius:2px}
 #loader.ready i{display:none}
 #loader.ready button{display:block}
+#loader.ready button[hidden]{display:none}
 #loader.ready{pointer-events:auto}
 /* the two buttons that come up on the finale's rest (Lloyd): Free roam, Start again */
 #restbtns{position:absolute;left:0;right:0;bottom:12%;display:flex;gap:14px;justify-content:center;z-index:5;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1.2s ease,visibility 0s linear 1.2s}
@@ -226,7 +227,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
 </style></head><body><main>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
-<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button></div>
+<div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="enterInstall" hidden>The Install</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
  <div id="sticks"><div id="stkmove">Move<i><b></b></i></div><div id="stklook">Look<i><b></b></i></div></div>
@@ -5258,6 +5259,11 @@ let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2026-09-03) just that, on every device */
 // (Lloyd) Enter always starts the orbit: a touch on the canvas while the loader was still
 // loading (its pointer-events off) had switched idle off, and the orbit then never began
+// (Lloyd, 2026-09-04: "there's just no way for me to play the game") the checkbox in the Menu is
+// not a way in on a phone. With the key stored, a second button stands beside Enter Gandel Hall:
+// it enters the hall and starts the shift in one tap. Without the key it does not exist
+{ const b=document.getElementById('enterInstall');
+  if(INSTALL_OK){ b.hidden=false; b.onclick=()=>{ document.getElementById('enter').onclick(); const box=document.getElementById('install'); box.checked=true; setInstall(true); }; } }
 document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); roamStart(); };
 // the button is up while the object floats and nothing else is happening: the same state the float's sound plays in
