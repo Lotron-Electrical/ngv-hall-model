@@ -21,7 +21,7 @@ export class Fx {
   levelFor(clock, body) { const f = body ? body.fatigue : 0; return f < 70 ? 0 : f < 85 ? (f - 70) / 15 : 1 + (f - 85) / 15 * 0.8; }
 
   onFit(slot, player) {
-    if (this.level <= 0 || !slot.mesh) return;
+    if (this.level <= 0) return;
     // a quarter of the fits from 03:00, over half by 04:00: it vanishes once you look away
     if (Math.random() < 0.25 + 0.3 * Math.min(1, this.level)) this.vanish = { slot, yaw0: player.yaw, hidden: false, until: 0 };
   }
@@ -45,8 +45,9 @@ export class Fx {
     const V = this.vanish;
     if (V) {
       const away = Math.abs(Math.atan2(Math.sin(player.yaw - V.yaw0), Math.cos(player.yaw - V.yaw0))) > 1.1;
-      if (!V.hidden && away) { V.hidden = true; V.slot.mesh.visible = false; V.until = this.t + 3 + Math.random() * 5; }
-      if (V.hidden && this.t > V.until) { V.slot.mesh.visible = true; this.vanish = null; }
+      // (2026-09-04) the light is one slot of the shared fixture set now, not its own mesh
+      if (!V.hidden && away) { V.hidden = true; this.install.showSlot(V.slot, false); V.until = this.t + 3 + Math.random() * 5; }
+      if (V.hidden && this.t > V.until) { this.install.showSlot(V.slot, true); this.vanish = null; }
     }
     // the second lift: a see-through copy across the hall for a few seconds
     if (!this.ghost && this.t > this.nextGhost && this.lift) {
@@ -64,7 +65,7 @@ export class Fx {
     this.camera.rotation.z = 0;
     if (this.hall) this.hall.rotation.z = 0;
     this.scene.background = this.bg;
-    if (this.vanish) { this.vanish.slot.mesh.visible = true; this.vanish = null; }
+    if (this.vanish) { this.install.showSlot(this.vanish.slot, true); this.vanish = null; }
     if (this.ghost) { this.scene.remove(this.ghost); this.ghost = null; }
   }
 }

@@ -64,8 +64,15 @@ async function init() {
   document.querySelector('#prompt').textContent = 'Press Start Shift';
   window.game = { player, lift, items, install, clock, world, fx, body, crew, hallToWorld, dbg: { dt: 0, frames: 0 } };
   updateRunLights(install);   // for headless checks
+  paintGuideBtn();
   requestAnimationFrame(loop);
 }
+
+// the guide toggle (Lloyd, 2026-09-04): red bars on the empty slots, green pulse on the fitted
+// painted off install.guide, not off the click, so the label is right whoever flipped it
+let guideShown = null;
+function paintGuideBtn() { if (guideShown === install.guide) return; guideShown = install.guide; const b = document.querySelector('#guide'); b.textContent = install.guide ? 'Guide on' : 'Guide off'; b.classList.toggle('off', !install.guide); }
+document.querySelector('#guide').addEventListener('click', () => { if (install) install.setGuide(!install.guide); });
 
 // a line at the top of the picture for a few seconds: who joined, who finished what
 let toastTimer = null;
@@ -125,6 +132,8 @@ function loop(now) {
   if (document.body.classList.contains('playing') && !clock.ended) crew.update(dt, clock, player, install.counts().columnsDone);
   if (crew.toasts.length) showToast(crew.toasts.shift());
   if ((runLightTick += dt) > 1) { runLightTick = 0; updateRunLights(install); }   // the crew's fits light the room too
+  install.update(now / 1000);   // the guide's pulse; a no-op when the guide is off
+  paintGuideBtn();
   fx.update(dt, clock, player, body);
   updateItems(player, lift, items);
   if (player.takeDrop() && !lift.anim) { dropCarry(player, items); snd.thud(); }

@@ -21,6 +21,9 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);c
 #hud{position:absolute;left:12px;top:10px;right:12px;z-index:3;display:flex;align-items:flex-start;gap:10px;pointer-events:none}
 #stats{display:flex;gap:8px;flex-wrap:wrap;color:#fff;text-shadow:0 1px 2px #000;font:13px/1.3 ui-monospace,Consolas,monospace}
 #stats span{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:5px 7px}
+/* (Lloyd, 2026-09-04) the guide toggle: #hud is pointer-events:none, so the button opts back in, and it sits at the RIGHT end clear of #bars at top-left. 44 px tall so it can be tapped */
+#guide{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
+#guide.off{color:var(--dim)}
 #prompt{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:6;max-width:min(520px,calc(100% - 24px));background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:8px 12px;text-align:center;color:#fff;pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #prompt.can{border-color:rgba(185,168,135,.85);background:rgba(20,16,8,.8)}   /* (Lloyd, 2026-09-04: "I don't like the action button") the message is the button: tap it to do it */
 #prompt:active{background:rgba(185,168,135,.35)}
@@ -54,7 +57,7 @@ body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves fro
 <div id="game">
   <canvas id="cv"></canvas>
   <div id="vignette"></div>
-  <div id="hud"><div id="stats"></div></div>
+  <div id="hud"><div id="stats"></div><button id="guide">Guide on</button></div>
   <div id="bars"></div>
   <div id="toast"></div>
   <div id="prompt">Loading hall...</div>

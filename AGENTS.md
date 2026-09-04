@@ -435,6 +435,27 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   fatigue vignette from 01:00, from 03:00 vanishing fitted lights, leaning columns, colour drift,
   breathing FOV, a ghost lift. Clean-up counts the lift, jack and bags. Off the lift only at ground.
   Visual checks: `tools/game-look.mjs`, `tools/game-look2.mjs` (contact sheets in %TMP%).
+- THE FIXTURE, and THE GUIDE (Lloyd, 2026-09-04): the light the game fits is no longer a 55 mm
+  white box. `game/fixture.js` is the proposal sim's default fixture ported out of `index.html`
+  `rebuild()` as an importable module: the constants (EXT_W/EXT_D/EXT_BACK/FACE_W/WALL/TILE_T,
+  LEDS_PER_M 60, DIFFUSER_T 0.25, EMIT_EXPOSURE, HALO_PEAK/HALO_MEAN, gsize 0.08) and the same
+  basis and offsets, so a fitted section is a 20 x 20 mm extrusion on the shaft valley, a 16 mm
+  black acrylic cover on its face, 90 emitter tiles at 60/m and 90 halo discs 1 mm proud of the
+  aperture. `FixtureSet` holds the WHOLE hall in four draw calls (2,304 ribbon boxes, 768 covers,
+  69,120 emitter instances, 69,120 halo points) and hides an unfitted slot with a zero-scale
+  matrix and a zero colour. **`index.html`'s `rebuild()` should import this module next**: while
+  the sim keeps its own copy of the geometry the two WILL drift, and the game would stop showing
+  the product the proposal sells. Per-LED meshes stay Phong/Lambert/Basic (the sim measured
+  MeshStandardMaterial halving the frame rate at 73k instances).
+  The guide: `install.guide`, default ON, remembered in localStorage `ngv-install-guide`, toggled
+  by `#guide` at the right end of the HUD (#hud is pointer-events:none, so the button opts back
+  in; 44 px tall for a thumb). On, every EMPTY slot stands as a pulsing red bar (one
+  InstancedMesh) and every FITTED one pulses green through its own fixture colour, at 1.2 Hz from
+  `install.update(t)` in the main loop; off, no bars and steady strip white, and `update` returns
+  on one comparison. `fx.js`'s vanishing light calls `install.showSlot(slot, bool)` now: there is
+  no per-slot mesh to hide any more. Check: `node tools/game-guide.mjs <outdir>` (matrices,
+  colours, the cover landing 0.4 mm off `slot.center + normal*0.009`, the toggle, and fps with
+  all 768 in: 135 fps headless on this machine).
 - Stamina + fatigue (Lloyd, 2026-09-04): `body.js`. Stamina drains with effort (carry 4/s, jacked
   pallet 7/s, riding the lift 1.2/s), recovers at rest (9/s standing, 4/s walking, slower as
   fatigue rises); under 15 you crawl, under 10/15 you cannot take a box / jack a pallet. Fatigue
