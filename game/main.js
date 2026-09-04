@@ -19,6 +19,7 @@ player.bind({
   action: document.querySelector('#action'),
   moveStick: document.querySelector('#move'),
   lookStick: document.querySelector('#look'),
+  drop: document.querySelector('#drop'),
   liftUp: document.querySelector('#liftUp'),
   liftDown: document.querySelector('#liftDown')
 });
@@ -107,6 +108,7 @@ function loop(now) {
   lift.update(dt, player, world, collideWorld);
   if (!lift.aboard) player.pos.y = world.floorY;   // no gravity to speak of: off the deck you are on the floor
   document.body.classList.toggle('aboard', lift.aboard);
+  document.body.classList.toggle('carrying', !!player.carry);
   if (Math.abs(lift.height - oldLift) > 0.002 && now - lastLiftBeep > 450) {
     lastLiftBeep = now;
     liftBeep();

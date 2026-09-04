@@ -44,6 +44,7 @@ export class Player {
       this.lookBy(e.movementX * 0.0022, e.movementY * 0.0022);
     });
     ui.action.addEventListener('click', () => this.actionQueued = true);
+    ui.drop?.addEventListener('click', () => this.dropQueued = true);
     ui.liftUp?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
     ui.liftUp?.addEventListener('pointerup', () => this.liftUp = false);
     ui.liftUp?.addEventListener('pointercancel', () => this.liftUp = false);

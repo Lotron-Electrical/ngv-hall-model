@@ -38,6 +38,8 @@ button:focus-visible{outline:2px solid var(--accent)}
 #move{left:24px}
 #look{right:24px}
 #action{position:absolute;right:34px;bottom:166px;width:96px;height:96px;border-radius:50%;background:rgba(185,168,135,.25);border-color:rgba(185,168,135,.85);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:20px;letter-spacing:.06em;pointer-events:auto}
+#drop{position:absolute;right:34px;bottom:276px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
+body.carrying #drop{display:block}
 #liftBtns{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:none;gap:12px;pointer-events:auto}
 body.aboard #liftBtns{display:flex}
 #liftBtns button{width:86px;height:64px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
@@ -50,7 +52,7 @@ body.aboard #liftBtns{display:flex}
   <div id="hud"><div id="stats"></div></div>
   <div id="bars"></div>
   <div id="prompt">Loading hall...</div>
-  <div id="touch"><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div><button id="action">ACTION</button><div id="liftBtns"><button id="liftUp">UP</button><button id="liftDown">DOWN</button></div></div>
+  <div id="touch"><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div><button id="action">ACTION</button><button id="drop">DROP</button><div id="liftBtns"><button id="liftUp">UP</button><button id="liftDown">DOWN</button></div></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
     <h1>The Install</h1>

@@ -96,8 +96,9 @@ function makeCarryLight(wrapped) {
       : mat(0xffffff, 0.35, { emissive: 0xe4f5ff, emissiveIntensity: 0.55 })
   );
   group.add(bar);
-  group.position.set(0.36, -0.38, -0.9);
-  group.rotation.set(0.2, -0.22, 0.05);
+  // held low and to the right, slanted away, so it does not fill the view (Lloyd's phone shot)
+  group.position.set(0.42, -0.62, -1.0);
+  group.rotation.set(0.35, -0.55, 0.1);
   return group;
 }
 
@@ -114,7 +115,7 @@ function carry(player, item) {
 }
 
 export function createItems(scene, world, camera) {
-  const items = { pallets: [], boxes: [], wraps: [], bags: [], jack: null, scene, world, camera };
+  const items = { pallets: [], boxes: [], wraps: [], bags: [], lights: [], jack: null, scene, world, camera };
   for (const [i, column] of COLUMNS.entries()) {
     const u = 50.4 + Math.floor(i / 3) * 1.55;
     const d = 4.85 + (i % 3) * 1.65;
@@ -152,7 +153,8 @@ export function nearestAction(player, lift, install, items) {
   if (player.carry?.type === 'light') {
     const slot = install.findFitSlot(lift.deckWorld());
     if (slot && lift.aboard) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
-    return { label: 'Raise lift to the next slot', run: null };
+    // (Lloyd, 2026-09-04) a light in hand with nowhere to fit it goes DOWN on ACTION, here
+    return { label: lift.aboard ? 'Put light down on the deck' : 'Put light down', run: () => dropCarry(player, items) };
   }
   if (player.carry?.type === 'wrap') {
     const bag = items.bags.find((b) => near(b, 1.4) && !b.full);
@@ -168,6 +170,9 @@ export function nearestAction(player, lift, install, items) {
     ? { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); player.pos.y = items.world.floorY; lift.aboard = false; } }
     : { label: 'Lower the lift to get off', run: null };
 
+  // a light you put down comes first: it is the likelier thing to want back than the box beside it
+  const loose = items.lights.find((l) => !l.carried && near(l, 1.4));
+  if (loose) return { label: loose.type === 'wrapped' ? 'Pick up wrapped light' : 'Pick up light', run: () => pickUpLight(player, loose, items) };
   const box = items.boxes.find((b) => !b.carried && !b.onLift && !b.disposed && near(b, 1.25));
   if (box) return { label: box.lights > 0 ? 'Take wrapped light from box' : 'Take empty box', run: () => box.lights > 0 ? takeLightFromBox(player, box, items) : carryEmptyBox(player, box, items) };
   const wrap = items.wraps.find((w) => !w.carried && !w.bagged && near(w, 1.15));
@@ -285,9 +290,30 @@ function saveLooseBoxPosition(box, items) {
   if (!box.mesh.parent) items.scene.add(box.mesh);
 }
 
+// a loose light on the floor (or a deck): a 1.5 m bar lying flat, wrapped or bare
+function pickUpLight(player, loose, items) {
+  loose.mesh.removeFromParent();
+  items.lights.splice(items.lights.indexOf(loose), 1);
+  const mesh = makeCarryLight(loose.type === 'wrapped');
+  player.camera.add(mesh);
+  player.carry = { type: loose.type, mesh };
+}
+
 export function dropCarry(player, items) {
   if (!player.carry) return;
   const item = player.carry;
+  if (item.type === 'light' || item.type === 'wrapped') {
+    item.mesh.removeFromParent();
+    const bar = makeCarryLight(item.type === 'wrapped').children[0];
+    bar.rotation.set(0, 0, 0);
+    const ahead = new THREE.Vector3(0, 0, -1.0).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
+    bar.position.copy(player.pos).add(ahead); bar.position.y = player.pos.y + 0.05;
+    bar.rotation.y = player.yaw + Math.PI / 2;
+    items.scene.add(bar);
+    items.lights.push({ type: item.type, mesh: bar, carried: false });
+    player.carry = null;
+    return;
+  }
   if (item.mesh) {
     item.mesh.removeFromParent();
     items.scene.add(item.mesh);
@@ -332,6 +358,7 @@ export function resetForNight(player, lift, items) {
     if (wrap.bagged) continue;
     wrap.mesh.position.copy(hallToWorld(56.4, 4.8 + (i % 8) * 0.12, items.world.floorY + 0.05));
   }
+  for (const [i, l] of items.lights.entries()) l.mesh.position.copy(hallToWorld(56.0 + (i % 4) * 0.3, 4.9 + Math.floor(i / 4) * 0.25, items.world.floorY + 0.05));
   items.jack.held = false;
   items.jack.carrying = null;
   items.jack.mesh.position.copy(hallToWorld(55.8, 9.6, items.world.floorY));
@@ -357,6 +384,7 @@ export function cleanupClear(items, lift) {
   if (!items.pallets.every((p) => outside(p.mesh))) left.push('pallets');
   if (!items.boxes.every((b) => b.disposed || (!b.carried && outside(b.mesh)))) left.push('boxes');
   if (!items.wraps.every((w) => w.bagged || outside(w.mesh))) left.push('wrap');
+  if (!items.lights.every((l) => outside(l.mesh))) left.push('loose lights');
   if (lift.box && !outside(lift.box.mesh)) left.push('lift box');
   // (Lloyd) EVERYTHING leaves the hall by 05:00: the machine and the jack as much as the stock
   if (!outside(lift.group)) left.push('the scissor lift');
