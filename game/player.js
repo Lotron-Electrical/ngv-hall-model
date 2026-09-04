@@ -34,7 +34,6 @@ export class Player {
   // screen stays up, and the next click gets it
   lock() {
     if (this.coarse || !this.canvas.requestPointerLock) return;
-    this.setPaused(true);
     let req;
     try { req = this.canvas.requestPointerLock({ unadjustedMovement: true }); } catch (e) { req = null; }
     const plain = () => { try { const r = this.canvas.requestPointerLock(); if (r?.catch) r.catch(() => {}); } catch (e) {} };
@@ -44,7 +43,7 @@ export class Player {
   // the pause: while the pointer is free on a mouse-and-keyboard machine the game holds, the keys
   // are dropped, and #paused ("click to resume") stands over the hall
   setPaused(on) {
-    on = !!on && !this.coarse && document.body.classList.contains('playing');
+    on = !!on && !this.coarse && this.hadLock && document.body.classList.contains('playing');
     if (on === this.paused) return;
     this.paused = on;
     if (on && this.dropKeys) this.dropKeys();
@@ -78,7 +77,11 @@ export class Player {
       if (e.target.closest?.('button, a, input, select, #prompt, #overlay, #summary')) return;
       if (document.pointerLockElement !== this.canvas) this.lock();
     });
-    this.on(document, 'pointerlockchange', () => this.setPaused(document.pointerLockElement !== this.canvas));
+    // the pause is for a lock LOST (Esc, alt-tab): before the first lock has been held the shift
+    // runs on with the keys, and the first click on the hall captures the mouse. A browser that
+    // refuses the lock outright (headless, a blocked permission) therefore never holds the game
+    this.hadLock = false;
+    this.on(document, 'pointerlockchange', () => { const locked = document.pointerLockElement === this.canvas; if (locked) this.hadLock = true; this.setPaused(!locked); });
     this.on(document, 'pointerlockerror', () => this.setPaused(true));
     const drop = () => { this.keys.clear(); this.liftUp = this.liftDown = false; this.move.set(0, 0); this.look.set(0, 0); };
     this.dropKeys = drop;

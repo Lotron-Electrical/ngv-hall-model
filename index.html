@@ -5053,11 +5053,9 @@ async function buildInstall(){
  G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
   bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
  if(document.getElementById('event').checked)setEvent(false);   // one layer at a time: the hall is either an event or a night shift
- // (Lloyd, 2026-09-04: "house lights should be turned to full") the hall as Free roam leaves it:
- // house at 100 %, warm white on every column, the object gone
- G.saved.layers=state.layers; G.saved.sel=state.sel;
+ // (Lloyd, 2026-09-04: "house lights should be turned to full") the house at 100 % as Free roam
+ // leaves it, the object gone. The columns stay the shift's: only a fitted run lights
  lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';}
- state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; sceneDirty=true; paintUI();
  if(portal)portal.group.visible=false;
  entered=true; idle=false; roam=null; roamed=false; stopTour();
  document.getElementById('loader').classList.add('gone');
@@ -5219,7 +5217,6 @@ function teardownInstall(){
  entered=G.saved.entered; idle=G.saved.idle; roam=G.saved.roam; roamed=G.saved.roamed;
  if(portal&&G.saved.portal!==null)portal.group.visible=G.saved.portal;
  lit.house=G.saved.house; {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';}
- if(G.saved.layers){ state.layers=G.saved.layers; state.sel=G.saved.sel; sceneDirty=true; paintUI(); }
  if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
  document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
  document.getElementById('installUi').classList.remove('on');
