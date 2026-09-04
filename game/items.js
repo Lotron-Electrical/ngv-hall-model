@@ -397,7 +397,7 @@ export function resetForNight(player, lift, items) {
   items.jack.held = false;
   items.jack.carrying = null;
   items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));
-  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; lift.anim = null; lift.gate.rotation.x = 0; player.onLift = false; player.eye = 1.68;
+  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; lift.anim = null; lift.gate.rotation.y = 0; player.onLift = false; player.eye = 1.68;
   lift.height = 0;
   lift.box = null;
   lift.refresh();

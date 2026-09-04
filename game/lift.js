@@ -79,8 +79,9 @@ export class Lift {
     for (const z of [-0.58, 0.58]) { rail(2.5, 0.05, 0.05, 0, 1.1, z); rail(2.5, 0.04, 0.04, 0, 0.55, z); rail(2.5, 0.12, 0.03, 0, 0.13, z); }
     for (const x of [-1.23, 1.23]) rail(0.05, 0.05, 1.2, x, 1.1, 0);
     rail(0.04, 0.04, 1.2, 1.23, 0.55, 0);
-    // (2026-09-04) the back mid rail is the gate bar: hinged at one post, it swings up while
-    // you climb through and drops behind you (rotation.x, negative = up)
+    // (Lloyd, 2026-09-04: "the gate doesn't swing up") the back mid rail is a GATE: hinged on
+    // one post like a door, it swings INTO the deck (rotation.y, positive = open) while you climb
+    // through and closes behind you; 1.2 rad open clears the side rail post at x -0.41
     this.gate = new THREE.Group(); this.gate.position.set(-1.23, 0.55, -0.6); this.deck.add(this.gate);
     const bar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 1.2), blue); bar.position.set(0, 0, 0.6); this.gate.add(bar);
     for (const x of [-1.23, -0.41, 0.41, 1.23]) for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, x, 0.55, z);
@@ -175,7 +176,7 @@ export class Lift {
     this.aboard = false; this.driving = false; this.speed = 0; this.steer = 0; this.anim = null;
     player.onLift = false; player.eye = Lift.EYE;
     player.pos.copy(this.offboardWorld()); player.pos.y = this.floorY;
-    this.gate.rotation.x = 0;
+    this.gate.rotation.y = 0;
   }
 
   // the climb as keyframes in chassis coordinates: x along, y feet height above the floor (the
@@ -187,15 +188,16 @@ export class Lift {
     const frames = [
       { x: -2.0, y: 0, eye: Lift.EYE, gate: 0, dt: 0.5 },        // foot of the ladder (offboardWorld)
       { x: LD.x - 0.3, y: 0, eye: Lift.EYE, gate: 0, dt: 1.4 },  // hands on the rungs
-      { x: LD.x - 0.3, y: D - 0.3, eye: Lift.EYE, gate: 1, dt: 0.6 },   // straight up the ladder, the gate rises
-      { x: -0.9, y: D, eye: Lift.DUCK, gate: 1, dt: 0.6 },       // ducked under the top rail onto the deck
+      // (no clipping) ducked BEFORE the top rail: head stays under it all the way onto the deck
+      { x: LD.x - 0.3, y: D - 0.3, eye: Lift.DUCK, gate: 1, dt: 0.7 },   // up the ladder, ducked, the gate swings open
+      { x: -0.9, y: D, eye: Lift.DUCK, gate: 1, dt: 0.6 },       // through the gate onto the deck, still ducked
       { x: Lift.DOOR.x, y: D, eye: Lift.EYE, gate: 0, dt: 0 }     // standing, the gate dropped
     ];
     if (dir < 0) frames.reverse();
     // each frame's dt is the time to reach the NEXT frame; walking backwards the same pairs keep
     // their durations
     if (dir < 0) for (let i = 0; i < frames.length - 1; i++) frames[i].dt = frames[i + 1].dt || 1.2;
-    const first = { x: from.x, z: from.z, y: from.y, eye: player.eye, gate: this.gate.rotation.x / -1.2, dt: Math.max(0.2, Math.hypot(from.x - frames[0].x, from.z) / 1.5) };
+    const first = { x: from.x, z: from.z, y: from.y, eye: player.eye, gate: this.gate.rotation.y / 1.2, dt: Math.max(0.2, Math.hypot(from.x - frames[0].x, from.z) / 1.5) };
     frames.unshift(first);
     this.anim = { dir, frames, i: 0, t: 0 };
     this.stepAnim(0, player);
@@ -214,7 +216,7 @@ export class Lift {
     const p = this.group.localToWorld(new THREE.Vector3(x, y + this.height, z));
     player.pos.set(p.x, this.floorY + y + this.height, p.z);
     player.eye = eye;
-    this.gate.rotation.x = -1.2 * gate;
+    this.gate.rotation.y = 1.2 * gate;
     // you face along the lift for the climb, whichever way you were looking
     const want = this.yaw - Math.PI / 2;
     const d = Math.atan2(Math.sin(want - player.yaw), Math.cos(want - player.yaw));

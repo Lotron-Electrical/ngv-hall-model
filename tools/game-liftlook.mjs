@@ -20,7 +20,10 @@ await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.yaw=2.92;L.refresh();c
 await ev(`(()=>{const L=window.game.lift;L.height=1.2;L.refresh();})()`); await sleep(300); await shot('raised');
 await ev(`(()=>{const L=window.game.lift;L.height=0;L.refresh();})()`);
 // mid-climb: board from the foot and freeze on the tread
-await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;const o=L.offboardWorld();P.pos.set(o.x,g.world.floorY,o.z);P.yaw=L.yaw-Math.PI/2;P.pitch=-0.2;P.actionQueued=true;})()`); await sleep(1700); await shot('midclimb');
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;const o=L.offboardWorld();P.pos.set(o.x,g.world.floorY,o.z);P.yaw=L.yaw-Math.PI/2;P.pitch=-0.2;P.actionQueued=true;})()`); await sleep(2300); await shot('midclimb');
+// the open gate from the deck side
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.anim=null;L.aboard=true;P.onLift=true;L.gate.rotation.y=1.2;L.aboard=false;P.onLift=false;const o=L.group.localToWorld(new P.pos.constructor(-3.2,0,1.2));P.pos.set(o.x,g.world.floorY,o.z);P.eye=1.68;P.yaw=L.yaw-Math.PI/2+0.35;P.pitch=0.05;})()`); await sleep(300); await shot('gateopen');
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.gate.rotation.y=0;L.aboard=false;P.onLift=false;const o=L.offboardWorld();P.pos.set(o.x,g.world.floorY,o.z);P.yaw=L.yaw-Math.PI/2;P.pitch=-0.2;P.actionQueued=true;})()`);
 await sleep(2500); await shot('aboard');
 console.log(logs.join('\n')||'no errors');
 ws.close(); process.exit(0);

@@ -512,12 +512,15 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   plate (the old 0.2 m span floor did). The steps are a VERTICAL ladder flush on the back
   face of the chassis (`Lift.LADDER`, x -1.27, rungs 0.28..1.09, Lloyd's Genie/JLG photos: nothing
   sticks out behind the machine); the climb goes straight up it. The back mid rail is `lift.gate`, a
-  group hinged at (-1.23, 0.55, -0.6); `rotation.x = -1.2` is fully up. `board(player)` and
+  group hinged on the post at (-1.23, 0.55, -0.6) like a door; `rotation.y = 1.2` is open (swung
+  into the deck; 1.2 not 1.57 so it clears the x -0.41 rail post). `board(player)` and
   `leave(player)` run `lift.anim` (`startAnim` / `stepAnim`): walk to the foot of the steps (local
-  x -2.0), up the ladder with the gate rising, duck under the top rail (`player.eye` 1.68 -> 0.95)
-  onto the deck, stand at `DOOR` as the gate drops; leaving walks the same frames backwards. While
+  x -2.0), up the ladder already ducked (`player.eye` 1.68 -> 0.95) so the head never meets the top rail,
+  through the open gate onto the deck, stand at `DOOR` as the gate drops; leaving walks the same frames backwards. While
   `lift.anim` runs `nearestAction` returns 'Climbing aboard' / 'Climbing down' with run null, F is
   ignored, and yaw eases to face along the lift. `board(p, true)` / `leave(p, true)` are the
   instant forms for scripts (game-drift uses them). `tools/game-drive.mjs` waits the climb out and
-  asserts eye dipped under 1.0 and the gate rose past 0.8 rad both ways; `tools/game-liftlook.mjs`
+  asserts eye dipped under 1.0, the gate opened past 0.8 rad, and (Lloyd: "no clipping please",
+  a STANDING RULE for every 3D change) that the camera point never entered any lift mesh's world
+  box during the climb, both ways; `tools/game-liftlook.mjs`
   shoots the lift from the back quarter, raised, mid-climb and aboard.
