@@ -597,3 +597,17 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
 - KNOWN, NOT FIXED: switching an event ON and OFF again leaves its solids in `solids` (69 -> 108
   -> 108). That is the sim's own behaviour, older than install mode; `tools/install-mode.mjs`
   therefore counts colliders around the install toggle alone.
+
+## The lightshow (2026-09-04)
+
+Lloyd's own music and the light cues for it live on one clock. Three pieces:
+
+| Piece | Does |
+| --- | --- |
+| `show/lightshow.js` | the look engine both pages share: `NGVShow.createShow()` paints the pixel array from a FRAME (t, bpm, beat, bass/mid/high/rms/onset) and a STATE (look, palette, level, hitAt). Looks and palettes are listed in `NGVShow.LOOKS` / `NGVShow.PALETTES` |
+| `studio.html` | the tool: an arrangement engine (drums, sub, chords, arp, live lead) plus light pads. Record stamps pad presses at the transport time; the sim runs in an iframe (`index.html?embed=1&show=live`) fed one frame per tick by postMessage; Export renders the WAV, bakes the frames and writes `show/<name>.cues.json` through `POST /save` on `tools/serve.js` |
+| `index.html?show=<name>` | playback for the proposal: the Lightshow row's Play loads `show/<name>.cues.json` and its audio and drives the columns from the cue file; the layers are ignored until Stop. `show/shows.json` lists the names |
+
+`tools/show_analyse.py sound/<track>.mp3` bakes the same cue file from an external track (beats,
+sections, bands, no cues), for a show cued by hand. `tools/show_pack.py <name>` turns the studio's
+WAV into the mp3 that ships (the WAV is gitignored).

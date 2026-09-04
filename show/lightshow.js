@@ -68,7 +68,7 @@ const PAINT={
  sparkle(i,c){ const fr=Math.floor(c.t*14), dn=0.01+0.18*c.highS, q=c.pid; const k=hash(q*7919+fr)<dn?1:(hash(q*7919+fr-1)<dn?0.45:0); const fl=0.08; c.r=c.A[0]*fl+c.B[0]*k; c.g=c.A[1]*fl+c.B[1]*k; c.b=c.A[2]*fl+c.B[2]*k; },
  rainbow(i,c){ hsv(c.s*300+c.col*30-c.barPhase*360-c.beatN*20,1,0.25+0.75*c.rmsS,c.tmp); c.r=c.tmp[0]; c.g=c.tmp[1]; c.b=c.tmp[2]; },
  sweep(i,c){ const ph=((c.colx*1.3-c.barPhase*1.3)%1.3+1.3)%1.3, k=ph<0.3?1-ph/0.3:0, fl=0.07; c.r=c.B[0]*fl+c.A[0]*k; c.g=c.B[1]*fl+c.A[1]*k; c.b=c.B[2]*fl+c.A[2]*k; },
- helix(i,c){ const k=Math.pow(0.5+0.5*Math.sin(c.s*Math.PI*6+c.gap*Math.PI/4-c.t*5-c.beatN),3)*(0.4+0.6*c.rmsS); const m=c.s; c.r=(c.A[0]*(1-m)+c.B[0]*m)*k; c.g=(c.A[1]*(1-m)+c.B[1]*m)*k; c.b=(c.A[2]*(1-m)+c.B[2]*m)*k; },
+ helix(i,c){ const k=Math.pow(0.5+0.5*Math.sin(c.s*Math.PI*6+c.gap*Math.PI/4-c.t*5-c.beatN),2)*(0.55+0.45*c.rmsS);   /* squared, not cubed: cubed read as a thin thread from the end of the hall */ const m=c.s; c.r=(c.A[0]*(1-m)+c.B[0]*m)*k; c.g=(c.A[1]*(1-m)+c.B[1]*m)*k; c.b=(c.A[2]*(1-m)+c.B[2]*m)*k; },
  split(i,c){ const north=c.col<6, sw=(c.beatN&1)===1, C=(north!==sw)?c.A:c.B, k=0.3+0.7*c.bassS; c.r=C[0]*k; c.g=C[1]*k; c.b=C[2]*k; },
  blackout(i,c){ c.r=c.g=c.b=0; },
 };
