@@ -20,6 +20,18 @@ http.createServer((req, res) => {
   const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
   const file = path.resolve(ROOT, rel);
   if (!file.startsWith(ROOT)) { res.writeHead(403).end('no'); return; }
+  // THE STUDIO'S SAVE (Lloyd, 2026-09-04): studio.html exports a show straight into the repo
+  // rather than through the browser's download folder. POST /save with the body as the bytes and
+  // ?path=show/<name>.cues.json (or .wav, .json under show/ or sound/). Local server, local files.
+  if (req.method === 'POST' && rel === 'save') {
+    const q = new URL(req.url, 'http://x').searchParams, p = String(q.get('path') || '');
+    const target = path.resolve(ROOT, p);
+    if (!/^(show|sound)\/[\w.-]+\.(json|wav|mp3)$/.test(p) || !target.startsWith(ROOT)) { res.writeHead(400).end('bad path'); return; }
+    const chunks = []; req.on('data', d => chunks.push(d)); req.on('end', () => {
+      fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, Buffer.concat(chunks));
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }).end(JSON.stringify({ ok: true, path: p, bytes: Buffer.concat(chunks).length }));
+    }); return;
+  }
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found: ' + rel); return; }
     const base = { 'Content-Type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream',
