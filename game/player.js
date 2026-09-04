@@ -59,7 +59,18 @@ export class Player {
     const knob = el.querySelector('i');
     const active = { id: null };
     const S = { touched: false, held: false, t: 0 }; this.stk = this.stk || {}; this.stk[el.id] = S;
+    // (Lloyd, 2026-09-04: the view kept drifting) the LOOK stick is a DRAG like free roam's: the
+    // view turns by how far the thumb has moved since the last event, never by where it rests.
+    // A thumb parked on the stick does nothing; the knob leans with the drag and springs back
     const set = (e) => {
+      if (isLook) {
+        if (active.last) this.lookBy((e.clientX - active.last.x) * 0.0062, (e.clientY - active.last.y) * 0.0048);
+        active.last = { x: e.clientX, y: e.clientY };
+        const r = el.getBoundingClientRect();
+        const v = new THREE.Vector2(e.clientX - r.left - r.width * 0.5, e.clientY - r.top - r.height * 0.5).clampLength(0, 42);
+        knob.style.transform = `translate(${v.x}px,${v.y}px)`;
+        return;
+      }
       const r = el.getBoundingClientRect();
       const x = e.clientX - r.left - r.width * 0.5;
       const y = e.clientY - r.top - r.height * 0.5;
@@ -72,7 +83,7 @@ export class Player {
     };
     el.addEventListener('pointerdown', (e) => {
       S.touched = true; S.held = true; S.t = performance.now() / 1000;
-      active.id = e.pointerId;
+      active.id = e.pointerId; active.last = null;
       el.setPointerCapture(e.pointerId);
       set(e);
     });
@@ -114,8 +125,6 @@ export class Player {
 
   update(dt, world, collide) {
     this.sticksSync();
-    // the look stick turns the view for as long as it is held, not only while the thumb moves
-    if (this.look.lengthSq() > 0) this.lookBy(this.look.x * dt * 2.4, this.look.y * dt * 1.6);
     const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;
     const strafe = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0) + this.move.x;
     const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);
