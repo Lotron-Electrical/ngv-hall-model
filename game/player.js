@@ -26,7 +26,30 @@ export class Player {
 
   // add a listener and remember how to take it away again
   on(target, type, fn, opts) { target.addEventListener(type, fn, opts); this.off.push(() => target.removeEventListener(type, fn, opts)); }
-  unbind() { for (const f of this.off) f(); this.off = []; }
+  unbind() { for (const f of this.off) f(); this.off = []; document.body.classList.remove('paused'); }
+
+  // lock the pointer to the canvas. Raw (unadjusted) movement where the browser has it, so the OS
+  // mouse acceleration does not bend the look; the plain lock where it does not. Chrome refuses a
+  // lock for about a second after an Esc exit: that refusal lands in pointerlockerror, the pause
+  // screen stays up, and the next click gets it
+  lock() {
+    if (this.coarse || !this.canvas.requestPointerLock) return;
+    this.setPaused(true);
+    let req;
+    try { req = this.canvas.requestPointerLock({ unadjustedMovement: true }); } catch (e) { req = null; }
+    const plain = () => { try { const r = this.canvas.requestPointerLock(); if (r?.catch) r.catch(() => {}); } catch (e) {} };
+    if (req?.catch) req.catch((err) => { if (err?.name === 'NotSupportedError') plain(); }); else if (!req) plain();
+  }
+
+  // the pause: while the pointer is free on a mouse-and-keyboard machine the game holds, the keys
+  // are dropped, and #paused ("click to resume") stands over the hall
+  setPaused(on) {
+    on = !!on && !this.coarse && document.body.classList.contains('playing');
+    if (on === this.paused) return;
+    this.paused = on;
+    if (on && this.dropKeys) this.dropKeys();
+    document.body.classList.toggle('paused', on);
+  }
 
   bind(ui) {
     this.on(window, 'keydown', (e) => {
@@ -41,12 +64,26 @@ export class Player {
       if (e.code === 'Space') this.liftUp = false;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.liftDown = false;
     });
-    const coarse = matchMedia?.('(pointer: coarse)').matches;
-    this.on(this.canvas, 'click', () => {
-      if (coarse || !document.body.classList.contains('playing')) return;
-      const req = this.canvas.requestPointerLock?.();
-      if (req?.catch) req.catch(() => {});
+    // THE MOUSE (Lloyd, 2026-09-04: "I had to press Esc to unlock the mouse, then I can't start
+    // looking again"). The browser-FPS workflow every pointer-lock game uses: a click on the play
+    // area locks the pointer, Esc (the browser's own key, it cannot be rebound) unlocks it and the
+    // game PAUSES behind a "click to resume" screen, and the next click locks again. The click is
+    // heard on the document, not the canvas: the install overlay covers the canvas, so a canvas
+    // listener never fired after Esc. Buttons and the prompt keep their own clicks. The keys are
+    // dropped on every unlock, blur and tab switch, so nothing runs on while the eye is free.
+    this.coarse = matchMedia?.('(pointer: coarse)').matches;
+    this.paused = false;
+    this.on(document, 'click', (e) => {
+      if (this.coarse || !document.body.classList.contains('playing')) return;
+      if (e.target.closest?.('button, a, input, select, #prompt, #overlay, #summary')) return;
+      if (document.pointerLockElement !== this.canvas) this.lock();
     });
+    this.on(document, 'pointerlockchange', () => this.setPaused(document.pointerLockElement !== this.canvas));
+    this.on(document, 'pointerlockerror', () => this.setPaused(true));
+    const drop = () => { this.keys.clear(); this.liftUp = this.liftDown = false; this.move.set(0, 0); this.look.set(0, 0); };
+    this.dropKeys = drop;
+    this.on(window, 'blur', drop);
+    this.on(document, 'visibilitychange', () => { if (document.hidden) drop(); });
     this.on(document, 'mousemove', (e) => {
       if (document.pointerLockElement !== this.canvas) return;
       this.lookBy(e.movementX * 0.0022, e.movementY * 0.0022);

@@ -169,6 +169,11 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
    visitor without the key never gets a pixel of it. */
 #installUi{position:absolute;inset:0;z-index:7;display:none;font-size:15px;line-height:1.5}
 #installUi.on{display:block}
+/* the pause (2026-09-04): up whenever the pointer is free on a mouse machine mid-shift; a click anywhere on it locks again */
+#paused{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);cursor:pointer;text-align:center}
+body.paused #paused{display:flex}
+#paused b{display:block;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:42px;line-height:1;margin-bottom:10px}
+#paused small{display:block;color:var(--dim);font-size:15px}
 #installUi button{font:inherit;color:var(--ink);background:#000;border:1px solid var(--rule);border-radius:4px;padding:9px 13px;cursor:pointer}
 #installUi button:focus-visible{outline:2px solid var(--accent)}
 #installUi h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:42px;line-height:1;margin:0 0 12px}
@@ -212,12 +217,14 @@ body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves fro
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
 @media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:46vw;text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}}
-/* install mode owns the whole stage: the viewer's own controls, sticks and buttons stand down */
-body.install #sticks,body.install #pad,body.install .ctl,body.install #roamfab,body.install #celebratefab,body.install #hud,body.install #restbtns{display:none!important}
+/* (Lloyd, 2026-09-04: "all the same menu stuff as the free roam, no full screen automatically") the
+   shift runs inside the ordinary viewer: the Menu / Tour / Full screen bar and the panel stay, the
+   stage keeps its place on the page; only the fly camera's sticks, pad and buttons stand down */
+body.install #sticks,body.install #pad,body.install #roamfab,body.install #celebratefab,body.install #hud,body.install #restbtns{display:none!important}
+body.install #installUi{bottom:44px}   /* clear of the bar */
 /* the shift takes the whole screen (Lloyd, 2026-09-04): the stage is a 70vh band inside a scrolling
    page, and a night's work seen through a letterbox with the page's headings above it is not a game */
-body.install{overflow:hidden}
-body.install #stage{position:fixed;inset:0;width:auto;height:auto;z-index:20;border:0}
+
 /* ?embed strips the page to the stage alone -- the proposal iframe shows the viewport and
    nothing else: no title, no help line, no documentation below */
 html.embed main>*:not(#stage){display:none!important}
@@ -242,6 +249,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
   <div id="ghud"><div id="stats"></div><button type="button" id="guide">Guide on</button></div>
   <div id="bars"></div>
   <div id="toast"></div>
+  <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
   <div id="touch"><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button></div></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
@@ -5045,7 +5053,11 @@ async function buildInstall(){
  G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
   bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
  if(document.getElementById('event').checked)setEvent(false);   // one layer at a time: the hall is either an event or a night shift
- lit.house=0; {const h=document.getElementById('house'); h.value=0; document.getElementById('houseval').textContent='0%';}
+ // (Lloyd, 2026-09-04: "house lights should be turned to full") the hall as Free roam leaves it:
+ // house at 100 %, warm white on every column, the object gone
+ G.saved.layers=state.layers; G.saved.sel=state.sel;
+ lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';}
+ state.layers=[WARM()]; state.layers[0].opacity=1; state.sel=0; sceneDirty=true; paintUI();
  if(portal)portal.group.visible=false;
  entered=true; idle=false; roam=null; roamed=false; stopTour();
  document.getElementById('loader').classList.add('gone');
@@ -5100,7 +5112,7 @@ function installStart(G){
  document.getElementById('overlay').classList.add('gone');
  document.body.classList.add('playing');
  G.clock.running=true;
- if(!COARSE){ const req=cv.requestPointerLock&&cv.requestPointerLock(); if(req&&req.catch)req.catch(()=>{}); }
+ G.player.lock();   // pointer lock, or the pause screen if the browser refuses it (the player owns both)
  G.snd.wake(); G.snd.tone(220,0.08,'sine',0.05);
 }
 
@@ -5111,7 +5123,7 @@ function installNextNight(G){
  G.clock.nextNight(G.install.counts().fitted);
  G.body.nextNight(); G.snd.nextNight();
  document.getElementById('overlay').classList.remove('gone');
- document.body.classList.remove('playing');
+ document.body.classList.remove('playing'); G.player.setPaused(false);
  G.mods.CLKm.saveGame(G.clock,G.install);
  installMask();
 }
@@ -5207,8 +5219,9 @@ function teardownInstall(){
  entered=G.saved.entered; idle=G.saved.idle; roam=G.saved.roam; roamed=G.saved.roamed;
  if(portal&&G.saved.portal!==null)portal.group.visible=G.saved.portal;
  lit.house=G.saved.house; {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';}
+ if(G.saved.layers){ state.layers=G.saved.layers; state.sel=G.saved.sel; sceneDirty=true; paintUI(); }
  if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
- document.body.classList.remove('install','playing','carrying','driving','aboard');
+ document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
  document.getElementById('installUi').classList.remove('on');
  document.getElementById('vignette').style.opacity='';
  resize();
@@ -5264,7 +5277,7 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  // and resolveMove stand aside for it; everything after here (the LEDs, the governor, the
  // render, done()) is the same code the proposal runs.
  const playing=!!(IG&&IG.ready);
- if(playing)installStep(dt,now);
+ if(playing){ if(!IG.player.paused)installStep(dt,now); }
  else{
  if(keys.KeyW||keys.ArrowUp)eye.addScaledVector(f,s); if(keys.KeyS||keys.ArrowDown)eye.addScaledVector(f,-s);
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
@@ -5291,7 +5304,7 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  // is what looked glitched; then the picture fades in
  // once drawn, the veil offers Enter Gandel Hall (Lloyd): that tap is the gesture the browser
  // wants for sound, so the music starts as the hall fades in
- if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else if(SHOWQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; roamed=true; if(portal){ portal.sunk=true; portal.group.visible=false; } state.layers=[]; lit.house=0.12; {const h=document.getElementById('house'); h.value=12; document.getElementById('houseval').textContent='12%';} paintUI(); if(SHOWQ==='live'){ SHOW.on=true; SHOW.live=true; } } else document.getElementById('loader').classList.add('ready'); }
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else if(SHOWQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; roamed=true; if(portal){ portal.sunk=true; portal.group.visible=false; } state.layers=[Object.assign(newLayer(1),{on:false})]; state.sel=0; lit.house=0.12; {const h=document.getElementById('house'); h.value=12; document.getElementById('houseval').textContent='12%';} paintUI(); if(SHOWQ==='live'){ SHOW.on=true; SHOW.live=true; } } else document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2026-09-03) just that, on every device */
