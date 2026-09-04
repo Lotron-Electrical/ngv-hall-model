@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { dressHall, AMBIENT } from './hallmat.js';
 
 export const HALL = {
   origin: new THREE.Vector3(-54.907447, -1.43545, 3.040286),
@@ -52,7 +50,7 @@ function makeHallBox(scene, u, d, y, len, dep, h, mat) {
 // (a ray down at each of a grid of hall points), then rotate the whole scan about a floor point
 // so that plane is horizontal and slide it so the floor sits exactly at HALL.floorY. Half a
 // degree: the ceiling moves 11 cm sideways, the floor points move under a millimetre.
-function levelScan(hall) {
+export function levelHall(hall) {
   hall.updateMatrixWorld(true);
   const ray = new THREE.Raycaster();
   const down = new THREE.Vector3(0, -1, 0);
@@ -86,49 +84,32 @@ function levelScan(hall) {
 let world_levelling = null;
 export function scanLevelling() { return world_levelling; }
 
-export async function loadWorld(scene) {
-  const world = {
-    floorY: HALL.floorY,
+// (Lloyd, 2026-09-04) install mode runs inside the proposal sim, and the sim measures its own
+// floor off the model. The datum is set from there so the two agree to the millimetre instead of
+// both carrying a hard-coded -1.435.
+export function setFloorY(y) { if (Number.isFinite(y)) HALL.floorY = y; }
+
+// the world with nothing built yet: the datums and the room's plan, no scene objects. The hall
+// itself (the scan, its levelling, its lights and its materials) belongs to whoever is hosting
+// the game -- index.html in install mode -- and is filled in by the caller.
+export function makeWorld(floorY = HALL.floorY) {
+  return {
+    floorY,
     columns: [],
     solids: [],
     // (Lloyd, 2026-09-04: make the storage space larger) 17 m x 9 m: two rows of six pallets
     // along the walls, a 4 m aisle between them for the lifts, the skip out through the end
-    storage: hallToWorld(57.5, 7.5, HALL.floorY),
-    skip: hallToWorld(68.6, 7.5, HALL.floorY),
+    storage: hallToWorld(57.5, 7.5, floorY),
+    skip: hallToWorld(68.6, 7.5, floorY),
     corridor: { u0: 48.9, u1: 66.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
     obstacles: []
   };
+}
 
-  scene.background = new THREE.Color(0x08090b);
-  // the viewer's hemisphere at house light full on; the props (lift, boxes, crew) take it and the
-  // environment map, the scan itself ignores scene lights (hallmat.js)
-  scene.add(new THREE.HemisphereLight(0xfff4e6, 0x40302a, 0.9 * (1 + AMBIENT)));
-  const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(-18, 18, 8); scene.add(fill);
-
-  const gltf = await new GLTFLoader().loadAsync(new URL('../model.glb', import.meta.url).href);
-  gltf.scene.traverse((o) => {
-    if (!o.isMesh) return;
-    o.castShadow = false;
-    o.receiveShadow = false;
-    const name = o.name.toLowerCase();
-    if (name.includes('floor') || name.includes('flat-floor')) {
-      const box = new THREE.Box3().setFromObject(o);
-      world.floorY = box.min.y;
-    }
-  });
-  levelScan(gltf.scene);
-  // the scan sits inside its own group: fx.js sways the hall by writing that group's rotation,
-  // which would wipe the levelling's tilt if it wrote the scan's own rotation
-  const sway = new THREE.Group(); sway.name = 'hall-sway'; sway.add(gltf.scene);
-  scene.add(sway);
-  world.hallScene = gltf.scene;
-  world.hallSway = sway;
-  dressHall(gltf.scene, HALL);   // the viewer's materials: photographs unlit, columns glossy, the doorway cut (hallmat.js)
-
-  const floor = new THREE.GridHelper(62, 62, 0x3b3f48, 0x20232a);
-  floor.position.y = world.floorY + 0.01;
-  scene.add(floor);
-
+// everything the game puts in the room: the invisible column colliders, the corridor and storage
+// space behind the hall, its lights, the double doors and the skip. All of it goes into whatever
+// `scene` is passed, so a host can hand in one group and drop the lot in a single remove().
+export function buildProps(scene, world) {
   const columnMat = new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: 0.8 });
   for (const [i, foot] of COLUMN_FEET.entries()) {
     const pos = hallToWorld(foot[0], foot[1], world.floorY + HALL.ceiling * 0.5);
@@ -174,7 +155,7 @@ export async function loadWorld(scene) {
     hinge.position.copy(hallToWorld(HALL.doorU - 0.3, HALL.doorD + side * HALL.doorW * 0.5, world.floorY));
     hinge.rotation.y = -Math.atan2(HALL.u.z, HALL.u.x);   // local x along the wall (u), local z = -inRoom
     const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.95, HALL.doorW * 0.5 - 0.02), leafMat);
-    leaf.position.set(0, 1.5, side * (HALL.doorW * 0.25));   // the leaf hangs from its hinge toward the middle (local z runs -inRoom, so +side is toward the centre for the -1 leaf... both meet at the middle)
+    leaf.position.set(0, 1.5, side * (HALL.doorW * 0.25));
     const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.6), doorFrame);
     bar.position.set(0.06, 1.05, side * (HALL.doorW * 0.25 + 0.2));
     hinge.add(leaf, bar);

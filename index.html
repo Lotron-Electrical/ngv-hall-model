@@ -161,6 +161,62 @@ details.row summary{cursor:pointer;font-size:12px;letter-spacing:.08em;text-tran
 .layer .lname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .layer input[type=range]{width:90px}
 .layer button{background:none;border:0;color:inherit;font-size:16px;cursor:pointer}
+/* ---- THE INSTALL (Lloyd, 2026-09-04, PRIVATE). The game that used to live in game.html is a
+   mode of this page now, so its overlay came with it. Every rule is scoped to #installUi: the
+   viewer already owns .bar (the loading line), #hud, h1, p and button, and the game's own #hud
+   became #ghud for the same reason. The wrapper is display:none until install mode is on, so a
+   visitor without the key never gets a pixel of it. */
+#installUi{position:absolute;inset:0;z-index:7;display:none;font-size:15px;line-height:1.5}
+#installUi.on{display:block}
+#installUi button{font:inherit;color:var(--ink);background:#000;border:1px solid var(--rule);border-radius:4px;padding:9px 13px;cursor:pointer}
+#installUi button:focus-visible{outline:2px solid var(--accent)}
+#installUi h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:42px;line-height:1;margin:0 0 12px}
+#installUi p{margin:0 0 14px;color:var(--dim)}
+#vignette{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(0,0,0,.85) 100%);transition:opacity .6s}
+#bars{position:absolute;left:12px;top:52px;z-index:3;width:min(240px,55vw);display:flex;flex-direction:column;gap:5px;pointer-events:none}
+#bars .bar{position:relative;left:auto;bottom:auto;padding:0;background:rgba(0,0,0,.55);height:16px;border:1px solid rgba(255,255,255,.22);border-radius:3px;overflow:hidden}
+#bars .bar i{position:absolute;left:0;top:0;bottom:0;background:#5fbf7a;transition:width .2s}
+#bars .bar.fat i{background:#d98a3a}
+#bars .bar b{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.7)}
+#bars .bar span{position:absolute;left:6px;top:0;line-height:16px;font:11px/16px ui-monospace,Consolas,monospace;color:#fff;text-shadow:0 1px 2px #000}
+#toast{position:absolute;left:50%;top:110px;transform:translateX(-50%);z-index:4;max-width:calc(100% - 24px);background:rgba(185,168,135,.92);color:#111;border-radius:4px;padding:8px 14px;font-weight:500;opacity:0;transition:opacity .4s;pointer-events:none}
+#toast.up{opacity:1}
+#ghud{position:absolute;left:12px;top:10px;right:12px;z-index:3;display:flex;align-items:flex-start;gap:10px;pointer-events:none}
+#stats{display:flex;gap:8px;flex-wrap:wrap;color:#fff;text-shadow:0 1px 2px #000;font:13px/1.3 ui-monospace,Consolas,monospace}
+#stats span{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:5px 7px}
+/* (Lloyd, 2026-09-04) the guide toggle: #ghud is pointer-events:none, so the button opts back in, and it sits at the RIGHT end clear of #bars at top-left. 44 px tall so it can be tapped */
+#installUi #guide{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
+#installUi #guide.off{color:var(--dim)}
+#prompt{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:6;max-width:min(520px,calc(100% - 24px));background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:8px 12px;text-align:center;color:#fff;pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#prompt.can{border-color:rgba(185,168,135,.85);background:rgba(20,16,8,.8)}   /* (Lloyd, 2026-09-04: "I don't like the action button") the message is the button: tap it to do it */
+#prompt:active{background:rgba(185,168,135,.35)}
+#prompt small{display:block;color:var(--dim);font-size:12px}
+#overlay{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.76);padding:20px}
+#overlay.gone{display:none}
+#card{width:min(520px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:22px}
+#summary{position:absolute;inset:0;z-index:7;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:20px}
+#summary.up{display:flex}
+#summary .box{width:min(420px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:18px}
+#summary h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:30px;font-weight:500;margin:0 0 8px;color:var(--accent)}
+#touch{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
+#installUi .stick{position:absolute;bottom:30px;width:118px;height:118px;border-radius:50%;border:1px solid rgba(255,255,255,.36);background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
+#installUi .stick.show{opacity:.5;transition:opacity 1.2s ease}   /* (Lloyd, 2026-09-04) the viewer's resting sticks: up until first used, then while held and a second after */   /* the #touch layer is pointer-events:none; the sticks must opt back in or no touch ever reaches them (2026-09-04: the controls did nothing on the phone) */
+#installUi .stick i{position:absolute;left:39px;top:39px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.75)}
+#move{left:24px}
+#look{right:24px}
+#drop{position:absolute;right:24px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
+body.carrying #drop{display:block}
+#liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
+body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
+#liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
+/* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
+@media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:46vw;text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}}
+/* install mode owns the whole stage: the viewer's own controls, sticks and buttons stand down */
+body.install #sticks,body.install #pad,body.install .ctl,body.install #roamfab,body.install #celebratefab,body.install #hud,body.install #restbtns{display:none!important}
+/* the shift takes the whole screen (Lloyd, 2026-09-04): the stage is a 70vh band inside a scrolling
+   page, and a night's work seen through a letterbox with the page's headings above it is not a game */
+body.install{overflow:hidden}
+body.install #stage{position:fixed;inset:0;width:auto;height:auto;z-index:20;border:0}
 /* ?embed strips the page to the stage alone -- the proposal iframe shows the viewport and
    nothing else: no title, no help line, no documentation below */
 html.embed main>*:not(#stage){display:none!important}
@@ -180,6 +236,23 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
  <div id="rcbadge" class="rcbadge" hidden>phone connected</div>
  <button type="button" id="celebratefab" hidden>&#127881; Celebrate!</button>
  <button type="button" id="roamfab">Free roam</button>
+ <div id="installUi">
+  <div id="vignette"></div>
+  <div id="ghud"><div id="stats"></div><button type="button" id="guide">Guide on</button></div>
+  <div id="bars"></div>
+  <div id="toast"></div>
+  <div id="prompt">Loading hall&hellip;</div>
+  <div id="touch"><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button></div></div>
+  <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
+  <div id="overlay"><div id="card">
+    <h1>The Install</h1>
+    <p>Fit 768 lights across the 12 Gandel Hall columns before the morning clean-up.</p>
+    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space and Shift move the lift deck.</p>
+    <p>Phone: left stick moves, right stick looks (hold it over to keep turning), tap the message on the right to do what it says.</p>
+    <p>On the lift, walk to the control box and ACTION to drive: forward and back drives, left and right steers the front wheels. ACTION again lets go so you can walk the deck and handle lights.</p>
+    <button type="button" id="start">Start Shift</button>
+  </div></div>
+ </div>
 </div>
 <p class="hint" id="hint"></p>
 <h2>Lighting Controls</h2>
@@ -237,6 +310,8 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="event"> Event on</label>
   <select id="eventmode" style="min-width:120px"><option value="standing">Standing, ~1,000</option><option value="dinner">Dinner, tables of 10</option><option value="banquet">Banquet, one long table</option><option value="wedding">Wedding</option><option value="party">Party / reception</option></select>
   <button type="button" id="confetti" class="sw">Celebrate!</button></div>
+ <div class="row" id="installrow"><label>Install<button type="button" class="i" data-tip="Private. The hall as the install crew sees it: an overnight shift fitting the 768 lights, with a scissor lift, a pallet jack and a crew that turns up as columns are finished. It runs in this same hall, on this same frame, and the lights you fit are these strips.">!</button></label>
+  <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="install"> The Install</label></div>
  <div class="row"><label for="tod">Time of day<button type="button" class="i" data-tip="Daylight comes down through the polycarbonate roof over the canopy void and lights the stained glass from above, and in through the glazed wall (the direct beam in the morning, with its rays and dust). At night the sky is black and the house lights carry the room. The photographs on the walls were shot by day, so daylight LIFTS them; night is the house lights and the LEDs alone. No sun position or shadows: this is diffuse daylight, a proposal aid, not a lighting calculation.">!</button></label>
   <input type="range" id="tod" min="0" max="24" step="0.25" value="21" style="flex:1;min-width:140px"><span id="todval" style="color:var(--dim);font-size:13px">21:00</span>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cycle"> Cycle</label></div>
@@ -290,6 +365,20 @@ import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+// ---- THE INSTALL: the key gate (Lloyd, 2026-09-04). The game is a mode of this page, not a page
+// of its own, and it is private: the Shopify shop iframes ?embed=1 off the same origin, so the
+// only thing that separates a client from the crew's night shift is this key. Visiting
+// ?install=<key> once writes it and reloads clean, so the address bar never carries it again and
+// a shared link is an ordinary link. Without the stored key the row is hidden and no game module
+// is ever fetched.
+const INSTALL_KEY='gandel-2026', INSTALL_STORE='ngv.install';
+{ const q=new URLSearchParams(location.search);
+  if(q.has('install')){ try{ localStorage.setItem(INSTALL_STORE,q.get('install')); }catch(e){}
+   q.delete('install'); const qs=q.toString();
+   location.replace(location.pathname+(qs?'?'+qs:'')+location.hash); } }
+const INSTALL_OK=(()=>{ try{ return localStorage.getItem(INSTALL_STORE)===INSTALL_KEY; }catch(e){ return false; } })();
+let IG=null;            // the game, while it is up (see setInstall further down)
+let IMASK=null;         // per-LED: 1 where a light has been fitted (see animate()), null otherwise
 const cv=document.getElementById('cv'), stage=document.getElementById('stage'), bar=document.getElementById('bar'), hint=document.getElementById('hint');
 const COARSE=matchMedia('(pointer: coarse)').matches;
 hint.innerHTML = COARSE
@@ -880,7 +969,8 @@ new GLTFLoader().load('model.glb',g=>{
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
- hallGroup=g.scene; scene.add(g.scene); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
+ hallGroup=g.scene; hallLevel=new THREE.Group(); hallLevel.name='hall-level'; hallSway=new THREE.Group(); hallSway.name='hall-sway';
+ hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.'; document.getElementById('loader').classList.add('gone');});
 
@@ -908,6 +998,12 @@ const state={count:8, density:60, layers:[Object.assign(newLayer(1),{anim:'rainb
 let H0=0;                    // the model's own mean column height, measured from runs.json
 let FLOOR_Y=0;               // the datum everything is stretched about: the floor of the model
 let hallGroup=null;          // the loaded glb, scaled as one object
+// THREE WRITERS, THREE GROUPS (Lloyd, 2026-09-04: nothing writes over anything else). The scan
+// hangs in a chain so each thing that moves it owns its own transform: hallSway is the small-hours
+// roll (game/fx.js writes rotation.z), hallLevel is the floor levelling install mode applies
+// (game/world.js levelHall), and hallGroup itself is the column-height lever. Both wrappers are
+// identity in the ordinary sim, so the proposal renders exactly as it did.
+let hallSway=null, hallLevel=null;
 const columnMeshes=[];       // {mesh, baseY} per shaft: the measured feet, and a keyhole for checks
 const heightFactor=()=>state.colH&&H0?state.colH/H0:1;
 function applyColumnHeight(){const f=heightFactor(); if(!hallGroup)return;
@@ -1271,7 +1367,13 @@ function animate(time){
  const LR=sys.lmR, LG=sys.lmG, LB=sys.lmB, LW=sys.lmW, LMIX=sys.lmMix/Math.max(sys.lmR+sys.lmG+sys.lmB,1);
  const KA=sys.KA, KB=sys.KB, KC=sys.KC, PXM=sys.pxPerM;
  let lmStrip=0, wattsM=0;
- for(let i=0;i<n;i++){const o=i*3; const m=(hk&&hi[i]!==hv)?0.03*lv:lv;
+ for(let i=0;i<n;i++){const o=i*3;
+  // INSTALL MODE (Lloyd, 2026-09-04): the fitted lights ARE these strips. A slot that has not
+  // been fitted yet is dark here and nowhere else, so it drops out of the render colour, the
+  // lumen and watt readout, the blade weighting and the light this column throws on the room in
+  // one place. IMASK is null in the ordinary sim and the branch costs a null test.
+  if(IMASK&&!IMASK[i]){a[o]=a[o+1]=a[o+2]=0; continue;}
+  const m=(hk&&hi[i]!==hv)?0.03*lv:lv;
   let r,g,b,w;
   if(liveActive){ r=a[o]*m; g=a[o+1]*m; b=a[o+2]*m; w=w4[i]*m; }
   else { const R=a[o],G=a[o+1],B=a[o+2]; w=Math.min(R,G,B)*m;
@@ -1326,7 +1428,10 @@ ${f(room)} lm into the hall (${passTxt})`;
   lightCol[nl*4]=r*scale; lightCol[nl*4+1]=g*scale; lightCol[nl*4+2]=b*scale; nl++; }
  lit.nLights=nl;
  for(const m of photoMats){m.uniforms.house.value=lit.house; m.uniforms.nLights.value=nl; m.uniformsNeedUpdate=true;}
- hemi.intensity=0.9*(lit.house+AMBIENT+lit.day); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT+lit.day;
+ // the props (lift, crew, boxes) are ordinary lit meshes and the scan is not, so install mode
+ // holds the hemisphere at the game's own working level while the photographs stay at whatever
+ // the house dimmer says -- which at night is nothing
+ hemi.intensity=IG?0.9*(1+AMBIENT):0.9*(lit.house+AMBIENT+lit.day); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT+lit.day;
  // the crowd stands in the same light as the room: house + daylight, plus the strips' own colour
  if(eventLitMats.length){ let r=0,g=0,b=0; const n2=nl||0;
   for(let q=0;q<n2;q++){ r+=lightCol[q*4]; g+=lightCol[q*4+1]; b+=lightCol[q*4+2]; }
@@ -1414,6 +1519,9 @@ window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDir
  // event-layer debug handles for headless verification
  get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
  buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),
+ // install mode's keyhole: undefined until the game is actually built, so a check can tell a
+ // locked page from an unlocked one without a second global
+ get game(){ return IG&&IG.ready?IG:undefined; },
  setCam:(x,y,z,yw,pt)=>{eye.set(x,y,z); yaw=yw; pitch=pt;}};
 document.getElementById('pm_elm').onclick=()=>{const csv=elmCsv(); if(!csv)return;
  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ngv-hall-elm-'+(state.system==='neon'?'neon-10':state.density)+'pxm.csv'; a.click();
@@ -3256,7 +3364,9 @@ function fireConfetti(){
  }
 }
 const leaveRest=()=>{ tourDone=false; if(restFinale){ restFinale=false; restHide(); if(finale)finaleEnd(); } };
-document.getElementById('event').onchange=()=>{ leaveRest(); buildEvent(); };
+// (Lloyd, 2026-09-04) the hall is either laid out for an event or being installed at night, never
+// both: turning an event on ends the shift the same way buildInstall() turns the event off
+document.getElementById('event').onchange=()=>{ if(IG)setInstall(false); leaveRest(); buildEvent(); };
 document.getElementById('eventmode').onchange=()=>{ leaveRest(); buildEvent(); };
 function fireCelebrate(){
  if(!document.getElementById('event').checked)return;
@@ -4865,6 +4975,225 @@ function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the 
     m.geometry.attributes.color.needsUpdate=true; } G.sparkN=sparkN; } }
  sceneDirty=true; }
 
+// ============ THE INSTALL: the mode (Lloyd, 2026-09-04, PRIVATE) ============
+// One scene, one renderer, one camera, one frame, one hall. buildInstall() adds the game's own
+// props into a single group and hands the game the sim's objects; teardownInstall() removes that
+// group, unbinds every listener and puts the sim back exactly as it was. Everything the game
+// needs is imported dynamically, so a page without the key never fetches a byte of it.
+let installBusy=false;
+
+// the mask, rebuilt whenever a light goes in. A sim LED belongs to a slot if its distance up the
+// run (P.s is the fraction, times the run's length) is inside the fitted run of slots from the
+// foot; runs are paired to the game's by (column, gap), which is what both sides key on.
+function installMask(){
+ if(!IG||!IG.ready||!P.n||!P.runs.length){IMASK=null; return;}
+ if(!IMASK||IMASK.length!==P.n)IMASK=new Uint8Array(P.n);
+ const SLOT=1.5, fitted=new Float32Array(P.runs.length);
+ for(let ri=0;ri<P.runs.length;ri++){
+  const pr=P.runs[ri], gr=IG.install.runs.find(r=>r.column===pr.column&&r.gap===pr.gap);
+  let nfit=0; if(gr){ for(const sl of gr.slots){ if(!IG.install.fitted.has(sl.id))break; nfit++; } }
+  fitted[ri]=nfit*SLOT;
+ }
+ const len=new Float32Array(P.runs.length); for(let ri=0;ri<P.runs.length;ri++)len[ri]=P.runs[ri].length;
+ for(let i=0;i<P.n;i++){ const ri=P.run[i]; IMASK[i]=P.s[i]*len[ri]<=fitted[ri]?1:0; }
+ sceneDirty=true;
+}
+
+async function buildInstall(){
+ const [W,FXm,BODYm,CREWm,SNDm,PLm,LIFTm,ITEMm,INSTm,CLKm,HUDm]=await Promise.all([
+  import('./game/world.js'), import('./game/fx.js'), import('./game/body.js'), import('./game/crew.js'),
+  import('./game/sound.js'), import('./game/player.js'), import('./game/lift.js'), import('./game/items.js'),
+  import('./game/install.js'), import('./game/clock.js'), import('./game/hud.js')]);
+ const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm}};
+ // what the sim looked like on the way in, so the way out is exact
+ G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
+  bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
+ if(document.getElementById('event').checked)setEvent(false);   // one layer at a time: the hall is either an event or a night shift
+ lit.house=0; {const h=document.getElementById('house'); h.value=0; document.getElementById('houseval').textContent='0%';}
+ if(portal)portal.group.visible=false;
+ entered=true; idle=false; roam=null; roamed=false; stopTour();
+ document.getElementById('loader').classList.add('gone');
+ // every gap carries a strip in install mode: the 768 slots are 12 columns x 8 gaps x 8 lights
+ if(state.count!==GAPS){ state.count=GAPS; document.getElementById('cn').value=GAPS; rebuild(); }
+ scene.background=new THREE.Color(0x08090b);
+ // the scan is not level (it rises about 10 cm across the room); the lift, the crew and anything
+ // put down stand on a flat datum, so the scan is rotated onto it for the shift and put back after
+ W.setFloorY(FLOOR_Y); W.levelHall(hallLevel);
+ G.group=new THREE.Group(); G.group.name='install'; scene.add(G.group);
+ const fill=new THREE.DirectionalLight(0xffffff,0.6); fill.position.set(-18,18,8); G.group.add(fill);
+ const world=W.makeWorld(FLOOR_Y); world.hallScene=hallGroup; world.hallSway=hallSway;
+ W.buildProps(G.group,world);
+ const saved=CLKm.loadSave();
+ const install=new INSTm.Install(G.group,RUNS,saved);
+ const player=new PLm.Player(cam,cv);
+ player.bind({prompt:document.getElementById('prompt'), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
+  drop:document.getElementById('drop'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
+ const items=ITEMm.createItems(G.group,world,cam);
+ const lift=new LIFTm.Lift(G.group,world.floorY); items.lift=lift;
+ const clock=new CLKm.GameClock(saved), body=new BODYm.Body();
+ player.body=body;
+ cam.fov=68; cam.updateProjectionMatrix();
+ const fx=new FXm.Fx(scene,cam,hallSway,lift,install);
+ const crew=new CREWm.Crew(G.group,world,items,install,W.collideWorld,lift);
+ clock.fittedAtStart=install.counts().fitted;
+ player.pos.copy(W.hallToWorld(52.0,7.5,world.floorY)); player.yaw=1.35;
+ scene.add(cam);   // items.js hangs what you carry off the camera, so the camera has to be in the scene
+ Object.assign(G,{player,lift,items,install,clock,world,fx,body,crew,snd:new SNDm.Sound(),
+  hallToWorld:W.hallToWorld, dbg:{dt:0,frames:0}, last:performance.now(), runLightTick:0, doorsWereOpen:false, guideShown:null, toastTimer:null, action:null});
+ // the three buttons the overlay owns; remembered so teardown can take them off again
+ G.ui=[];
+ const wire=(id,fn)=>{const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn));};
+ wire('start',()=>installStart(G));
+ wire('nextNight',()=>installNextNight(G));
+ wire('guide',()=>{ if(G.install)G.install.setGuide(!G.install.guide); });
+ document.getElementById('prompt').textContent='Press Start Shift';
+ document.getElementById('overlay').classList.remove('gone');
+ document.getElementById('summary').classList.remove('up');
+ document.body.classList.add('install'); document.body.classList.remove('playing','carrying','driving','aboard');
+ document.getElementById('installUi').classList.add('on');
+ resize();   // the stage just went full screen, so the renderer and the camera's aspect follow it
+ IG=G; G.ready=true;
+ installMask();
+ return G;
+}
+
+function installStart(G){
+ document.getElementById('overlay').classList.add('gone');
+ document.body.classList.add('playing');
+ G.clock.running=true;
+ if(!COARSE){ const req=cv.requestPointerLock&&cv.requestPointerLock(); if(req&&req.catch)req.catch(()=>{}); }
+ G.snd.wake(); G.snd.tone(220,0.08,'sine',0.05);
+}
+
+function installNextNight(G){
+ document.getElementById('summary').classList.remove('up');
+ G.mods.ITEMm.resetForNight(G.player,G.lift,G.items);
+ G.crew.resetForNight();
+ G.clock.nextNight(G.install.counts().fitted);
+ G.body.nextNight(); G.snd.nextNight();
+ document.getElementById('overlay').classList.remove('gone');
+ document.body.classList.remove('playing');
+ G.mods.CLKm.saveGame(G.clock,G.install);
+ installMask();
+}
+
+function installToast(G,msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('up');
+ clearTimeout(G.toastTimer); G.toastTimer=setTimeout(()=>el.classList.remove('up'),6000); }
+
+function installInteract(G){
+ const A=G.action; if(!A||!A.run)return;
+ const before=G.install.counts().fitted, label=A.label;
+ A.run();
+ const after=G.install.counts().fitted;
+ // the sound of what just happened, read off the prompt that was pressed
+ if(after>before){ G.snd.fit(); if(G.install.lastFit)G.fx.onFit(G.install.lastFit,G.player); }
+ else if(/^Unwrap/.test(label))G.snd.crinkle();
+ else if(/pallet jack|pallet$|Set pallet/.test(label))G.snd.jack();
+ else if(/box|Put light|Pick up|Take|Dispose|Bag/.test(label))G.snd.thud();
+ G.snd.clock(G.clock.minute);
+ installMask();
+ G.mods.CLKm.saveGame(G.clock,G.install);
+}
+
+// one frame of the shift, in the order game.html ran it: body, movement, lift, camera, doors,
+// crew, lights, fx, items, clock, HUD. The render is the sim's, further down frame().
+function installStep(dt,now){
+ const G=IG, {W}=G.mods, ITEMm=G.mods.ITEMm, playing=document.body.classList.contains('playing');
+ dt=Math.min(0.05,dt);   // the game's own cap: a long frame must not teleport anyone through a wall
+ const {player,lift,items,install,clock,world,fx,body,crew,snd}=G;
+ G.dbg.dt=dt; G.dbg.frames++;
+ const load=items.jack.held&&items.jack.carrying?3:(player.carry&&player.carry.type!=='wrap')||items.jack.held?2:player.carry?1:(lift.aboard?1:0);
+ const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown));
+ if(!clock.ended&&playing)body.update(dt,clock,load,moving);
+ player.speedScale=body.speedScale();
+ ITEMm.refreshObstacles(items,[lift].concat(crew.teams.map(t=>t.lift)));
+ player.ignore=lift.aboard?[lift,lift.box]:[player.carry];
+ player.update(dt,world,W.collideWorld);
+ const oldLift=lift.height;
+ lift.update(dt,player,world,W.collideWorld);
+ if(!lift.aboard)player.pos.y=world.floorY;   // no gravity to speak of: off the deck you are on the floor
+ document.body.classList.toggle('aboard',lift.aboard);
+ document.body.classList.toggle('driving',lift.driving);
+ document.body.classList.toggle('carrying',!!player.carry);
+ snd.motor(Math.abs(lift.height-oldLift)>0.002||Math.abs(lift.speed)>0.02,fx.level);
+ snd.clock(clock.minute);
+ if(!G.doorsWereOpen&&!world.doorsShut)snd.door(); G.doorsWereOpen=!world.doorsShut;
+ cam.position.set(player.pos.x,player.pos.y+player.eye,player.pos.z);
+ cam.rotation.set(player.pitch,player.yaw,0,'YXZ');
+ W.updateDoors(dt,world,(lift.aboard?[lift.pos]:[player.pos]).concat(crew.points()));
+ if(playing&&!clock.ended)crew.update(dt,clock,player,install.counts().columnsDone);
+ if(crew.toasts.length)installToast(G,crew.toasts.shift());
+ if((G.runLightTick+=dt)>1){ G.runLightTick=0; installMask(); }   // the crew's fits light the room too
+ install.update(now/1000);
+ if(G.guideShown!==install.guide){ G.guideShown=install.guide; const b=document.getElementById('guide');
+  b.textContent=install.guide?'Guide on':'Guide off'; b.classList.toggle('off',!install.guide); }
+ fx.update(dt,clock,player,body);
+ ITEMm.updateItems(player,lift,items);
+ if(player.takeDrop()&&!lift.anim){ ITEMm.dropCarry(player,items); snd.thud(); }
+ G.action=ITEMm.nearestAction(player,lift,install,items);
+ if(player.takeAction())installInteract(G);
+ clock.update(dt);
+ G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,G.action,player.carry,body);
+ if(clock.ended&&!document.getElementById('summary').classList.contains('up')){
+  const fittedTonight=install.counts().fitted-clock.fittedAtStart;
+  clock.running=false;
+  const clean=ITEMm.cleanupClear(items,lift); clean.left.push(...crew.leftInHall()); clean.ok=clean.left.length===0;
+  G.mods.HUDm.showSummary(document.getElementById('summary'),document.getElementById('summaryText'),clock,fittedTonight,clean);
+  G.mods.CLKm.saveGame(clock,install);
+ }
+ sceneDirty=true;   // a hall with people and a lift moving in it is never a static frame
+}
+
+function teardownInstall(){
+ const G=IG; if(!G)return;
+ IG=null; IMASK=null;
+ for(const off of G.ui)off();
+ G.player.unbind();
+ G.fx.reset();
+ G.snd.close();
+ clearTimeout(G.toastTimer);
+ // anything being carried hangs off the camera; the props are all in the one group
+ while(cam.children.length>G.saved.camKids)cam.remove(cam.children[cam.children.length-1]);
+ scene.remove(cam);
+ scene.remove(G.group);
+ G.group.traverse(o=>{ if(!o.isMesh&&!o.isInstancedMesh&&!o.isPoints)return;
+  if(o.geometry)o.geometry.dispose(); for(const m of [].concat(o.material||[]))if(m&&m.dispose)m.dispose(); });
+ // the scan goes back flat and unswayed, and the two wrappers are identity again
+ hallLevel.position.set(0,0,0); hallLevel.quaternion.identity(); hallLevel.scale.set(1,1,1);
+ hallSway.rotation.set(0,0,0);
+ hallLevel.updateMatrixWorld(true);
+ scene.background=G.saved.bg;
+ cam.rotation.order=G.saved.order; cam.fov=G.saved.fov; cam.updateProjectionMatrix();
+ eye.copy(G.saved.eye); yaw=G.saved.yaw; pitch=G.saved.pitch; safeEye=null;
+ entered=G.saved.entered; idle=G.saved.idle; roam=G.saved.roam; roamed=G.saved.roamed;
+ if(portal&&G.saved.portal!==null)portal.group.visible=G.saved.portal;
+ lit.house=G.saved.house; {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';}
+ if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
+ document.body.classList.remove('install','playing','carrying','driving','aboard');
+ document.getElementById('installUi').classList.remove('on');
+ document.getElementById('vignette').style.opacity='';
+ resize();
+ sceneDirty=true;
+}
+
+async function setInstall(on){
+ const box=document.getElementById('install');
+ if(installBusy){ box.checked=!!IG; return; }
+ if(on&&IG)return; if(!on&&!IG)return;
+ installBusy=true;
+ try{
+  if(on){
+   if(!hallGroup||!RUNS){ box.checked=false; document.getElementById('prompt').textContent='The hall is still loading.'; return; }
+   await buildInstall();
+  } else teardownInstall();
+ }catch(e){ console.error(e); teardownInstall(); box.checked=false; }
+ finally{ installBusy=false; box.checked=!!IG; }
+}
+
+{ const box=document.getElementById('install');
+  if(!INSTALL_OK)box.closest('.row').style.display='none';
+  else box.onchange=e=>setInstall(e.target.checked); }
+
 // click or tap the object: the tour begins
 const portalRay=new THREE.Raycaster();
 function portalHit(cx,cy){ if(!portal||!portal.group.visible)return false; const r=cv.getBoundingClientRect();
@@ -4891,6 +5220,13 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
   gandelTop.position.copy(turntable.position); gandelTop.position.y=tag.position.y+L.gBot-L.tagY; gandelTop.scale.setScalar(1); gandelTop.lookAt(eye.x,gandelTop.position.y,eye.z); } } if(dustMat)dustMat.uniforms.t.value=now/1000;
  if(cycleOn){const h=(+document.getElementById('tod').value+Math.min(0.1,(now-last)/1000)*(24/60))%24; applyDay(Math.round(h*100)/100);}const dt=Math.min(0.1,(now-last)/1000); last=now;
  const s=speed*dt*(keys.ShiftLeft||keys.ShiftRight?4:1)*(keys.AltLeft?0.25:1), f=fwd(), r=right();
+ // ONE LOOP (Lloyd, 2026-09-04): install mode is a branch in this frame, not a second animation
+ // loop. It drives the eye through the game's own player and collider, so the sim's fly camera
+ // and resolveMove stand aside for it; everything after here (the LEDs, the governor, the
+ // render, done()) is the same code the proposal runs.
+ const playing=!!(IG&&IG.ready);
+ if(playing)installStep(dt,now);
+ else{
  if(keys.KeyW||keys.ArrowUp)eye.addScaledVector(f,s); if(keys.KeyS||keys.ArrowDown)eye.addScaledVector(f,-s);
  if(keys.KeyD||keys.ArrowRight)eye.addScaledVector(r,s); if(keys.KeyA||keys.ArrowLeft)eye.addScaledVector(r,-s);
  if(keys.Space)eye.y+=s; if(keys.KeyC)eye.y-=s;
@@ -4898,8 +5234,10 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  // the phone remote: its stick is a velocity, held until it sends zero
  if(!locked()&&(rc.mv.f||rc.mv.r||rc.mv.u)){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
+ }
  animate(now/1000); govern(now);
- cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); titleWipeStep();
+ if(!playing){ cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); }
+ titleWipeStep();
  const wk=WARP.k=warpK(); sndStep(now/1000,boom?null:wk); trackStep(now/1000);
  // the orbit's opened lens eases shut when the orbit ends, instead of snapping (Lloyd: the tap jumped)
  lensOpen+=((idle?(TOUCH?24:18):0)-lensOpen)*Math.min(1,dt*2.5); const fov0=cam.fov; cam.fov=Math.min(100,fov0+lensOpen); cam.updateProjectionMatrix();

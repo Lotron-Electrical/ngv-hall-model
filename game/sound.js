@@ -47,4 +47,11 @@ export class Sound {
     if (!this.rang && clockMinute >= 29 * 60) { this.rang = true; this.bell(); }
   }
   nextNight() { this.warned = false; this.rang = false; }
+  // (2026-09-04) install mode can be switched off inside the sim, so the game's own context has
+  // to go with it: a left-open AudioContext keeps the motor hum's oscillator running for the
+  // life of the page and a second toggle would start another one on top of it
+  close() {
+    if (this.hum) { try { this.hum.stop(); } catch (e) {} this.hum = null; this.humGain = null; }
+    if (this.ctx) { try { this.ctx.close(); } catch (e) {} this.ctx = null; this.master = null; }
+  }
 }

@@ -19,41 +19,49 @@ export class Player {
     this.onLift = false;
     this.carry = null;
     this.speedScale = 1;
+    // (2026-09-04) install mode inside the sim can be switched off again, so every listener bind()
+    // adds is remembered here and undone by unbind(): a second toggle otherwise runs the keys and
+    // the sticks through two players at once
+    this.off = [];
   }
 
+  // add a listener and remember how to take it away again
+  on(target, type, fn, opts) { target.addEventListener(type, fn, opts); this.off.push(() => target.removeEventListener(type, fn, opts)); }
+  unbind() { for (const f of this.off) f(); this.off = []; }
+
   bind(ui) {
-    addEventListener('keydown', (e) => {
+    this.on(window, 'keydown', (e) => {
       if (e.code === 'KeyE') this.actionQueued = true;
       if (e.code === 'KeyF') this.dropQueued = true;
       if (e.code === 'Space') this.liftUp = true;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.liftDown = true;
       this.keys.add(e.code);
     });
-    addEventListener('keyup', (e) => {
+    this.on(window, 'keyup', (e) => {
       this.keys.delete(e.code);
       if (e.code === 'Space') this.liftUp = false;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.liftDown = false;
     });
     const coarse = matchMedia?.('(pointer: coarse)').matches;
-    this.canvas.addEventListener('click', () => {
+    this.on(this.canvas, 'click', () => {
       if (coarse || !document.body.classList.contains('playing')) return;
       const req = this.canvas.requestPointerLock?.();
       if (req?.catch) req.catch(() => {});
     });
-    document.addEventListener('mousemove', (e) => {
+    this.on(document, 'mousemove', (e) => {
       if (document.pointerLockElement !== this.canvas) return;
       this.lookBy(e.movementX * 0.0022, e.movementY * 0.0022);
     });
-    ui.action?.addEventListener('click', () => this.actionQueued = true);
+    if (ui.action) this.on(ui.action, 'click', () => this.actionQueued = true);
     // (Lloyd, 2026-09-04: "the messages that appear are better, can tap on them") the prompt is the button
-    ui.prompt?.addEventListener('click', () => this.actionQueued = true);
-    ui.drop?.addEventListener('click', () => this.dropQueued = true);
-    ui.liftUp?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
-    ui.liftUp?.addEventListener('pointerup', () => this.liftUp = false);
-    ui.liftUp?.addEventListener('pointercancel', () => this.liftUp = false);
-    ui.liftDown?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.liftDown = true; });
-    ui.liftDown?.addEventListener('pointerup', () => this.liftDown = false);
-    ui.liftDown?.addEventListener('pointercancel', () => this.liftDown = false);
+    if (ui.prompt) this.on(ui.prompt, 'click', () => this.actionQueued = true);
+    if (ui.drop) this.on(ui.drop, 'click', () => this.dropQueued = true);
+    if (ui.liftUp) { this.on(ui.liftUp, 'pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
+      this.on(ui.liftUp, 'pointerup', () => this.liftUp = false);
+      this.on(ui.liftUp, 'pointercancel', () => this.liftUp = false); }
+    if (ui.liftDown) { this.on(ui.liftDown, 'pointerdown', (e) => { e.preventDefault(); this.liftDown = true; });
+      this.on(ui.liftDown, 'pointerup', () => this.liftDown = false);
+      this.on(ui.liftDown, 'pointercancel', () => this.liftDown = false); }
     this.bindStick(ui.moveStick, this.move);
     this.bindStick(ui.lookStick, this.look, true);
   }
@@ -90,13 +98,13 @@ export class Player {
       if (len < dead) out.set(0, 0); else { const k = (len - dead) / (42 - dead) / len; out.set(v.x * k, v.y * k); }
       knob.style.transform = `translate(${v.x}px,${v.y}px)`;
     };
-    el.addEventListener('pointerdown', (e) => {
+    this.on(el, 'pointerdown', (e) => {
       S.touched = true; S.held = true; S.t = performance.now() / 1000;
       active.id = e.pointerId; active.last = null; active.down = null; this.lookRate.set(0, 0);
       el.setPointerCapture(e.pointerId);
       set(e);
     });
-    el.addEventListener('pointermove', (e) => {
+    this.on(el, 'pointermove', (e) => {
       if (active.id !== e.pointerId) return;
       set(e);
     });
@@ -107,17 +115,17 @@ export class Player {
       knob.style.transform = '';
       S.held = false; S.t = performance.now() / 1000;
     };
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
-    el.addEventListener('lostpointercapture', end);
+    this.on(el, 'pointerup', end);
+    this.on(el, 'pointercancel', end);
+    this.on(el, 'lostpointercapture', end);
     // a release the element never hears (a gesture the browser took over, the tab hidden) must
     // still let go, or the view drifts on a phantom hold
     const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); if (isLook) this.lookRate.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
-    addEventListener('pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
-    addEventListener('touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
-    addEventListener('touchcancel', letGo, { passive: true });
-    addEventListener('blur', letGo);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
+    this.on(window, 'pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
+    this.on(window, 'touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
+    this.on(window, 'touchcancel', letGo, { passive: true });
+    this.on(window, 'blur', letGo);
+    this.on(document, 'visibilitychange', () => { if (document.hidden) letGo(); });
   }
 
   lookBy(dx, dy) {

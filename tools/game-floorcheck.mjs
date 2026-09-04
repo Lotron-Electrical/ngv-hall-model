@@ -3,7 +3,14 @@
 // hall points and under each lift wheel, and fails if any lift part sits below the surface it
 // stands on, stowed, raised, and after a drive into the hall. Needs the :8877 serve and
 // headless Chrome on :9333 (bash ~/scripts/headless-chrome.sh start 9333).
-const port=9333, url='http://127.0.0.1:8877/game.html?cb='+Date.now();
+// (2026-09-04) the game is a mode of the proposal sim now, not a page of its own: ?install=<key>
+// stores the key and reloads clean, then the Install row's checkbox builds it. See AGENTS.md.
+const enter=async(ev,sleep)=>{
+ for(let i=0;i<40;i++){ await sleep(500); if(await ev('!!(window.ngv&&window.ngv.hall&&document.getElementById("install"))'))break; }
+ await ev(`localStorage.clear(); localStorage.setItem('ngv.install','gandel-2026'); document.getElementById('install').click()`);
+ for(let i=0;i<40;i++){ await sleep(500); if(await ev('!!(window.ngv&&window.ngv.game)'))break; }
+};
+const port=9333, url='http://127.0.0.1:8877/index.html?install=gandel-2026&cb='+Date.now();
 const tabs=await (await fetch(`http://127.0.0.1:${port}/json`)).json(); let t=tabs.find(x=>x.type==='page'); if(!t) t=await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'})).json();
 const ws=new WebSocket(t.webSocketDebuggerUrl); let id=0; const pend={}; const logs=[];
 ws.onmessage=e=>{ const m=JSON.parse(e.data); if(m.id&&pend[m.id]){pend[m.id](m.result);delete pend[m.id];} if(m.method==='Runtime.exceptionThrown')logs.push('EXC '+JSON.stringify(m.params.exceptionDetails).slice(0,400)); };
@@ -12,9 +19,9 @@ const send=(method,params={})=>new Promise(r=>{ const i=++id; pend[i]=r; ws.send
 const ev=async expr=>{ const r=await send('Runtime.evaluate',{expression:expr,returnByValue:true,awaitPromise:true}); return r.result?r.result.value:r; };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable'); await send('Network.setCacheDisabled',{cacheDisabled:true}); await send('Page.navigate',{url});
-for(let i=0;i<30;i++){ await sleep(1000); if(await ev('!!window.game'))break; }
-await ev(`localStorage.clear(); document.querySelector('#start').click()`); await sleep(400);
-const report=JSON.parse(await ev(`(async()=>{const T=await import('three');const g=window.game;const scene=g.lift.group.parent;const out={floorY:g.world.floorY,levelling:null,hall:{min:1e9,max:-1e9,n:0},lift:{}};
+await enter(ev,sleep);
+await ev(`document.querySelector('#start').click()`); await sleep(400);
+const report=JSON.parse(await ev(`(async()=>{const T=await import('three');const g=ngv.game;const scene=window.ngv.scene;const out={floorY:g.world.floorY,levelling:null,hall:{min:1e9,max:-1e9,n:0},lift:{}};
 try{const W=await import('./game/world.js');out.levelling=W.scanLevelling();}catch(e){out.levelling='n/a '+e.message;}
 const ground=[];scene.traverse(o=>{if(o.isMesh&&o.visible&&!g.lift.group.getObjectById(o.id))ground.push(o);});
 const floorAt=(x,z)=>{const rc=new T.Raycaster(new T.Vector3(x,g.world.floorY+0.6,z),new T.Vector3(0,-1,0));const hs=rc.intersectObjects(ground,false).filter(h=>Math.abs(h.point.y-g.world.floorY)<0.35);return hs.length?hs[hs.length-1].point.y:null;};

@@ -419,8 +419,9 @@ and what does not survive a restart:
   rest buttons.
 
 ## The Install (game mode, 2026-09-04, PRIVATE: not linked from the proposal page)
-`game.html` + `game/*.js`, spec in `GAME-PLAN.md`. Shares only `model.glb` and `runs.json` with the
-viewer; `index.html` is never touched by game work. Built by Codex from the spec (two rounds; round
+`game/*.js`, spec in `GAME-PLAN.md`. It USED to be its own page sharing only `model.glb` and
+`runs.json`; since 2026-09-04 it is a keyed mode of `index.html` (see "Install mode" at the end of
+this section) and `game.html` is gone. Built by Codex from the spec (two rounds; round
 one had the clock at an hour per second and the spawn inside a solid box). Check it headless with
 `node tools/game-check.mjs` (serve on :8877, chrome via headless-chrome.sh on 9333; it prints the
 HUD text and console errors and saves %TMP%/game-1.jpg, the phone view after Start Shift).
@@ -551,3 +552,48 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
 - The scan floor is not level: measured by rays, it rises 0.0092 m per metre across d and 0.0005 m per metre along u (10 cm over the hall). The lift, the crew and every dropped thing stand on the flat `HALL.floorY`, so the tyres sat up to 10 cm inside the tiles.
 - Fix: `world.js levelScan()` fits the floor plane at load and rotates the scan about a floor point until it is flat at `HALL.floorY`. The scan lives inside `world.hallSway` because `fx.js` writes that group's `rotation.z` for the sway (writing the scan's own rotation wiped the levelling, which is how the first attempt failed).
 - Proof: `node tools/game-floorcheck.mjs` (needs the :8877 serve and headless Chrome on :9333). Samples the floor under 274 hall points and every lift part stowed, raised and parked in the hall: PASS = level within 1 mm and nothing below the floor. CDP drivers must `Network.setCacheDisabled` or they test the cached modules.
+
+
+### Install mode: the game lives inside the sim now (Lloyd, 2026-09-04)
+- Lloyd's ruling: the game is not a page of its own. The Shopify shop iframes
+  `.../ngv-hall-model/?embed=1`, so the proposal sim IS the product and the night shift rides
+  inside it, the way "Event" does. `game.html` was deleted.
+- THE KEY. `index.html?install=gandel-2026` stores the key in `localStorage['ngv.install']` and
+  reloads without the parameter, so the address bar never carries it and a shared link stays an
+  ordinary link. `INSTALL_KEY` is the first thing in the module script; change it there. Without
+  the stored key the settings panel's Install row is hidden and NOT ONE BYTE of `game/` is
+  fetched (the modules are a dynamic `import()` inside `buildInstall`). `?embed=1` changes
+  nothing: on Lloyd's own device the row shows inside the shop page too, which is intended.
+- ONE SCENE, ONE LOOP, ONE HALL. `buildInstall()` / `teardownInstall()` sit next to `buildEvent`.
+  The game gets the sim's `scene`, `cam`, renderer and `frame` loop; there is no second
+  `model.glb`, no second hemisphere, no second animation loop. `installStep(dt, now)` is the old
+  `game/main.js` loop with its render taken out, called from `frame` before the boom/warp early
+  returns so everything still routes through `done()`. `loadWorld` was split into `makeWorld` (the
+  datums and the plan) + `buildProps` (everything the game adds), and all of it goes into one
+  group, so teardown is one `scene.remove`. `world.js setFloorY` takes the sim's measured
+  `FLOOR_Y`, so the two agree instead of both carrying -1.435.
+- THREE GROUPS, THREE WRITERS: `hallSway` (fx's small-hours roll) wraps `hallLevel`
+  (`levelHall`'s floor levelling) wraps `hallGroup` (`applyColumnHeight`'s scale). Nothing writes
+  over anything else, and both wrappers go back to identity on teardown.
+- THE SEAM THAT MATTERS: the fitted lights ARE the sim's strips. `installMask()` builds a
+  `Uint8Array` over `P.n`, pairing the sim's runs to the game's by (column, gap) and lighting an
+  LED only if its distance up the run is inside the fitted slots; `animate()`'s last loop skips
+  the rest in one place, so an unfitted light is dark in the render, the lumen and watt readout,
+  the blade weighting and the light thrown on the room. Every change sets `sceneDirty=true`.
+  `hallmat.js` is NOT imported into index.html. Note the geometry: 8 slots x 1.5 m = 12 m of a
+  12.75 m run, so the top 0.75 m of a fully fitted run stays dark. That is the fixtures, not a bug.
+- The game's `Player` binds through `player.on()` and `unbind()` takes every listener off again;
+  `Sound.close()` shuts its AudioContext so a second toggle does not stack another motor hum. In
+  game mode the sim's own fly keys, sticks and `resolveMove()` stand aside and the game's collider
+  drives `cam`. `body.install` hides the viewer's controls and takes the stage full screen.
+- CHECKS (serve on :8877, headless Chrome on :9333 via `bash ~/scripts/headless-chrome.sh start
+  9333`, never `--disable-gpu`): `node tools/install-mode.mjs` is the new one and proves the gate,
+  the build, the teardown (scene children, `solids`, camera children and rAF ticks all return),
+  the mutual exclusion with an event, and that the plain sim renders the same picture afterwards.
+  `node tools/game-guide.mjs "$TMP"`, `game-drive.mjs`, `game-check.mjs`, `game-floorcheck.mjs`
+  now all drive `index.html?install=gandel-2026` and tick `#install`; they read `ngv.game`, not
+  `window.game`. Measured after the merge: 133 fps in the hall, 104.8 fps with all 768 fitted and
+  the guide on (game.html was 133).
+- KNOWN, NOT FIXED: switching an event ON and OFF again leaves its solids in `solids` (69 -> 108
+  -> 108). That is the sim's own behaviour, older than install mode; `tools/install-mode.mjs`
+  therefore counts colliders around the install toggle alone.
