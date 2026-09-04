@@ -311,6 +311,11 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="event"> Event on</label>
   <select id="eventmode" style="min-width:120px"><option value="standing">Standing, ~1,000</option><option value="dinner">Dinner, tables of 10</option><option value="banquet">Banquet, one long table</option><option value="wedding">Wedding</option><option value="party">Party / reception</option></select>
   <button type="button" id="confetti" class="sw">Celebrate!</button></div>
+ <!-- THE LIGHTSHOW (Lloyd, 2026-09-04): a show made in studio.html, its music and its light cues on
+      one clock, played back here with the columns driven by show/lightshow.js instead of the layers -->
+ <div class="row" id="showrow"><label>Lightshow<button type="button" class="i" data-tip="A show made in the studio (studio.html): the track and every light cue stamped against it. Pick one and Play; the columns follow the cue file and the layers above are ignored until Stop."></button></label>
+  <select id="showsel" style="min-width:140px"><option value="">None</option></select>
+  <button type="button" id="showplay" class="sw">Play</button><span id="showtime" style="color:var(--dim);font-size:13px"></span></div>
  <div class="row" id="installrow"><label>Install<button type="button" class="i" data-tip="Private. The hall as the install crew sees it: an overnight shift fitting the 768 lights, with a scissor lift, a pallet jack and a crew that turns up as columns are finished. It runs in this same hall, on this same frame, and the lights you fit are these strips.">!</button></label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="install"> The Install</label></div>
  <div class="row"><label for="tod">Time of day<button type="button" class="i" data-tip="Daylight comes down through the polycarbonate roof over the canopy void and lights the stained glass from above, and in through the glazed wall (the direct beam in the morning, with its rays and dust). At night the sky is black and the house lights carry the room. The photographs on the walls were shot by day, so daylight LIFTS them; night is the house lights and the LEDs alone. No sun position or shadows: this is diffuse daylight, a proposal aid, not a lighting calculation.">!</button></label>
@@ -358,6 +363,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stag
   <div class="pmtable"><table id="pm_table"></table></div>
  </details>
 </div>
+<script src="show/lightshow.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1296,8 +1302,36 @@ function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,
 const lin=x=>x*x; // cheap sRGB->linear, close enough for LEDs
 const cA=[0,0,0], cB=[0,0,0], tmp=[0,0,0];
 function hash(i){i=Math.imul(i^(i>>>16),2246822507); i=Math.imul(i^(i>>>13),3266489909); return ((i^(i>>>16))>>>0)/4294967296;}
+// THE LIGHTSHOW (Lloyd, 2026-09-04): while a show is on, show/lightshow.js paints every pixel from
+// a FRAME (where the music is) and a STATE (the operator's look, palette, level, hits). Two
+// sources: the studio next door posting a frame per tick through postMessage (?show=live, the sim
+// in the studio's iframe), or a baked show played here (show/<name>.cues.json + its audio).
+const SHOW=window.NGVShow.createShow(); SHOW.cf=null; SHOW.el=null; SHOW.name=''; SHOW.live=false;
+const SHOWQ=new URLSearchParams(location.search).get('show')||'';
+window.addEventListener('message',e=>{ const m=e.data; if(!m||m.t!=='show')return;
+ if(m.frame){ Object.assign(SHOW.frame,m.frame); } if(m.state){ Object.assign(SHOW.state,m.state); }
+ if(m.on!=null){ SHOW.on=!!m.on; SHOW.live=SHOW.on; sceneDirty=true; } });
+function showStep(now){ if(!SHOW.on||SHOW.live)return; const el=SHOW.el; if(!el||!SHOW.cf)return;
+ // the clock is the audio element's, carried between its updates by the page's clock
+ const ct=el.currentTime; if(ct!==SHOW.lastCt){ SHOW.lastCt=ct; SHOW.ctAt=now; }
+ const t=el.paused?ct:ct+(now-SHOW.ctAt);
+ SHOW.frameFromCues(SHOW.cf,t); SHOW.applyCues(SHOW.cf.cues||[],t);
+ const st=document.getElementById('showtime'); const mm=Math.floor(t/60), ss=Math.floor(t%60); st.textContent=mm+':'+(ss<10?'0':'')+ss;
+ if(el.ended)showStop(); }
+function showStop(){ if(!SHOW.on)return; SHOW.on=false; if(SHOW.el){ SHOW.el.pause(); SHOW.el.currentTime=0; } if(SND.master&&SND.ctx)SND.master.gain.setTargetAtTime(SND.on?SND.BED:0,SND.ctx.currentTime,0.2);
+ document.getElementById('showplay').textContent='Play'; document.getElementById('showtime').textContent=''; sceneDirty=true; }
+async function showPlay(name){ if(!name)return; if(tour||boom)stopTour();
+ if(SHOW.name!==name){ SHOW.cf=await fetch('show/'+name+'.cues.json',{cache:'no-store'}).then(r=>r.ok?r.json():null); if(!SHOW.cf)return;
+  if(SHOW.el){ SHOW.el.pause(); } const a=new Audio('show/'+(SHOW.cf.file||name+'.wav')); a.preload='auto'; SHOW.el=a; SHOW.name=name; }
+ SHOW.sm.lastT=0; SHOW.lastCt=-1; SHOW.on=true; SHOW.live=false; entered=true; idle=false; SHOW.el.currentTime=0;
+ const p=SHOW.el.play(); if(p)p.catch(()=>{}); if(SND.master&&SND.ctx)SND.master.gain.setTargetAtTime(0,SND.ctx.currentTime,0.2);
+ document.getElementById('showplay').textContent='Stop'; sceneDirty=true; }
+document.getElementById('showplay').onclick=()=>{ if(SHOW.on)showStop(); else showPlay(document.getElementById('showsel').value); };
+fetch('show/shows.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(list=>{ const sel=document.getElementById('showsel'); for(const n of list){ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); } if(SHOWQ&&SHOWQ!=='live'&&list.includes(SHOWQ))sel.value=SHOWQ; }).catch(()=>{});
+window.ngvShow=SHOW;
 function animate(time){
  if(!pix)return;
+ showStep(time);
  const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc;
  const lv=state.level;
  const liveActive=live.on&&live.ws&&live.ws.readyState===1;
@@ -1310,7 +1344,7 @@ function animate(time){
  // dT and maxMode feed the stats readout below, which runs even on skipped frames
  const sys=SYSTEMS[state.system], neon=state.system==='neon';
  const dT=neon?1:COVER_T[state.cover], maxMode=state.drive==='rgbwmax';
- const allSolid=!liveActive&&state.layers.every(L=>!L.on||L.opacity<=0||L.anim==='solid');
+ const allSolid=!liveActive&&!SHOW.on&&state.layers.every(L=>!L.on||L.opacity<=0||L.anim==='solid');
  animate.fc=(animate.fc||0)+1;
  const skipStatic=allSolid&&!sceneDirty&&animate.wasStatic&&(animate.fc%30)!==0;
  if(!skipStatic){
@@ -1326,7 +1360,8 @@ function animate(time){
   for(let i=0;i<n;i++){const buf=live.uni.get(P.univ[i]+off); if(!buf)continue; const c=P.dmxC[i], o=i*3;
    a[o]=lin(buf[c]/255); a[o+1]=lin(buf[c+1]/255); a[o+2]=lin(buf[c+2]/255); w4[i]=lin(buf[c+3]/255); lit_++;}
   live.litLeds=lit_;
- } else
+ } else if(SHOW.on){ SHOW.paint(a,P); }
+ else
  for(const Ly of state.layers){ if(!Ly.on||Ly.opacity<=0)continue;
   const T=time*(0.2+Ly.speed*3), kind=Ly.anim, op=Ly.opacity, bl=Ly.blend;
   hsv(Ly.A.h,Ly.A.s,Ly.A.v,cA); hsv(Ly.B.h,Ly.B.s,Ly.B.v,cB);
@@ -4943,7 +4978,7 @@ const SPARK={rate:0.025, amp:0.5};   // the object's sparkle: the share of pixel
 const HASH=x=>{ const v=Math.sin(x)*43758.5453; return v-Math.floor(v); };
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
  // once a tour has run (even stopped in its first shot) the tesseract does not come back (Lloyd)
- Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed;
+ Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed&&!IG;   /* (2026-09-04) and not on a night shift: the crew's hall has no object floating in it */
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
  if(Q.sunk)portalReset();
@@ -5037,7 +5072,10 @@ async function buildInstall(){
  const fx=new FXm.Fx(scene,cam,hallSway,lift,install);
  const crew=new CREWm.Crew(G.group,world,items,install,W.collideWorld,lift);
  clock.fittedAtStart=install.counts().fitted;
- player.pos.copy(W.hallToWorld(52.0,7.5,world.floorY)); player.yaw=1.35;
+ // where Free roam puts the eye: the far wall, the hall's centre line, looking straight down the
+ // axis (ROAM_EYE); the yaw is read off the hall frame so it holds whatever the scan's rotation is
+ { const a=W.hallToWorld(ROAM_EYE.u,ROAM_EYE.d,world.floorY), b=W.hallToWorld(0,ROAM_EYE.d,world.floorY);
+   player.pos.copy(a); player.yaw=Math.atan2(-(b.x-a.x),-(b.z-a.z)); player.pitch=0; }
  scene.add(cam);   // items.js hangs what you carry off the camera, so the camera has to be in the scene
  Object.assign(G,{player,lift,items,install,clock,world,fx,body,crew,snd:new SNDm.Sound(),
   hallToWorld:W.hallToWorld, dbg:{dt:0,frames:0}, last:performance.now(), runLightTick:0, doorsWereOpen:false, guideShown:null, toastTimer:null, action:null});
@@ -5253,7 +5291,7 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  // is what looked glitched; then the picture fades in
  // once drawn, the veil offers Enter Gandel Hall (Lloyd): that tap is the gesture the browser
  // wants for sound, so the music starts as the hall fades in
- if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else document.getElementById('loader').classList.add('ready'); }
+ if(loaderUp&&hallGroup&&portal&&pix&&++readyFrames>30){ loaderUp=false; if(SHOT){ document.getElementById('loader').classList.add('gone'); playShot(); } else if(TOURQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; startTour(); } else if(SHOWQ){ document.getElementById('loader').classList.add('gone'); entered=true; idle=false; roamed=true; if(portal){ portal.sunk=true; portal.group.visible=false; } state.layers=[]; lit.house=0.12; {const h=document.getElementById('house'); h.value=12; document.getElementById('houseval').textContent='12%';} paintUI(); if(SHOWQ==='live'){ SHOW.on=true; SHOW.live=true; } } else document.getElementById('loader').classList.add('ready'); }
  done();}
 let loaderUp=true, readyFrames=0, lensOpen=0;
 document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2026-09-03) just that, on every device */
@@ -5263,7 +5301,11 @@ document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2
 // not a way in on a phone. With the key stored, a second button stands beside Enter Gandel Hall:
 // it enters the hall and starts the shift in one tap. Without the key it does not exist
 { const b=document.getElementById('enterInstall');
-  if(INSTALL_OK){ b.hidden=false; b.onclick=()=>{ document.getElementById('enter').onclick(); const box=document.getElementById('install'); box.checked=true; setInstall(true); }; } }
+  // (Lloyd, 2026-09-04: "when I hit install, I just want it to start me in Gandel Hall like free roam
+  // does") no orbit, no object, no card to read: the tap enters the hall, builds the shift and starts
+  // it, standing on the floor at the far wall looking down the hall. The sticks are live at once
+  if(INSTALL_OK){ b.hidden=false; b.onclick=async()=>{ document.getElementById('enter').onclick(); idle=false; idleT0=null; if(portal)portal.group.visible=false;
+   const box=document.getElementById('install'); box.checked=true; await setInstall(true); if(IG&&!document.body.classList.contains('playing'))installStart(IG); }; } }
 document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); roamStart(); };
 // the button is up while the object floats and nothing else is happening: the same state the float's sound plays in
