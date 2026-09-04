@@ -58,6 +58,7 @@ export class Player {
   bindStick(el, out, isLook = false) {
     const knob = el.querySelector('i');
     const active = { id: null };
+    const S = { touched: false, held: false, t: 0 }; this.stk = this.stk || {}; this.stk[el.id] = S;
     const set = (e) => {
       const r = el.getBoundingClientRect();
       const x = e.clientX - r.left - r.width * 0.5;
@@ -70,6 +71,7 @@ export class Player {
       knob.style.transform = `translate(${v.x}px,${v.y}px)`;
     };
     el.addEventListener('pointerdown', (e) => {
+      S.touched = true; S.held = true; S.t = performance.now() / 1000;
       active.id = e.pointerId;
       el.setPointerCapture(e.pointerId);
       set(e);
@@ -83,13 +85,14 @@ export class Player {
       active.id = null;
       out.set(0, 0);
       knob.style.transform = '';
+      S.held = false; S.t = performance.now() / 1000;
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
     el.addEventListener('lostpointercapture', end);
     // a release the element never hears (a gesture the browser took over, the tab hidden) must
     // still let go, or the view drifts on a phantom hold
-    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); knob.style.transform = ''; };
+    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
     addEventListener('pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
     addEventListener('touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
     addEventListener('touchcancel', letGo, { passive: true });
@@ -102,7 +105,15 @@ export class Player {
     this.pitch = THREE.MathUtils.clamp(this.pitch - dy, -1.35, 1.35);
   }
 
+  // the viewer's rule (sticksSync in index.html): a stick shows until its first touch, then while
+  // held and for a second after
+  sticksSync() {
+    const now = performance.now() / 1000;
+    for (const id in this.stk || {}) { const S = this.stk[id]; document.getElementById(id).classList.toggle('show', !S.touched || S.held || now - S.t < 1.0); }
+  }
+
   update(dt, world, collide) {
+    this.sticksSync();
     // the look stick turns the view for as long as it is held, not only while the thumb moves
     if (this.look.lengthSq() > 0) this.lookBy(this.look.x * dt * 2.4, this.look.y * dt * 1.6);
     const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;

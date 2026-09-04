@@ -132,7 +132,7 @@ export function createItems(scene, world, camera) {
     items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
   }
   const jackMesh = makeJack();
-  jackMesh.position.copy(hallToWorld(55.8, 9.6, world.floorY));
+  jackMesh.position.copy(hallToWorld(56.6, 5.0, world.floorY));
   scene.add(jackMesh);
   items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
   // for the crew (crew.js): their own jacks, boxes off a pallet without a carrier, loose wrap
@@ -149,8 +149,11 @@ export function nearestAction(player, lift, install, items) {
   // the floor was never inside 1.4 m (2026-09-04: nothing at a pallet was reachable)
   const near = (obj, r) => !obj.disposed && Math.hypot(obj.mesh.position.x - p.x, obj.mesh.position.z - p.z) < r && Math.abs(obj.mesh.position.y - p.y) < 3;
   const skipNear = items.world.skip.distanceTo(p) < 2.2;
+  // the lift on the floor plan: the deck is a metre up, so a straight distance to it kept "Get on"
+  // from showing until you stood inside the machine (2026-09-04)
+  const liftNear = (r) => Math.hypot(lift.pos.x - p.x, lift.pos.z - p.z) < r;
 
-  if (player.carry?.type === 'box' && lift.deckWorld().distanceTo(p) < 2 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
+  if (player.carry?.type === 'box' && liftNear(2.4) && lift.height < 0.3 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
   if ((player.carry?.type === 'box' || player.carry?.type === 'emptyBox' || player.carry?.type === 'bag') && skipNear) return { label: `Dispose ${player.carry.type}`, run: () => disposeCarry(player, items) };
   if (player.carry?.type === 'box') return { label: 'Set down box', run: () => dropCarry(player, items) };
   if (player.carry?.type === 'emptyBox') return { label: 'Carry empty box to skip', run: null };
@@ -169,9 +172,9 @@ export function nearestAction(player, lift, install, items) {
 
   if (lift.aboard && lift.box && lift.box.lights > 0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
   if (lift.aboard && lift.box && lift.box.lights <= 0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
-  if (lift.deckWorld().distanceTo(p) < 1.6 && !lift.aboard) return { label: 'Get on lift', run: () => { player.pos.copy(lift.deckWorld()); lift.aboard = true; } };
+  if (liftNear(2.3) && !lift.aboard && lift.height < 0.3) return { label: 'Get on lift', run: () => { player.pos.copy(lift.deckWorld()); lift.aboard = true; } };
   // off the lift only from the ground: at height the deck is the only floor there is
-  if (lift.deckWorld().distanceTo(p) < 1.8 && lift.aboard) return lift.height < 0.3
+  if (lift.aboard) return lift.height < 0.3
     ? { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); player.pos.y = items.world.floorY; lift.aboard = false; } }
     : { label: 'Lower the lift to get off', run: null };
 
@@ -366,7 +369,7 @@ export function resetForNight(player, lift, items) {
   for (const [i, l] of items.lights.entries()) l.mesh.position.copy(hallToWorld(56.0 + (i % 4) * 0.3, 4.9 + Math.floor(i / 4) * 0.25, items.world.floorY + 0.05));
   items.jack.held = false;
   items.jack.carrying = null;
-  items.jack.mesh.position.copy(hallToWorld(55.8, 9.6, items.world.floorY));
+  items.jack.mesh.position.copy(hallToWorld(56.6, 5.0, items.world.floorY));
   lift.pos.copy(hallToWorld(53.6, 9.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false;
   lift.height = 0;
   lift.box = null;
