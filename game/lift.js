@@ -37,8 +37,8 @@ export class Lift {
   static DOOR = new THREE.Vector2(-0.8, 0);       // where you step on and off (the back end)
   static DECK_Y = 1.25;                           // the deck plate's centre above the floor, stowed
   static LADDER = { x: -1.27, rungs: [0.28, 0.55, 0.82, 1.09] };   // the vertical ladder flush on the back of the chassis (Genie / JLG photos)
-  static EYE = 1.68;                              // standing eye height; DUCK is under the top rail
-  static DUCK = 0.95;
+  static EYE = 1.68;                              // standing eye height
+  static GATE_OPEN = Math.PI / 2;                 // the door fully open, lying along the deck
 
   // (Lloyd, 2026-09-04: Genie reference photos) a Genie-style slab scissor: blue chassis on four
   // wheels, a grey stack of crossed arms that flattens as it rises, a blue deck with a full rail
@@ -76,14 +76,23 @@ export class Lift {
     this.deck = new THREE.Group();
     const plate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.14, 1.2), blue); plate.position.y = 0; this.deck.add(plate);
     const rail = (sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), blue); m.position.set(x, y, z); this.deck.add(m); };
-    for (const z of [-0.58, 0.58]) { rail(2.5, 0.05, 0.05, 0, 1.1, z); rail(2.5, 0.04, 0.04, 0, 0.55, z); rail(2.5, 0.12, 0.03, 0, 0.13, z); }
-    for (const x of [-1.23, 1.23]) rail(0.05, 0.05, 1.2, x, 1.1, 0);
-    rail(0.04, 0.04, 1.2, 1.23, 0.55, 0);
-    // (Lloyd, 2026-09-04: "the gate doesn't swing up") the back mid rail is a GATE: hinged on
-    // one post like a door, it swings INTO the deck (rotation.y, positive = open) while you climb
-    // through and closes behind you; 1.2 rad open clears the side rail post at x -0.41
-    this.gate = new THREE.Group(); this.gate.position.set(-1.23, 0.55, -0.6); this.deck.add(this.gate);
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 1.2), blue); bar.position.set(0, 0, 0.6); this.gate.add(bar);
+    // (Lloyd, 2026-09-04: "a kick plate that goes all around, except for the door because the
+    // door has its own") the cage: top rail 1.1, mid rail 0.55 and a 0.12 kick plate on the
+    // plate's edge, along both sides and the front end; the back end is two short panels either
+    // side of the DOOR, which is the centre third (z -0.2..0.2) and carries its own three
+    const kick = (sx, sz, x, z) => rail(sx, 0.12, sz, x, 0.13, z);
+    for (const z of [-0.58, 0.58]) { rail(2.5, 0.05, 0.05, 0, 1.1, z); rail(2.5, 0.04, 0.04, 0, 0.55, z); kick(2.5, 0.03, 0, z); }
+    rail(0.05, 0.05, 1.2, 1.23, 1.1, 0); rail(0.04, 0.04, 1.2, 1.23, 0.55, 0); kick(0.03, 1.13, 1.23, 0);   // front end, the plate butts the side plates
+    for (const z of [-0.395, 0.395]) { rail(0.05, 0.05, 0.34, -1.23, 1.1, z); rail(0.04, 0.04, 0.34, -1.23, 0.55, z); kick(0.03, 0.34, -1.23, z); }   // back panels, post to door post
+    for (const z of [-0.2, 0.2]) rail(0.05, 1.1, 0.05, -1.23, 0.55, z);   // the door posts
+    // (Lloyd, 2026-09-04: "make that back section just a door", "the door will be in the centre
+    // 1/3rd wide") a full-height door hinged on the z -0.2 post, swinging INTO the deck
+    // (rotation.y, GATE_OPEN = a right angle: it then lies along the deck at z -0.2, clear of
+    // everything). Its own top bar, mid bar and kick plate; stiles 5 mm clear of both posts
+    this.gate = new THREE.Group(); this.gate.position.set(-1.23, 0, -0.2); this.deck.add(this.gate);
+    const door = (sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), blue); m.position.set(x, y, z); this.gate.add(m); };
+    for (const z of [0.05, 0.35]) door(0.04, 0.97, 0.04, 0, 0.615, z);
+    door(0.04, 0.05, 0.34, 0, 1.1, 0.2); door(0.04, 0.04, 0.34, 0, 0.55, 0.2); door(0.03, 0.12, 0.34, 0, 0.13, 0.2);
     for (const x of [-1.23, -0.41, 0.41, 1.23]) for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, x, 0.55, z);
     for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, 1.23, 0.55, z);
     // (Lloyd, 2026-09-04, Genie photo) the control box hangs on the INSIDE corner of the rail at
@@ -156,8 +165,8 @@ export class Lift {
   atDoor() { return this.deckLocal.x < -0.1; }
 
   // (Lloyd, 2026-09-04: "an animation of climbing up on to the scissor lift") getting on is a
-  // climb, not a teleport: walk to the foot of the steps, up the two treads with the gate bar
-  // swinging up, duck under the top rail onto the deck, stand up as the gate drops behind you.
+  // climb, not a teleport: walk to the foot of the ladder, up it as the door swings open, step
+  // through onto the deck, and the door closes behind you.
   // Getting off runs the same path backwards. Nothing you press does anything until it is over.
   // `instant` is for scripts and tests that just want to be aboard
   board(player, instant = false) {
@@ -188,16 +197,15 @@ export class Lift {
     const frames = [
       { x: -2.0, y: 0, eye: Lift.EYE, gate: 0, dt: 0.5 },        // foot of the ladder (offboardWorld)
       { x: LD.x - 0.3, y: 0, eye: Lift.EYE, gate: 0, dt: 1.4 },  // hands on the rungs
-      // (no clipping) ducked BEFORE the top rail: head stays under it all the way onto the deck
-      { x: LD.x - 0.3, y: D - 0.3, eye: Lift.DUCK, gate: 1, dt: 0.7 },   // up the ladder, ducked, the gate swings open
-      { x: -0.9, y: D, eye: Lift.DUCK, gate: 1, dt: 0.6 },       // through the gate onto the deck, still ducked
+      { x: LD.x - 0.3, y: D - 0.3, eye: Lift.EYE, gate: 1, dt: 0.7 },   // up the ladder as the door swings open
+      { x: -0.9, y: D, eye: Lift.EYE, gate: 1, dt: 0.6 },        // through the door onto the deck, standing (it is full height)
       { x: Lift.DOOR.x, y: D, eye: Lift.EYE, gate: 0, dt: 0 }     // standing, the gate dropped
     ];
     if (dir < 0) frames.reverse();
     // each frame's dt is the time to reach the NEXT frame; walking backwards the same pairs keep
     // their durations
     if (dir < 0) for (let i = 0; i < frames.length - 1; i++) frames[i].dt = frames[i + 1].dt || 1.2;
-    const first = { x: from.x, z: from.z, y: from.y, eye: player.eye, gate: this.gate.rotation.y / 1.2, dt: Math.max(0.2, Math.hypot(from.x - frames[0].x, from.z) / 1.5) };
+    const first = { x: from.x, z: from.z, y: from.y, eye: player.eye, gate: this.gate.rotation.y / Lift.GATE_OPEN, dt: Math.max(0.2, Math.hypot(from.x - frames[0].x, from.z) / 1.5) };
     frames.unshift(first);
     this.anim = { dir, frames, i: 0, t: 0 };
     this.stepAnim(0, player);
@@ -216,7 +224,7 @@ export class Lift {
     const p = this.group.localToWorld(new THREE.Vector3(x, y + this.height, z));
     player.pos.set(p.x, this.floorY + y + this.height, p.z);
     player.eye = eye;
-    this.gate.rotation.y = 1.2 * gate;
+    this.gate.rotation.y = Lift.GATE_OPEN * gate;
     // you face along the lift for the climb, whichever way you were looking
     const want = this.yaw - Math.PI / 2;
     const d = Math.atan2(Math.sin(want - player.yaw), Math.cos(want - player.yaw));

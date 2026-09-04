@@ -21,10 +21,10 @@ const st=()=>ev(`(()=>{const L=window.game.lift,P=window.game.player;return {abo
 // stand at the back of the lift, looking along it
 await ev(`(()=>{const g=window.game,L=g.lift;L.yaw=2.92;L.refresh();const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=1.35;g.player.pitch=0;})()`); await sleep(300);
 console.log('1 prompt:', await prompt()); await act(); await sleep(120); console.log('   mid-climb:', await prompt());
-// (2026-09-04) getting on is a climb: wait it out, watching the eye dip under the top rail and the gate bar rise
+// (2026-09-04) getting on is a climb: wait it out, watching the door open (a right angle) and the eye stay standing (the door is full height)
 // (Lloyd, 2026-09-04: "no clipping please") every 50 ms the camera point is tested against the world box of every lift mesh (rails, gate, plate, ladder, arms): a hit is a fail
 const climb=async()=>{ let eyeMin=9, gateMax=0, n=0, clips=[]; for(;n<160;n++){ const c=await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;const cam=P.pos.clone();cam.y+=P.eye;const B=new (P.pos.constructor)(0,0,0);let hit=null;L.group.updateMatrixWorld(true);L.group.traverse(m=>{if(hit||!m.isMesh)return;m.geometry.computeBoundingBox();const bb=m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld);if(bb.containsPoint(cam))hit=m.geometry.parameters?JSON.stringify(m.geometry.parameters):'mesh';});return {a:!!L.anim,eye:P.eye,g:L.gate.rotation.y,hit,at:[+P.pos.x.toFixed(2),+P.pos.y.toFixed(2),+P.pos.z.toFixed(2)]}})()`); eyeMin=Math.min(eyeMin,c.eye); gateMax=Math.max(gateMax,c.g); if(c.hit)clips.push(c.hit+' at '+c.at); if(!c.a)break; await sleep(50);} return {eyeMin:+eyeMin.toFixed(2),gateMax:+gateMax.toFixed(2),ticks:n,clips}; };
-let c=await climb(); console.log('   climb:', JSON.stringify(c), c.eyeMin<1.0&&c.gateMax>0.8&&c.ticks<120&&!c.clips.length?'ok':'FAIL climb');
+let c=await climb(); console.log('   climb:', JSON.stringify(c), c.eyeMin>1.6&&c.gateMax>1.5&&c.ticks<120&&!c.clips.length?'ok':'FAIL climb');
 console.log('  ->', await prompt(), JSON.stringify(await st()));
 await key(['KeyW'],1600); console.log('2 walked fwd:', await prompt(), JSON.stringify(await st()));
 await key(['KeyD'],500); console.log('   strafed:', await prompt(), JSON.stringify(await st()));
@@ -40,7 +40,7 @@ await shot('raised');
 await ev(`window.game.player.liftDown=true`); await sleep(3500); await ev(`window.game.player.liftDown=false`);
 await act(); console.log('10 let go:', await prompt(), JSON.stringify(await st()));
 await key(['KeyS'],2500); console.log('11 walked back:', await prompt(), JSON.stringify(await st()));
-await act(); await sleep(120); console.log('   mid-climb:', await prompt()); c=await climb(); console.log('   climb down:', JSON.stringify(c), c.eyeMin<1.0&&c.gateMax>0.8&&c.ticks<120&&!c.clips.length?'ok':'FAIL climb down'); console.log('12 got off:', await prompt(), JSON.stringify(await st()), 'eye', await ev('window.game.player.eye'));
+await act(); await sleep(120); console.log('   mid-climb:', await prompt()); c=await climb(); console.log('   climb down:', JSON.stringify(c), c.eyeMin>1.6&&c.gateMax>1.5&&c.ticks<120&&!c.clips.length?'ok':'FAIL climb down'); console.log('12 got off:', await prompt(), JSON.stringify(await st()), 'eye', await ev('window.game.player.eye'));
 await ev(`(()=>{const g=window.game,L=g.lift;const P=g.player;P.pos.copy(L.pos.clone().add(new P.pos.constructor(3,0,3)));P.pos.y=g.world.floorY;P.yaw=Math.atan2(-(L.pos.x-P.pos.x),-(L.pos.z-P.pos.z));P.pitch=0.1;})()`); await sleep(400); await shot('outside');
 console.log(logs.join('\n')||'no errors');
 ws.close(); process.exit(0);
