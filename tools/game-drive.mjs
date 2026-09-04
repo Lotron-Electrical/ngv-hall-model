@@ -20,7 +20,11 @@ const key=async(codes,ms)=>{ await ev(`for(const c of ${JSON.stringify(codes)}) 
 const st=()=>ev(`(()=>{const L=window.game.lift,P=window.game.player;return {aboard:L.aboard,driving:L.driving,deck:[+L.deckLocal.x.toFixed(2),+L.deckLocal.y.toFixed(2)],speed:+L.speed.toFixed(2),steer:+L.steer.toFixed(2),yaw:+L.yaw.toFixed(2),pyaw:+P.yaw.toFixed(2),h:+L.height.toFixed(2),pos:[+L.pos.x.toFixed(2),+L.pos.z.toFixed(2)],ppos:[+P.pos.x.toFixed(2),+P.pos.y.toFixed(2),+P.pos.z.toFixed(2)]}})()`);
 // stand at the back of the lift, looking along it
 await ev(`(()=>{const g=window.game,L=g.lift;L.yaw=2.92;L.refresh();const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=1.35;g.player.pitch=0;})()`); await sleep(300);
-console.log('1 prompt:', await prompt()); await act(); console.log('  ->', await prompt(), JSON.stringify(await st()));
+console.log('1 prompt:', await prompt()); await act(); await sleep(120); console.log('   mid-climb:', await prompt());
+// (2026-09-04) getting on is a climb: wait it out, watching the eye dip under the top rail and the gate bar rise
+const climb=async()=>{ let eyeMin=9, gateMax=0, n=0; for(;n<80;n++){ const c=await ev('(()=>{const L=window.game.lift;return {a:!!L.anim,eye:window.game.player.eye,g:-L.gate.rotation.x}})()'); eyeMin=Math.min(eyeMin,c.eye); gateMax=Math.max(gateMax,c.g); if(!c.a)break; await sleep(100);} return {eyeMin:+eyeMin.toFixed(2),gateMax:+gateMax.toFixed(2),ticks:n}; };
+let c=await climb(); console.log('   climb:', JSON.stringify(c), c.eyeMin<1.0&&c.gateMax>0.8&&c.ticks<60?'ok':'FAIL climb');
+console.log('  ->', await prompt(), JSON.stringify(await st()));
 await key(['KeyW'],1600); console.log('2 walked fwd:', await prompt(), JSON.stringify(await st()));
 await key(['KeyD'],500); console.log('   strafed:', await prompt(), JSON.stringify(await st()));
 await act(); console.log('3 took controls:', await prompt(), JSON.stringify(await st()));
@@ -35,7 +39,7 @@ await shot('raised');
 await ev(`window.game.player.liftDown=true`); await sleep(3500); await ev(`window.game.player.liftDown=false`);
 await act(); console.log('10 let go:', await prompt(), JSON.stringify(await st()));
 await key(['KeyS'],2500); console.log('11 walked back:', await prompt(), JSON.stringify(await st()));
-await act(); console.log('12 got off:', await prompt(), JSON.stringify(await st()));
+await act(); await sleep(120); console.log('   mid-climb:', await prompt()); c=await climb(); console.log('   climb down:', JSON.stringify(c), c.eyeMin<1.0&&c.gateMax>0.8&&c.ticks<60?'ok':'FAIL climb down'); console.log('12 got off:', await prompt(), JSON.stringify(await st()), 'eye', await ev('window.game.player.eye'));
 await ev(`(()=>{const g=window.game,L=g.lift;const P=g.player;P.pos.copy(L.pos.clone().add(new P.pos.constructor(3,0,3)));P.pos.y=g.world.floorY;P.yaw=Math.atan2(-(L.pos.x-P.pos.x),-(L.pos.z-P.pos.z));P.pitch=0.1;})()`); await sleep(400); await shot('outside');
 console.log(logs.join('\n')||'no errors');
 ws.close(); process.exit(0);

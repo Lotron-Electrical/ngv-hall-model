@@ -11,6 +11,7 @@ export class Player {
     this.keys = new Set();
     this.move = new THREE.Vector2();
     this.look = new THREE.Vector2();
+    this.lookRate = new THREE.Vector2();   // held-over look stick: turn per second
     this.actionQueued = false;
     this.dropQueued = false;
     this.liftUp = false;
@@ -43,7 +44,9 @@ export class Player {
       if (document.pointerLockElement !== this.canvas) return;
       this.lookBy(e.movementX * 0.0022, e.movementY * 0.0022);
     });
-    ui.action.addEventListener('click', () => this.actionQueued = true);
+    ui.action?.addEventListener('click', () => this.actionQueued = true);
+    // (Lloyd, 2026-09-04: "the messages that appear are better, can tap on them") the prompt is the button
+    ui.prompt?.addEventListener('click', () => this.actionQueued = true);
     ui.drop?.addEventListener('click', () => this.dropQueued = true);
     ui.liftUp?.addEventListener('pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
     ui.liftUp?.addEventListener('pointerup', () => this.liftUp = false);
@@ -66,6 +69,12 @@ export class Player {
       if (isLook) {
         if (active.last) this.lookBy((e.clientX - active.last.x) * 0.0062, (e.clientY - active.last.y) * 0.0048);
         active.last = { x: e.clientX, y: e.clientY };
+        // (Lloyd, 2026-09-04: "hold a direction and keep turning, not having to flick") held
+        // further than 26 px from where the thumb LANDED it also turns at a rate; measured from
+        // the landing point, not the stick's centre, so a thumb resting anywhere never turns
+        if (!active.down) active.down = { x: e.clientX, y: e.clientY };
+        const ox = e.clientX - active.down.x, oy = e.clientY - active.down.y, len = Math.hypot(ox, oy), past = Math.max(0, len - 26);
+        if (past > 0) { const k = Math.min(1, past / 40) / len; this.lookRate.set(ox * k, oy * k); } else this.lookRate.set(0, 0);
         const r = el.getBoundingClientRect();
         const v = new THREE.Vector2(e.clientX - r.left - r.width * 0.5, e.clientY - r.top - r.height * 0.5).clampLength(0, 42);
         knob.style.transform = `translate(${v.x}px,${v.y}px)`;
@@ -83,7 +92,7 @@ export class Player {
     };
     el.addEventListener('pointerdown', (e) => {
       S.touched = true; S.held = true; S.t = performance.now() / 1000;
-      active.id = e.pointerId; active.last = null;
+      active.id = e.pointerId; active.last = null; active.down = null; this.lookRate.set(0, 0);
       el.setPointerCapture(e.pointerId);
       set(e);
     });
@@ -94,7 +103,7 @@ export class Player {
     const end = (e) => {
       if (active.id !== e.pointerId) return;
       active.id = null;
-      out.set(0, 0);
+      out.set(0, 0); if (isLook) this.lookRate.set(0, 0);
       knob.style.transform = '';
       S.held = false; S.t = performance.now() / 1000;
     };
@@ -103,7 +112,7 @@ export class Player {
     el.addEventListener('lostpointercapture', end);
     // a release the element never hears (a gesture the browser took over, the tab hidden) must
     // still let go, or the view drifts on a phantom hold
-    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
+    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); if (isLook) this.lookRate.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
     addEventListener('pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
     addEventListener('touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
     addEventListener('touchcancel', letGo, { passive: true });
@@ -125,6 +134,7 @@ export class Player {
 
   update(dt, world, collide) {
     this.sticksSync();
+    if (this.lookRate.lengthSq() > 0) this.lookBy(this.lookRate.x * dt * 2.4, this.lookRate.y * dt * 1.6);
     // (2026-09-04) on the lift the deck is the floor: lift.js walks you, not this
     if (!this.onLift) {
       const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;

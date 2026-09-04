@@ -21,6 +21,7 @@ const camera = new THREE.PerspectiveCamera(68, 1, 0.05, 220);
 const player = new Player(camera, canvas);
 player.bind({
   action: document.querySelector('#action'),
+  prompt: document.querySelector('#prompt'),
   moveStick: document.querySelector('#move'),
   lookStick: document.querySelector('#look'),
   drop: document.querySelector('#drop'),
@@ -126,7 +127,7 @@ function loop(now) {
   if ((runLightTick += dt) > 1) { runLightTick = 0; updateRunLights(install); }   // the crew's fits light the room too
   fx.update(dt, clock, player, body);
   updateItems(player, lift, items);
-  if (player.takeDrop()) { dropCarry(player, items); snd.thud(); }
+  if (player.takeDrop() && !lift.anim) { dropCarry(player, items); snd.thud(); }
   currentAction = nearestAction(player, lift, install, items);
   if (player.takeAction()) interact();
   clock.update(dt);

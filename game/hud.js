@@ -15,6 +15,7 @@ export function updateHud(el, prompt, clock, install, action, carry, body) {
   }
   const held = carry ? `<small>Holding ${carry.type}</small>` : '';
   prompt.innerHTML = `${action.label}${held}`;
+  prompt.classList.toggle('can', !!action.run);
 }
 
 export function showSummary(root, textEl, clock, fittedTonight, clean) {

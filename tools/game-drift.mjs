@@ -20,10 +20,10 @@ const hold=async(name,secs=3)=>{ const a=await P(); await sleep(secs*1000); cons
 await ev(`(()=>{const g=window.game;const h=g.items.pallets[0].home, k=g.items.pallets[1].home;const m=h.clone().add(k).multiplyScalar(0.5);g.player.pos.copy(g.hallToWorld(50.0,3.3,g.world.floorY));})()`); await sleep(300); await hold('player between pallets at the wall');
 await ev(`(()=>{const g=window.game;g.player.pos.copy(g.hallToWorld(52.3,4.9,g.world.floorY));})()`); await sleep(300); await hold('player inside the pallet row');
 // 2: lift squeezed between pallets, at rest with the controls held, then let go
-await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.pos.copy(g.hallToWorld(53.5,5.4,g.world.floorY));L.yaw=2.92;L.refresh();L.board(P);L.takeControls(P);})()`); await sleep(300); await hold('lift at rest, controls held, by the pallet row');
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.pos.copy(g.hallToWorld(53.5,5.4,g.world.floorY));L.yaw=2.92;L.refresh();L.board(P,true);L.takeControls(P);})()`); await sleep(300); await hold('lift at rest, controls held, by the pallet row');
 await ev(`window.game.lift.letGo()`); await sleep(300); await hold('lift let go, player on deck');
-await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.leave(P);})()`); await sleep(300); await hold('player just off the lift');
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.leave(P,true);})()`); await sleep(300); await hold('player just off the lift');
 // 3: drive into a pallet and release: the lift must stop and stay
-await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.board(P);L.takeControls(P);L.yaw=2.92-Math.PI/2;L.refresh();P.keys.add('KeyW');})()`); await sleep(3000); await ev(`window.game.player.keys.delete('KeyW')`); await sleep(1500); await hold('lift after bumping a pallet and releasing');
+await ev(`(()=>{const g=window.game,L=g.lift,P=g.player;L.board(P,true);L.takeControls(P);L.yaw=2.92-Math.PI/2;L.refresh();P.keys.add('KeyW');})()`); await sleep(3000); await ev(`window.game.player.keys.delete('KeyW')`); await sleep(1500); await hold('lift after bumping a pallet and releasing');
 console.log(bad?`${bad} DRIFT case(s)`:'no drift'); console.log(logs.join('\n')||'no errors');
 ws.close(); process.exit(bad?1:0);

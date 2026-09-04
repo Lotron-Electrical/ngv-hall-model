@@ -490,3 +490,33 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   controls, ramp, steer while rolling, steer without rolling (yaw unchanged), creep raised, let go,
   walk back, get off. Gotcha: `node --check` did NOT catch a duplicate `const` inside a method;
   the headless load did (SyntaxError in lift.js): the browser load is the gate, not --check.
+- Drift root cause (2026-09-04, commit 7bdf556): `HALL.u` / `HALL.inRoom` in `world.js` were
+  built 0.0001 short of unit length, so every world -> hall -> world round trip in `collideWorld`
+  moved a mover 0.6 mm towards the d=0 wall: a 3.6 cm/s slide with no input. Basis vectors are
+  normalised; `tools/game-drift.mjs` holds six no-input cases at zero movement and is the gate for
+  any collider change.
+- Prompt as the button (Lloyd, 2026-09-04: "I don't like the action button", "can tap on them",
+  "on the side so they don't take up much viewing space"): the ACTION button is GONE. `#prompt`
+  is tappable (`pointer-events:auto`, click -> `player.actionQueued`, `.can` class while
+  `action.run` is non-null). On coarse pointers it sits right-aligned at right:12px bottom:246px,
+  max-width 46vw, above the look stick; `#drop` took ACTION's old spot. `tools/game-tap.mjs`
+  dispatches a real touch on it at 412x915 and expects the action to run.
+- Look stick hold-to-turn (Lloyd, 2026-09-04: "hold a direction and keep turning"): on top of
+  the drag look, a thumb held more than 26 px from where it LANDED (`active.down`, not the stick
+  centre) sets `player.lookRate`, applied in `update` as yaw 2.4 rad/s, pitch 1.6 rad/s at full
+  deflection (full at 66 px). Measured from the landing point so a resting thumb never turns.
+  Reset on release, letGo and pointerdown.
+- Lift steps, gate, climb (Lloyd, 2026-09-04: "an animation of climbing up on to the scissor
+  lift"): the stowed deck is 1.25 m up (`Lift.DECK_Y`); the scissor stack is confined to
+  [0.81, deck underside - 0.12] with 0.08 m arms, so folded arms no longer poke through the deck
+  plate (the old 0.2 m span floor did). Two treads (`Lift.TREADS`, local x -1.72/-1.42, y
+  0.44/0.88) and stringers hang off the back of the chassis. The back mid rail is `lift.gate`, a
+  group hinged at (-1.23, 0.55, -0.6); `rotation.x = -1.2` is fully up. `board(player)` and
+  `leave(player)` run `lift.anim` (`startAnim` / `stepAnim`): walk to the foot of the steps (local
+  x -2.0), up the treads with the gate rising, duck under the top rail (`player.eye` 1.68 -> 0.95)
+  onto the deck, stand at `DOOR` as the gate drops; leaving walks the same frames backwards. While
+  `lift.anim` runs `nearestAction` returns 'Climbing aboard' / 'Climbing down' with run null, F is
+  ignored, and yaw eases to face along the lift. `board(p, true)` / `leave(p, true)` are the
+  instant forms for scripts (game-drift uses them). `tools/game-drive.mjs` waits the climb out and
+  asserts eye dipped under 1.0 and the gate rose past 0.8 rad both ways; `tools/game-liftlook.mjs`
+  shoots the lift from the back quarter, raised, mid-climb and aboard.

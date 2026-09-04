@@ -15,7 +15,10 @@ export class Lift {
     this.floorY = floorY;
     this.pos = hallToWorld(63.6, 6.6, floorY);   // parked at the aisle's end, clear of both pallet rows
     this.yaw = 0;                                 // the chassis heading; forward is local +x
-    this.deckY = 0.85;
+    // (2026-09-04) the stowed deck sits 1.25 m up, like a real 26-footer: the folded scissor
+    // stack needs the room under it, and the two step treads at the back need the rise
+    this.deckY = Lift.DECK_Y;
+    this.anim = null;                             // the boarding / climbing-down timeline while it runs
     this.height = 0;
     this.aboard = false;
     this.driving = false;
@@ -32,6 +35,10 @@ export class Lift {
   static DECK = { x: 1.1, z: 0.45 };              // the walkable half-extents of the deck
   static PANEL = new THREE.Vector2(0.72, 0.22);   // where you stand to drive, facing the box on the corner
   static DOOR = new THREE.Vector2(-0.8, 0);       // where you step on and off (the back end)
+  static DECK_Y = 1.25;                           // the deck plate's centre above the floor, stowed
+  static TREADS = [{ x: -1.72, y: 0.44 }, { x: -1.42, y: 0.88 }];   // the two step treads at the back
+  static EYE = 1.68;                              // standing eye height; DUCK is under the top rail
+  static DUCK = 0.95;
 
   // (Lloyd, 2026-09-04: Genie reference photos) a Genie-style slab scissor: blue chassis on four
   // wheels, a grey stack of crossed arms that flattens as it rises, a blue deck with a full rail
@@ -57,14 +64,24 @@ export class Lift {
     this.arms = [];
     this.N = 5;                         // five crossed pairs, like the GS-2646 stack
     for (let i = 0; i < this.N; i++) for (const z of [-0.4, 0.4]) for (const dir of [1, -1]) {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.28, 0.06), grey);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.28, 0.08), grey);
       this.scissor.add(arm); this.arms.push({ arm, i, z, dir });
     }
+    // (2026-09-04) two step treads hang off the back of the chassis, the way you climb a slab
+    // scissor: foot, foot, deck
+    for (const T of Lift.TREADS) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.6), grey); s.position.set(T.x, T.y, 0); this.base.add(s); }
+    // the stringers the treads hang from: a bar each side from the low tread up to the chassis top
+    for (const z of [-0.3, 0.3]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.05, 0.05), grey); st.position.set(-1.5, 0.66, z); st.rotation.z = -Math.atan2(0.44, 0.6); this.base.add(st); }
     this.deck = new THREE.Group();
     const plate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.14, 1.2), blue); plate.position.y = 0; this.deck.add(plate);
     const rail = (sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), blue); m.position.set(x, y, z); this.deck.add(m); };
     for (const z of [-0.58, 0.58]) { rail(2.5, 0.05, 0.05, 0, 1.1, z); rail(2.5, 0.04, 0.04, 0, 0.55, z); rail(2.5, 0.12, 0.03, 0, 0.13, z); }
-    for (const x of [-1.23, 1.23]) { rail(0.05, 0.05, 1.2, x, 1.1, 0); rail(0.04, 0.04, 1.2, x, 0.55, 0); }
+    for (const x of [-1.23, 1.23]) rail(0.05, 0.05, 1.2, x, 1.1, 0);
+    rail(0.04, 0.04, 1.2, 1.23, 0.55, 0);
+    // (2026-09-04) the back mid rail is the gate bar: hinged at one post, it swings up while
+    // you climb through and drops behind you (rotation.x, negative = up)
+    this.gate = new THREE.Group(); this.gate.position.set(-1.23, 0.55, -0.6); this.deck.add(this.gate);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 1.2), blue); bar.position.set(0, 0, 0.6); this.gate.add(bar);
     for (const x of [-1.23, -0.41, 0.41, 1.23]) for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, x, 0.55, z);
     for (const z of [-0.58, 0.58]) rail(0.05, 1.1, 0.05, 1.23, 0.55, z);
     // (Lloyd, 2026-09-04, Genie photo) the control box hangs on the INSIDE corner of the rail at
@@ -82,7 +99,6 @@ export class Lift {
     const stop = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.02, 10), new THREE.MeshStandardMaterial({ color: 0xd8241c, roughness: 0.5 })); stop.position.set(-0.04, -0.005, -0.055); stop.rotation.z = 0.5; this.panel.add(stop);
     this.rails = new THREE.Group();   // kept for callers that reference it
     this.group.add(this.base, this.scissor, this.deck, this.rails);
-    this.deckY = 0.85;
     this.refresh();
   }
 
@@ -91,12 +107,14 @@ export class Lift {
     this.group.rotation.y = this.yaw;
     const top = this.deckY + this.height;          // the deck plate's centre
     this.deck.position.y = top;
-    // the stack fills the space between the chassis tray (0.76) and the deck: each of the N
-    // pairs takes an equal share, and the arm angle follows from its fixed length
-    const span = Math.max(0.2, top - 0.07 - 0.76), h = span / this.N, L = 1.28;
+    // the stack fills the space between the chassis tray (0.81) and the underside of the deck
+    // (top - 0.12): each of the N pairs takes an equal share, and the arm angle follows from its
+    // fixed length. (2026-09-04) the old floor of 0.2 m on the span put the folded arms THROUGH
+    // the deck plate: the stack now stays inside its slot however low the deck sits
+    const span = Math.max(0.05, top - 0.12 - 0.81), h = span / this.N, L = 1.28;
     const ang = Math.asin(Math.min(1, h / L));      // from the horizontal
     for (const a of this.arms) {
-      a.arm.position.set(0, 0.76 + h * (a.i + 0.5), a.z);
+      a.arm.position.set(0, 0.81 + h * (a.i + 0.5), a.z);
       a.arm.rotation.z = a.dir * (Math.PI / 2 - ang);
     }
     for (const W of this.wheels) W.hub.rotation.y = W.front ? -this.steer : 0;
@@ -135,16 +153,71 @@ export class Lift {
   // you stand at the back, where the steps are
   atDoor() { return this.deckLocal.x < -0.1; }
 
-  board(player) {
+  // (Lloyd, 2026-09-04: "an animation of climbing up on to the scissor lift") getting on is a
+  // climb, not a teleport: walk to the foot of the steps, up the two treads with the gate bar
+  // swinging up, duck under the top rail onto the deck, stand up as the gate drops behind you.
+  // Getting off runs the same path backwards. Nothing you press does anything until it is over.
+  // `instant` is for scripts and tests that just want to be aboard
+  board(player, instant = false) {
     this.aboard = true; this.driving = false; this.speed = 0;
-    this.deckLocal.copy(Lift.DOOR);
     player.onLift = true;
-    this.place(player);
+    if (instant) { this.deckLocal.copy(Lift.DOOR); player.eye = Lift.EYE; this.place(player); return; }
+    const q = this.group.worldToLocal(player.pos.clone());
+    this.startAnim(1, { x: q.x, z: q.z, y: 0 }, player);
   }
-  leave(player) {
-    this.aboard = false; this.driving = false; this.speed = 0; this.steer = 0;
-    player.onLift = false;
+  leave(player, instant = false) {
+    if (instant) { this.finishLeave(player); return; }
+    this.driving = false; this.speed = 0; this.steer = 0;
+    this.startAnim(-1, { x: this.deckLocal.x, z: this.deckLocal.y, y: this.deckY }, player);
+  }
+  finishLeave(player) {
+    this.aboard = false; this.driving = false; this.speed = 0; this.steer = 0; this.anim = null;
+    player.onLift = false; player.eye = Lift.EYE;
     player.pos.copy(this.offboardWorld()); player.pos.y = this.floorY;
+    this.gate.rotation.x = 0;
+  }
+
+  // the climb as keyframes in chassis coordinates: x along, y feet height above the floor (the
+  // lift's own height is added on top), eye the camera above the feet, gate 0 down .. 1 up.
+  // dir 1 climbs aboard, -1 climbs down (the same frames, walked backwards). The first segment
+  // walks from wherever you stand to the frame the path begins at
+  startAnim(dir, from, player) {
+    const D = this.deckY, T = Lift.TREADS;
+    const frames = [
+      { x: -2.0, y: 0, eye: Lift.EYE, gate: 0, dt: 1.2 },        // foot of the steps (offboardWorld)
+      { x: T[1].x, y: T[1].y, eye: Lift.EYE, gate: 1, dt: 0.7 },  // up the treads, the gate rises
+      { x: -0.9, y: D, eye: Lift.DUCK, gate: 1, dt: 0.6 },       // ducked under the top rail onto the deck
+      { x: Lift.DOOR.x, y: D, eye: Lift.EYE, gate: 0, dt: 0 }     // standing, the gate dropped
+    ];
+    if (dir < 0) frames.reverse();
+    // each frame's dt is the time to reach the NEXT frame; walking backwards the same pairs keep
+    // their durations
+    if (dir < 0) for (let i = 0; i < frames.length - 1; i++) frames[i].dt = frames[i + 1].dt || 1.2;
+    const first = { x: from.x, z: from.z, y: from.y, eye: player.eye, gate: this.gate.rotation.x / -1.2, dt: Math.max(0.2, Math.hypot(from.x - frames[0].x, from.z) / 1.5) };
+    frames.unshift(first);
+    this.anim = { dir, frames, i: 0, t: 0 };
+    this.stepAnim(0, player);
+  }
+
+  stepAnim(dt, player) {
+    const A = this.anim;
+    A.t += dt;
+    while (A.i < A.frames.length - 1 && A.t >= A.frames[A.i].dt) { A.t -= A.frames[A.i].dt; A.i++; }
+    const done = A.i >= A.frames.length - 1;
+    const a = A.frames[A.i], b = done ? a : A.frames[A.i + 1];
+    const u = done ? 1 : THREE.MathUtils.smoothstep(A.t / a.dt, 0, 1);
+    const L = (p, q) => p + (q - p) * u;
+    const x = L(a.x, b.x), y = L(a.y, b.y), z = L(a.z || 0, b.z || 0), eye = L(a.eye, b.eye), gate = L(a.gate, b.gate);
+    this.deckLocal.set(x, z);
+    const p = this.group.localToWorld(new THREE.Vector3(x, y + this.height, z));
+    player.pos.set(p.x, this.floorY + y + this.height, p.z);
+    player.eye = eye;
+    this.gate.rotation.x = -1.2 * gate;
+    // you face along the lift for the climb, whichever way you were looking
+    const want = this.yaw - Math.PI / 2;
+    const d = Math.atan2(Math.sin(want - player.yaw), Math.cos(want - player.yaw));
+    player.yaw += d * Math.min(1, dt * 4);
+    if (done) { if (A.dir < 0) this.finishLeave(player); else { this.anim = null; this.deckLocal.copy(Lift.DOOR); player.eye = Lift.EYE; this.place(player); } }
   }
   takeControls(player) { this.driving = true; this.deckLocal.copy(Lift.PANEL); this.place(player); }
   letGo() { this.driving = false; this.speed = 0; }
@@ -163,7 +236,8 @@ export class Lift {
 
   update(dt, player, world, collide) {
     // aboard is set by ACTION (get on / get off), never by walking into the footprint
-    if (this.aboard && this.driving) this.drive(dt, player, world, collide);
+    if (this.anim) this.stepAnim(dt, player);
+    else if (this.aboard && this.driving) this.drive(dt, player, world, collide);
     else if (this.aboard) this.walkDeck(dt, player);
     else if (this.speed) this.speed = 0;
     this.refresh();
