@@ -135,6 +135,11 @@ export function createItems(scene, world, camera) {
   jackMesh.position.copy(hallToWorld(55.8, 9.6, world.floorY));
   scene.add(jackMesh);
   items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
+  // for the crew (crew.js): their own jacks, boxes off a pallet without a carrier, loose wrap
+  items.spawnJack = (pos) => { const m = makeJack(); m.position.copy(pos); scene.add(m); return { type: 'jack', carrying: null, held: false, mesh: m }; };
+  items.spawnBoxFor = (pallet) => { pallet.boxes--; updatePalletStack(pallet); const box = makeBoxObject(8); items.boxes.push(box); scene.add(box.mesh); return box; };
+  items.updatePalletStack = updatePalletStack;
+  items.makeWrap = () => meshBox(0xf4f4ee, 0.42, 0.08, 0.34, { transparent: true, opacity: 0.42 });
   return items;
 }
 
@@ -185,7 +190,7 @@ export function nearestAction(player, lift, install, items) {
     const pal = items.pallets.find((b) => b.boxes > 0 && b.mesh.position.distanceTo(items.jack.mesh.position) < 1.25);
     if (pal) return player.body && !player.body.canLift(15) ? { label: 'Too puffed to jack a pallet: rest a moment', run: null } : { label: `Lift ${pal.column} pallet`, run: () => items.jack.carrying = pal };
   }
-  if (near(items.jack, 1.4)) return { label: items.jack.held ? 'Release pallet jack' : 'Take pallet jack', run: () => items.jack.held = !items.jack.held };
+  if (near(items.jack, 1.4) && !items.jack.by) return { label: items.jack.held ? 'Release pallet jack' : 'Take pallet jack', run: () => items.jack.held = !items.jack.held };
 
   const pallet = items.pallets.find((b) => b.boxes > 0 && near(b, 1.55));
   if (pallet) return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a box: rest a moment', run: null } : { label: `Take box from ${pallet.column} pallet`, run: () => spawnBox(player, items, pallet) };
@@ -326,7 +331,7 @@ export function dropCarry(player, items) {
 }
 
 export function updateItems(player, lift, items) {
-  if (items.jack.held) {
+  if (items.jack.held && !items.jack.by) {
     items.jack.mesh.position.copy(player.camera.position).add(new THREE.Vector3(0, -1.35, -1.05).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw));
     items.jack.mesh.position.y = items.world.floorY;
     items.jack.mesh.rotation.y = player.yaw;

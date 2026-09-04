@@ -443,3 +443,16 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   hours (`fx.levelFor`: from 70 fatigue). Two bars under the HUD. Reach is measured on the floor
   plan (`items.js near`): the old straight-line reach from the eye never got a bag on the floor.
   Boarding the lift is by ACTION only; the lift parks at (53.6, 9.6), the jack at (55.8, 9.6).
+- Crew (2026-09-04): `crew.js`. After column 1 a HELPER (orange) works the column nearest your
+  lift: jacks its pallet to the column foot, keeps two open boxes there, loads your deck when it
+  is down and empty, bags wrap, runs full bags to the skip. After column 2 a TEAM (yellow, two
+  figures, their own Genie lift and jack) claims the nearest unclaimed column and does it run by
+  run (~7 s a light, slower as the clock tires them); one more team per further column, max 3.
+  At 04:30 everyone packs up (lifts home, pallets back). Toasts announce joins and finished
+  columns. `tools/game-crew.mjs` scripts the unlocks and watches them work.
+- Hall rendering (2026-09-04, Lloyd: same MODEL as the viewer, not necessarily the same look):
+  the game loads the identical model.glb and runs.json. `hallmat.js` is a trimmed port of the
+  viewer's photoMaterial (albedo x house light, unlit by scene lights) with the viewer's renderer
+  settings, and every fitted run is one of the viewer's 96 analytic line lights (12 x 8 runs), so
+  fitting a run washes the column and floor the way the viewer's strips do. The viewer's
+  procedural canopy lattice is NOT built; the GLB's own canopy is shown.

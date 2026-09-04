@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { dressHall, AMBIENT } from './hallmat.js';
 
 export const HALL = {
   origin: new THREE.Vector3(-54.907447, -1.43545, 3.040286),
@@ -53,13 +54,10 @@ export async function loadWorld(scene) {
   };
 
   scene.background = new THREE.Color(0x08090b);
-  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1b1712, 0.85));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-  sun.position.set(-18, 18, 8);
-  scene.add(sun);
-  const hallGlow = new THREE.PointLight(0xfff1d0, 5.5, 38, 1.8);
-  hallGlow.position.copy(hallToWorld(43.5, 7.5, world.floorY + 5.2));
-  scene.add(hallGlow);
+  // the viewer's hemisphere at house light full on; the props (lift, boxes, crew) take it and the
+  // environment map, the scan itself ignores scene lights (hallmat.js)
+  scene.add(new THREE.HemisphereLight(0xfff4e6, 0x40302a, 0.9 * (1 + AMBIENT)));
+  const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(-18, 18, 8); scene.add(fill);
 
   const gltf = await new GLTFLoader().loadAsync(new URL('../model.glb', import.meta.url).href);
   gltf.scene.traverse((o) => {
@@ -74,22 +72,7 @@ export async function loadWorld(scene) {
   });
   scene.add(gltf.scene);
   world.hallScene = gltf.scene;
-  // THE DOORWAY (Lloyd, 2026-09-04: double doors to the storage corridor). The scanned hall has a
-  // solid end wall there, so every hall material discards its fragments inside the door volume:
-  // a 2.5 m x 3 m opening, 1.2 m deep about the wall line, cut in the shader rather than the mesh
-  const o = HALL.origin, U = HALL.u, N = HALL.inRoom;
-  const seen = new Set();
-  gltf.scene.traverse((m) => { if (!m.isMesh) return; for (const mat of [].concat(m.material)) { if (seen.has(mat)) continue; seen.add(mat);
-    mat.onBeforeCompile = (sh) => {
-      const NL = String.fromCharCode(10), V = 'varying vec3 vDoorW;';
-      sh.vertexShader = sh.vertexShader
-        .replace('void main() {', V + ' void main() {')
-        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>' + NL + 'vDoorW = (modelMatrix * vec4(transformed, 1.0)).xyz;' + NL);   // the chunk ends in #endif: the line break matters
-      const cut = ' { vec3 q = vDoorW - vec3(' + o.x + ',' + o.y + ',' + o.z + '); float du = dot(q, vec3(' + U.x + ',' + U.y + ',' + U.z + ')); float dd = dot(q, vec3(' + N.x + ',' + N.y + ',' + N.z + '));'
-        + ' if (abs(du - ' + HALL.doorU + ') < 0.6 && abs(dd - ' + HALL.doorD + ') < ' + (HALL.doorW * 0.5) + ' && vDoorW.y < ' + (o.y + 3.0) + ') discard; }';
-      sh.fragmentShader = sh.fragmentShader.replace('void main() {', V + ' void main() {' + cut);
-    };
-    mat.needsUpdate = true; } });
+  dressHall(gltf.scene, HALL);   // the viewer's materials: photographs unlit, columns glossy, the doorway cut (hallmat.js)
 
   const floor = new THREE.GridHelper(62, 62, 0x3b3f48, 0x20232a);
   floor.position.y = world.floorY + 0.01;

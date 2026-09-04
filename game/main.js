@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { loadWorld, collideWorld, updateDoors, hallToWorld } from './world.js';
 import { Fx } from './fx.js';
 import { Body } from './body.js';
+import { Crew } from './crew.js';
+import { setupRenderer, updateRunLights } from './hallmat.js';
 import { Player } from './player.js';
 import { Lift } from './lift.js';
 import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight } from './items.js';
@@ -13,6 +15,7 @@ const canvas = document.querySelector('#cv');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
 const scene = new THREE.Scene();
+setupRenderer(renderer, scene);
 const camera = new THREE.PerspectiveCamera(68, 1, 0.05, 220);
 const player = new Player(camera, canvas);
 player.bind({
@@ -25,8 +28,9 @@ player.bind({
 });
 scene.add(camera);
 
-let world, lift, items, install, clock, currentAction, fx, body;
+let world, lift, items, install, clock, currentAction, fx, body, crew;
 let last = performance.now();
+let runLightTick = 0;
 let fitClick = null;
 let liftBeep = null;
 let lastLiftBeep = 0;
@@ -64,15 +68,21 @@ async function init() {
   body = new Body();
   player.body = body;
   fx = new Fx(scene, camera, world.hallScene, lift, install);
+  crew = new Crew(scene, world, items, install, collideWorld, lift);
   clock.fittedAtStart = install.counts().fitted;
   player.pos.copy(hallToWorld(56.4, 7.5, world.floorY));
   player.yaw = 1.35;
   fitClick = () => tone(880, 0.07);
   liftBeep = () => tone(330, 0.05);
   document.querySelector('#prompt').textContent = 'Press Start Shift';
-  window.game = { player, lift, items, install, clock, world, fx, body, hallToWorld };   // for headless checks
+  window.game = { player, lift, items, install, clock, world, fx, body, crew, hallToWorld, dbg: { dt: 0, frames: 0 } };
+  updateRunLights(install);   // for headless checks
   requestAnimationFrame(loop);
 }
+
+// a line at the top of the picture for a few seconds: who joined, who finished what
+let toastTimer = null;
+function showToast(msg) { const el = document.querySelector('#toast'); el.textContent = msg; el.classList.add('up'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('up'), 6000); }
 
 function startGame() {
   document.querySelector('#overlay').classList.add('gone');
@@ -91,11 +101,13 @@ function interact() {
   currentAction.run();
   const after = install.counts().fitted;
   if (after > before) { fitClick(); if (install.lastFit) fx.onFit(install.lastFit, player); }
+  updateRunLights(install);
   saveGame(clock, install);
 }
 
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
+  if (window.game) { window.game.dbg.dt = dt; window.game.dbg.frames++; }
   last = now;
   resize();
   // the body: what it carries and whether it moves this frame set the drain
@@ -115,7 +127,10 @@ function loop(now) {
   }
   camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
-  updateDoors(dt, world, lift.aboard ? [lift.pos] : [player.pos]);   // the parked lift does not hold the doors open
+  updateDoors(dt, world, (lift.aboard ? [lift.pos] : [player.pos]).concat(crew.points()));   // the parked lift does not hold the doors open
+  if (document.body.classList.contains('playing') && !clock.ended) crew.update(dt, clock, player, install.counts().columnsDone);
+  if (crew.toasts.length) showToast(crew.toasts.shift());
+  if ((runLightTick += dt) > 1) { runLightTick = 0; updateRunLights(install); }   // the crew's fits light the room too
   fx.update(dt, clock, player, body);
   updateItems(player, lift, items);
   if (player.takeDrop()) dropCarry(player, items);
@@ -126,7 +141,8 @@ function loop(now) {
   if (clock.ended && !document.querySelector('#summary').classList.contains('up')) {
     const fittedTonight = install.counts().fitted - clock.fittedAtStart;
     clock.running = false;
-    showSummary(document.querySelector('#summary'), document.querySelector('#summaryText'), clock, fittedTonight, cleanupClear(items, lift));
+    const clean = cleanupClear(items, lift); clean.left.push(...crew.leftInHall()); clean.ok = clean.left.length === 0;
+    showSummary(document.querySelector('#summary'), document.querySelector('#summaryText'), clock, fittedTonight, clean);
     saveGame(clock, install);
   }
   renderer.render(scene, camera);
@@ -137,6 +153,7 @@ document.querySelector('#start').addEventListener('click', startGame);
 document.querySelector('#nextNight').addEventListener('click', () => {
   document.querySelector('#summary').classList.remove('up');
   resetForNight(player, lift, items);
+  crew.resetForNight();
   clock.nextNight(install.counts().fitted);
   body.nextNight();
   document.querySelector('#overlay').classList.remove('gone');
