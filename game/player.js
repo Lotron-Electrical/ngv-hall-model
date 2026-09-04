@@ -11,7 +11,6 @@ export class Player {
     this.keys = new Set();
     this.move = new THREE.Vector2();
     this.look = new THREE.Vector2();
-    this.lookRate = new THREE.Vector2();   // held-over look stick: turn per second
     this.actionQueued = false;
     this.dropQueued = false;
     this.liftUp = false;
@@ -63,31 +62,19 @@ export class Player {
       this.on(ui.liftDown, 'pointerup', () => this.liftDown = false);
       this.on(ui.liftDown, 'pointercancel', () => this.liftDown = false); }
     this.bindStick(ui.moveStick, this.move);
-    this.bindStick(ui.lookStick, this.look, true);
+    this.bindStick(ui.lookStick, this.look);
   }
 
-  bindStick(el, out, isLook = false) {
+  bindStick(el, out) {
     const knob = el.querySelector('i');
     const active = { id: null };
     const S = { touched: false, held: false, t: 0 }; this.stk = this.stk || {}; this.stk[el.id] = S;
-    // (Lloyd, 2026-09-04: the view kept drifting) the LOOK stick is a DRAG like free roam's: the
-    // view turns by how far the thumb has moved since the last event, never by where it rests.
-    // A thumb parked on the stick does nothing; the knob leans with the drag and springs back
+    // (Lloyd, 2026-09-04, twice) BOTH sticks work the same way: how far the knob sits from the
+    // stick's centre is the rate. Hold the look stick over and the view keeps turning, let it
+    // spring back and it stops. A drag-only look stick ("only moves exactly how far you move
+    // it") was tried in between and Lloyd asked for this back. The 9 px dead zone is what stops
+    // a resting thumb from drifting the view
     const set = (e) => {
-      if (isLook) {
-        if (active.last) this.lookBy((e.clientX - active.last.x) * 0.0062, (e.clientY - active.last.y) * 0.0048);
-        active.last = { x: e.clientX, y: e.clientY };
-        // (Lloyd, 2026-09-04: "hold a direction and keep turning, not having to flick") held
-        // further than 26 px from where the thumb LANDED it also turns at a rate; measured from
-        // the landing point, not the stick's centre, so a thumb resting anywhere never turns
-        if (!active.down) active.down = { x: e.clientX, y: e.clientY };
-        const ox = e.clientX - active.down.x, oy = e.clientY - active.down.y, len = Math.hypot(ox, oy), past = Math.max(0, len - 26);
-        if (past > 0) { const k = Math.min(1, past / 40) / len; this.lookRate.set(ox * k, oy * k); } else this.lookRate.set(0, 0);
-        const r = el.getBoundingClientRect();
-        const v = new THREE.Vector2(e.clientX - r.left - r.width * 0.5, e.clientY - r.top - r.height * 0.5).clampLength(0, 42);
-        knob.style.transform = `translate(${v.x}px,${v.y}px)`;
-        return;
-      }
       const r = el.getBoundingClientRect();
       const x = e.clientX - r.left - r.width * 0.5;
       const y = e.clientY - r.top - r.height * 0.5;
@@ -100,7 +87,7 @@ export class Player {
     };
     this.on(el, 'pointerdown', (e) => {
       S.touched = true; S.held = true; S.t = performance.now() / 1000;
-      active.id = e.pointerId; active.last = null; active.down = null; this.lookRate.set(0, 0);
+      active.id = e.pointerId;
       el.setPointerCapture(e.pointerId);
       set(e);
     });
@@ -111,7 +98,7 @@ export class Player {
     const end = (e) => {
       if (active.id !== e.pointerId) return;
       active.id = null;
-      out.set(0, 0); if (isLook) this.lookRate.set(0, 0);
+      out.set(0, 0);
       knob.style.transform = '';
       S.held = false; S.t = performance.now() / 1000;
     };
@@ -120,7 +107,7 @@ export class Player {
     this.on(el, 'lostpointercapture', end);
     // a release the element never hears (a gesture the browser took over, the tab hidden) must
     // still let go, or the view drifts on a phantom hold
-    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); if (isLook) this.lookRate.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
+    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); knob.style.transform = ''; S.held = false; S.t = performance.now() / 1000; };
     this.on(window, 'pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
     this.on(window, 'touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
     this.on(window, 'touchcancel', letGo, { passive: true });
@@ -142,7 +129,8 @@ export class Player {
 
   update(dt, world, collide) {
     this.sticksSync();
-    if (this.lookRate.lengthSq() > 0) this.lookBy(this.lookRate.x * dt * 2.4, this.lookRate.y * dt * 1.6);
+    // the look stick held over: a full deflection turns 2.8 rad/s across and 1.8 rad/s up and down
+    if (this.look.lengthSq() > 0) this.lookBy(this.look.x * dt * 2.8, this.look.y * dt * 1.8);
     // (2026-09-04) on the lift the deck is the floor: lift.js walks you, not this
     if (!this.onLift) {
       const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;
