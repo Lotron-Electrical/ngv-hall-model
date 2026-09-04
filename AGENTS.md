@@ -456,3 +456,10 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   settings, and every fitted run is one of the viewer's 96 analytic line lights (12 x 8 runs), so
   fitting a run washes the column and floor the way the viewer's strips do. The viewer's
   procedural canopy lattice is NOT built; the GLB's own canopy is shown.
+- Sound (2026-09-04): `sound.js`, all synthesised: lift motor hum while moving (detunes with the
+  fx level in the small hours), thuds for boxes/lights/bags, wrap crinkle, fit click, jack scrape,
+  door swing, 04:30 pack-up chime, 05:00 bell. Cues are read off the prompt label that was pressed.
+- Pacing (estimate, not field-run): one box = one run (8 lights); the lift comes down for every
+  box (12 m at 0.5 m/s each way), so a solo column is ~12-13 min = about one night, the helper
+  night ~1.5 columns, then a column per team per night. The lift already rises 2-3x faster than
+  a real GS-4046.
