@@ -1559,7 +1559,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
+window.ngv={state, R, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
  // event-layer debug handles for headless verification
  get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
  buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),
@@ -5069,10 +5069,19 @@ async function buildInstall(){
  // cap stands at world x 0.3, inside the corridor the shift builds behind the hall; it goes for
  // the shift and comes back with the sim. The corridor has its own walls
  hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=false; });
+ if(court)court.visible=false;   // the partner sculptures are the proposal's; the crew's hall has the bare wall
  G.group=new THREE.Group(); G.group.name='install'; scene.add(G.group);
  const fill=new THREE.DirectionalLight(0xffffff,0.6); fill.position.set(-18,18,8); G.group.add(fill);
  const world=W.makeWorld(FLOOR_Y); world.hallScene=hallGroup; world.hallSway=hallSway;
  W.buildProps(G.group,world);
+ // THE SEAL (Lloyd, 2026-09-04: "do a sweep to ensure the model is sealed"). The scan is a shell
+ // with the glazing missing: the south wall's panes, the north wall's high windows, the canopy's
+ // edge facets and a strip of floor along the south wall all open onto the sky. The proposal
+ // shows them black at night; the shift closes them for good with a night-black box turned
+ // inside out round the hall and the corridor, so nothing looks out on anything. Measured by
+ // tools/game-sealed.mjs (a cube map from a grid of standing points with the sky painted magenta)
+ { const top=Math.max(CEIL_Y,FLOOR_Y+12)+6, bot=FLOOR_Y-1.5;
+   const seal=W.makeHallBox(G.group,34,7.7,(top+bot)/2,74,20,top-bot,new THREE.MeshBasicMaterial({color:0x07080a,side:THREE.BackSide})); seal.name='seal'; }
  const saved=CLKm.loadSave();
  const install=new INSTm.Install(G.group,RUNS,saved);
  const player=new PLm.Player(cam,cv);
@@ -5223,6 +5232,7 @@ function teardownInstall(){
  lit.house=G.saved.house; {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';}
  if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
  hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=true; });
+ if(court)court.visible=document.getElementById('court').checked;
  document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
  document.getElementById('installUi').classList.remove('on');
  document.getElementById('vignette').style.opacity='';

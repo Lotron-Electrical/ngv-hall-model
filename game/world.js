@@ -37,7 +37,7 @@ function makeBox(size, pos, mat) {
   return mesh;
 }
 
-function makeHallBox(scene, u, d, y, len, dep, h, mat) {
+export function makeHallBox(scene, u, d, y, len, dep, h, mat) {
   const mesh = makeBox(new THREE.Vector3(len, h, dep), hallToWorld(u, d, y), mat);
   mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(HALL.u, new THREE.Vector3(0, 1, 0), HALL.inRoom));
   scene.add(mesh);
