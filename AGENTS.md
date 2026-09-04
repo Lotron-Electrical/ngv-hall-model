@@ -509,11 +509,12 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
 - Lift steps, gate, climb (Lloyd, 2026-09-04: "an animation of climbing up on to the scissor
   lift"): the stowed deck is 1.25 m up (`Lift.DECK_Y`); the scissor stack is confined to
   [0.81, deck underside - 0.12] with 0.08 m arms, so folded arms no longer poke through the deck
-  plate (the old 0.2 m span floor did). Two treads (`Lift.TREADS`, local x -1.72/-1.42, y
-  0.44/0.88) and stringers hang off the back of the chassis. The back mid rail is `lift.gate`, a
+  plate (the old 0.2 m span floor did). The steps are a VERTICAL ladder flush on the back
+  face of the chassis (`Lift.LADDER`, x -1.27, rungs 0.28..1.09, Lloyd's Genie/JLG photos: nothing
+  sticks out behind the machine); the climb goes straight up it. The back mid rail is `lift.gate`, a
   group hinged at (-1.23, 0.55, -0.6); `rotation.x = -1.2` is fully up. `board(player)` and
   `leave(player)` run `lift.anim` (`startAnim` / `stepAnim`): walk to the foot of the steps (local
-  x -2.0), up the treads with the gate rising, duck under the top rail (`player.eye` 1.68 -> 0.95)
+  x -2.0), up the ladder with the gate rising, duck under the top rail (`player.eye` 1.68 -> 0.95)
   onto the deck, stand at `DOOR` as the gate drops; leaving walks the same frames backwards. While
   `lift.anim` runs `nearestAction` returns 'Climbing aboard' / 'Climbing down' with run null, F is
   ignored, and yaw eases to face along the lift. `board(p, true)` / `leave(p, true)` are the

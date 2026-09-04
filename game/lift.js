@@ -36,7 +36,7 @@ export class Lift {
   static PANEL = new THREE.Vector2(0.72, 0.22);   // where you stand to drive, facing the box on the corner
   static DOOR = new THREE.Vector2(-0.8, 0);       // where you step on and off (the back end)
   static DECK_Y = 1.25;                           // the deck plate's centre above the floor, stowed
-  static TREADS = [{ x: -1.72, y: 0.44 }, { x: -1.42, y: 0.88 }];   // the two step treads at the back
+  static LADDER = { x: -1.27, rungs: [0.28, 0.55, 0.82, 1.09] };   // the vertical ladder flush on the back of the chassis (Genie / JLG photos)
   static EYE = 1.68;                              // standing eye height; DUCK is under the top rail
   static DUCK = 0.95;
 
@@ -67,11 +67,12 @@ export class Lift {
       const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.28, 0.08), grey);
       this.scissor.add(arm); this.arms.push({ arm, i, z, dir });
     }
-    // (2026-09-04) two step treads hang off the back of the chassis, the way you climb a slab
-    // scissor: foot, foot, deck
-    for (const T of Lift.TREADS) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.6), grey); s.position.set(T.x, T.y, 0); this.base.add(s); }
-    // the stringers the treads hang from: a bar each side from the low tread up to the chassis top
-    for (const z of [-0.3, 0.3]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.05, 0.05), grey); st.position.set(-1.5, 0.66, z); st.rotation.z = -Math.atan2(0.44, 0.6); this.base.add(st); }
+    // (Lloyd, 2026-09-04, Genie + JLG photos: "see the steps on the back?") the steps are a
+    // VERTICAL ladder flush on the back face of the chassis, rungs between the wheels, two
+    // stiles, nothing sticking out behind the machine
+    const LD = Lift.LADDER;
+    for (const z of [-0.26, 0.26]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.0, 0.05), grey); st.position.set(LD.x, 0.68, z); this.base.add(st); }
+    for (const y of LD.rungs) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.52), grey); r.position.set(LD.x, y, 0); this.base.add(r); }
     this.deck = new THREE.Group();
     const plate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.14, 1.2), blue); plate.position.y = 0; this.deck.add(plate);
     const rail = (sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), blue); m.position.set(x, y, z); this.deck.add(m); };
@@ -182,10 +183,11 @@ export class Lift {
   // dir 1 climbs aboard, -1 climbs down (the same frames, walked backwards). The first segment
   // walks from wherever you stand to the frame the path begins at
   startAnim(dir, from, player) {
-    const D = this.deckY, T = Lift.TREADS;
+    const D = this.deckY, LD = Lift.LADDER;
     const frames = [
-      { x: -2.0, y: 0, eye: Lift.EYE, gate: 0, dt: 1.2 },        // foot of the steps (offboardWorld)
-      { x: T[1].x, y: T[1].y, eye: Lift.EYE, gate: 1, dt: 0.7 },  // up the treads, the gate rises
+      { x: -2.0, y: 0, eye: Lift.EYE, gate: 0, dt: 0.5 },        // foot of the ladder (offboardWorld)
+      { x: LD.x - 0.3, y: 0, eye: Lift.EYE, gate: 0, dt: 1.4 },  // hands on the rungs
+      { x: LD.x - 0.3, y: D - 0.3, eye: Lift.EYE, gate: 1, dt: 0.6 },   // straight up the ladder, the gate rises
       { x: -0.9, y: D, eye: Lift.DUCK, gate: 1, dt: 0.6 },       // ducked under the top rail onto the deck
       { x: Lift.DOOR.x, y: D, eye: Lift.EYE, gate: 0, dt: 0 }     // standing, the gate dropped
     ];
