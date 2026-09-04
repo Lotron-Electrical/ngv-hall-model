@@ -39,7 +39,12 @@ function makeBox(size, pos, mat) {
 
 export function makeHallBox(scene, u, d, y, len, dep, h, mat) {
   const mesh = makeBox(new THREE.Vector3(len, h, dep), hallToWorld(u, d, y), mat);
-  mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(HALL.u, new THREE.Vector3(0, 1, 0), HALL.inRoom));
+  // (2026-09-04, found by the seal sweep) the basis has to be right-handed or the quaternion comes
+  // out degenerate and the box stands unrotated on the world axes: (u, Y, inRoom) is left-handed
+  // (u x Y = -inRoom), so every corridor box sat 12.7 degrees off the hall, 3.7 m out at its far
+  // end, while the collider ran in the hall frame. Local z is -inRoom now; a box is symmetric
+  const Y = new THREE.Vector3(0, 1, 0);
+  mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(HALL.u, Y, new THREE.Vector3().crossVectors(HALL.u, Y)));
   scene.add(mesh);
   return mesh;
 }
