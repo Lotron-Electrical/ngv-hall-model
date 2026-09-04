@@ -41,7 +41,7 @@ const res = await ev(`(async()=>{
   const ray=new THREE.Raycaster(); ray.far=0.9; const probes=[[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]].map(a=>new THREE.Vector3(...a));
   // the raycaster culls back faces on a one-sided material, so every material is two-sided for the probe and put back after
   const sides=meshes.map(m=>[].concat(m.material).map(x=>x.side)); const setSides=(all)=>meshes.forEach((m,i)=>[].concat(m.material).forEach((x,j)=>{ x.side=all?THREE.DoubleSide:sides[i][j]; x.needsUpdate=true; }));
-  const inside=(p)=>{ setSides(true); let r=false; for(const dir of probes){ ray.set(p,dir); const h=ray.intersectObjects(meshes,true)[0]; if(h&&h.face){ const n=h.face.normal.clone().transformDirection(h.object.matrixWorld); if(n.dot(dir)>0){ r=true; break; } } } setSides(false); return r; };
+  const inside=(p)=>{ setSides(true); let r=false; ray.far=0.9; for(const dir of probes){ ray.set(p,dir); const h=ray.intersectObjects(meshes,true)[0]; if(h&&h.face){ const n=h.face.normal.clone().transformDirection(h.object.matrixWorld); if(n.dot(dir)>0){ r=true; break; } } } setSides(false); return r; };
   // a spot with a prop standing on it (a pallet, the jack, a lift) is not a standing point either
   const props=scene.getObjectByName('install'); const propMeshes=[]; if(props)props.traverse(o=>{ if(o.isMesh&&o.visible&&o.name!=='seal')propMeshes.push(o); });
   const occupied=(u,d)=>{ if(!propMeshes.length)return false; ray.set(W(u,d,fy+2.5),new THREE.Vector3(0,-1,0)); ray.far=2.6; const h=ray.intersectObjects(propMeshes,true)[0]; return !!(h&&h.point.y>fy+0.05); };
