@@ -63,7 +63,10 @@ export class Player {
       const x = e.clientX - r.left - r.width * 0.5;
       const y = e.clientY - r.top - r.height * 0.5;
       const v = new THREE.Vector2(x, y).clampLength(0, 42);
-      out.set(v.x / 42, v.y / 42);
+      // (Lloyd, 2026-09-04: the view drifted left at the start) a thumb resting a few pixels off
+      // the centre is not an input: nothing inside 9 px, and the rest scaled from that edge
+      const len = v.length(), dead = 9;
+      if (len < dead) out.set(0, 0); else { const k = (len - dead) / (42 - dead) / len; out.set(v.x * k, v.y * k); }
       knob.style.transform = `translate(${v.x}px,${v.y}px)`;
     };
     el.addEventListener('pointerdown', (e) => {
@@ -83,6 +86,15 @@ export class Player {
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
+    el.addEventListener('lostpointercapture', end);
+    // a release the element never hears (a gesture the browser took over, the tab hidden) must
+    // still let go, or the view drifts on a phantom hold
+    const letGo = () => { if (active.id === null) return; active.id = null; out.set(0, 0); knob.style.transform = ''; };
+    addEventListener('pointerup', (e) => { if (e.target !== el && !el.contains(e.target)) return; letGo(); });
+    addEventListener('touchend', (e) => { if (e.touches.length === 0) letGo(); }, { passive: true });
+    addEventListener('touchcancel', letGo, { passive: true });
+    addEventListener('blur', letGo);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
   }
 
   lookBy(dx, dy) {
