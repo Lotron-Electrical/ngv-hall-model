@@ -51,6 +51,7 @@ async function init() {
   install = new Install(scene, runsData, saved);
   items = createItems(scene, world, camera);
   lift = new Lift(scene, world.floorY);
+  items.lift = lift;   // dropCarry needs it to know a light went down on the deck
   clock = new GameClock(saved);
   body = new Body();
   player.body = body;
@@ -102,7 +103,7 @@ function loop(now) {
   resize();
   // the body: what it carries and whether it moves this frame set the drain
   const load = items.jack.held && items.jack.carrying ? 3 : (player.carry && player.carry.type !== 'wrap') || (items.jack.held) ? 2 : player.carry ? 1 : (lift.aboard ? 1 : 0);
-  const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.aboard && (player.liftUp || player.liftDown));
+  const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.driving && (player.liftUp || player.liftDown));
   if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving);
   player.speedScale = body.speedScale();
   refreshObstacles(items, [lift].concat(crew.teams.map((t) => t.lift)));
@@ -112,8 +113,9 @@ function loop(now) {
   lift.update(dt, player, world, collideWorld);
   if (!lift.aboard) player.pos.y = world.floorY;   // no gravity to speak of: off the deck you are on the floor
   document.body.classList.toggle('aboard', lift.aboard);
+  document.body.classList.toggle('driving', lift.driving);   // UP/DOWN only show at the controls
   document.body.classList.toggle('carrying', !!player.carry);
-  snd.motor(Math.abs(lift.height - oldLift) > 0.002, fx.level);
+  snd.motor(Math.abs(lift.height - oldLift) > 0.002 || Math.abs(lift.speed) > 0.02, fx.level);
   snd.clock(clock.minute);
   if (!doorsWereOpen && !world.doorsShut) snd.door(); doorsWereOpen = !world.doorsShut;
   camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);

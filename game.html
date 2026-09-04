@@ -44,7 +44,7 @@ button:focus-visible{outline:2px solid var(--accent)}
 #drop{position:absolute;right:34px;bottom:276px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
 body.carrying #drop{display:block}
 #liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
-body.aboard #liftBtns{display:flex}
+body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
 @media (pointer:coarse){#touch{display:block} #prompt{bottom:156px} #stats{font-size:12px}}
 </style>
@@ -61,8 +61,9 @@ body.aboard #liftBtns{display:flex}
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
     <p>Fit 768 lights across the 12 Gandel Hall columns before the morning clean-up.</p>
-    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space and Shift move the lift.</p>
+    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space and Shift move the lift deck.</p>
     <p>Phone: left stick moves, right stick looks, ACTION uses the prompt.</p>
+    <p>On the lift, walk to the control box and ACTION to drive: forward and back drives, left and right steers the front wheels. ACTION again lets go so you can walk the deck and handle lights.</p>
     <button id="start">Start Shift</button>
   </div></div>
 </div>

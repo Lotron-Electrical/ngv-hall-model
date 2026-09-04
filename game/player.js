@@ -125,12 +125,15 @@ export class Player {
 
   update(dt, world, collide) {
     this.sticksSync();
-    const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;
-    const strafe = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0) + this.move.x;
-    const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);
-    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
-    this.pos.addScaledVector(v, dt * 3.3 * this.speedScale);
-    collide(this.pos, 0.32, world, this.ignore || []);
+    // (2026-09-04) on the lift the deck is the floor: lift.js walks you, not this
+    if (!this.onLift) {
+      const forward = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0) - this.move.y;
+      const strafe = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0) + this.move.x;
+      const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);
+      v.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+      this.pos.addScaledVector(v, dt * 3.3 * this.speedScale);
+      collide(this.pos, 0.32, world, this.ignore || []);
+    }
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
   }

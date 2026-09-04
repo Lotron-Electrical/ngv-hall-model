@@ -471,3 +471,22 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   and `collideWorld(pos, r, world, ignore)` pushes every mover out of them; a mover ignores what
   it carries and the lift it rides. Reaches must sit OUTSIDE the collision radii (pallet 1.5,
   skip 2.6/2.9) or the crew walk forever.
+- Lift driving + deck (Lloyd, 2026-09-04: "drive more like a real scissor lift", "walk up to the
+  control panel and then choose to drive or not", "get on from 1 end"): `lift.js` keeps ABOARD and
+  DRIVING apart. You board from the BACK end only (`Get on lift` needs you within 1.7 m of the
+  steps, `offboardWorld`, local -x); aboard, `walkDeck` moves you in chassis coordinates
+  (`deckLocal`, clamped to 1.1 x 0.45) and `place` puts you on the deck, so the deck carries you.
+  The control box hangs on the inside corner of the front end rail (`panel`, local +x +z, hood
+  hooked over the top rail, console facing the deck). Within 0.75 m of `PANEL` ACTION =
+  `Take the controls` (`driving`), ACTION again = `Let go`. Only while driving: stick/WASD is
+  throttle (fwd/back) + front-wheel STEER (left/right), UP/DOWN move the deck (`body.driving`
+  shows #liftBtns). Drive model: ramp ~1 s, brake 2x harder on release, 0.97 m/s stowed easing to
+  0.22 m/s once the deck is 0.9 m up (Genie GS-2646 numbers), bicycle steering on a 1.7 m
+  wheelbase with 0.6 rad lock: NO turning on the spot, the yaw only changes while rolling, and the
+  player's yaw turns with the deck. A push-back against the travel from `collideWorld` stops the
+  machine; a sideways nudge (sliding along a wall) does not. Front hubs show the steer angle,
+  wheels spin. A light put down on the deck (`light.onDeck`) rides in chassis coordinates
+  (`updateItems`). `tools/game-drive.mjs` proves the whole sequence: board, walk to the box, take
+  controls, ramp, steer while rolling, steer without rolling (yaw unchanged), creep raised, let go,
+  walk back, get off. Gotcha: `node --check` did NOT catch a duplicate `const` inside a method;
+  the headless load did (SyntaxError in lift.js): the browser load is the gate, not --check.

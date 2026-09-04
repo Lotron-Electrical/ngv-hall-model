@@ -184,13 +184,22 @@ export function nearestAction(player, lift, install, items) {
     return { label: 'Find a rubbish bag', run: null };
   }
 
-  if (lift.aboard && lift.box && lift.box.lights > 0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
-  if (lift.aboard && lift.box && lift.box.lights <= 0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
-  if (liftNear(2.3) && !lift.aboard && lift.height < 0.3) return { label: 'Get on lift', run: () => { player.pos.copy(lift.deckWorld()); lift.aboard = true; } };
-  // off the lift only from the ground: at height the deck is the only floor there is
-  if (lift.aboard) return lift.height < 0.3
-    ? { label: 'Get off lift', run: () => { player.pos.copy(lift.offboardWorld()); player.pos.y = items.world.floorY; lift.aboard = false; } }
-    : { label: 'Lower the lift to get off', run: null };
+  // (Lloyd, 2026-09-04) on the deck you WALK: the controls are a place at the +x end you go to,
+  // and while you hold them nothing else is offered. Let go and the deck is a floor again
+  if (lift.aboard && lift.driving) return { label: 'Let go of the controls', run: () => lift.letGo() };
+  if (lift.aboard && lift.box && lift.box.lights > 0 && lift.deckLocal.length() < 1.0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
+  if (lift.aboard && lift.box && lift.box.lights <= 0 && lift.deckLocal.length() < 1.0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
+  // (Lloyd, 2026-09-04) you get on from ONE end, the back, where the steps are
+  const stepsNear = (() => { const o = lift.offboardWorld(); return Math.hypot(o.x - p.x, o.z - p.z) < 1.7; })();
+  if (stepsNear && !lift.aboard && lift.height < 0.3) return { label: 'Get on lift', run: () => lift.board(player) };
+  if (liftNear(2.3) && !lift.aboard && lift.height < 0.3) return { label: 'Get on from the back of the lift', run: null };
+  if (lift.aboard && lift.atPanel()) return { label: 'Take the controls', run: () => lift.takeControls(player) };
+  // off the lift only from the ground and from the back end, where the steps are: at height
+  // the deck is the only floor there is
+  if (lift.aboard) {
+    if (lift.height >= 0.3) return { label: 'Lower the lift from the controls to get off', run: null };
+    return lift.atDoor() ? { label: 'Get off lift', run: () => lift.leave(player) } : { label: 'Walk to the back to get off, or to the controls to drive', run: null };
+  }
 
   // a light you put down comes first: it is the likelier thing to want back than the box beside it
   const loose = items.lights.find((l) => !l.carried && near(l, 1.4));
@@ -332,7 +341,10 @@ export function dropCarry(player, items) {
     bar.position.copy(player.pos).add(ahead); bar.position.y = player.pos.y + 0.05;
     bar.rotation.y = player.yaw + Math.PI / 2;
     items.scene.add(bar);
-    items.lights.push({ type: item.type, mesh: bar, carried: false });
+    const light = { type: item.type, mesh: bar, carried: false };
+    // (2026-09-04) put down on the deck, it rides the deck: remember where in chassis terms
+    if (player.onLift && items.lift) { const d = items.lift.toDeck(bar.position); if (Math.abs(d.x) < 1.3 && Math.abs(d.y) < 0.65) { light.onDeck = d; light.deckYaw = bar.rotation.y - items.lift.yaw; } }
+    items.lights.push(light);
     player.carry = null;
     return;
   }
@@ -359,6 +371,10 @@ export function updateItems(player, lift, items) {
     }
   }
   if (lift.box) lift.refresh();
+  for (const l of items.lights) {
+    if (!l.onDeck || l.carried) continue;
+    const p = lift.deckPoint(l.onDeck.x, l.onDeck.y); l.mesh.position.set(p.x, lift.floorY + lift.deckY + lift.height + 0.05, p.z); l.mesh.rotation.y = l.deckYaw + lift.yaw;
+  }
 }
 
 export function resetForNight(player, lift, items) {
@@ -379,7 +395,7 @@ export function resetForNight(player, lift, items) {
   items.jack.held = false;
   items.jack.carrying = null;
   items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));
-  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false;
+  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; player.onLift = false;
   lift.height = 0;
   lift.box = null;
   lift.refresh();
