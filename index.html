@@ -974,7 +974,7 @@ new GLTFLoader().load('model.glb',g=>{
  // straight out of it. A matte near-black cap (the void band's colour) closes the end; it lives
  // in the GLB group so the column-height lever stretches it with the walls, and it is a collider.
  {const capM=new THREE.MeshBasicMaterial({color:0x0f0d12, side:THREE.DoubleSide}); capM.name='end-cap';
-  const cap=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
+  const cap=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM); cap.name='end-cap-near';   /* named: the shift's storage corridor runs through it (u 48.9 to 66) and hides it while it is up */
   cap.rotation.y=-Math.PI/2; cap.position.set(0.3,6.2,0.35);
   g.scene.add(cap); solids.push(cap);
   // The far end (x=-60) has a floor-to-roof slit at z~3 between the back wall and the stair
@@ -5065,6 +5065,10 @@ async function buildInstall(){
  // the scan is not level (it rises about 10 cm across the room); the lift, the crew and anything
  // put down stand on a flat datum, so the scan is rotated onto it for the shift and put back after
  W.setFloorY(FLOOR_Y); W.levelHall(hallLevel);
+ // (Lloyd, 2026-09-04: "there is a wall cutting through the storage area") the model's near end
+ // cap stands at world x 0.3, inside the corridor the shift builds behind the hall; it goes for
+ // the shift and comes back with the sim. The corridor has its own walls
+ hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=false; });
  G.group=new THREE.Group(); G.group.name='install'; scene.add(G.group);
  const fill=new THREE.DirectionalLight(0xffffff,0.6); fill.position.set(-18,18,8); G.group.add(fill);
  const world=W.makeWorld(FLOOR_Y); world.hallScene=hallGroup; world.hallSway=hallSway;
@@ -5218,6 +5222,7 @@ function teardownInstall(){
  if(portal&&G.saved.portal!==null)portal.group.visible=G.saved.portal;
  lit.house=G.saved.house; {const h=document.getElementById('house'); h.value=Math.round(lit.house*100); document.getElementById('houseval').textContent=h.value+'%';}
  if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
+ hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=true; });
  document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
  document.getElementById('installUi').classList.remove('on');
  document.getElementById('vignette').style.opacity='';
