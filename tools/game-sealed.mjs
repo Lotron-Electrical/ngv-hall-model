@@ -50,7 +50,7 @@ const res = await ev(`(async()=>{
     const p=W(u,d,fy+h); if(inside(p)||occupied(u,d)){ skipped.push(u+','+d+','+h); continue; }
     cc.position.copy(p); cc.update(R,scene);
     const per=[]; let tot=0;
-    for(let f=0;f<6;f++){ R.readRenderTargetPixels(rt,0,0,N,N,buf,f); let n=0,cx=0,cy=0; for(let i=0;i<N*N;i++){ const r=buf[i*4],gg=buf[i*4+1],b=buf[i*4+2]; if(gg>200&&r<70&&b<70){ n++; cx+=i%N; cy+=(i/N)|0; } }
+    for(let f=0;f<6;f++){ R.readRenderTargetPixels(rt,0,0,N,N,buf,f); let n=0,cx=0,cy=0; for(let i=0;i<N*N;i++){ const r=buf[i*4],gg=buf[i*4+1],b=buf[i*4+2]; if(gg===255&&r===0&&b===0){ n++;   /* exact: a lit strip or a green guide bar is never this pure */ cx+=i%N; cy+=(i/N)|0; } }
       per.push(n); tot+=n; }
     if(tot>0) outp.push({u,d,h,tot,pct:+(100*tot/(6*N*N)).toFixed(2),per:Object.fromEntries(faces.map((k,i)=>[k,per[i]]).filter(([,v])=>v>0))});
   }
