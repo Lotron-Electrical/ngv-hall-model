@@ -218,6 +218,10 @@ body.paused #paused{display:flex}
 body.carrying #drop{display:block}
 #liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
 body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
+#wheels{position:absolute;left:24px;bottom:246px;display:none;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
+body.driving #wheels{display:block}
+#liftMode{font-size:18px!important;height:44px!important}
+@media (pointer:fine){#wheels{left:24px;bottom:120px} body.driving #liftBtns{left:130px;bottom:120px;flex-direction:row}}   /* on a desk the buttons are a legend beside the wheels: the keys do the work */
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
 @media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:46vw;text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}}
@@ -258,12 +262,21 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
-  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button></div></div>
+  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div>
+  <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls -->
+  <div id="wheels"><svg viewBox="0 0 90 120" width="90" height="120" aria-hidden="true">
+   <rect x="22" y="18" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
+   <g id="wfl" transform="translate(20,30)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
+   <g id="wfr" transform="translate(70,30)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
+   <rect x="15" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/><rect x="65" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/>
+   <path id="wfwd" d="M45 8 l-10 12 h20 z" fill="#b9a887" opacity="0"/><path id="wrev" d="M45 112 l-10 -12 h20 z" fill="#b9a887" opacity="0"/>
+   <text id="wmode" x="45" y="64" text-anchor="middle" fill="#fff" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="14" letter-spacing="1">FAST</text>
+  </svg></div></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
     <p>Fit 768 lights across the 12 Gandel Hall columns before the morning clean-up.</p>
-    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space jumps; on the lift, Space and Shift move the deck.</p>
+    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space jumps (twice in the air), Shift sprints; on the lift, Space and Shift move the deck, Q flips fast / slow.</p>
     <p>Phone: left stick moves, right stick looks (hold it over to keep turning), tap the message on the right to do what it says.</p>
     <p>On the lift, walk to the control box and ACTION to drive: forward and back drives, left and right steers the front wheels. ACTION again lets go so you can walk the deck and handle lights.</p>
     <button type="button" id="start">Start Shift</button>
@@ -4554,8 +4567,15 @@ function approachWarpT(from,r0,dur,t0){ const R=WARP.near+(WARP.far-WARP.near)*(
 // kick-in and its PEAK stays on the flash: the file's 1.7 s rise is played slower (pitch held) so it
 // spans the gap, and from the flash on the file is back on its own clock, the kaleidoscope and the
 // tour where they were. The slowest the rise goes is half speed: on a long dive the onset waits for that
-const BOOM_RATE_MIN=0.5;
-function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const to=Math.max(tw,arr-rise/BOOM_RATE_MIN); return {arr,tw,to,rate:Math.min(1,rise/Math.max(0.05,arr-to))}; }
+// (Lloyd, 2026-09-05, later: "the FOV boom comes in too late") the stretched rise put the boom's body
+// back at the flash. Now the crash plays at full speed from the kick-in, onset and peak, and it is the
+// DECAY after the peak that is slowed (half speed, pitch held) until the file has lost the gap to the
+// flash: it is back on its own clock 2 x gap after the peak, early in the kaleidoscope. The gap is
+// capped at BOOM_GAP_MAX; on a long dive the onset waits for that
+const BOOM_GAP_MAX=1.5, BOOM_DECAY_RATE=0.5;
+function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const to=Math.max(tw,arr-rise-BOOM_GAP_MAX); return {arr,tw,to,gap:Math.max(0,arr-to-rise)}; }
+// the file's place after the peak: slowed for 2 x gap, then on the flash's clock
+function boomDecayT(now,tp,gap){ const e=now-tp, slow=gap/(1-BOOM_DECAY_RATE); return e<slow?{t:TRACK.sw+e*BOOM_DECAY_RATE,rate:BOOM_DECAY_RATE}:{t:TRACK.sw+e-gap}; }
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
 function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachBoom(eye,r0,dur,now).to; }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
@@ -4567,11 +4587,11 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // (Lloyd, V3) the whoosh belongs to the TRANSITION: it starts on the last second of the dive, so
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
+function boomStart(now){ if(boom||tour)return; const dec=approach&&approach.to!=null?{tp:approach.t0+approach.to+(TRACK.sw-TRACK.bm),gap:approach.gap}:null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,dec}; fabSync();
  // (Lloyd, 2026-09-05) the crash is no longer on the flash: on a dive it went off at the fov's kick-in and the
  // file simply runs on; a free flight by hand still gets the crash here
- boom.off=TRACK.sw-now;   // the peak on the flash, as the mix was made
- if(TRACK.on&&Math.abs(TRACK.el.currentTime-(now+boom.off))>0.6)TRACK.el.currentTime=now+boom.off;   // (was: the crash on the flash); (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
+ boom.off=TRACK.sw-now;   // a free flight by hand: the peak on the flash, as the mix was made
+ { const want=trackWant(now); if(TRACK.on&&want&&want.t!=null&&Math.abs(TRACK.el.currentTime-want.t)>0.6)TRACK.el.currentTime=want.t; }   // (was: the crash on the flash); (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
@@ -4691,7 +4711,7 @@ function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); co
 function trackWant(now){
  if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
   return {t:TRACK.t0+acc+Math.max(0,Math.min(1,(now-T.t0)/sg.dur))*sg.dur, paused:tourPaused}; }
- if(boom)return {t:now+(boom.off!=null?boom.off:TRACK.sw-boom.t0)};
+ if(boom){ if(boom.dec)return boomDecayT(now,boom.dec.tp,boom.dec.gap); return {t:now+(boom.off!=null?boom.off:TRACK.sw-boom.t0)}; }
  // it joins the dive once its crash is due. An Event ticked mid-dive hides the object and the touch
  // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
  // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
@@ -4699,7 +4719,8 @@ function trackWant(now){
  // (Lloyd, 2026-09-05) the file's crash onset (bm) lands where the lens starts to open (A.tw), not on the
  // flash: from the orbit that is 1.5 s after the tap, not 3.2, and the file's quiet dip before the crash
  // is no longer what the tap is answered with
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.to-now; if(left>0){ const t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; } return {t:TRACK.bm-left*A.rate,rate:A.rate,join:true}; }
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.to-now; if(left>0){ const t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
+  const rise=TRACK.sw-TRACK.bm; if(-left<=rise)return {t:TRACK.bm-left,join:true}; return Object.assign(boomDecayT(now,A.t0+A.to+rise,A.gap),{join:true}); }
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
 // the bus every WebAudio sound (the float, the tap synth) goes through: a limiter, so the two
@@ -5161,6 +5182,7 @@ async function buildInstall(){
  wire('start',()=>installStart(G));
  wire('nextNight',()=>installNextNight(G));
  wire('guide',()=>{ if(G.install)G.install.setGuide(!G.install.guide); });
+ wire('liftMode',()=>{ player.modeQueued=true; });
  document.getElementById('prompt').textContent='Press Start Shift';
  document.getElementById('overlay').classList.remove('gone');
  document.getElementById('summary').classList.remove('up');
@@ -5233,6 +5255,11 @@ function installStep(dt,now){
  if(!lift.aboard&&!player.airborne)player.pos.y=world.floorY;   // off the deck you are on the floor, unless mid-jump (2026-09-05)
  document.body.classList.toggle('aboard',lift.aboard);
  document.body.classList.toggle('driving',lift.driving);
+ // the fast / slow toggle (Q, or the button) and the wheel indicator while driving
+ if(player.takeMode()&&lift.aboard){ const m=lift.toggleMode(); document.getElementById('liftMode').textContent=m.toUpperCase(); document.getElementById('wmode').textContent=m.toUpperCase(); snd.tone(m==='fast'?520:330,0.06,'sine',0.04); }
+ if(lift.driving){ const deg=(-lift.steer*180/Math.PI).toFixed(1), tr='rotate('+deg+')'; const fl=document.getElementById('wfl'), fr=document.getElementById('wfr');
+  fl.setAttribute('transform','translate(20,30) '+tr); fr.setAttribute('transform','translate(70,30) '+tr);
+  const k=lift.vmax?Math.min(1,Math.abs(lift.speed)/lift.vmax):0; document.getElementById('wfwd').setAttribute('opacity',lift.speed>0.01?(0.35+0.65*k).toFixed(2):'0'); document.getElementById('wrev').setAttribute('opacity',lift.speed<-0.01?(0.35+0.65*k).toFixed(2):'0'); }
  document.body.classList.toggle('carrying',!!player.carry);
  snd.motor(Math.abs(lift.height-oldLift)>0.002||Math.abs(lift.speed)>0.02,fx.level);
  snd.clock(clock.minute);
@@ -5252,7 +5279,7 @@ function installStep(dt,now){
  G.action=ITEMm.nearestAction(player,lift,install,items);
  if(player.takeAction())installInteract(G);
  clock.update(dt);
- G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,G.action,player.carry,body);
+ G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,lift.blocked?{label:lift.blocked,run:null,hint:true}:G.action,player.carry,body);
  if(clock.ended&&!document.getElementById('summary').classList.contains('up')){
   const fittedTonight=install.counts().fitted-clock.fittedAtStart;
   clock.running=false;
