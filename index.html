@@ -4545,7 +4545,11 @@ function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return;
 function approachArr(from,r0,dur,t0,R=1.55){ const C=portal.centre; let arr=dur; for(let i=0;i<=800;i++){ const q=i/800, e=q<0.5?2*q*q:1-2*(1-q)*(1-q); const r=r0+(1.2-r0)*e, y=from.y+(C.y+FLOAT(t0+q*dur)-from.y)*e; if(Math.hypot(r,y-C.y)<R){ arr=q*dur; break; } } return arr; }
 // (Lloyd, 2026-09-05: "the boom should play when the tesseract fov kicks in") the moment the same dive
 // crosses WARP.far, where the lens starts to open: the file's crash onset (TRACK.bm) is put there
-function approachWarpT(from,r0,dur,t0){ return Math.min(approachArr(from,r0,dur,t0,WARP.far),approachArr(from,r0,dur,t0)); }
+// WARP_BOOM_K: the warp strength at which the crash goes off. At WARP.far (k 0) nothing shows yet (Lloyd,
+// 2026-09-05: "way too early"); on screen the fisheye reads from k 0.1 to 0.3. From the orbit: k 0 is 1.9 s
+// after the tap, k 0.1 is 2.9 s, k 0.2 is 3.25 s, the flash 5.2 s
+const WARP_BOOM_K=0.1;
+function approachWarpT(from,r0,dur,t0){ const R=WARP.near+(WARP.far-WARP.near)*(1-Math.sqrt(WARP_BOOM_K)); return Math.min(approachArr(from,r0,dur,t0,R),approachArr(from,r0,dur,t0)); }
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
 function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachWarpT(eye,r0,dur,now); }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
