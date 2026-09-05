@@ -207,8 +207,8 @@ body.paused #paused{display:flex}
 #touch{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
 /* (Lloyd, 2026-09-05: "make the joysticks the same as free roam") the same ring, knob, labels and
    place as #sticks: 80 px ring with a 1 px white line, a 32 px white knob, MOVE and LOOK above,
-   70 px up from the bottom and 28 px in from the sides, half strength */
-#installUi .stick{position:absolute;bottom:70px;width:80px;height:80px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
+   70 px up from the stage's bottom edge (#installUi ends 44 px up, at the bar) and 28 px in, half strength */
+#installUi .stick{position:absolute;bottom:26px;width:80px;height:80px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
 #installUi .stick::before{content:attr(data-label);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:8px;color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 #installUi .stick.show{opacity:.5;transition:opacity 1.2s ease}   /* (Lloyd, 2026-09-04) the viewer's resting sticks: up until first used, then while held and a second after */   /* the #touch layer is pointer-events:none; the sticks must opt back in or no touch ever reaches them (2026-09-04: the controls did nothing on the phone) */
 #installUi .stick i{position:absolute;left:24px;top:24px;width:32px;height:32px;border-radius:50%;background:#fff}
@@ -5065,7 +5065,6 @@ async function buildInstall(){
  lit.house=1; {const h=document.getElementById('house'); h.value=100; document.getElementById('houseval').textContent='100%';}
  if(portal)portal.group.visible=false;
  entered=true; idle=false; roam=null; roamed=false; stopTour();
- document.getElementById('loader').classList.add('gone');
  // every gap carries a strip in install mode: the 768 slots are 12 columns x 8 gaps x 8 lights
  if(state.count!==GAPS){ state.count=GAPS; document.getElementById('cn').value=GAPS; rebuild(); }
  scene.background=new THREE.Color(0x08090b);
@@ -5131,6 +5130,10 @@ async function buildInstall(){
  resize();   // the stage just went full screen, so the renderer and the camera's aspect follow it
  IG=G; G.ready=true;
  installMask();
+ // (Lloyd, 2026-09-05: "free roam flashes for a moment") the first frame under the fading loader
+ // is the crew's, not the fly camera's: the eye is put where the player stands now, and the
+ // loader comes down in setInstall once the shift has been started
+ player.update(0,world,W.collideWorld);
  return G;
 }
 
@@ -5256,7 +5259,9 @@ function teardownInstall(){
  sceneDirty=true;
 }
 
-async function setInstall(on){
+// start: the shift begins at once (the loader's Install button); without it the Start Shift card
+// stands (the Menu checkbox). Either way the loader stays up until the hall is the crew's
+async function setInstall(on,{start=false}={}){
  const box=document.getElementById('install');
  if(installBusy){ box.checked=!!IG; return; }
  if(on&&IG)return; if(!on&&!IG)return;
@@ -5265,6 +5270,8 @@ async function setInstall(on){
   if(on){
    if(!hallGroup||!RUNS){ box.checked=false; document.getElementById('prompt').textContent='The hall is still loading.'; return; }
    await buildInstall();
+   if(start)installStart(IG);
+   document.getElementById('loader').classList.add('gone');
   } else teardownInstall();
  }catch(e){ console.error(e); teardownInstall(); box.checked=false; }
  finally{ installBusy=false; box.checked=!!IG; }
@@ -5350,7 +5357,7 @@ document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2
   // crew's. Only the sound gesture is taken from Enter, not its unveiling
   if(INSTALL_OK){ b.hidden=false; b.onclick=async()=>{ entered=true; idle=false; idleT0=null; if(portal)portal.group.visible=false; fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{});
    b.disabled=true; document.getElementById('enter').disabled=true;
-   const box=document.getElementById('install'); box.checked=true; await setInstall(true); if(IG&&!document.body.classList.contains('playing'))installStart(IG);
+   const box=document.getElementById('install'); box.checked=true; await setInstall(true,{start:true});
    b.disabled=false; document.getElementById('enter').disabled=false; }; } }
 document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); roamStart(); };
