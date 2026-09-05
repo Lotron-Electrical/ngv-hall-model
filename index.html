@@ -4588,7 +4588,10 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  const b=smooth(Math.min(1,(now-A.t0)/2)); let dy=yaw-A.yaw0; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw=A.yaw0+dy*b; pitch=A.pitch0+(pitch-A.pitch0)*b;
  // (Lloyd, V3) the whoosh belongs to the TRANSITION: it starts on the last second of the dive, so
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
- if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
+ // (Lloyd, 2026-09-05: "when I click on the tesseract it starts too late") the whoosh answers the TAP:
+ // it swells over its first second and washes down through the dive to the crash. The flash's own
+ // whoosh still comes from boomStart, which fires one when the last was over 3 s ago
+ if(!A.wh){ A.wh=1; sndBoom(); } }
 function boomStart(now){ if(boom||tour)return; const dec=approach&&approach.to!=null?{tp:approach.t0+approach.to+(TRACK.sw-TRACK.bm),gap:approach.gap}:null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,dec}; fabSync();
  // (Lloyd, 2026-09-05) the crash is no longer on the flash: on a dive it went off at the fov's kick-in and the
  // file simply runs on; a free flight by hand still gets the crash here
@@ -4754,7 +4757,9 @@ function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=
  const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc||TAP.on)&&!TRACK.hidden;
  // on a free flight by hand (no dive) the bed's chord and riser are the build-up, so the bed stays up over the float
  const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
- floatStep(now,TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
+ // (2026-09-05) on a dive the float holds until the crash's onset and goes out under it (the file's stretch
+ // before the crash is its quiet dip: fading the float into that read as the sound dropping out on the tap)
+ floatStep(now,approach&&approach.to!=null&&TRACK.join!=null?Math.max(0,now-(approach.t0+approach.to-0.8)):TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
  keepStep(now,(!!TRACK.flSrc||TAP.on)&&a.paused&&!TRACK.hidden);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; }
   // (Lloyd, 2026-09-03: the sound designer's file came in a little late on the tap) while the object
