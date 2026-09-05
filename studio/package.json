@@ -1,0 +1,6 @@
+{
+  "name": "ngv-studio-tests",
+  "private": true,
+  "description": "npm test drives the studio's two browser test pages in real Chrome (see run-tests.cjs)",
+  "scripts": { "test": "node run-tests.cjs" }
+}
