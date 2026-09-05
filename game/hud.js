@@ -16,7 +16,7 @@ export function updateHud(el, prompt, clock, install, action, carry, body) {
   const held = carry ? `<small>Holding ${carry.type}</small>` : '';
   prompt.innerHTML = `${action.label}${held}`;
   prompt.classList.toggle('can', !!action.run);
-  prompt.hidden = !action.run;   // (Lloyd, 2026-09-05: "remove the no action nearby") the pill is up only when there is something to do
+  prompt.hidden = !action.run && !action.hint;   // (Lloyd, 2026-09-05: "remove the no action nearby") the pill is up only when there is something to do, or something to say (a hint)
 }
 
 export function showSummary(root, textEl, clock, fittedTonight, clean) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { hallToWorld } from './world.js';
+import { hallToWorld, worldToHall, HALL } from './world.js';
 
 // (Lloyd, 2026-09-04: "the scissor lift should drive more like a real scissor lift", and
 // "once we're on the scissor lift, we should walk up to the control panel and then choose to
@@ -25,6 +25,11 @@ export class Lift {
     this.deckLocal = new THREE.Vector2(-0.7, 0);  // where you stand on the deck (chassis coordinates)
     this.speed = 0;                               // m/s along the heading, negative in reverse
     this.steer = 0;                               // front-wheel angle, radians
+    // (Lloyd, 2026-09-05: "a fast and slow mode for the scissor") slow is 40 % of the drive and
+    // half the deck's rate, for lining up on a column. Q or the button toggles it
+    this.mode = 'fast';
+    this.vmax = 0;                                // the drive limit this frame, for the wheel indicator
+    this.atDoorway = false;                       // within the doorway's reach (the crouch, the deck guard)
     this.box = null;
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
@@ -232,6 +237,9 @@ export class Lift {
     if (done) { if (A.dir < 0) this.finishLeave(player); else { this.anim = null; this.deckLocal.copy(Lift.DOOR); player.eye = Lift.EYE; this.place(player); } }
   }
   takeControls(player) { this.driving = true; this.deckLocal.copy(Lift.PANEL); this.place(player); }
+  toggleMode() { this.mode = this.mode === 'fast' ? 'slow' : 'fast'; return this.mode; }
+  // how far the machine stands from the doorway's wall line, along the hall (metres, signed: negative in the hall)
+  doorDist() { return worldToHall(this.pos).u - HALL.doorU; }
   letGo() { this.driving = false; this.speed = 0; }
 
   place(player) {
@@ -252,6 +260,11 @@ export class Lift {
     else if (this.aboard && this.driving) this.drive(dt, player, world, collide);
     else if (this.aboard) this.walkDeck(dt, player);
     else if (this.speed) this.speed = 0;
+    // (Lloyd, 2026-09-05: "when we are on the scissor and going out the doors, we should duck")
+    // the header bar sits 3 m up and a standing eye on the stowed deck is 2.93: within 2.2 m of
+    // the doorway anyone aboard crouches to an eye of 0.95 above the deck, and stands again past it
+    this.atDoorway = this.aboard && !this.anim && Math.abs(this.doorDist()) < 2.2;
+    if (this.aboard && !this.anim) player.eye = THREE.MathUtils.damp(player.eye, this.atDoorway ? 0.95 : Lift.EYE, 7, dt);
     this.refresh();
   }
 
@@ -267,15 +280,16 @@ export class Lift {
   // at the controls: forward/back is the drive joystick, left/right the steer, UP/DOWN the deck.
   // Genie GS-2646 figures: 3.5 km/h stowed, 0.8 km/h raised, wheelbase about 1.8 m
   drive(dt, player, world, collide) {
-    const scale = player.speedScale;
-    if (player.liftUp) this.height += dt * 0.5 * scale;
-    if (player.liftDown) this.height -= dt * 0.5 * scale;
+    const scale = player.speedScale, slow = this.mode === 'slow';
+    if (player.liftUp) this.height += dt * 0.5 * scale * (slow ? 0.5 : 1);
+    if (player.liftDown) this.height -= dt * 0.5 * scale * (slow ? 0.5 : 1);
     this.height = THREE.MathUtils.clamp(this.height, 0, 11.6);
 
     const { forward, strafe } = this.input(player);
     // the deck up = creep speed: the limit eases in over the first half metre of lift
     const raised = THREE.MathUtils.smoothstep(this.height, 0.3, 0.9);
-    const vmax = THREE.MathUtils.lerp(0.97, 0.22, raised) * scale;
+    const vmax = THREE.MathUtils.lerp(0.97, 0.22, raised) * scale * (slow ? 0.4 : 1);
+    this.vmax = vmax;
     const target = forward * vmax;
     // the drive ramps up over about a second and brakes harder than it accelerates when the
     // stick is let go (hydrostatic drive: no coasting)
@@ -303,6 +317,11 @@ export class Lift {
     // off a pallet corner slides the machine along instead of wedging it
     const push = this.pos.clone().sub(wanted);
     if (push.lengthSq() > 1e-6 && push.dot(heading) * Math.sign(this.speed || 1) < -0.6 * push.length()) this.speed = 0;
+    // the doorway takes a stowed machine only: with the deck up the rail cage meets the header,
+    // so the machine stops at the wall line and the prompt says why (index.html reads blocked)
+    { const d0 = worldToHall(before).u - HALL.doorU, d1 = this.doorDist();
+      if (this.height > 0.45 && Math.abs(d1) < 1.3 && Math.abs(d1) < Math.abs(d0)) { this.pos.copy(before); this.speed = 0; this.blocked = 'Lower the deck to pass the doorway'; }
+      else this.blocked = null; }
     this.travelled = (this.travelled || 0) + this.pos.distanceTo(before);
     for (const W of this.wheels) W.w.rotation.z -= (this.speed * dt) / 0.22;
     this.place(player);

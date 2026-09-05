@@ -16,7 +16,7 @@ export class Player {
     this.liftUp = false;
     this.liftDown = false;
     this.onLift = false;
-    this.airborne = false; this.vy = 0; this.jumpQueued = false;   // the jump: 3.4 m/s up is a 0.6 m hop under 9.8 m/s2
+    this.airborne = false; this.vy = 0; this.jumpQueued = false; this.jumpsLeft = 2;   // the jump: 3.4 m/s up is a 0.6 m hop under 9.8 m/s2; two per flight
     this.carry = null;
     this.speedScale = 1;
     // (2026-09-04) install mode inside the sim can be switched off again, so every listener bind()
@@ -55,10 +55,12 @@ export class Player {
     this.on(window, 'keydown', (e) => {
       if (e.code === 'KeyE') this.actionQueued = true;
       if (e.code === 'KeyF') this.dropQueued = true;
+      if (e.code === 'KeyQ' && !e.repeat) this.modeQueued = true;   // the lift's fast / slow (2026-09-05)
       // (Lloyd, 2026-09-05: "add spacebar jump") on the floor Space is a jump; aboard the lift it
       // stays the deck's UP. One jump at a time, from the ground only
-      if (e.code === 'Space') { if (this.onLift) this.liftUp = true; else if (!e.repeat && !this.airborne) this.jumpQueued = true; }
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.liftDown = true;
+      // (Lloyd, 2026-09-05: "add a double jump") a second press in the air jumps again, once
+      if (e.code === 'Space') { if (this.onLift) this.liftUp = true; else if (!e.repeat && this.jumpsLeft > 0) this.jumpQueued = true; }
+      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && this.onLift) this.liftDown = true;
       this.keys.add(e.code);
     });
     this.on(window, 'keyup', (e) => {
@@ -182,15 +184,22 @@ export class Player {
       const strafe = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0) + this.move.x;
       const v = new THREE.Vector3(strafe, 0, -forward).clampLength(0, 1);
       v.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
-      this.pos.addScaledVector(v, dt * 3.3 * this.speedScale);
+      // (Lloyd, 2026-09-05: "shift to sprint, which will increase FOV") Shift held on the floor is a
+      // sprint, 1.7x the walk, and the view widens by 12 degrees while you are actually moving fast
+      this.sprinting = (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')) && v.lengthSq() > 0;
+      this.pos.addScaledVector(v, dt * 3.3 * this.speedScale * (this.sprinting ? 1.7 : 1));
       // standing still is standing still: no push, so nothing can slide you (2026-09-04)
       if (v.lengthSq() > 0) collide(this.pos, 0.32, world, this.ignore || []);
       // the jump rides on top of the walk: the floor is where the feet were when they left it
-      if (this.jumpQueued) { this.jumpQueued = false; if (!this.airborne) { this.airborne = true; this.ground = this.pos.y; this.vy = 3.4; } }
-      if (this.airborne) { this.vy -= 9.8 * dt; this.pos.y += this.vy * dt; if (this.pos.y <= this.ground) { this.pos.y = this.ground; this.vy = 0; this.airborne = false; } }
-    } else { this.airborne = false; this.vy = 0; this.jumpQueued = false; }
+      if (this.jumpQueued) { this.jumpQueued = false; if (this.jumpsLeft > 0) { if (!this.airborne) { this.airborne = true; this.ground = this.pos.y; } this.jumpsLeft--; this.vy = 3.4; } }
+      if (this.airborne) { this.vy -= 9.8 * dt; this.pos.y += this.vy * dt; if (this.pos.y <= this.ground) { this.pos.y = this.ground; this.vy = 0; this.airborne = false; this.jumpsLeft = 2; } }
+    } else { this.airborne = false; this.vy = 0; this.jumpQueued = false; this.jumpsLeft = 2; }
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    // the sprint's field of view eases in and out over about a quarter of a second. fx.js owns the
+    // camera's fov (it breathes it in the small hours and puts it back every frame), so the sprint
+    // is an EXTRA it adds on top, not a write here
+    this.fovExtra = (this.fovExtra || 0) + ((this.sprinting && !this.onLift ? 12 : 0) - (this.fovExtra || 0)) * Math.min(1, dt * 9);
   }
 
   takeAction() {
@@ -199,6 +208,7 @@ export class Player {
     return v;
   }
 
+  takeMode() { const q = !!this.modeQueued; this.modeQueued = false; return q; }
   takeDrop() {
     const v = this.dropQueued;
     this.dropQueued = false;

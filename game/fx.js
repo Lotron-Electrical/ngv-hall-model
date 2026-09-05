@@ -33,9 +33,11 @@ export class Fx {
     // the tired eye: a vignette that closes in from 01:00 and pulses in the small hours
     const tired = body ? Math.max(0, Math.min(1, (body.fatigue - 30) / 50)) : 0;
     if (this.vignette) this.vignette.style.opacity = (tired * 0.55 + k * 0.25 * (0.5 + 0.5 * Math.sin(this.t * 0.7))).toFixed(3);
-    if (L <= 0) { this.reset(); return; }
+    // (2026-09-05) the sprint widens the view: the player's extra rides on the base, before the breathing
+    const base = this.baseFov + (player && player.fovExtra ? player.fovExtra : 0);
+    if (L <= 0) { this.reset(base); return; }
     // the view breathes and rolls a little; the columns lean
-    this.camera.fov = this.baseFov + Math.sin(this.t * 0.45) * 4 * k; this.camera.updateProjectionMatrix();
+    this.camera.fov = base + Math.sin(this.t * 0.45) * 4 * k; this.camera.updateProjectionMatrix();
     this.camera.rotation.z = Math.sin(this.t * 0.6) * 0.02 * k;
     if (this.hall) this.hall.rotation.z = Math.sin(this.t * 0.23) * 0.012 * k;
     // colours drift: the background warms and cools with a slow tide
@@ -60,8 +62,8 @@ export class Fx {
     if (this.ghost && this.t > this.ghostUntil) { this.scene.remove(this.ghost); this.ghost = null; this.nextGhost = this.t + 25 + Math.random() * 50 / Math.max(0.3, L); }
   }
 
-  reset() {
-    if (this.camera.fov !== this.baseFov) { this.camera.fov = this.baseFov; this.camera.updateProjectionMatrix(); }
+  reset(base = this.baseFov) {
+    if (Math.abs(this.camera.fov - base) > 0.01) { this.camera.fov = base; this.camera.updateProjectionMatrix(); }
     this.camera.rotation.z = 0;
     if (this.hall) this.hall.rotation.z = 0;
     this.scene.background = this.bg;
