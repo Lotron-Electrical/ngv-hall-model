@@ -221,7 +221,7 @@ body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves fro
 #wheels{position:absolute;left:24px;bottom:246px;display:none;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
 body.driving #wheels{display:block}
 #liftMode{font-size:18px!important;height:44px!important}
-@media (pointer:fine){#wheels{left:24px;bottom:120px} body.driving #liftBtns{left:130px;bottom:120px;flex-direction:row}}   /* on a desk the buttons are a legend beside the wheels: the keys do the work */
+@media (pointer:fine){#wheels{left:24px;bottom:24px}}   /* on a desk the keys do the work (Q flips fast / slow); the plan sits in the corner */
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
 @media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:46vw;text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}}
@@ -262,8 +262,8 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
-  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div>
-  <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls -->
+  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
+  <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls. Outside #touch, so a desk sees it too -->
   <div id="wheels"><svg viewBox="0 0 90 120" width="90" height="120" aria-hidden="true">
    <rect x="22" y="18" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
    <g id="wfl" transform="translate(20,30)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
@@ -271,7 +271,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
    <rect x="15" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/><rect x="65" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/>
    <path id="wfwd" d="M45 8 l-10 12 h20 z" fill="#b9a887" opacity="0"/><path id="wrev" d="M45 112 l-10 -12 h20 z" fill="#b9a887" opacity="0"/>
    <text id="wmode" x="45" y="64" text-anchor="middle" fill="#fff" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="14" letter-spacing="1">FAST</text>
-  </svg></div></div>
+  </svg></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
@@ -4573,7 +4573,9 @@ function approachWarpT(from,r0,dur,t0){ const R=WARP.near+(WARP.far-WARP.near)*(
 // flash: it is back on its own clock 2 x gap after the peak, early in the kaleidoscope. The gap is
 // capped at BOOM_GAP_MAX; on a long dive the onset waits for that
 const BOOM_GAP_MAX=1.5, BOOM_DECAY_RATE=0.5;
-function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const to=Math.max(tw,arr-rise-BOOM_GAP_MAX); return {arr,tw,to,gap:Math.max(0,arr-to-rise)}; }
+// (Lloyd, 2026-09-05, last word: "the boom should peak when the fov peaks") the crash's PEAK is put where the
+// warp reaches full (k 1, the eye at WARP.near), a beat before the flash; the onset is one rise before it
+function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const tp=Math.min(arr,approachArr(from,r0,dur,t0,WARP.near)); const to=Math.max(0,tp-rise); return {arr,tw,to,gap:Math.max(0,arr-to-rise)}; }
 // the file's place after the peak: slowed for 2 x gap, then on the flash's clock
 function boomDecayT(now,tp,gap){ const e=now-tp, slow=gap/(1-BOOM_DECAY_RATE); return e<slow?{t:TRACK.sw+e*BOOM_DECAY_RATE,rate:BOOM_DECAY_RATE}:{t:TRACK.sw+e-gap}; }
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
@@ -5161,7 +5163,7 @@ async function buildInstall(){
  const player=new PLm.Player(cam,cv);
  player.bind({prompt:document.getElementById('prompt'), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
   drop:document.getElementById('drop'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
- const items=ITEMm.createItems(G.group,world,cam);
+ const items=ITEMm.createItems(G.group,world,cam,W.collideWorld);
  const lift=new LIFTm.Lift(G.group,world.floorY); items.lift=lift;
  const clock=new CLKm.GameClock(saved), body=new BODYm.Body();
  player.body=body;
@@ -5274,7 +5276,9 @@ function installStep(dt,now){
  if(G.guideShown!==install.guide){ G.guideShown=install.guide; const b=document.getElementById('guide');
   b.textContent=install.guide?'Guide on':'Guide off'; b.classList.toggle('off',!install.guide); }
  fx.update(dt,clock,player,body);
- ITEMm.updateItems(player,lift,items);
+ ITEMm.updateItems(player,lift,items,dt);
+ // (Lloyd, 2026-09-05: "black until turned on") the column's last bar in: the crew's test-fire
+ if(install.justPowered){ const c=install.justPowered; install.justPowered=null; installToast(G,'Column '+c+' powered up'); snd.tone(440,0.12,'sine',0.06); setTimeout(()=>snd.tone(660,0.14,'sine',0.06),120); setTimeout(()=>snd.tone(880,0.2,'sine',0.06),240); }
  if(player.takeDrop()&&!lift.anim){ ITEMm.dropCarry(player,items); snd.thud(); }
  G.action=ITEMm.nearestAction(player,lift,install,items);
  if(player.takeAction())installInteract(G);
