@@ -4540,7 +4540,7 @@ function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return;
  // where the dive lands: frame() sets the scene off once the eye is inside 1.55 m of the centre,
  // so the same ease is walked here, with the object's float at each future moment, to find that
  // moment and the soundtrack's crash is put on it
- approach.arr=approachArr(approach.from,approach.r0,approach.dur,approach.t0); approach.tw=approachWarpT(approach.from,approach.r0,approach.dur,approach.t0); }
+ Object.assign(approach,approachBoom(approach.from,approach.r0,approach.dur,approach.t0)); }
 // the landing time for a dive from `from`: the same ease frame() walks, against the object's float
 function approachArr(from,r0,dur,t0,R=1.55){ const C=portal.centre; let arr=dur; for(let i=0;i<=800;i++){ const q=i/800, e=q<0.5?2*q*q:1-2*(1-q)*(1-q); const r=r0+(1.2-r0)*e, y=from.y+(C.y+FLOAT(t0+q*dur)-from.y)*e; if(Math.hypot(r,y-C.y)<R){ arr=q*dur; break; } } return arr; }
 // (Lloyd, 2026-09-05: "the boom should play when the tesseract fov kicks in") the moment the same dive
@@ -4550,8 +4550,14 @@ function approachArr(from,r0,dur,t0,R=1.55){ const C=portal.centre; let arr=dur;
 // after the tap, k 0.1 is 2.9 s, k 0.2 is 3.25 s, the flash 5.2 s
 const WARP_BOOM_K=0.1;
 function approachWarpT(from,r0,dur,t0){ const R=WARP.near+(WARP.far-WARP.near)*(1-Math.sqrt(WARP_BOOM_K)); return Math.min(approachArr(from,r0,dur,t0,R),approachArr(from,r0,dur,t0)); }
+// (Lloyd, 2026-09-05: "the start was right, but the rest was way too early") the crash's onset is at the
+// kick-in and its PEAK stays on the flash: the file's 1.7 s rise is played slower (pitch held) so it
+// spans the gap, and from the flash on the file is back on its own clock, the kaleidoscope and the
+// tour where they were. The slowest the rise goes is half speed: on a long dive the onset waits for that
+const BOOM_RATE_MIN=0.5;
+function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const to=Math.max(tw,arr-rise/BOOM_RATE_MIN); return {arr,tw,to,rate:Math.min(1,rise/Math.max(0.05,arr-to))}; }
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
-function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachWarpT(eye,r0,dur,now); }
+function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachBoom(eye,r0,dur,now).to; }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
@@ -4561,10 +4567,10 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // (Lloyd, V3) the whoosh belongs to the TRANSITION: it starts on the last second of the dive, so
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
-function boomStart(now){ if(boom||tour)return; const appr=approach&&approach.tw!=null?TRACK.bm-(approach.t0+approach.tw):null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,appr}; fabSync();
+function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
  // (Lloyd, 2026-09-05) the crash is no longer on the flash: on a dive it went off at the fov's kick-in and the
  // file simply runs on; a free flight by hand still gets the crash here
- boom.off=(boom.appr!=null)?boom.appr:TRACK.sw-now;
+ boom.off=TRACK.sw-now;   // the peak on the flash, as the mix was made
  if(TRACK.on&&Math.abs(TRACK.el.currentTime-(now+boom.off))>0.6)TRACK.el.currentTime=now+boom.off;   // (was: the crash on the flash); (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
@@ -4693,7 +4699,7 @@ function trackWant(now){
  // (Lloyd, 2026-09-05) the file's crash onset (bm) lands where the lens starts to open (A.tw), not on the
  // flash: from the orbit that is 1.5 s after the tap, not 3.2, and the file's quiet dip before the crash
  // is no longer what the tap is answered with
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.tw-now, t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.to-now; if(left>0){ const t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; } return {t:TRACK.bm-left*A.rate,rate:A.rate,join:true}; }
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
 // the bus every WebAudio sound (the float, the tap synth) goes through: a limiter, so the two
@@ -4751,10 +4757,11 @@ function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=
  // kaleidoscope put the page's clock ahead and the file skipped to catch up. Now small drift is
  // pulled in by playing a touch faster or slower (up to 5%, the pitch going with it, a fraction of a
  // semitone), and only a real miss, 0.6 s or more, is seeked. The page's clock still wins, gently
- if(!w.free&&!a.seeking){ const drift=a.currentTime-w.t;
-  if(Math.abs(drift)>0.6){ a.currentTime=w.t; a.playbackRate=1; }
-  else { const rate=Math.abs(drift)<0.02?1:Math.max(0.95,Math.min(1.05,1-drift*0.5)); if(Math.abs(a.playbackRate-rate)>0.002)a.playbackRate=rate; } }
- else if(a.playbackRate!==1)a.playbackRate=1;
+ if(!w.free&&!a.seeking){ const drift=a.currentTime-w.t, base=w.rate||1;   /* base < 1: the crash's rise stretched onto the dive (approachBoom), pitch held */
+  if(a.preservesPitch!==(base<0.999))a.preservesPitch=base<0.999;
+  if(Math.abs(drift)>0.6){ a.currentTime=w.t; a.playbackRate=base; }
+  else { const rate=base*(Math.abs(drift)<0.02?1:Math.max(0.95,Math.min(1.05,1-drift*0.5))); if(Math.abs(a.playbackRate-rate)>0.002)a.playbackRate=rate; } }
+ else { if(a.playbackRate!==1)a.playbackRate=1; if(a.preservesPitch)a.preservesPitch=false; }
  if(a.paused&&!a.ended&&now>TRACK.ask){ TRACK.ask=now+0.5; const p=a.play(); if(p)p.catch(()=>{}); } }   // asked again every half second until the browser allows it
 function boomRender(now){ const s=now-boom.t0; const T=BOOM_T;
  if(s>T.kal+T.iris+T.hold){ boom=null; const f=document.getElementById('flash'); f.style.transition='none'; f.style.background='#000'; f.style.opacity=1; startTour();
