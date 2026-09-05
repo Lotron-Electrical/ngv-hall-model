@@ -230,9 +230,12 @@ body.install #installUi{bottom:44px}   /* clear of the bar */
 html.embed main>*:not(#stage){display:none!important}
 html.embed #stage{height:100vh;min-height:0;border:0}
 html.embed,html.embed body{overflow:hidden;height:100%}
-html.embed body,html.embed main{margin:0;padding:0;max-width:none}   /* the stage fills the frame; the 960px cap left a dead right side in wide embeds (Lloyd, on the tour video) */
+html.embed body,html.embed main{margin:0;padding:0;max-width:none}
+/* ?bare (the studio's hall panel, 2026-09-05): the stage alone, no button bar, no resting sticks,
+   no rest buttons. The studio has its own controls; these read as clutter beside them */
+html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!important}   /* the stage fills the frame; the 960px cap left a dead right side in wide embeds (Lloyd, on the tour video) */
 </style></head><body><main>
-<script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
+<script>{const q=new URLSearchParams(location.search); if(q.has('embed'))document.documentElement.classList.add('embed'); if(q.has('bare'))document.documentElement.classList.add('bare');}</script>
 <header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
 <div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="enterInstall" hidden>The Install</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
@@ -5070,6 +5073,14 @@ async function buildInstall(){
  // the shift and comes back with the sim. The corridor has its own walls
  hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=false; });
  if(court)court.visible=false;   // the partner sculptures are the proposal's; the crew's hall has the bare wall
+ // (Lloyd, 2026-09-05: "when the doors open, they show a wall") the scan's end wall runs solid
+ // across the doorway at u 48.9; the photo shader already knows how to cut a door (the court's
+ // glazing uses it), so the same cut is turned on the end wall for the shift: 2.6 m wide, 3.05 m
+ // high, 0.6 m deep either side of the wall line. Every material's own values come back after
+ G.savedDoor=[];
+ { const c=W.hallToWorld(48.9,7.5,FLOOR_Y), along=new THREE.Vector3(0.219196,0,-0.975681), thru=new THREE.Vector3(0.975681,0,0.219196);
+   for(const m of photoMats){ const U=m.uniforms; if(!U||!U.door)continue; G.savedDoor.push([m,U.door.value.clone(),U.doorC.value.clone(),U.doorU.value.clone(),U.doorN.value.clone()]);
+     U.door.value.set(1,1.3,3.05,0.6); U.doorC.value.copy(c); U.doorU.value.copy(along); U.doorN.value.copy(thru); } }
  G.group=new THREE.Group(); G.group.name='install'; scene.add(G.group);
  const fill=new THREE.DirectionalLight(0xffffff,0.6); fill.position.set(-18,18,8); G.group.add(fill);
  const world=W.makeWorld(FLOOR_Y); world.hallScene=hallGroup; world.hallSway=hallSway;
@@ -5233,6 +5244,7 @@ function teardownInstall(){
  if(state.count!==G.saved.count){ state.count=G.saved.count; document.getElementById('cn').value=G.saved.count; rebuild(); }
  hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=true; });
  if(court)court.visible=document.getElementById('court').checked;
+ for(const [m,d,c,u,n] of G.savedDoor||[]){ m.uniforms.door.value.copy(d); m.uniforms.doorC.value.copy(c); m.uniforms.doorU.value.copy(u); m.uniforms.doorN.value.copy(n); }
  document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
  document.getElementById('installUi').classList.remove('on');
  document.getElementById('vignette').style.opacity='';

@@ -144,9 +144,11 @@ export function buildProps(scene, world) {
     scene.add(l);
   }
   const doorFrame = new THREE.MeshStandardMaterial({ color: 0xb9a887, roughness: 0.65 });
-  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.6, 6.15, world.floorY + 1.5), doorFrame));
-  scene.add(makeBox(new THREE.Vector3(0.25, 3, 0.15), hallToWorld(48.6, 8.85, world.floorY + 1.5), doorFrame));
-  scene.add(makeBox(new THREE.Vector3(2.7, 0.15, 0.15), hallToWorld(48.6, 7.5, world.floorY + 3), doorFrame));
+  // (Lloyd, 2026-09-05: "some weird bar above the doors") the frame stands in the hall frame like
+  // every other box; the header used to lie on the world x axis, 12.7 degrees off the wall
+  makeHallBox(scene, 48.6, 6.15, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
+  makeHallBox(scene, 48.6, 8.85, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
+  makeHallBox(scene, 48.6, 7.5, world.floorY + 3, 0.25, 2.85, 0.15, doorFrame);
 
   // (Lloyd, 2026-09-04) the storage doorway is a pair of DOUBLE DOORS: two 1.25 m leaves hinged on
   // the jambs, swinging into the corridor as anyone (or the lift) comes within reach, closing
