@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio engine test</title>
+<style>
+ body{background:#0d0f14;color:#dfe6f2;font:13px/1.5 ui-monospace,Consolas,monospace;margin:0;padding:16px}
+ h1{font-size:15px;margin:0 0 10px;color:#7fd4ff}
+ pre{white-space:pre-wrap;word-break:break-word;background:#151922;border:1px solid #263041;border-radius:6px;padding:12px;margin:0 0 12px}
+ .ok{color:#5fd4a8} .bad{color:#ff6b6b}
+</style>
+</head>
+<body>
+<h1>Studio engine test</h1>
+<pre id="out">running...</pre>
+<pre id="notes"></pre>
+
+<script src="../show/lightshow.js"></script>
+<script src="model.js"></script>
+<script src="machines.js"></script>
+<script src="engine.js"></script>
+<script>
+'use strict';
+// Renders the demo project offline, then renders each machine on its own to prove every voice
+// makes sound, then does a live check: two seconds of pattern mode with the analyser reading.
+const out=document.getElementById('out'), notes=document.getElementById('notes');
+const r4=x=>Math.round(x*10000)/10000;
+
+function measure(buf){
+ let peak=0,sum=0,n=0;
+ for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c);
+  for(let i=0;i<d.length;i++){ const v=d[i]; const a=v<0?-v:v; if(a>peak)peak=a; sum+=v*v; n++; } }
+ return {peak:r4(peak), rms:r4(Math.sqrt(sum/Math.max(1,n)))};
+}
+
+async function run(){
+ const res={ok:false, seconds:0, peak:0, rms:0, perMachinePeak:{}};
+ const fails=[];
+ try{
+  const proj=Studio.demoProject();
+  const eng=Studio.createEngine({project:()=>proj});
+
+  const buf=await eng.render(proj);
+  const m=measure(buf);
+  res.seconds=r4(buf.duration); res.peak=m.peak; res.rms=m.rms;
+
+  // each machine on its own, through the same graph, by soloing it
+  for(const mac of proj.machines){
+   const solo=Studio.clone(proj);
+   solo.machines.forEach(x=>{ x.solo=(x.name===mac.name&&x.type===mac.type); });
+   const e2=Studio.createEngine({project:()=>solo});
+   const b2=await e2.render(solo);
+   res.perMachinePeak[mac.name]=measure(b2).peak;
+  }
+
+  // the checks the spec asks for: every machine that has notes and makes sound is audible, the
+  // mix is loud but under the limiter
+  for(const mac of proj.machines){
+   if(mac.type==='lights')continue;                       // the Lights machine has no audio by design
+   const p=mac.patterns[mac.curPat];
+   if(!p||!p.notes.length)continue;
+   if(!(res.perMachinePeak[mac.name]>0.05))fails.push('machine '+mac.name+' peak '+res.perMachinePeak[mac.name]+' <= 0.05');
+  }
+  if(!(res.peak<1.0))fails.push('mix peak '+res.peak+' >= 1.0');
+  if(!(res.peak>0.3))fails.push('mix peak '+res.peak+' <= 0.3');
+
+  // the demo project uses neither the FMSynth nor any insert effect, so prove those separately:
+  // one machine per synth type through each effect in turn, with both master sends open
+  res.extras={};
+  for(const type of ['subsynth','bassline','padsynth','fmsynth','beatbox']){
+   for(const fx of Object.keys(Studio.FX_TYPES)){
+    const key=type+'/'+fx;
+    try{
+     const pr=Studio.newProject('t'); const mac=Studio.newMachine(type,'T');
+     mac.fx[0]=Studio.newFx(fx); mac.send.delay=0.3; mac.send.reverb=0.3;
+     const pat=mac.patterns.A1;
+     // long notes, because a pad with a 0.4 s attack never gets off the ground on short ones
+     Studio.resizePattern(pat,2);
+     for(let i=0;i<32;i+=8)Studio.addNote(pat,{s:i,n:type==='beatbox'?(i/8)%8:48+i/2,v:0.9,l:8});
+     pr.machines.push(mac); Studio.placeBlock(pr,mac.id,0,'A1',2);
+     const e=Studio.createEngine({project:()=>pr});
+     const b=await e.render(pr);
+     res.extras[key]=measure(b).peak;
+     if(!(res.extras[key]>0.02))fails.push(key+' peak '+res.extras[key]+' <= 0.02');
+    }catch(err){ res.extras[key]='ERR '+err.message; fails.push(key+' threw: '+err.message); }
+   }
+  }
+
+  // live check: pattern mode for two seconds
+  const live={};
+  try{
+   const eng3=Studio.createEngine({project:()=>proj});
+   eng3.init();
+   if(eng3.ac.state!=='running')await eng3.ac.resume().catch(()=>{});
+   eng3.play({mode:'pattern',fromStep:0});
+   const band={bass:0,mid:0,high:0,rms:0,onset:0};
+   let maxRms=0;
+   await new Promise(done=>{
+    const t0=performance.now();
+    (function loop(){
+     if(eng3.analyser){ eng3.analyser.read(band); if(band.rms>maxRms)maxRms=band.rms; }
+     if(performance.now()-t0<2000)requestAnimationFrame(loop); else done();
+    })();
+   });
+   live.step=r4(eng3.pos().step);
+   live.rms=r4(maxRms);
+   live.state=eng3.ac.state;
+   eng3.stop();
+   if(!(live.step>8))fails.push('live step '+live.step+' <= 8');
+   if(!(live.rms>0))fails.push('live analyser rms '+live.rms+' <= 0');
+  }catch(e){ fails.push('live check threw: '+e.message); }
+  res.live=live;
+
+  res.ok=fails.length===0;
+ }catch(e){ fails.push('threw: '+e.message); res.error=String(e&&e.stack||e); }
+
+ res.fails=fails;
+ const line=JSON.stringify(res);
+ out.textContent=line;
+ out.className=res.ok?'ok':'bad';
+ notes.textContent=fails.length?fails.join('\n'):'all checks passed';
+ window.RESULT=res;
+ window.DONE=true;
+ console.log(line);
+}
+run();
+</script>
+</body>
+</html>

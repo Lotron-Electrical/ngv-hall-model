@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio lights check</title>
+<style>
+ body{margin:0;background:#111;color:#eee;font:13px/1.5 ui-monospace,Consolas,monospace}
+ #out{padding:12px;white-space:pre-wrap;word-break:break-word}
+ iframe{width:520px;height:300px;border:1px solid #333;background:#000}
+ .ok{color:#5fd4a8} .bad{color:#ff6b6b}
+</style>
+</head>
+<body>
+<!-- THE LIGHTS CHECK (Lloyd, 2026-09-05): everything the studio loads except the UI, so lights.js
+     and export.js are measured on their own. It drives the demo project through the engine in song
+     mode with a REAL hall in the iframe, then exports the show and reads back what landed. -->
+<div id="out">running...</div>
+<iframe id="sim" src="../index.html?embed=1&amp;show=live"></iframe>
+
+<script src="../show/lightshow.js"></script>
+<script src="model.js"></script>
+<script src="machines.js" onerror="window.NO_MACHINES=1"></script>
+<script src="engine.js" onerror="window.NO_ENGINE=1"></script>
+<script src="lights.js"></script>
+<script src="export.js"></script>
+<script>
+'use strict';
+const out=document.getElementById('sim').ownerDocument.getElementById('out');
+const log=[]; const say=t=>{ log.push(t); out.textContent=log.join('\n'); };
+
+// THE STUB ENGINE: machines.js and engine.js are the audio owner's files and may not exist yet.
+// When they do not, this stands in so the lights runtime is still measured end to end: a clock that
+// walks the song at the project's bpm, a beat shaped bass band, and an offline render of a kick on
+// every beat so the export has real audio to analyse.
+function stubEngine(getProj){
+ let t0=0, playing=false, mode='song', paused=0;
+ const E={
+  stub:true, ac:null, mode, playing:false, loop:false,
+  init(){ if(!E.ac)E.ac=new (window.AudioContext||window.webkitAudioContext)(); },
+  rebuild(){}, invalidate(){}, seek(){}, noteOn(){}, noteOff(){}, setParam(){}, setMixer(){}, setFx(){},
+  play(o){ mode=(o&&o.mode)||'song'; E.mode=mode; t0=performance.now()/1000-paused; playing=true; E.playing=true; },
+  pause(){ paused=performance.now()/1000-t0; playing=false; E.playing=false; },
+  stop(){ playing=false; E.playing=false; paused=0; },
+  pos(){ const p=getProj(), sec=Studio.stepSeconds(p.bpm), t=playing?performance.now()/1000-t0:paused;
+   const step=t/sec; return {step, t, bar:Math.floor(step/16), beat:Math.floor(step/4)%4, stepInBar:step%16, loopSteps:Studio.songLengthBars(p)*16}; },
+  analyser:{ read(o){ const p=getProj(), t=E.pos().t, ph=(t/(60/p.bpm))%1;
+   const k=Math.exp(-ph*6); o.bass=k; o.mid=0.3+0.3*k; o.high=0.2+0.2*(1-ph); o.rms=0.3+0.6*k; o.onset=ph<0.05?1:0; return o; } },
+  master:null,
+  async render(proj){
+   // a kick on every beat for 10 s: enough real audio for the frame analysis to have shape
+   const sr=44100, dur=10, oac=new OfflineAudioContext(2,sr*dur,sr), beat=60/(proj.bpm||124);
+   for(let t=0;t<dur-0.2;t+=beat){
+    const o=oac.createOscillator(), g=oac.createGain();
+    o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(45,t+0.09);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.8,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+    o.connect(g); g.connect(oac.destination); o.start(t); o.stop(t+0.35);
+   }
+   return oac.startRendering();
+  },
+ };
+ return E;
+}
+
+const R={ok:false, engine:'', steps:{}};
+(async function main(){
+ const proj=Studio.demoProject();
+ const sim=document.getElementById('sim');
+ await new Promise(r=>{ if(sim.contentWindow&&sim.contentWindow.ngvShow)return r(); sim.addEventListener('load',r,{once:true}); setTimeout(r,12000); });
+ await new Promise(r=>setTimeout(r,1200));   // the hall builds its scene after load
+
+ let eng;
+ if(window.Studio.createEngine){ eng=Studio.createEngine({project:()=>proj,onNote:()=>{}}); R.engine='engine.js'; }
+ else { eng=stubEngine(()=>proj); R.engine='stub (engine.js absent)'; }
+ say('engine: '+R.engine);
+ try{ eng.init(); if(eng.ac&&eng.ac.state==='suspended')await eng.ac.resume(); }catch(e){ say('init: '+e.message); }
+ if(eng.rebuild)eng.rebuild();
+
+ const L=Studio.createLights({project:()=>proj, engine:()=>eng, iframe:()=>sim});
+ window.L=L;
+
+ // 1) the look at the very start, before the transport moves
+ L.tick(); L.tick(); L.tick(); L.tick();
+ const look0=L.state.look;
+
+ eng.play({mode:'song',fromStep:0});
+ let bar1Look='', crossed=false;
+ const t0=performance.now();
+ await new Promise(done=>{
+  (function loop(){
+   L.tick();
+   const p=eng.pos();
+   if(!crossed&&p.step>=17){ crossed=true; bar1Look=L.state.look; }
+   if(performance.now()-t0>3000)return done();
+   requestAnimationFrame(loop);
+  })();
+ });
+ const frameT=(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.frame.t)||0;
+ const hallLook=(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.state.look)||'';
+ const hallOn=!!(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.on);
+ eng.stop();
+
+ R.steps.look0=look0; R.steps.bar1Look=bar1Look; R.steps.hallLook=hallLook; R.steps.hallOn=hallOn;
+ R.steps.frameT=Math.round(frameT*100)/100; R.steps.endStep=Math.round(eng.pos().step*10)/10;
+ R.assert1=(look0==='pulse');
+ R.assert2=(frameT>2);
+ R.assert3=(bar1Look==='beatwave'&&hallLook==='beatwave');
+ say('look at step 0: '+look0+'   look after bar 1: '+bar1Look+'   hall look: '+hallLook);
+ say('iframe ngvShow.frame.t = '+R.steps.frameT+'  (needs > 2), hall on = '+hallOn);
+
+ // 2) a live press with record armed writes into the pattern
+ const lm=proj.machines.find(m=>m.type==='lights');
+ const before=lm.patterns[lm.curPat].notes.length;
+ eng.play({mode:'song',fromStep:0});
+ await new Promise(r=>setTimeout(r,120));
+ L.setRecord(true,1);
+ const wrote=L.press('look','strobe');
+ const wroteLvl=L.press('level',0.4);
+ L.setRecord(false,1);
+ eng.stop();
+ R.steps.recordedNote=!!wrote; R.steps.recordedLevel=!!wroteLvl;
+ R.steps.notesBefore=before; R.steps.notesAfter=lm.patterns[lm.curPat].notes.length;
+ R.assert4=!!wrote&&!!wroteLvl&&lm.patterns[lm.curPat].notes.length>before;
+ say('record: wrote note '+JSON.stringify(wrote)+', level '+JSON.stringify(wroteLvl));
+ // put the demo back the way it was so the export matches the demo project
+ lm.patterns[lm.curPat].notes=lm.patterns[lm.curPat].notes.slice(0,before);
+ if(wroteLvl)lm.patterns[lm.curPat].level[wroteLvl.s]=null;
+ L.invalidate();
+
+ // 3) the export: three files into show/, all five frame arrays the same length
+ say('exporting "verify"...');
+ try{
+  const res=await Studio.exportShow(proj,eng,'verify',(t,p)=>say('  '+t+' '+Math.round(p*100)+'%'));
+  const lens=Object.keys(res.cues.frames).map(k=>res.cues.frames[k].length);
+  R.steps.wavBytes=res.wav.byteLength;
+  R.steps.frameLens=lens;
+  R.steps.cueCount=res.cues.cues.length;
+  R.steps.duration=res.cues.duration;
+  R.steps.sections=res.cues.sections.map(s=>s.label);
+  R.steps.url=res.url;
+  const wavOk=(await fetch('../show/verify.wav?x='+Date.now())).ok;
+  const cf=await (await fetch('../show/verify.cues.json?x='+Date.now())).json();
+  const pj=await (await fetch('../show/verify.project.json?x='+Date.now())).json();
+  const list=await Studio.listShows();
+  const readLens=Object.keys(cf.frames).map(k=>cf.frames[k].length);
+  R.steps.filesOnDisk={wav:wavOk, cues:!!cf.frames, project:!!(pj&&pj.machines), inShowsJson:list.indexOf('verify')>=0};
+  R.steps.readFrameLens=readLens;
+  R.assert5=wavOk&&!!cf.frames&&!!(pj&&pj.machines)&&list.indexOf('verify')>=0;
+  R.assert6=lens.every(x=>x===lens[0])&&readLens.every(x=>x===lens[0])&&lens[0]>10;
+ }catch(e){ R.steps.exportError=String(e&&e.message||e); R.assert5=false; R.assert6=false; }
+
+ R.ok=!!(R.assert1&&R.assert2&&R.assert3&&R.assert4&&R.assert5&&R.assert6);
+ say('');
+ say(JSON.stringify(R));
+ window.LIGHTS_TEST=R;
+ console.log(JSON.stringify(R));
+ document.title=R.ok?'LIGHTS OK':'LIGHTS FAIL';
+})().catch(e=>{ R.error=String(e&&e.stack||e); window.LIGHTS_TEST=R; say('ERROR '+R.error); console.log(JSON.stringify(R)); });
+</script>
+</body>
+</html>
