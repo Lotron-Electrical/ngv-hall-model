@@ -1863,7 +1863,7 @@ function resolveMove(){
   from.y=Math.min(Math.max(from.y,FLOOR_Y+SKIN),top);}
  eye.copy(from); safeEye=eye.clone();
 }
-window.dbg={eye,state,lit,pmHi,pixelMap,live,R,THREE,get TRACK(){return TRACK;},get WIPE(){return TITLE_WIPE;},get titles(){return titles;},get EVENT(){return EVENT;},get WARP(){return WARP;},get hall(){return hallGroup;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sticks:()=>['stkmove','stklook'].map(i=>document.getElementById(i).classList.contains('show')),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get party(){return party;},get approach(){return approach;},get wedding(){return wedding;},get P(){return P;},get solids(){return solids.length;}};
+window.dbg={eye,state,lit,pmHi,pixelMap,live,R,THREE,get TRACK(){return TRACK;},get DIVE(){return DIVE;},divePos:()=>divePos(),diveWant:()=>diveWant(performance.now()/1000),get WIPE(){return TITLE_WIPE;},get titles(){return titles;},get EVENT(){return EVENT;},get WARP(){return WARP;},get hall(){return hallGroup;},boomStart:()=>boomStart(performance.now()/1000),approachStart:()=>approachStart(),yaw:()=>yaw,warpK:()=>WARP.k,boom:()=>boom,get snd(){return SND;},tourSeg:()=>tour?tour.i:null,portalCentre:()=>portal?portal.centre.clone():null,portalVisible:()=>portal?portal.group.visible:null,stopIdle:()=>{idle=false;},fps:()=>animate.fps,locked:()=>locked(),roam:()=>roam?{sink:!!roam.sink,phase:roam.phase||0,t:performance.now()/1000-roam.t0}:null,roamed:()=>roamed,house:()=>lit.house,layers:()=>state.layers.map(l=>({name:l.name,opacity:l.opacity})),portalParts:()=>portal?{groupVisible:portal.group.visible,body:portal.body.visible,scale:portal.body.scale.x,disc:portal.disc.scale.x,words:portal.words.visible,sunk:!!portal.sunk}:null,fab:()=>document.getElementById('roamfab').classList.contains('up'),sticks:()=>['stkmove','stklook'].map(i=>document.getElementById(i).classList.contains('show')),sparkle:()=>portal?{n:portal.sparkN||0,of:portal.leds.reduce((t,m)=>t+m.geometry.attributes.color.count,0)}:null,track:()=>TRACK.el?{t:TRACK.el.currentTime,paused:TRACK.el.paused,muted:TRACK.el.muted,vol:TRACK.el.volume,fl:{on:TRACK.flOn,src:!!TRACK.flSrc,gain:TRACK.flGain?TRACK.flGain.gain.value:null,buf:!!TRACK.flBuf,data:!!TRACK.flData},tap:{on:TAP.on,loop:!!TAP.lp,src:!!TAP.src,pos:tapPos(),g:TAP.g?TAP.g.gain.value:null,lg:TAP.lg?TAP.lg.gain.value:null,buf:!!TAP.buf,tr:TAP.tr,bFound:TAP.bFound||null,failed:!!TAP.failed},keep:TRACK.keep?!TRACK.keep.paused:null,level:LEVEL,bed:SND.BED,on:TRACK.on,duck:TRACK.duck,hidden:TRACK.hidden,warm:TRACK.warm,ended:TRACK.el.ended,ready:TRACK.el.readyState,want:trackWant(performance.now()/1000),arr:approach?approach.arr:null,master:SND.master?SND.master.gain.value:null}:null,ledInfo:()=>{const G=portal;const c=G.leds[0].geometry.attributes.color.array;let mx=0;for(const v of c)mx=Math.max(mx,v);return {runIdx:G.runIdx?G.runIdx.length:null,maxCol:mx,Pn:P.n,run0:P.run?Array.from(P.run.slice(0,5)):null,pix:!!pix,pixMax:pix?Math.max(...Array.from(pix.instanceColor.array.slice(0,300))):null};},get idle(){return idle;},get party(){return party;},get approach(){return approach;},get wedding(){return wedding;},get P(){return P;},get solids(){return solids.length;}};
 // ---- phone remote. The page is static, so the link is peer to peer: PeerJS brokers a WebRTC
 // data channel through its public signalling server and the packets then go phone -> PC
 // directly. The PC makes a random room id, shows it as a QR to remote.html?peer=<id>, and
@@ -4617,10 +4617,9 @@ const BOOM_GAP_MAX=1.5, BOOM_DECAY_RATE=0.5;
 // (Lloyd, 2026-09-05, last word: "the boom should peak when the fov peaks") the crash's PEAK is put where the
 // warp reaches full (k 1, the eye at WARP.near), a beat before the flash; the onset is one rise before it
 function approachBoom(from,r0,dur,t0){ const arr=approachArr(from,r0,dur,t0), tw=approachWarpT(from,r0,dur,t0), rise=TRACK.sw-TRACK.bm; const tp=Math.min(arr,approachArr(from,r0,dur,t0,WARP.near)); const to=Math.max(0,tp-rise); return {arr,tw,to,gap:Math.max(0,arr-to-rise)}; }
-// the file's place after the peak: slowed for 2 x gap, then on the flash's clock
-function boomDecayT(now,tp,gap){ const e=now-tp, slow=gap/(1-BOOM_DECAY_RATE); return e<slow?{t:TRACK.sw+e*BOOM_DECAY_RATE,rate:BOOM_DECAY_RATE}:{t:TRACK.sw+e-gap}; }
+
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
-function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachBoom(eye,r0,dur,now).to; }
+function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.t0; }   /* (2026-09-05) the element's only job is the tour: parked at its first frame */
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
@@ -4633,11 +4632,7 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // it swells over its first second and washes down through the dive to the crash. The flash's own
  // whoosh still comes from boomStart, which fires one when the last was over 3 s ago
  if(!A.wh){ A.wh=1; sndBoom(); } }
-function boomStart(now){ if(boom||tour)return; const dec=approach&&approach.to!=null?{tp:approach.t0+approach.to+(TRACK.sw-TRACK.bm),gap:approach.gap}:null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,dec}; fabSync();
- // (Lloyd, 2026-09-05) the crash is no longer on the flash: on a dive it went off at the fov's kick-in and the
- // file simply runs on; a free flight by hand still gets the crash here
- boom.off=TRACK.sw-now;   // a free flight by hand: the peak on the flash, as the mix was made
- { const want=trackWant(now); if(TRACK.on&&want&&want.t!=null&&Math.abs(TRACK.el.currentTime-want.t)>0.6)TRACK.el.currentTime=want.t; }   // (was: the crash on the flash); (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
+function boomStart(now){ if(boom||tour)return; const ft0=approach&&approach.to!=null?TRACK.bm-(approach.t0+approach.to-now):null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,ft0}; fabSync();   /* ft0: where the dive buffer is at the flash, so it runs on unbroken; null on a free flight by hand, which gets the crash here */
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
@@ -4753,11 +4748,36 @@ function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); co
  if(!TRACK.flSrc){ const g=c.createGain(); g.gain.value=0; g.connect(sndBus()); const src=c.createBufferSource(); src.buffer=TRACK.flBuf; src.loop=true; src.connect(g); src.start(); TRACK.flSrc=src; TRACK.flGain=g; }
  TRACK.flOn=true; const v=LEVEL*(SND.on?1:0)*(joined==null?1:1-smooth(Math.min(1,joined/0.8)));   // out under the dive's file in 0.8 s (was 2; Lloyd, 2026-09-04: the tap's sounds came in late); the Sound box takes it to nothing
  TRACK.flGain.gain.setTargetAtTime(v,c.currentTime,0.05); }
+// THE DIVE BUFFER (Lloyd, 2026-09-05: "sounds come in too late. They need to sync up with the visuals"):
+// the stretch of the mix from the dive to the kaleidoscope's end, sound/dive.mp3 (16.0 to 27.0 s of the
+// master, cut from tour.mp3), as a WebAudio buffer like the float. An <audio> element on a phone starts
+// and seeks late and unevenly, and the whole tap sequence rode on it; a buffer starts on the sample asked
+// for, so the crash's onset and peak land where the dive's clock puts them. The element now carries only
+// the tour, from TRACK.t0 on the black, where it sits parked and ready
+const DIVE={off:16.0, end:26.0, data:null, buf:null, dec:false, src:null, g:null, t0:0, o:0, on:false};   /* end: by 26 s the crash has died (-56 dB); the element takes over at t0 */
+fetch('sound/dive.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{ DIVE.data=b; }).catch(()=>{});
+function diveDecode(){ const c=SND.ctx; if(!c||DIVE.buf||!DIVE.data||DIVE.dec)return; DIVE.dec=true; c.decodeAudioData(DIVE.data.slice(0),b=>{ DIVE.buf=b; },()=>{ DIVE.dec=false; }); }
+// where in the master the dive's sound should be now: the crash's onset (TRACK.bm) at the dive's A.to, so
+// its peak is at full warp; through the flash and the kaleidoscope it simply runs on
+function diveWant(now){
+ if(approach){ const A=approach; if(A.to==null||!portal.group.visible)return null; return TRACK.bm-(A.t0+A.to-now); }
+ if(boom)return (boom.ft0!=null?boom.ft0:TRACK.sw)+(now-boom.t0);
+ return null; }
+function divePos(){ return DIVE.src?DIVE.off+DIVE.o+SND.ctx.currentTime-DIVE.t0:null; }
+function diveCue(ft){ const c=SND.ctx, t=c.currentTime; diveStop(0.04); const o=ft-DIVE.off; const n=c.createBufferSource(); n.buffer=DIVE.buf; const g=c.createGain(); g.gain.value=0; g.connect(sndBus()); n.connect(g);
+ if(o>=0){ n.start(t,o); DIVE.o=o; DIVE.t0=t; } else { n.start(t-o,0); DIVE.o=0; DIVE.t0=t-o; }   // a long dive taps before the buffer's start: it waits for it
+ DIVE.src=n; DIVE.g=g; DIVE.on=true; g.gain.setTargetAtTime(LEVEL*(SND.on?1:0),t,0.15); }
+function diveStop(tc){ const c=SND.ctx; if(!c)return; const s=DIVE.src, g=DIVE.g; DIVE.src=null; DIVE.g=null; DIVE.on=false; if(!s)return; const t=c.currentTime, k=tc||0.3; g.gain.setTargetAtTime(0,t,k); try{ s.stop(t+k*4); }catch(e){} }
+function diveStep(now){ const c=SND.ctx; if(!c)return; diveDecode(); const w=diveWant(now);
+ if(w==null||w>=DIVE.end||TRACK.hidden){ if(DIVE.on)diveStop(w!=null&&w>=DIVE.end?0.3:0.1); return; }
+ if(!DIVE.buf||c.state!=='running'){ if(DIVE.on)diveStop(0.05); return; }
+ const p=divePos(); if(p==null||Math.abs(p-w)>0.12)diveCue(w);   // off by more than a few frames (a hidden tab, a re-planned dive): restarted on the sample, no stall
+ else DIVE.g.gain.setTargetAtTime(LEVEL*(SND.on?1:0),c.currentTime,0.05); }
 // where the file should be for the state the page is in, in seconds; null means silent
 function trackWant(now){
  if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
   return {t:TRACK.t0+acc+Math.max(0,Math.min(1,(now-T.t0)/sg.dur))*sg.dur, paused:tourPaused}; }
- if(boom){ if(boom.dec)return boomDecayT(now,boom.dec.tp,boom.dec.gap); return {t:now+(boom.off!=null?boom.off:TRACK.sw-boom.t0)}; }
+ if(boom)return null;   // (2026-09-05) the dive buffer carries the crash and the kaleidoscope; the element waits, parked at t0
  // it joins the dive once its crash is due. An Event ticked mid-dive hides the object and the touch
  // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
  // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
@@ -4765,8 +4785,7 @@ function trackWant(now){
  // (Lloyd, 2026-09-05) the file's crash onset (bm) lands where the lens starts to open (A.tw), not on the
  // flash: from the orbit that is 1.5 s after the tap, not 3.2, and the file's quiet dip before the crash
  // is no longer what the tap is answered with
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.to-now; if(left>0){ const t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
-  const rise=TRACK.sw-TRACK.bm; if(-left<=rise)return {t:TRACK.bm-left,join:true}; return Object.assign(boomDecayT(now,A.t0+A.to+rise,A.gap),{join:true}); }
+ if(approach)return null;   // (2026-09-05) the dive is the buffer's (diveWant)
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
 // the bus every WebAudio sound (the float, the tap synth) goes through: a limiter, so the two
@@ -4794,14 +4813,14 @@ function proxStep(now){ const c=SND.ctx, g=SND.prox; if(!c||!g)return; let v=1; 
 function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=trackWant(now);
  // the bed ducks under the file only while the file is actually heard: a refused play(), a file
  // that never arrived or the tail's end leave the bed up rather than silence
- tapStep(now);
- const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc||TAP.on)&&!TRACK.hidden;
+ tapStep(now); diveStep(now);
+ const heard=(!a.paused&&!a.ended&&a.readyState>=2||!!TRACK.flSrc||TAP.on||DIVE.on)&&!TRACK.hidden;
  // on a free flight by hand (no dive) the bed's chord and riser are the build-up, so the bed stays up over the float
  const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
  // (2026-09-05) on a dive the float holds until the crash's onset and goes out under it (the file's stretch
  // before the crash is its quiet dip: fading the float into that read as the sound dropping out on the tap)
- floatStep(now,approach&&approach.to!=null&&TRACK.join!=null?Math.max(0,now-(approach.t0+approach.to-0.8)):TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
- keepStep(now,(!!TRACK.flSrc||TAP.on)&&a.paused&&!TRACK.hidden);
+ floatStep(now,approach&&approach.to!=null?Math.max(0,now-(approach.t0+approach.to-0.8)):TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
+ keepStep(now,(!!TRACK.flSrc||TAP.on||DIVE.on)&&a.paused&&!TRACK.hidden);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; }
   // (Lloyd, 2026-09-03: the sound designer's file came in a little late on the tap) while the object
   // floats the file is PARKED at the point it will join from (the crash at TRACK.sw less the dive from

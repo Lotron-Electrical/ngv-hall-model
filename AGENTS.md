@@ -223,6 +223,7 @@ addressed`. `L` reaching 73,536 means every pixel in the map found a universe in
 | `sound/tour.mp3` | the sound designer's 163 s mix for the ride (MP3 CBR 192k; the 24-bit master is `sound/llyod_gandelhall.wav`, ignored by git, and on Lloyd's Drive) |
 | `sound/tap.mp3` | Lloyd's own synth pad for the dive (first 10 s of `legacy_synth_v9_detuned_nosuck_x2.wav`, kept as `sound/tap-synth.wav`, git-ignored): a low chord, the lift at 5.4 s, the high chord to 10 s |
 | `sound/float.mp3` | the tesseract's float: 1.0 to 16.0 s of the master, ends crossfaded into a seamless 14 s loop, brought up 4.5 dB with the harmonics above 100 Hz lifted 6 dB; plays from Enter until the dive's file has joined |
+| `sound/dive.mp3` | the dive to the kaleidoscope's end: 16.0 to 27.0 s of the master, cut from tour.mp3, played as a WebAudio buffer from the tap (the crash's onset at the fisheye's kick-in, its peak at full warp, then straight through the flash); the `<audio>` element only carries the tour from 25.85 s |
 | `tools/dmx_bridge.js` | Art-Net / sACN → WebSocket bridge, zero dependencies |
 | `tools/agent-setup.js` | the one command above, JSON-line output, zero dependencies |
 | `tools/elm-fetch.js` | headless CSV / facts extraction over CDP, zero dependencies |
