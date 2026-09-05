@@ -1,241 +1,304 @@
-/* THE STUDIO'S STYLESHEET (Lloyd, 2026-09-05): a Caustic 3 rack in the NGV page's palette. Tokens
-   come from index.html so the studio and the hall read as one instrument. Rules of the house:
-   a pressed control is an accent fill with near-black text (never ink on ink), every panel scrolls
-   rather than clipping, and nothing depends on a font that may not have loaded. */
+/* THE STUDIO'S STYLESHEET (Lloyd, 2026-09-05): mobile first. A phone gets one transport row, a
+   bottom nav, and a play drawer it can collapse; the desktop gets the same surface with the tabs
+   moved up top and the hall docked beside the work. Tokens come from index.html so the studio and
+   the hall read as one instrument.
+   House rules: one accent for "active", near-black text on every accent fill, 44 px minimum for
+   anything a finger has to hit, and nothing may make the page scroll sideways at 360 px. */
 :root{
  --bg:#0e0f11; --rule:#2a2d33; --ink:#e9e6df; --dim:#9a978f; --accent:#b9a887; --ok:#6fbf8a;
  --panel:#16181c; --sunk:#101216; --deep:#0c0d10; --rec:#d8433c; --edge:#3a3e46;
- --rowh:14px; --stepw:22px;
+ --on-accent:#0e0f11;                 /* the only text colour that ever sits on the accent fill */
+ --top-h:48px; --nav-h:56px; --tap:44px; --gap:8px;
+ --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;
- margin:0;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+ margin:0;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;
+ height:100dvh;overscroll-behavior:none}
 h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;margin:0}
 button,input,select,textarea{font:inherit;color:var(--ink)}
-button{background:#1c1f25;border:1px solid var(--rule);padding:4px 9px;cursor:pointer;border-radius:3px;white-space:nowrap}
+button{background:#1c1f25;border:1px solid var(--rule);padding:0 10px;min-height:var(--tap);cursor:pointer;border-radius:6px;
+ white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 button:hover{border-color:var(--accent)}
 button:disabled{opacity:.42;cursor:default}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0e0f11;font-weight:500}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 button.rec[aria-pressed="true"]{background:var(--rec);border-color:var(--rec);color:#fff}
-button.go[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#0e0f11}
-input[type=text],input[type=number],select{background:var(--sunk);border:1px solid var(--rule);padding:3px 6px;border-radius:3px}
-input[type=range]{accent-color:var(--accent);width:100%}
+button.go[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--on-accent)}
+button.sm{min-height:32px;padding:0 8px;font-size:12px;border-radius:5px}
+input[type=text],input[type=number],select{background:var(--sunk);border:1px solid var(--rule);padding:0 8px;min-height:var(--tap);
+ border-radius:6px;max-width:100%}
+input[type=range]{accent-color:var(--accent);width:100%;height:var(--tap)}
 label{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+svg{display:block;flex:none}
 .sp{flex:1}
 .val{color:var(--ink);font-variant-numeric:tabular-nums;font-size:12px;text-transform:none;letter-spacing:0}
 .muted{color:var(--dim);font-size:12px}
+.only-desk{display:none}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important;scroll-behavior:auto!important} }
 
-/* ---------------------------------------------------------------- top bar */
-#top{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:6px 9px;background:var(--panel);border-bottom:1px solid var(--rule)}
-#top .grp{display:flex;align-items:center;gap:5px}
-#top .grp+.grp{border-left:1px solid var(--rule);padding-left:7px}
-#top .grp.files{margin-left:auto;border-left:0}
-#brand{font-size:19px;color:var(--accent);letter-spacing:.06em}
-#name{width:118px}
-#bpm{width:52px;text-align:center;font-variant-numeric:tabular-nums}
-#swing{width:78px}
-.clock{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;min-width:76px;text-align:center}
-.clock.sm{font-size:16px;min-width:62px;color:var(--dim)}
-#meter{width:84px;height:9px;background:var(--sunk);border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+/* ------------------------------------------------------------ transport: one row, always */
+#top{flex:none;height:var(--top-h);display:flex;align-items:center;gap:6px;padding:0 8px;background:var(--panel);
+ border-bottom:1px solid var(--rule);overflow:hidden}
+#top button{min-height:38px;padding:0 9px;border-radius:6px}
+#play{min-width:64px;font-weight:600}
+#pos{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;
+ min-width:52px;text-align:center;color:var(--ink)}
+#bpmval{min-width:46px;font-variant-numeric:tabular-nums}
+#namebtn{flex:0 1 auto;min-width:0;overflow:hidden;background:none;border:0;color:var(--dim);font-size:12px;padding:0 2px;
+ display:none;justify-content:flex-start}
+#namebtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:110px}
+/* the phone bar has room for the project name OR the level meter, not both: the name wins, since
+   the meter is a comfort and the name says which project the next edit lands in */
+@media (max-width:899px){ #namebtn{display:inline-flex} #meter{display:none} }
+#meter{width:44px;height:6px;background:var(--sunk);border:1px solid var(--rule);border-radius:3px;overflow:hidden;flex:none}
 #meterfill{height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--accent) 70%,var(--rec))}
-#msg{color:var(--accent);font-size:12px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#menubtn{flex:none;width:42px;padding:0}
+#tabs{display:none;gap:4px}
 
-/* view tabs */
-#tabs{display:flex;gap:3px}
-#tabs button{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.09em;padding:4px 12px}
-
-/* ---------------------------------------------------------------- main split */
-#main{flex:1;display:flex;min-height:0}
-#viewwrap{flex:1;min-width:0;position:relative;display:flex;flex-direction:column}
+/* ------------------------------------------------------------ main area */
+#main{flex:1;min-height:0;position:relative;display:flex}
+#viewwrap{flex:1;min-width:0;position:relative}
 .view{position:absolute;inset:0;display:none;flex-direction:column;min-height:0;overflow:hidden}
 .view.on{display:flex}
-.vhead{flex:none;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 9px;background:var(--panel);border-bottom:1px solid var(--rule)}
-.vhead h2{font-size:17px;color:var(--accent);letter-spacing:.05em}
-.vbody{flex:1;min-height:0;overflow:auto;padding:9px}
+.vhead{flex:none;display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel);border-bottom:1px solid var(--rule);
+ overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.vhead::-webkit-scrollbar{display:none}
+.vhead h2{font-size:16px;color:var(--accent);letter-spacing:.05em;flex:none}
+.vbody{flex:1;min-height:0;overflow:auto;padding:8px;-webkit-overflow-scrolling:touch}
+.badge{font-size:11px;padding:3px 8px;border-radius:11px;color:var(--on-accent);font-weight:600;letter-spacing:.03em;flex:none;
+ max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* sim panel, docked right, drag handle on its left edge */
-#simhandle{flex:none;width:6px;cursor:col-resize;background:var(--rule)}
-#simhandle:hover{background:var(--accent)}
-#simpanel{flex:none;width:38%;min-width:220px;background:#000;border-left:1px solid var(--rule);position:relative;display:flex;flex-direction:column}
-#simpanel.hidden,#simhandle.hidden{display:none}
-#simbar{flex:none;display:flex;align-items:center;gap:6px;padding:3px 7px;background:var(--panel);border-bottom:1px solid var(--rule);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+/* the hall: a mounted iframe that is a full view on a phone and a docked panel on a desktop */
+#simpanel{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:2}
+body.hallview #simpanel{display:flex}
+#simhandle{display:none}
+#simbar{flex:none;display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--rule);
+ font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-height:26px}
 #sim{flex:1;width:100%;border:0;display:block;min-height:0}
 
-/* ---------------------------------------------------------------- knobs */
-.knobs{display:flex;flex-wrap:wrap;gap:8px 10px}
-.knobwrap{width:66px;text-align:center;user-select:none}
-.knob{width:42px;height:42px;margin:0 auto;border-radius:50%;border:1px solid var(--rule);cursor:ns-resize;position:relative;
- background:conic-gradient(from 220deg,var(--accent) calc(var(--pct,0)*280deg),#23262c 0 280deg,transparent 0);}
+/* ------------------------------------------------------------ knobs */
+.knobs{display:flex;gap:var(--gap);align-items:flex-start}
+.knobrow{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;scrollbar-width:thin}
+.knobs.wrap{flex-wrap:wrap}
+.knobwrap{width:66px;flex:none;text-align:center;user-select:none;-webkit-user-select:none}
+.knob{width:46px;height:46px;margin:0 auto;border-radius:50%;border:1px solid var(--rule);cursor:ns-resize;position:relative;
+ touch-action:none;-webkit-tap-highlight-color:transparent;
+ background:conic-gradient(from 220deg,var(--accent) calc(var(--pct,0)*280deg),#23262c 0 280deg,transparent 0)}
 .knob::before{content:'';position:absolute;inset:5px;border-radius:50%;background:#1b1e24;border:1px solid #000}
-.knob .needle{position:absolute;left:50%;top:50%;width:2px;height:15px;background:var(--ink);border-radius:1px;
- transform-origin:1px 15px;transform:translate(-1px,-15px) rotate(calc(-140deg + var(--pct,0)*280deg))}
+.knob .needle{position:absolute;left:50%;top:50%;width:2px;height:17px;background:var(--ink);border-radius:1px;
+ transform-origin:1px 17px;transform:translate(-1px,-17px) rotate(calc(-140deg + var(--pct,0)*280deg))}
 .knob:hover{border-color:var(--accent)}
 .knob:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-/* two lines, never an ellipsis: a knob whose name reads "SNARE T..." is a knob you have to hover to
-   identify. Every label box is the same two-line height so the rows of knobs still line up. */
-.klbl{color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:0;line-height:1.2;margin-top:2px;
- height:22px;overflow:hidden;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}
+.klbl{color:var(--dim);font-size:9px;text-transform:uppercase;line-height:1.2;margin-top:3px;height:22px;overflow:hidden;
+ white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}
 .kval{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink)}
+@media (hover:none){ .knobwrap{width:76px} .knob{width:56px;height:56px}
+ .knob .needle{height:22px;transform-origin:1px 22px;transform:translate(-1px,-22px) rotate(calc(-140deg + var(--pct,0)*280deg))} }
 
-/* ---------------------------------------------------------------- RACK */
-.rackcard{border:1px solid var(--rule);border-radius:4px;background:var(--sunk);margin-bottom:9px;overflow:hidden}
+/* ------------------------------------------------------------ RACK */
+.rackcard{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);margin-bottom:var(--gap);overflow:hidden}
 .rackcard.on{border-color:var(--accent)}
 .rackhd{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#1a1d22;border-bottom:1px solid var(--rule)}
-.rackhd input{width:150px}
-.badge{font-size:11px;padding:2px 7px;border-radius:10px;color:#0e0f11;font-weight:600;letter-spacing:.04em}
+.rackhd .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.rackhd button{min-height:36px;padding:0 10px;font-size:12px}
+.rackhd .dots{width:36px;padding:0;font-size:17px;line-height:1}
 .rackbody{padding:8px}
-.addrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 0 12px}
 
-/* ---------------------------------------------------------------- pattern bank */
-.bank{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;width:264px}
-.bank button{padding:2px 0;font-size:11px;text-align:center}
+/* ------------------------------------------------------------ pattern editor */
+/* the desktop bank: two rows of sixteen, so the header stays one control tall next to the selects */
+.bank{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;width:464px;flex:none}
+.bank button{min-height:25px;padding:0 1px;font-size:11px;border-radius:4px}
 .bank button.has{border-color:var(--edge);background:#232830}
-.bank button[aria-pressed="true"]{background:var(--accent);color:#0e0f11}
-
-/* ---------------------------------------------------------------- grid editor (roll / drums / lights) */
+#bankwrap{display:none}
 #patwrap{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--deep)}
 .gridtop{flex:none;display:flex;border-bottom:1px solid var(--rule)}
-.gridtop .corner{flex:none;width:74px;border-right:1px solid var(--rule);background:var(--panel)}
+.gridtop .corner{flex:none;border-right:1px solid var(--rule);background:var(--panel)}
 .ruler{flex:1;overflow:hidden;position:relative;height:20px;background:var(--panel)}
 .ruler .rin{position:relative;height:100%}
 .ruler .bl{position:absolute;top:0;bottom:0;border-left:1px solid var(--rule);color:var(--dim);font-size:10px;padding-left:3px;line-height:20px}
 .ruler .bl.bar{border-left-color:var(--edge);color:var(--ink)}
 .gridmid{flex:1;min-height:0;display:flex}
-.rowlbls{flex:none;width:74px;overflow:hidden;background:var(--panel);border-right:1px solid var(--rule);position:relative}
+.rowlbls{flex:none;overflow:hidden;background:var(--panel);border-right:1px solid var(--rule);position:relative}
 .rowlbls .rin{position:relative}
 .rowlbl{position:absolute;left:0;right:0;font-size:10px;color:var(--dim);padding:0 4px;white-space:nowrap;overflow:hidden;
  text-overflow:ellipsis;border-bottom:1px solid #1b1e24;display:flex;align-items:center}
 .rowlbl.black{background:#131519;color:#7d7a74}
 .rowlbl.c{color:var(--ink)}
 .rowlbl .swatch{width:8px;height:8px;border-radius:2px;margin-right:4px;flex:none}
-.gridscroll{flex:1;overflow:auto;position:relative}
+.gridscroll{flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
 .gridin{position:relative}
 .gridbg{position:absolute;inset:0}
-.rowband{position:absolute;left:0;right:0;background:#141619}
-.note{position:absolute;background:var(--accent);border:1px solid #6d6249;border-radius:2px;box-sizing:border-box;overflow:hidden}
-.note.sel{outline:1px solid var(--ink)}
+.rowband{position:absolute;left:0;right:0}
+.note{position:absolute;background:var(--accent);border:1px solid #6d6249;border-radius:3px;box-sizing:border-box;overflow:hidden}
 .note .vbar{position:absolute;left:0;bottom:0;top:0;background:rgba(255,255,255,.28)}
 .playhead{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--ok);pointer-events:none;z-index:6}
-/* the level lane under a Lights pattern: bars you draw across */
-.lanewrap{flex:none;border-top:1px solid var(--rule);display:flex;height:62px}
-.lanewrap .corner{flex:none;width:74px;border-right:1px solid var(--rule);background:var(--panel);font-size:10px;color:var(--dim);
- padding:3px 5px;text-transform:uppercase;letter-spacing:.06em}
-.lanescroll{flex:1;overflow:hidden;position:relative;background:var(--deep);cursor:crosshair}
+.lanewrap{flex:none;border-top:1px solid var(--rule);display:flex;height:56px}
+.lanewrap .corner{flex:none;border-right:1px solid var(--rule);background:var(--panel);font-size:10px;color:var(--dim);
+ padding:4px;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:flex-start}
+.lanescroll{flex:1;overflow:hidden;position:relative;background:var(--deep);cursor:crosshair;touch-action:none}
 .lanein{position:relative;height:100%}
 .lanebar{position:absolute;bottom:0;background:var(--ok);opacity:.85}
 .lanetick{position:absolute;top:0;bottom:0;border-left:1px solid #1b1e24}
 .lanetick.bar{border-left-color:var(--edge)}
 
-/* ---------------------------------------------------------------- SONG */
+/* ------------------------------------------------------------ SONG */
 #songwrap{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--deep)}
 .songtop{flex:none;display:flex;border-bottom:1px solid var(--rule)}
-.songtop .corner{flex:none;width:130px;border-right:1px solid var(--rule);background:var(--panel)}
-.songscroll{flex:1;min-height:0;overflow:auto}
+.songtop .corner{flex:none;width:110px;border-right:1px solid var(--rule);background:var(--panel)}
+.songscroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
 .songin{position:relative;min-height:100%}
-.songrow{display:flex;height:34px;border-bottom:1px solid #1b1e24}
-.songname{flex:none;width:130px;border-right:1px solid var(--rule);background:var(--panel);display:flex;align-items:center;gap:5px;
- padding:0 6px;font-size:12px;overflow:hidden;position:sticky;left:0;z-index:3}
+.songrow{display:flex;height:44px;border-bottom:1px solid #1b1e24}
+.songname{flex:none;width:110px;border-right:1px solid var(--rule);background:var(--panel);display:flex;align-items:center;gap:6px;
+ padding:0 7px;font-size:12px;overflow:hidden;position:sticky;left:0;z-index:3}
 .songname .dot{width:9px;height:9px;border-radius:50%;flex:none}
 .songname span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .songlane{position:relative;flex:none;cursor:pointer}
-.songlane .bg{position:absolute;inset:0}
-.block{position:absolute;top:3px;bottom:3px;border-radius:3px;border:1px solid rgba(0,0,0,.6);color:#0e0f11;font-size:11px;
- font-weight:600;padding:1px 4px;overflow:hidden;white-space:nowrap}
+.block{position:absolute;top:4px;bottom:4px;border-radius:4px;border:1px solid rgba(0,0,0,.6);color:var(--on-accent);font-size:11px;
+ font-weight:700;padding:2px 5px;overflow:hidden;white-space:nowrap;display:flex;align-items:center}
 .block.sel{outline:2px solid var(--ink);outline-offset:-1px}
-.block .grip{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;background:rgba(0,0,0,.32)}
+.block .grip{position:absolute;right:0;top:0;bottom:0;width:10px;background:rgba(0,0,0,.32);cursor:col-resize;touch-action:none}
 
-/* ---------------------------------------------------------------- MIXER */
-#mixwrap{display:flex;gap:8px;align-items:stretch;min-height:0}
-.strip{flex:none;width:104px;border:1px solid var(--rule);border-radius:4px;background:var(--sunk);padding:7px 6px;display:flex;
+/* ------------------------------------------------------------ MIXER */
+#mixwrap{display:flex;gap:var(--gap);align-items:stretch;min-height:0}
+.strip{flex:none;width:112px;border:1px solid var(--rule);border-radius:8px;background:var(--sunk);padding:8px 6px;display:flex;
  flex-direction:column;align-items:center;gap:6px}
 .strip.on{border-color:var(--accent)}
-/* a channel strip's knobs are smaller than a rack's so pan and the two sends fit without the
-   strip growing past a 720 tall window */
-.strip .knobwrap{width:44px} .strip .knob{width:32px;height:32px}
-.strip .knob .needle{height:12px;transform-origin:1px 12px;transform:translate(-1px,-12px) rotate(calc(-140deg + var(--pct,0)*280deg))}
-.strip.master{border-color:var(--accent);width:170px;overflow:auto}
-.strip.master .knobs{justify-content:center}
+.strip.master{border-color:var(--accent);width:176px;overflow:auto}
+.strip .knobs{justify-content:center;flex-wrap:wrap}
+/* 44 px wide, so the delay and reverb sends sit on ONE row inside a 112 px strip rather than
+   stacking and pushing the strip past the bottom of the window */
+.strip .knobwrap{width:44px} .strip .knob{width:36px;height:36px}
+.strip .knob .needle{height:14px;transform-origin:1px 14px;transform:translate(-1px,-14px) rotate(calc(-140deg + var(--pct,0)*280deg))}
 .stripname{font-size:12px;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.striptype{font-size:10px;color:#0e0f11;border-radius:9px;padding:1px 7px;font-weight:600}
-.fader{width:34px;height:150px;background:var(--deep);border:1px solid var(--rule);border-radius:3px;position:relative;cursor:ns-resize}
+.striptype{font-size:10px;color:var(--on-accent);border-radius:10px;padding:2px 8px;font-weight:700}
+.fader{width:40px;height:150px;background:var(--deep);border:1px solid var(--rule);border-radius:5px;position:relative;
+ cursor:ns-resize;touch-action:none;flex:none}
 .fader .fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--accent),#5f5641)}
-.fader .cap{position:absolute;left:-3px;right:-3px;height:9px;background:var(--ink);border:1px solid #000;border-radius:2px;margin-top:-4px}
-.fader:focus-visible{outline:2px solid var(--accent)}
-.mrow{display:flex;gap:4px;width:100%}
-.mrow button{flex:1;padding:3px 0;font-size:11px}
-.sendlbl{width:100%;display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.fader .cap{position:absolute;left:-3px;right:-3px;height:10px;background:var(--ink);border:1px solid #000;border-radius:3px;margin-top:-5px}
+.mrow{display:flex;gap:5px;width:100%}
+.mrow button{flex:1;min-height:36px;padding:0;font-size:11px}
 
-/* ---------------------------------------------------------------- FX */
-.fxslot{border:1px solid var(--rule);border-radius:4px;background:var(--sunk);padding:8px;margin-bottom:9px}
-.fxhd{display:flex;align-items:center;gap:7px;margin-bottom:8px}
-.fxhd select{width:150px}
-.fxslot label,.strip.master label{display:block;margin:7px 0 3px}
+/* ------------------------------------------------------------ FX */
+.fxslot{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);padding:9px;margin-bottom:var(--gap)}
+.fxhd{display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.fxhd select{flex:1;min-width:130px}
+.fxslot label{display:block;margin:8px 0 3px}
 
-/* ---------------------------------------------------------------- play strip */
-#strip{flex:none;border-top:1px solid var(--rule);background:var(--panel);display:flex;flex-direction:column}
-#machtabs{flex:none;display:flex;gap:3px;padding:4px 8px 0;overflow-x:auto}
-#machtabs button{border-bottom-left-radius:0;border-bottom-right-radius:0;font-size:12px;padding:3px 10px;
- border-bottom-color:transparent;display:flex;align-items:center;gap:5px}
-#machtabs button .dot{width:8px;height:8px;border-radius:50%}
-#stripbody{flex:none;height:150px;display:flex;gap:9px;padding:6px 8px 8px;min-height:0}
-#stripleft{flex:none;width:190px;display:flex;flex-direction:column;gap:5px}
-#stripleft .row{display:flex;align-items:center;gap:5px}
-#stripleft select{flex:1;min-width:0}
-#stripplay{flex:1;min-width:0;position:relative}
-#hint{font-size:11px;color:var(--dim);line-height:1.35;flex:1;min-height:0;overflow:auto}
-#stripleft .row label{flex:none} #stripleft input[type=range]{flex:1;min-width:0}
+/* ------------------------------------------------------------ play drawer */
+#drawer{flex:none;background:var(--panel);border-top:1px solid var(--rule);display:flex;flex-direction:column}
+#chips{flex:none;display:flex;align-items:center;gap:6px;padding:6px 8px;overflow-x:auto;scrollbar-width:none;min-height:52px}
+#chips::-webkit-scrollbar{display:none}
+#machtabs{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+#machtabs::-webkit-scrollbar{display:none}
+#machtabs button{min-height:38px;padding:0 11px;font-size:12px;border-radius:19px;flex:none}
+#machtabs button .dot{width:8px;height:8px;border-radius:50%;flex:none}
+#drawertog{flex:none;width:42px;padding:0}
+#drawerbody{flex:none;display:flex;flex-direction:column;gap:6px;padding:0 8px 8px;max-height:54dvh;overflow:auto}
+body.drawer-shut #drawerbody{display:none}
+#drawerctl{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#drawerctl label{flex:none}
+#velo{flex:1;min-width:90px}
+#quant{min-height:38px;flex:none}
+#octbox{display:flex;align-items:center;gap:4px}
+#octbox button{width:36px;min-height:36px;padding:0}
+#stripplay{flex:none;height:190px;position:relative;min-height:0}
+/* the lights desk on a phone: one scrolling stack, level and HIT first */
+.lightstack{position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch}
+.lightstack .padgrid{grid-auto-rows:minmax(56px,auto)}
+body.lightsdesk #stripplay{height:270px}
+.hitrow{display:flex;gap:8px;align-items:center}
+.lvlcol{flex:1;min-width:0}
+.lightstack #hitbtn{flex:none;width:104px;min-height:52px}
+#hint{font-size:11px;color:var(--dim);line-height:1.35}
+@media (hover:none){ #hint{display:none} }
 
-/* piano keyboard */
-.piano{position:absolute;inset:0;background:var(--deep);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+/* piano */
+.piano{position:absolute;inset:0;background:var(--deep);border:1px solid var(--rule);border-radius:6px;overflow:hidden;touch-action:none}
 .piano .w{position:absolute;top:0;bottom:0;background:#d9d6cf;border-right:1px solid #8e8b84;cursor:pointer}
-.piano .b{position:absolute;top:0;height:62%;background:#17191e;border:1px solid #000;border-radius:0 0 2px 2px;z-index:2;cursor:pointer}
+.piano .b{position:absolute;top:0;height:60%;background:#17191e;border:1px solid #000;border-radius:0 0 3px 3px;z-index:2;cursor:pointer}
 .piano .w.held{background:var(--accent)}
 .piano .b.held{background:var(--accent);border-color:var(--accent)}
-.piano .w i{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-style:normal;font-size:10px;color:#3a382f}
-.piano .b i{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-style:normal;font-size:9px;color:#c9c6bf}
+.piano .w i{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-style:normal;font-size:10px;color:#3a382f}
+.piano .b i{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-style:normal;font-size:9px;color:#c9c6bf}
+@media (hover:none){ .piano i{display:none} }
 
-/* drum pads and light pads */
-.padgrid{position:absolute;inset:0;display:grid;gap:5px;overflow:auto;grid-auto-rows:minmax(0,1fr)}
-.pad{position:relative;text-align:left;padding:5px 7px;font-size:12px;line-height:1.2;overflow:hidden}
-.pad .k{position:absolute;right:5px;top:3px;color:var(--dim);font-size:10px}
-.pad[aria-pressed="true"] .k,.pad.hit .k{color:#0e0f11}
-.pad.hit{background:var(--accent);border-color:var(--accent);color:#0e0f11}
+/* pads */
+.padgrid{display:grid;gap:6px;grid-auto-rows:minmax(0,1fr)}
+.padabs{position:absolute;inset:0;overflow:auto}
+.pad{position:relative;text-align:left;justify-content:flex-start;padding:6px 8px;font-size:12px;line-height:1.2;overflow:hidden;
+ min-height:44px;border-radius:6px}
+.pad .k{position:absolute;right:6px;top:4px;color:var(--dim);font-size:10px}
+.pad[aria-pressed="true"] .k,.pad.hit .k{color:var(--on-accent)}
+.pad.hit{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+@media (hover:none){ .pad .k{display:none} .padgrid{grid-auto-rows:minmax(56px,1fr)} }
 .lightcols{position:absolute;inset:0;display:flex;gap:8px;min-height:0}
-.lightcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.lightcol .padgrid{position:relative;inset:auto;flex:1;min-height:0}
-.palpad{height:100%;border-radius:3px;border:1px solid var(--rule);position:relative;overflow:hidden;padding:0;cursor:pointer}
-.palpad span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.66);color:#fff;font-size:11px;padding:1px 4px;text-align:left}
-.palpad b{position:absolute;right:2px;top:2px;color:#fff;font-size:10px;font-weight:400;line-height:1;background:rgba(0,0,0,.66);
- border-radius:2px;padding:1px 3px}
+.lightcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;min-height:0}
+.lightcol .padgrid{flex:1;min-height:0;overflow:auto}
+.palpad{min-height:44px;border-radius:6px;border:1px solid var(--rule);position:relative;overflow:hidden;padding:0;cursor:pointer}
+.palpad span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:2px 5px;text-align:left}
+.palpad b{position:absolute;right:3px;top:3px;color:#fff;font-size:10px;font-weight:400;line-height:1;background:rgba(0,0,0,.7);
+ border-radius:3px;padding:1px 4px}
+@media (hover:none){ .palpad b{display:none} }
 .palpad[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--accent)}
-.lightside{flex:none;width:120px;display:flex;flex-direction:column;gap:5px}
-#hitbtn{height:52px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:19px;letter-spacing:.14em}
+.lightside{flex:none;width:118px;display:flex;flex-direction:column;gap:5px}
+#hitbtn{flex:1;min-height:52px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:19px;letter-spacing:.14em}
 
-/* ---------------------------------------------------------------- overlays */
-#veil{position:fixed;inset:0;background:rgba(6,7,9,.86);z-index:60;display:flex;align-items:center;justify-content:center}
+/* ------------------------------------------------------------ bottom navigation (phones) */
+#nav{flex:none;display:flex;background:var(--panel);border-top:1px solid var(--rule);
+ height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b)}
+#nav button{flex:1;min-width:0;flex-direction:column;gap:2px;background:none;border:0;border-radius:0;color:var(--dim);
+ font-size:10px;letter-spacing:.02em;padding:0;min-height:var(--nav-h);height:var(--nav-h)}
+#nav button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#nav button[aria-pressed="true"]{background:none;color:var(--accent);font-weight:600;box-shadow:inset 0 2px 0 var(--accent)}
+#nav button:hover{border:0}
+
+/* ------------------------------------------------------------ sheets (menus and dialogs) */
+#veil{position:fixed;inset:0;background:rgba(6,7,9,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center}
 #veil[hidden]{display:none}
-#veilbox{background:var(--panel);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;width:420px;max-width:90vw}
-#veilbox h3{font-size:20px;color:var(--accent);margin-bottom:6px}
-#veilbox a{color:var(--accent)}
-#veilbox .list{max-height:230px;overflow:auto;margin:8px 0}
-#veilbox .list button{display:block;width:100%;text-align:left;margin-bottom:3px}
-#pbar{height:8px;background:var(--sunk);border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin:10px 0}
-#pbarfill{height:100%;width:0;background:var(--ok);transition:width .2s linear}
-#tip{position:fixed;z-index:70;background:#20242a;border:1px solid var(--rule);border-radius:4px;padding:3px 7px;font-size:12px;
- pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.6)}
-#tip[hidden]{display:none}
+#sheet{background:var(--panel);border:1px solid var(--rule);border-radius:14px 14px 0 0;width:100%;max-height:86dvh;overflow:auto;
+ padding:10px 12px calc(14px + var(--safe-b));-webkit-overflow-scrolling:touch}
+#sheet h3{font-size:19px;color:var(--accent);margin:2px 0 8px}
+.srow{display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:3px 0;border-top:1px solid #1e2126}
+.srow:first-of-type{border-top:0}
+.srow>label{flex:none;min-width:78px}
+.srow>.grow{flex:1;min-width:0}
+.sact{width:100%;justify-content:flex-start;background:none;border:0;border-top:1px solid #1e2126;border-radius:0;min-height:50px;
+ font-size:15px;padding:0 2px}
+.sact:hover{border-color:#1e2126;color:var(--accent)}
+.sact.danger{color:var(--rec)}
+.seg{display:flex;gap:0;flex:1}
+.seg button{flex:1;border-radius:0;min-height:42px}
+.seg button:first-child{border-radius:6px 0 0 6px}
+.seg button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
+#pbar{height:8px;background:var(--sunk);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:10px 0}
+#pbarfill{height:100%;width:0;background:var(--ok)}
+#sheet .list{max-height:44dvh;overflow:auto}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + var(--safe-b) + 12px);z-index:70;
+ background:#20242a;border:1px solid var(--accent);color:var(--ink);border-radius:8px;padding:8px 14px;font-size:13px;
+ max-width:88vw;text-align:center;pointer-events:none}
+#toast[hidden]{display:none}
 
-/* 1280 x 720 still has to hold the rack, the strip and the sim, so everything gives a little */
-@media (max-width:1360px){
- #top{font-size:13px;gap:6px} .clock{font-size:18px;min-width:66px} #name{width:96px} #brand{font-size:17px}
- #tabs button{padding:4px 9px;font-size:14px}
- #stripbody{height:132px} #stripleft{width:170px}
- .knobwrap{width:62px} .knob{width:38px;height:38px}
- .fader{height:120px}
- #simpanel{min-width:190px}
+/* ------------------------------------------------------------ desktop */
+@media (min-width:900px){
+ #nav{display:none}
+ #tabs{display:flex}
+ #tabs button{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.09em;padding:0 12px;min-height:36px}
+ .only-desk{display:inline-flex}
+ #bankwrap{display:flex;align-items:center;gap:6px;flex:none}
+ #namebtn{display:inline-flex}
+ #main{display:flex}
+ #simpanel{position:relative;inset:auto;display:flex;flex:none;width:38%;min-width:220px;border-left:1px solid var(--rule)}
+ body.simoff #simpanel,body.simoff #simhandle{display:none}
+ #simhandle{display:block;flex:none;width:6px;cursor:col-resize;background:var(--rule)}
+ #simhandle:hover{background:var(--accent)}
+ #drawerbody{max-height:none}
+ #stripplay{height:150px} body.lightsdesk #stripplay{height:200px}
+ #meter{display:block}
+ #veil{align-items:center}
+ #sheet{width:440px;max-width:92vw;border-radius:12px;max-height:82vh;padding-bottom:14px}
+ #toast{bottom:22px}
+ .vhead h2{font-size:17px}
 }
-@media (max-height:760px){
- #stripbody{height:144px} #stripleft{gap:3px} .fader{height:96px} .strip{gap:4px;padding:6px 5px}
-}
+@media (min-width:900px) and (max-height:800px){ #stripplay{height:128px} .fader{height:120px} }

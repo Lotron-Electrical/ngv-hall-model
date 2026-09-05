@@ -1,83 +1,80 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#16181c">
 <title>NGV Studio</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="studio/ui.css">
 <!-- THE STUDIO (Lloyd, 2026-09-05): a Caustic 3 style rack where one of the machines is the hall's
      lighting desk. This file is only the shell and the load order: lightshow.js first (model.js
      reads its look and palette lists at load), then the model, the machines, the engine, the
      lights runtime, the export, and the UI last. Every file is a classic script adding to
-     window.Studio, so the order below is the dependency order. -->
+     window.Studio, so the order below is the dependency order.
+     The markup here is the frame only: one transport row, the views, the mounted hall, the play
+     drawer, the bottom nav and one sheet. Everything inside them is built by ui.js. -->
 <script src="show/lightshow.js"></script>
 <script src="studio/model.js"></script>
 <script src="studio/machines.js"></script>
 <script src="studio/engine.js"></script>
 <script src="studio/lights.js"></script>
 <script src="studio/export.js"></script>
-<!-- ?stub loads a fake engine so the views and the playhead can be driven with no audio at all
-     (used by the UI screenshots while machines.js and engine.js are still being written) -->
+<!-- ?stub loads a fake engine so the views and the playhead can be driven with no audio at all -->
 <script>if(new URLSearchParams(location.search).has('stub'))document.write('<script src="studio\/engine-stub.js"><\/script>');</script>
 <script src="studio/ui.js" defer></script>
 </head>
-<body>
+<body class="drawer-shut">
 
 <div id="top">
- <div class="grp"><h1 id="brand">STUDIO</h1>
-  <input type="text" id="name" value="untitled" spellcheck="false" title="Project name"></div>
- <div class="grp" id="tabs"></div>
- <div class="grp">
-  <button id="play" title="Enter">Play</button>
-  <button id="stop" title="Escape">Stop</button>
-  <button id="rec" class="rec" aria-pressed="false" title="Shift+R">Record</button></div>
- <div class="grp">
-  <button id="modepat" aria-pressed="true">Pattern</button>
-  <button id="modesong" aria-pressed="false">Song</button>
-  <button id="loop" class="go" aria-pressed="true">Loop</button></div>
- <div class="grp"><label for="bpm">BPM</label>
-  <button id="bpmdn" title="Slower">&minus;</button><input type="number" id="bpm" min="60" max="200" step="1" value="124"><button id="bpmup" title="Faster">+</button></div>
- <div class="grp"><label for="swing">Swing <span class="val" id="swingval">0%</span></label><input type="range" id="swing" min="0" max="1" step="0.01" value="0"></div>
- <div class="grp"><span class="clock" id="barbeat">1:1:1</span><span class="clock sm" id="clock">0:00.0</span></div>
- <div class="grp"><label>Level</label><div id="meter"><div id="meterfill"></div></div></div>
- <div class="grp files"><span id="msg"></span>
-  <button id="save">Save</button><button id="load">Load</button><button id="export">Export</button>
-  <button id="simtoggle" aria-pressed="true">Sim</button></div>
+ <button id="play" title="Play or pause (Enter)">Play</button>
+ <button id="stop" title="Stop (Escape)" aria-label="Stop"></button>
+ <button id="rec" class="rec" aria-pressed="false" title="Record (Shift+R)" aria-label="Record"></button>
+ <span id="pos" title="Bar and beat">1:1</span>
+ <button id="bpmdn" class="only-desk" title="Slower" aria-label="Slower">&minus;</button>
+ <button id="bpmval" title="Tempo">124</button>
+ <button id="bpmup" class="only-desk" title="Faster" aria-label="Faster">+</button>
+ <button id="modebtn" class="only-desk" title="Pattern or song playback">Pattern</button>
+ <button id="loop" class="only-desk go" aria-pressed="true" title="Loop">Loop</button>
+ <span class="sp"></span>
+ <div id="tabs"></div>
+ <button id="namebtn" title="Project name"><span>untitled</span></button>
+ <div id="meter" title="Master level"><div id="meterfill"></div></div>
+ <button id="menubtn" title="More" aria-label="More" aria-haspopup="dialog"></button>
 </div>
 
 <div id="main">
  <div id="viewwrap">
 
   <section class="view on" id="view-rack">
-   <div class="vhead"><h2>RACK</h2><span class="muted">Every machine in the project, its knobs and its channel basics.</span></div>
-   <div class="vbody"><div id="racklist"></div>
-    <div class="addrow"><label>Add machine</label><span id="addbtns"></span></div></div>
+   <div class="vhead"><h2>RACK</h2><span class="sp"></span><button id="addmach" class="sm">Add machine</button></div>
+   <div class="vbody"><div id="racklist"></div></div>
   </section>
 
   <section class="view" id="view-pattern">
-   <div class="vhead"><h2>PATTERN</h2>
+   <div class="vhead">
     <span id="patmach" class="badge">&nbsp;</span>
-    <div class="bank" id="bank"></div>
-    <label for="bars">Bars</label><select id="bars"></select>
-    <label for="notelen">Note</label><select id="notelen"></select>
-    <button id="patclear">Clear</button><button id="patcopy">Copy</button><button id="patpaste">Paste</button>
-    <span class="sp"></span><span class="muted" id="pathint"></span></div>
+    <button id="patprev" class="sm" title="Previous pattern" aria-label="Previous pattern">&lsaquo;</button>
+    <select id="patsel" title="Pattern"></select>
+    <button id="patnext" class="sm" title="Next pattern" aria-label="Next pattern">&rsaquo;</button>
+    <select id="bars" title="Pattern length"></select>
+    <select id="notelen" title="Note length"></select>
+    <button id="pattools" class="sm" title="Pattern tools">...</button>
+    <div id="bankwrap"><div class="bank" id="bank"></div></div>
+   </div>
    <div id="patwrap"></div>
   </section>
 
   <section class="view" id="view-song">
-   <div class="vhead"><h2>SONG</h2>
-    <span class="muted">Click a bar to drop the current pattern. Drag its right edge to stretch. Double-click opens it.</span>
-    <span class="sp"></span><button id="songdel">Delete block</button><button id="songclear">Clear song</button></div>
+   <div class="vhead"><h2>SONG</h2><span class="sp"></span><button id="songtools" class="sm">Arrange</button></div>
    <div id="songwrap"></div>
   </section>
 
   <section class="view" id="view-mixer">
-   <div class="vhead"><h2>MIXER</h2><span class="muted">Fader, pan, mute, solo and the two master sends per machine.</span></div>
+   <div class="vhead"><h2>MIXER</h2></div>
    <div class="vbody"><div id="mixwrap"></div></div>
   </section>
 
   <section class="view" id="view-fx">
-   <div class="vhead"><h2>FX</h2><span id="fxmach" class="badge">&nbsp;</span>
-    <span class="muted">Two insert slots on the selected machine, then the master sends.</span></div>
+   <div class="vhead"><h2>FX</h2><span id="fxmach" class="badge">&nbsp;</span></div>
    <div class="vbody"><div id="fxwrap"></div></div>
   </section>
 
@@ -85,26 +82,28 @@
 
  <div id="simhandle" title="Drag to resize the hall"></div>
  <div id="simpanel">
-  <div id="simbar"><span>The hall</span><span class="sp"></span><span id="simstate">-</span></div>
-  <iframe id="sim" src="index.html?embed=1&amp;show=live" title="The hall"></iframe>
+  <div id="simbar"><span id="simstate">-</span></div>
+  <iframe id="sim" src="index.html?embed=1&amp;show=live&amp;bare=1" title="The hall"></iframe>
  </div>
 </div>
 
-<div id="strip">
- <div id="machtabs"></div>
- <div id="stripbody">
-  <div id="stripleft">
-   <div class="row"><label for="quant">Quantise</label><select id="quant"></select></div>
-   <div class="row" id="octrow"><label>Octave</label><button id="octdn">&minus;</button><span class="val" id="octval">0</span><button id="octup">+</button></div>
-   <div class="row"><label for="velo">Vel <span class="val" id="veloval">0.80</span></label>
-    <input type="range" id="velo" min="0.05" max="1" step="0.01" value="0.8"></div>
-   <div id="hint"></div>
+<div id="drawer">
+ <div id="chips"><div id="machtabs"></div><button id="drawertog" aria-expanded="false" aria-controls="drawerbody" title="Show the keys"></button></div>
+ <div id="drawerbody">
+  <div id="drawerctl">
+   <label for="velo">Vel <span class="val" id="veloval">0.80</span></label>
+   <input type="range" id="velo" min="0.05" max="1" step="0.01" value="0.8">
+   <select id="quant" title="Record quantise"></select>
+   <div id="octbox"><label>Oct</label><button id="octdn" aria-label="Octave down">&minus;</button><span class="val" id="octval">0</span><button id="octup" aria-label="Octave up">+</button></div>
   </div>
   <div id="stripplay"></div>
+  <div id="hint"></div>
  </div>
 </div>
 
-<div id="tip" hidden></div>
-<div id="veil" hidden><div id="veilbox"></div></div>
+<nav id="nav"></nav>
+
+<div id="toast" hidden></div>
+<div id="veil" hidden><div id="sheet" role="dialog" aria-modal="true"></div></div>
 
 </body></html>
