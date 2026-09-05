@@ -263,7 +263,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
     <p>Fit 768 lights across the 12 Gandel Hall columns before the morning clean-up.</p>
-    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space and Shift move the lift deck.</p>
+    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space jumps; on the lift, Space and Shift move the deck.</p>
     <p>Phone: left stick moves, right stick looks (hold it over to keep turning), tap the message on the right to do what it says.</p>
     <p>On the lift, walk to the control box and ACTION to drive: forward and back drives, left and right steers the front wheels. ACTION again lets go so you can walk the deck and handle lights.</p>
     <button type="button" id="start">Start Shift</button>
@@ -5191,7 +5191,7 @@ function installStep(dt,now){
  player.update(dt,world,W.collideWorld);
  const oldLift=lift.height;
  lift.update(dt,player,world,W.collideWorld);
- if(!lift.aboard)player.pos.y=world.floorY;   // no gravity to speak of: off the deck you are on the floor
+ if(!lift.aboard&&!player.airborne)player.pos.y=world.floorY;   // off the deck you are on the floor, unless mid-jump (2026-09-05)
  document.body.classList.toggle('aboard',lift.aboard);
  document.body.classList.toggle('driving',lift.driving);
  document.body.classList.toggle('carrying',!!player.carry);

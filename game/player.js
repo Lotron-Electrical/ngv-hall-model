@@ -16,6 +16,7 @@ export class Player {
     this.liftUp = false;
     this.liftDown = false;
     this.onLift = false;
+    this.airborne = false; this.vy = 0; this.jumpQueued = false;   // the jump: 3.4 m/s up is a 0.6 m hop under 9.8 m/s2
     this.carry = null;
     this.speedScale = 1;
     // (2026-09-04) install mode inside the sim can be switched off again, so every listener bind()
@@ -54,7 +55,9 @@ export class Player {
     this.on(window, 'keydown', (e) => {
       if (e.code === 'KeyE') this.actionQueued = true;
       if (e.code === 'KeyF') this.dropQueued = true;
-      if (e.code === 'Space') this.liftUp = true;
+      // (Lloyd, 2026-09-05: "add spacebar jump") on the floor Space is a jump; aboard the lift it
+      // stays the deck's UP. One jump at a time, from the ground only
+      if (e.code === 'Space') { if (this.onLift) this.liftUp = true; else if (!e.repeat && !this.airborne) this.jumpQueued = true; }
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.liftDown = true;
       this.keys.add(e.code);
     });
@@ -182,7 +185,10 @@ export class Player {
       this.pos.addScaledVector(v, dt * 3.3 * this.speedScale);
       // standing still is standing still: no push, so nothing can slide you (2026-09-04)
       if (v.lengthSq() > 0) collide(this.pos, 0.32, world, this.ignore || []);
-    }
+      // the jump rides on top of the walk: the floor is where the feet were when they left it
+      if (this.jumpQueued) { this.jumpQueued = false; if (!this.airborne) { this.airborne = true; this.ground = this.pos.y; this.vy = 3.4; } }
+      if (this.airborne) { this.vy -= 9.8 * dt; this.pos.y += this.vy * dt; if (this.pos.y <= this.ground) { this.pos.y = this.ground; this.vy = 0; this.airborne = false; } }
+    } else { this.airborne = false; this.vy = 0; this.jumpQueued = false; }
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
   }
