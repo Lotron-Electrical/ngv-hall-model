@@ -79,7 +79,9 @@ harmony.chordAt=function(bar,chords,cycleBars,key){ const cs=(chords&&chords.len
 // balance audit measured on the spec's numbers. So the synth `vol` is pinned at 1 everywhere and
 // the mixer `vol` below is the only level control, re-fitted twice against the real 100 pattern
 // library: nothing in a full stack of eight is now more than 19 dB under the loudest part, and a
-// ten part stack peaks under 0.9 rather than clipping the master limiter. That is the one
+// ten part stack peaks under 0.9 rather than clipping the master limiter, and the Percussion was
+// lifted a third time because the trap kit is loud enough to push its own percussion 22 dB down.
+// That is the one
 // deliberate change to the spec's vol column, and the measurements are in test-presets.html.
 //
 // The Arp also gets a longer tail than the spec's voicing (decay 0.16, release 0.18 rather than
@@ -89,7 +91,7 @@ const SLOTS=['sub','low','mid-low','mid','high','top','drums','perc'];
 const INSTRUMENTS=[
  { id:'drums', type:'beatbox', name:'Drums', slot:'drums', vol:0.62, send:{reverb:0.05},
    params:{ drive:0.15, vol:1 } },
- { id:'perc', type:'beatbox', name:'Percussion', slot:'perc', vol:0.45, send:{delay:0.15},
+ { id:'perc', type:'beatbox', name:'Percussion', slot:'perc', vol:0.66, send:{delay:0.15},
    params:{ kickTune:0.8, kickDecay:0.12, snareTone:0.8, snareDecay:0.09, hatDecay:0.03, tomTune:0.7, drive:0.05, vol:1 } },
  { id:'bass', type:'bassline', name:'Bass', slot:'low', vol:0.5, send:{}, register:[33,52],
    params:{ cutoff:0.35, res:0.55, envmod:0.6, decay:0.25, dist:0.15, vol:1 } },
@@ -507,7 +509,7 @@ P.buildStack=function(section,jam){
  proj.bpm=jam.bpm||124; proj.swing=clamp(jam.swing||0,0,1);
  // headroom: a full stack of ten hits the master limiter, and a limiter that is always working
  // squashes the transients the drums are made of. 0.8 leaves the peak near 0.9 with ten parts.
- proj.master.vol=0.72;
+ proj.master.vol=0.68;
  proj.song.sections=[]; proj.song.bars=Math.max(1,section.bars||8);
  const cache={};
  for(const id of PRIORITY){
@@ -536,7 +538,7 @@ P.buildSong=function(jam){
  const secs=(jam.sections&&jam.sections.length?jam.sections:[P.newSection()]);
  const proj=Studio.newProject(jam.name||'jam');
  proj.bpm=jam.bpm||124; proj.swing=clamp(jam.swing||0,0,1);
- proj.master.vol=0.72;
+ proj.master.vol=0.68;
  const key=harmony.key(jam.key);
  const autom=proj.song.autom=[];
  proj.song.sections=[];   // newProject has no sections: a jam always has at least one

@@ -202,10 +202,12 @@ function onlyMachine(proj,mid){
   }
   const minPeak=Math.min.apply(null,solo.map(s=>s.peak)), minRms=Math.min.apply(null,solo.map(s=>s.rms));
   R.numbers.solo={ renders:solo.length, structural, minPeak, minRms,
-   quietest:solo.slice().sort((a,b)=>a.peak-b.peak).slice(0,3) };
+   quietest:solo.slice().sort((a,b)=>a.peak-b.peak).slice(0,3),
+   thinnest:solo.slice().sort((a,b)=>a.rms-b.rms).slice(0,3) };
   R.numbers.lights={ cuesEncoded:lightCues, looksSwappedToFallback:swapped };
   say('solo: '+solo.length+' bounces, '+structural+' pattern renders, min peak '+minPeak+', min rms '+minRms);
-  say('  quietest: '+R.numbers.solo.quietest.map(q=>q.id+' '+q.meter+' peak '+q.peak).join(', '));
+  say('  lowest peak: '+R.numbers.solo.quietest.map(q=>q.id+' '+q.meter+' '+q.peak).join(', '));
+  say('  lowest rms:  '+R.numbers.solo.thinnest.map(q=>q.id+' '+q.meter+' '+q.rms).join(', '));
   say('lights: '+lightCues+' cues encoded, '+swapped+' looks swapped to their fallback');
 
   // ---- 4) the stack at three energies ------------------------------------------------------------
