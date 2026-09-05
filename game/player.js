@@ -118,11 +118,13 @@ export class Player {
       const r = el.getBoundingClientRect();
       const x = e.clientX - r.left - r.width * 0.5;
       const y = e.clientY - r.top - r.height * 0.5;
-      const v = new THREE.Vector2(x, y).clampLength(0, 42);
+      // the knob's reach is the ring's: the free-roam ring is 80 px, so full rate at 34 px out
+      const reach = Math.max(20, r.width * 0.5 - 6);
+      const v = new THREE.Vector2(x, y).clampLength(0, reach);
       // (Lloyd, 2026-09-04: the view drifted left at the start) a thumb resting a few pixels off
-      // the centre is not an input: nothing inside 9 px, and the rest scaled from that edge
-      const len = v.length(), dead = 9;
-      if (len < dead) out.set(0, 0); else { const k = (len - dead) / (42 - dead) / len; out.set(v.x * k, v.y * k); }
+      // the centre is not an input: nothing inside 7 px, and the rest scaled from that edge
+      const len = v.length(), dead = 7;
+      if (len < dead) out.set(0, 0); else { const k = (len - dead) / (reach - dead) / len; out.set(v.x * k, v.y * k); }
       knob.style.transform = `translate(${v.x}px,${v.y}px)`;
     };
     this.on(el, 'pointerdown', (e) => {

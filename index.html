@@ -205,11 +205,15 @@ body.paused #paused{display:flex}
 #summary .box{width:min(420px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:18px}
 #summary h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:30px;font-weight:500;margin:0 0 8px;color:var(--accent)}
 #touch{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
-#installUi .stick{position:absolute;bottom:30px;width:118px;height:118px;border-radius:50%;border:1px solid rgba(255,255,255,.36);background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
+/* (Lloyd, 2026-09-05: "make the joysticks the same as free roam") the same ring, knob, labels and
+   place as #sticks: 80 px ring with a 1 px white line, a 32 px white knob, MOVE and LOOK above,
+   70 px up from the bottom and 28 px in from the sides, half strength */
+#installUi .stick{position:absolute;bottom:70px;width:80px;height:80px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
+#installUi .stick::before{content:attr(data-label);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:8px;color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 #installUi .stick.show{opacity:.5;transition:opacity 1.2s ease}   /* (Lloyd, 2026-09-04) the viewer's resting sticks: up until first used, then while held and a second after */   /* the #touch layer is pointer-events:none; the sticks must opt back in or no touch ever reaches them (2026-09-04: the controls did nothing on the phone) */
-#installUi .stick i{position:absolute;left:39px;top:39px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.75)}
-#move{left:24px}
-#look{right:24px}
+#installUi .stick i{position:absolute;left:24px;top:24px;width:32px;height:32px;border-radius:50%;background:#fff}
+#move{left:28px}
+#look{right:28px}
 #drop{position:absolute;right:24px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
 body.carrying #drop{display:block}
 #liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
@@ -254,7 +258,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
-  <div id="touch"><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button></div></div>
+  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button></div></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
