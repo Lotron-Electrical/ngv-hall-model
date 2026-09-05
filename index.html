@@ -4631,7 +4631,10 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // (Lloyd, 2026-09-05: "when I click on the tesseract it starts too late") the whoosh answers the TAP:
  // it swells over its first second and washes down through the dive to the crash. The flash's own
  // whoosh still comes from boomStart, which fires one when the last was over 3 s ago
- if(!A.wh){ A.wh=1; sndBoom(); } }
+ // (2026-09-05, from the designer's own cut, sound/ref/llyod_gandelhall.mp4: his mix answers the tap itself,
+ // a hit at 17.0 s of the master, 0.13 s after the tap on an orbit dive) the synth whoosh only stands in
+ // on a long dive, where the buffer's hit would come more than half a second late
+ if(!A.wh){ A.wh=1; if(TRACK.bm-A.to<16.5)sndBoom(); } }
 function boomStart(now){ if(boom||tour)return; const ft0=approach&&approach.to!=null?TRACK.bm-(approach.t0+approach.to-now):null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,ft0}; fabSync();   /* ft0: where the dive buffer is at the flash, so it runs on unbroken; null on a free flight by hand, which gets the crash here */
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
@@ -4766,7 +4769,7 @@ function diveWant(now){
 function divePos(){ return DIVE.src?DIVE.off+DIVE.o+SND.ctx.currentTime-DIVE.t0:null; }
 function diveCue(ft){ const c=SND.ctx, t=c.currentTime; diveStop(0.04); const o=ft-DIVE.off; const n=c.createBufferSource(); n.buffer=DIVE.buf; const g=c.createGain(); g.gain.value=0; g.connect(sndBus()); n.connect(g);
  if(o>=0){ n.start(t,o); DIVE.o=o; DIVE.t0=t; } else { n.start(t-o,0); DIVE.o=0; DIVE.t0=t-o; }   // a long dive taps before the buffer's start: it waits for it
- DIVE.src=n; DIVE.g=g; DIVE.on=true; g.gain.setTargetAtTime(LEVEL*(SND.on?1:0),t,0.15); }
+ DIVE.src=n; DIVE.g=g; DIVE.on=true; g.gain.setTargetAtTime(LEVEL*(SND.on?1:0),t,0.04); }   /* quick: the tap's hit is 0.13 s in */
 function diveStop(tc){ const c=SND.ctx; if(!c)return; const s=DIVE.src, g=DIVE.g; DIVE.src=null; DIVE.g=null; DIVE.on=false; if(!s)return; const t=c.currentTime, k=tc||0.3; g.gain.setTargetAtTime(0,t,k); try{ s.stop(t+k*4); }catch(e){} }
 function diveStep(now){ const c=SND.ctx; if(!c)return; diveDecode(); const w=diveWant(now);
  if(w==null||w>=DIVE.end||TRACK.hidden){ if(DIVE.on)diveStop(w!=null&&w>=DIVE.end?0.3:0.1); return; }
@@ -4819,7 +4822,8 @@ function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=
  const duck=heard&&!(WARP.k>0&&!approach&&!boom&&!tour); if(duck!==TRACK.duck)trackDuck(duck);
  // (2026-09-05) on a dive the float holds until the crash's onset and goes out under it (the file's stretch
  // before the crash is its quiet dip: fading the float into that read as the sound dropping out on the tap)
- floatStep(now,approach&&approach.to!=null?Math.max(0,now-(approach.t0+approach.to-0.8)):TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
+ // (2026-09-05, the designer's cut) the float drops on the TAP, in 0.3 s, and his mix's own tap hit follows it
+ floatStep(now,approach&&approach.to!=null?(now-approach.t0)*(0.8/0.3):TRACK.join!=null?now-TRACK.join:(roam&&roam.sink?Math.max(0,now-roam.t0-(ROAM.sink-1))*0.4:null));   // the float goes out under the file's join (0.8 s), or with the void closing (its old 2 s, scaled onto the same fade)
  keepStep(now,(!!TRACK.flSrc||TAP.on||DIVE.on)&&a.paused&&!TRACK.hidden);
  if(!w){ TRACK.hold=false; TRACK.join=null; if(TRACK.on){ TRACK.on=false; a.pause(); a.currentTime=0; }
   // (Lloyd, 2026-09-03: the sound designer's file came in a little late on the tap) while the object

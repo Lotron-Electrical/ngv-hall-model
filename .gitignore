@@ -4,3 +4,4 @@ sound/*.wav
 show/*.wav
 studio/verify/
 node_modules/
+sound/ref/
