@@ -4561,7 +4561,7 @@ function approachArr(from,r0,dur,t0,R=1.55){ const C=portal.centre; let arr=dur;
 // WARP_BOOM_K: the warp strength at which the crash goes off. At WARP.far (k 0) nothing shows yet (Lloyd,
 // 2026-09-05: "way too early"); on screen the fisheye reads from k 0.1 to 0.3. From the orbit: k 0 is 1.9 s
 // after the tap, k 0.1 is 2.9 s, k 0.2 is 3.25 s, the flash 5.2 s
-const WARP_BOOM_K=0.1;
+const WARP_BOOM_K=0.2;   /* 0.1 was a little early (Lloyd, 2026-09-05): 0.2 is 0.35 s later from the orbit */
 function approachWarpT(from,r0,dur,t0){ const R=WARP.near+(WARP.far-WARP.near)*(1-Math.sqrt(WARP_BOOM_K)); return Math.min(approachArr(from,r0,dur,t0,R),approachArr(from,r0,dur,t0)); }
 // (Lloyd, 2026-09-05: "the start was right, but the rest was way too early") the crash's onset is at the
 // kick-in and its PEAK stays on the flash: the file's 1.7 s rise is played slower (pitch held) so it
