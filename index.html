@@ -193,6 +193,27 @@ body.paused #paused{display:flex}
 /* (Lloyd, 2026-09-04) the guide toggle: #ghud is pointer-events:none, so the button opts back in, and it sits at the RIGHT end clear of #bars at top-left. 44 px tall so it can be tapped */
 #installUi #guide{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
 #installUi #guide.off{color:var(--dim)}
+/* (Lloyd, 2026-09-05: "a + in the centre of the screen for the players reticle") two thin bars, a dark edge so it reads on the lit bars as well as the black */
+#reticle{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);z-index:5;display:none;pointer-events:none;opacity:.8;filter:drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1px #000)}
+#reticle::before,#reticle::after{content:"";position:absolute;background:#fff}
+#reticle::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+#reticle::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+body.playing #reticle{display:block}
+/* the crew room (net.js): a button beside the guide, a small panel under it. Lines, not paragraphs */
+#installUi #crewBtn{flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
+#installUi #crewBtn.on{border-color:#5fbf7a;color:#9fe7b4}
+#crewPanel{position:absolute;right:12px;top:64px;z-index:6;width:min(300px,calc(100% - 24px));background:rgba(0,0,0,.84);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:12px 14px;color:#fff;pointer-events:auto;font-size:15px;line-height:1.5}
+#crewPanel .cpl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin:8px 0 2px}
+#crewPanel .cpl:first-child{margin-top:0}
+#crewPanel input{font:inherit;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:6px 8px;width:100%;box-sizing:border-box;text-transform:none}
+#crewPanel input#crewCode{text-transform:uppercase;letter-spacing:.2em;font-family:ui-monospace,Consolas,monospace}
+#crewPanel .cprow{display:flex;gap:8px;margin-top:8px}
+#crewPanel .cprow button{flex:1 1 auto;min-height:40px}
+#crewPanel #crewRoom{font-family:ui-monospace,Consolas,monospace;letter-spacing:.2em;font-size:20px;color:#9fe7b4}
+#crewPanel #crewStatus{font-size:12px;opacity:.7}
+#crewPanel ul{list-style:none;margin:2px 0 0;padding:0}
+#crewPanel li{padding:2px 0;border-top:1px solid rgba(255,255,255,.1)}
+#crewPanel li i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px}
 #prompt{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:6;max-width:min(520px,calc(100% - 24px));background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:8px 12px;text-align:center;color:#fff;pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #prompt.can{border-color:rgba(185,168,135,.85);background:rgba(20,16,8,.8)}   /* (Lloyd, 2026-09-04: "I don't like the action button") the message is the button: tap it to do it */
 #prompt:active{background:rgba(185,168,135,.35)}
@@ -257,7 +278,27 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
  <button type="button" id="roamfab">Free roam</button>
  <div id="installUi">
   <div id="vignette"></div>
-  <div id="ghud"><div id="stats"></div><button type="button" id="guide">Guide on</button></div>
+  <div id="ghud"><div id="stats"></div><button type="button" id="crewBtn">Crew</button><button type="button" id="guide">Guide on</button></div>
+  <div id="reticle" aria-hidden="true"></div>
+  <!-- (Lloyd, 2026-09-05: multiplayer) the crew room: start one, or join with a code; the link carries the key and the code -->
+  <div id="crewPanel" hidden>
+   <span class="cpl">Your name</span>
+   <input type="text" id="crewName" maxlength="16" autocomplete="off" placeholder="Crew">
+   <div id="crewOff">
+    <div class="cprow"><button type="button" id="crewStart">Start a room</button></div>
+    <span class="cpl">Or join with a code</span>
+    <input type="text" id="crewCode" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="ABC123">
+    <div class="cprow"><button type="button" id="crewJoin">Join</button></div>
+   </div>
+   <div id="crewOn" hidden>
+    <span class="cpl">Room</span>
+    <b id="crewRoom"></b>
+    <div id="crewStatus"></div>
+    <div class="cprow"><button type="button" id="crewShare">Share link</button><button type="button" id="crewLeave">Leave</button></div>
+    <span class="cpl">In the hall</span>
+    <ul id="crewList"></ul>
+   </div>
+  </div>
   <div id="bars"></div>
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
@@ -5122,7 +5163,8 @@ async function buildInstall(){
   import('./game/world.js'), import('./game/fx.js'), import('./game/body.js'), import('./game/crew.js'),
   import('./game/sound.js'), import('./game/player.js'), import('./game/lift.js'), import('./game/items.js'),
   import('./game/install.js'), import('./game/clock.js'), import('./game/hud.js')]);
- const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm}};
+ const NETm=await import('./game/net.js');
+ const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm,NETm}};
  // what the sim looked like on the way in, so the way out is exact
  G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
   bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
@@ -5190,6 +5232,7 @@ async function buildInstall(){
  wire('nextNight',()=>installNextNight(G));
  wire('guide',()=>{ if(G.install)G.install.setGuide(!G.install.guide); });
  wire('liftMode',()=>{ player.modeQueued=true; });
+ crewWire(G);
  document.getElementById('prompt').textContent='Press Start Shift';
  document.getElementById('overlay').classList.remove('gone');
  document.getElementById('summary').classList.remove('up');
@@ -5219,6 +5262,7 @@ function installNextNight(G){
  G.crew.resetForNight();
  G.clock.nextNight(G.install.counts().fitted);
  G.body.nextNight(); G.snd.nextNight();
+ if(G.net)G.net.sendNight(G.clock.night);
  document.getElementById('overlay').classList.remove('gone');
  document.body.classList.remove('playing'); G.player.setPaused(false);
  G.mods.CLKm.saveGame(G.clock,G.install);
@@ -5231,8 +5275,11 @@ function installToast(G,msg){ const el=document.getElementById('toast'); el.text
 function installInteract(G){
  const A=G.action; if(!A||!A.run)return;
  const before=G.install.counts().fitted, label=A.label;
+ const boxesBefore=G.net?G.items.pallets.map(p=>p.boxes):null;
  A.run();
  const after=G.install.counts().fitted;
+ if(G.net){ if(after>before&&G.install.lastFit)G.net.sendFit(G.install.lastFit.id);
+  G.items.pallets.forEach((p,i)=>{ if(p.boxes<boxesBefore[i])G.net.sendBox(i); }); }
  // the sound of what just happened, read off the prompt that was pressed
  if(after>before){ G.snd.fit(); if(G.install.lastFit)G.fx.onFit(G.install.lastFit,G.player); }
  else if(/^Unwrap/.test(label))G.snd.crinkle();
@@ -5254,7 +5301,8 @@ function installStep(dt,now){
  const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown));
  if(!clock.ended&&playing)body.update(dt,clock,load,moving);
  player.speedScale=body.speedScale();
- ITEMm.refreshObstacles(items,[lift].concat(crew.teams.map(t=>t.lift)));
+ ITEMm.refreshObstacles(items,[lift].concat(crew.teams.map(t=>t.lift), G.net?G.net.lifts():[]));
+ if(G.net)G.net.addObstacles(world);
  player.ignore=lift.aboard?[lift,lift.box]:[player.carry];
  player.update(dt,world,W.collideWorld);
  const oldLift=lift.height;
@@ -5273,8 +5321,10 @@ function installStep(dt,now){
  if(!G.doorsWereOpen&&!world.doorsShut)snd.door(); G.doorsWereOpen=!world.doorsShut;
  cam.position.set(player.pos.x,player.pos.y+player.eye,player.pos.z);
  cam.rotation.set(player.pitch,player.yaw,0,'YXZ');
- W.updateDoors(dt,world,(lift.aboard?[lift.pos]:[player.pos]).concat(crew.points()));
- if(playing&&!clock.ended)crew.update(dt,clock,player,install.counts().columnsDone);
+ W.updateDoors(dt,world,(lift.aboard?[lift.pos]:[player.pos]).concat(crew.points(), G.net?G.net.points():[]));
+ // in a crew room the people are the crew: the NPCs stand down (net.js)
+ if(playing&&!clock.ended&&!G.net)crew.update(dt,clock,player,install.counts().columnsDone);
+ if(G.net)G.net.update(dt);
  if(crew.toasts.length)installToast(G,crew.toasts.shift());
  if((G.runLightTick+=dt)>1){ G.runLightTick=0; installMask(); }   // the crew's fits light the room too
  install.update(now/1000);
@@ -5299,10 +5349,64 @@ function installStep(dt,now){
  sceneDirty=true;   // a hall with people and a lift moving in it is never a static frame
 }
 
+// THE CREW ROOM (Lloyd, 2026-09-05: "I want this to be able to be multiplayer"). net.js does the
+// wire; this is the panel and the glue. ?room=CODE in the address joins on the way in (the install
+// key's reload keeps it), Start a room makes a code and puts it in the address, Share link hands
+// out ?install=<key>&room=CODE so a new phone gets the door and the room in one tap
+const CREW_NAME_KEY='ngv-crew-name';
+function crewName(){ let n=''; try{ n=localStorage.getItem(CREW_NAME_KEY)||''; }catch(e){} return (document.getElementById('crewName').value||n||'Crew').trim().slice(0,16)||'Crew'; }
+function crewJoin(G,code){
+ code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8); if(!code)return;
+ if(G.net)G.net.close();
+ const name=crewName(); try{ localStorage.setItem(CREW_NAME_KEY,name); }catch(e){}
+ const q=new URLSearchParams(location.search); const relay=q.get('relay')||undefined;
+ q.set('room',code); history.replaceState(null,'',location.pathname+'?'+q.toString()+location.hash);
+ G.net=new G.mods.NETm.Net(G,{room:code,name,relay,hooks:{
+  toast:(m)=>installToast(G,m),
+  onFit:(slot,by,silent)=>{ if(!silent){ G.snd.fit(); } installMask(); G.mods.CLKm.saveGame(G.clock,G.install); },
+  onNight:(n,by)=>{ if(n>G.clock.night){ G.clock.night=n; installToast(G,(by?by+' started':'The room is on')+' night '+n); G.mods.CLKm.saveGame(G.clock,G.install); } },
+  onPeers:()=>crewPanelSync(G),
+ }});
+ crewPanelSync(G);
+}
+function crewLeave(G){
+ if(G.net){ G.net.close(); G.net=null; }
+ const q=new URLSearchParams(location.search); q.delete('room'); const qs=q.toString(); history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);
+ crewPanelSync(G);
+}
+function crewPanelSync(G){
+ const on=!!G.net; document.getElementById('crewOff').hidden=on; document.getElementById('crewOn').hidden=!on;
+ document.getElementById('crewBtn').classList.toggle('on',on&&G.net.on);
+ document.getElementById('crewBtn').textContent=on?('Crew '+(1+G.net.peers.size)):'Crew';
+ if(!on)return;
+ document.getElementById('crewRoom').textContent=G.net.room;
+ document.getElementById('crewStatus').textContent=G.net.status;
+ const you=document.createElement('li'); you.innerHTML='<i style="background:#fff"></i>'+escapeHtml(G.net.name)+' (you)';
+ const ul=document.getElementById('crewList'); ul.replaceChildren(you);
+ for(const p of G.net.peers.values()){ const li=document.createElement('li'); li.innerHTML='<i style="background:#'+p.av.vest.color.getHexString()+'"></i>'+escapeHtml(p.name); ul.appendChild(li); }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function crewWire(G){
+ const wire=(id,fn)=>{const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn));};
+ const panel=document.getElementById('crewPanel');
+ try{ document.getElementById('crewName').value=localStorage.getItem(CREW_NAME_KEY)||''; }catch(e){}
+ wire('crewBtn',()=>{ panel.hidden=!panel.hidden; if(!panel.hidden)crewPanelSync(G); });
+ wire('crewStart',()=>crewJoin(G,G.mods.NETm.makeRoomCode()));
+ wire('crewJoin',()=>crewJoin(G,document.getElementById('crewCode').value));
+ wire('crewLeave',()=>crewLeave(G));
+ wire('crewShare',async()=>{ if(!G.net)return; const url=location.origin+location.pathname+'?install='+INSTALL_KEY+'&room='+G.net.room;
+  try{ if(navigator.share){ await navigator.share({title:'NGV Gandel Hall: the night shift',text:'Join my crew room '+G.net.room,url}); return; } }catch(e){ if(e&&e.name==='AbortError')return; }
+  try{ await navigator.clipboard.writeText(url); installToast(G,'Link copied: send it to the crew'); }catch(e){ installToast(G,url); } });
+ // a room in the address joins on the way in
+ const q=new URLSearchParams(location.search); if(q.get('room'))crewJoin(G,q.get('room'));
+}
+
 function teardownInstall(){
  const G=IG; if(!G)return;
  IG=null; IMASK=null;
  for(const off of G.ui)off();
+ if(G.net){ G.net.close(); G.net=null; }
+ document.getElementById('crewPanel').hidden=true;
  G.player.unbind();
  G.fx.reset();
  G.snd.close();

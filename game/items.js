@@ -252,8 +252,14 @@ export function nearestAction(player, lift, install, items) {
   if (player.carry?.type === 'emptyBox') return { label: 'Carry empty box to skip', run: null };
   if (player.carry?.type === 'wrapped') return { label: 'Unwrap light', run: () => unwrapLight(player, items) };
   if (player.carry?.type === 'light') {
-    const slot = install.findFitSlot(lift.deckWorld());
-    if (slot && lift.aboard) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
+    // (2026-09-05) reach is from where you stand, deck or floor (install.js findFitSlot)
+    const slot = install.findFitSlot(player.pos);
+    if (slot) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
+    // the next bar is near but out of reach: say which way to go, and let a second tap put the light down
+    const nx = install.nextSlotNear(player.pos);
+    if (nx && Math.abs(nx.dy) >= 1.1) { const up = nx.dy > 0; const m = Math.abs(nx.dy).toFixed(1);
+      const advice = !lift.aboard ? (up ? 'Take the lift up to it' : 'Crouch to it') : up ? 'Raise the deck' : lift.height > 0.05 ? 'Lower the deck' : 'Get off: that one goes in from the floor';
+      return { label: `Next light ${nx.slot.column} gap ${nx.slot.gap} is ${m} m ${up ? 'above' : 'below'} your hands<br>${advice}`, run: () => dropCarry(player, items), hint: true }; }
     // (Lloyd, 2026-09-04) a light in hand with nowhere to fit it goes DOWN on ACTION, here
     return { label: lift.aboard ? 'Put light down on the deck' : 'Put light down', run: () => dropCarry(player, items) };
   }

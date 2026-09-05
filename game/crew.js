@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { hallToWorld, worldToHall, HALL } from './world.js';
 import { Lift } from './lift.js';
+import { Avatar } from './avatar.js';
 
 // THE CREW (Lloyd, 2026-09-04). Solo on the prototype column. Once a column is done a HELPER
 // joins and works your column: jacks its pallet in from the corridor, carries boxes to the
@@ -14,17 +15,6 @@ import { Lift } from './lift.js';
 const FEET_OUT = 2.0;             // the pallet stands this far off a column, toward the middle
 const PACK_UP = 28.5 * 60;        // 04:30 on the night clock (minutes from midnight)
 
-function figure(color) {
-  const g = new THREE.Group();
-  const vest = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xc9a07a, roughness: 0.9 });
-  const hat = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.9, 3, 8), vest); body.position.y = 0.85; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), skin); head.position.y = 1.58; g.add(head);
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 10), hat); brim.position.y = 1.66; g.add(brim);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), hat); dome.position.y = 1.66; g.add(dome);
-  return g;
-}
 
 // where a column's pallet stands: off the shaft toward the hall's middle line
 function footSpot(col) {
@@ -49,7 +39,8 @@ function pickColumn(install, world, from, claimed) {
 class Worker {
   constructor(scene, world, color, name) {
     this.scene = scene; this.world = world; this.name = name;
-    this.mesh = figure(color); scene.add(this.mesh);
+    // (2026-09-05) the crew wear the articulated character model (avatar.js), name tag and all
+    this.av = new Avatar(color, name); this.mesh = this.av.group; scene.add(this.mesh);
     this.pos = this.mesh.position; this.yaw = 0;
     this.carry = null;             // a box object, a bag, or a pallet (via the jack)
     this.jack = null;              // the jack group when this worker has it
@@ -60,17 +51,18 @@ class Worker {
   // walk toward a point on the floor; true once within `reach`
   walkTo(target, dt, collide, scale, reach = 0.9) {
     const dx = target.x - this.pos.x, dz = target.z - this.pos.z, dist = Math.hypot(dx, dz);
-    if (dist < reach) return true;
+    if (dist < reach) { this.av.walk(dt, 0); return true; }
     const step = Math.min(dist, this.speed * scale * dt);
     this.pos.x += dx / dist * step; this.pos.z += dz / dist * step;
     this.yaw = Math.atan2(dx, dz); this.mesh.rotation.y = this.yaw;
     collide(this.pos, 0.3, this.world, this.ignore());
-    this.pos.y = this.world.floorY;
-    this.mesh.position.y = this.world.floorY + 0.04 * Math.abs(Math.sin(performance.now() / 180));
+    this.av.floorY = this.world.floorY;
+    this.av.walk(dt, dt > 0 ? step / dt : 0);   // the legs swing at the pace, and the bob comes with them
     return false;
   }
   // what is carried rides in front of the chest, the jack and its pallet trail behind
   settle() {
+    this.av.setCarry(this.carry ? this.carry.type : null, false);   // arms forward; the item itself rides in front (below)
     if (this.carry && this.carry.mesh) {
       const ahead = new THREE.Vector3(0, 1.05, 0.45).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
       this.carry.mesh.position.copy(this.pos).add(ahead); this.carry.mesh.rotation.y = this.yaw;

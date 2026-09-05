@@ -3,3 +3,4 @@ sound/*.wav
 # the studio renders its show to a wav here; tools/show_pack.py makes the mp3 that ships with the page
 show/*.wav
 studio/verify/
+node_modules/

@@ -124,19 +124,35 @@ export class Install {
     return run.slots.find((s) => !this.fitted.has(s.id));
   }
 
-  findFitSlot(eye) {
-    let best = null;
-    let dist = Infinity;
+  // (Lloyd, 2026-09-05: "I can't seem to put the light on the column when I am on the scissor
+  // lift") reach used to be a 1.8 m ball round the DECK'S CENTRE, which the lowest bar sits under
+  // and the rest sit above unless the deck is almost level with them. Reach is the hands now: the
+  // next bar of a run is fittable when it is within FLAT m on the plan of where you stand and
+  // within RISE m up or down of your hands (1.2 m above your feet), on the deck or on the floor
+  static FLAT = 2.0;
+  static RISE = 1.1;
+  static HANDS = 1.2;
+  findFitSlot(feet) {
+    let best = null, dist = Infinity;
     for (const run of this.runs) {
       const slot = this.nextForRun(run);
       if (!slot) continue;
-      const d = slot.center.distanceTo(eye);
-      if (d < 1.8 && d < dist) {
-        best = slot;
-        dist = d;
-      }
+      const flat = Math.hypot(slot.center.x - feet.x, slot.center.z - feet.z), dy = slot.center.y - (feet.y + Install.HANDS);
+      if (flat < Install.FLAT && Math.abs(dy) < Install.RISE && flat < dist) { best = slot; dist = flat; }
     }
     return best;
+  }
+  // the nearest run's next bar when none is in reach, with how far up or down it is: the prompt
+  // says which way to move the deck instead of offering nothing
+  nextSlotNear(feet) {
+    let best = null, dist = Infinity;
+    for (const run of this.runs) {
+      const slot = this.nextForRun(run);
+      if (!slot) continue;
+      const flat = Math.hypot(slot.center.x - feet.x, slot.center.z - feet.z);
+      if (flat < 3.2 && flat < dist) { best = slot; dist = flat; }
+    }
+    return best ? { slot: best, dy: best.center.y - (feet.y + Install.HANDS), flat: dist } : null;
   }
 
   fit(slot, player) {

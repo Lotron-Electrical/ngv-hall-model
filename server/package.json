@@ -1,0 +1,10 @@
+{
+  "name": "ngv-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebSocket relay for the NGV Gandel Hall install sim's crew rooms",
+  "main": "relay.js",
+  "scripts": { "start": "node relay.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}

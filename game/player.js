@@ -53,6 +53,7 @@ export class Player {
 
   bind(ui) {
     this.on(window, 'keydown', (e) => {
+      if (e.target?.matches?.('input, textarea')) return;   // typing a name in the crew panel is not a move (2026-09-05)
       if (e.code === 'KeyE') this.actionQueued = true;
       if (e.code === 'KeyF') this.dropQueued = true;
       if (e.code === 'KeyQ' && !e.repeat) this.modeQueued = true;   // the lift's fast / slow (2026-09-05)
@@ -79,7 +80,7 @@ export class Player {
     this.paused = false;
     this.on(document, 'click', (e) => {
       if (this.coarse || !document.body.classList.contains('playing')) return;
-      if (e.target.closest?.('button, a, input, select, #prompt, #overlay, #summary')) return;
+      if (e.target.closest?.('button, a, input, select, label, #prompt, #overlay, #summary, #crewPanel')) return;
       if (document.pointerLockElement !== this.canvas) this.lock();
     });
     // the pause is for a lock LOST (Esc, alt-tab): before the first lock has been held the shift
