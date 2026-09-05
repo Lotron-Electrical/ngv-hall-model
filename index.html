@@ -4149,7 +4149,19 @@ function tourStep(now){ const T=tour; if(!T)return; if(tourPaused){ tourShift(no
  if(houseRamp){ const q=Math.min(1,(now-houseRamp.t0)/houseRamp.dur); lit.house=houseRamp.from+(houseRamp.to-houseRamp.from)*smooth(q); if(q>=1)houseRamp=null; }
  TITLE_WIPE.cols=null;   /* the column wipe is armed by the one shot that wants it, every frame */
  if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
-document.getElementById('tourbtn').onclick=()=>{ if(tour)stopTour(); else { trackWarm(); startTour(); } };
+document.getElementById('tourbtn').onclick=()=>{ trackWarm(); tourFlip(); };   /* trackWarm inside the gesture: WebKit unlocks the element only there */
+// (Lloyd, 2026-09-05: "the flip from tour/stop tour and back should happen smoothly with a fade") the
+// button takes the picture through black: 0.5 s down, the switch on the black, 0.9 s back up. The
+// file's level goes down with the picture on the way out of a tour, so the music is not cut mid-note
+let flipping=false;
+function tourFlip(){ if(flipping||boom)return; flipping=true; const f=document.getElementById('flash'), a=TRACK.el, wasTour=!!tour;
+ f.style.transition='none'; f.style.background='#000'; f.style.opacity=String(+f.style.opacity||0);
+ requestAnimationFrame(()=>{ f.style.transition='opacity 0.5s ease-in'; f.style.opacity=1; });
+ const t0=performance.now(); const down=()=>{ if(!wasTour||!tour)return; const k=Math.min(1,(performance.now()-t0)/500); TRACK.dim=1-k; if(k<1)requestAnimationFrame(down); }; down();
+ setTimeout(()=>{ if(tour)stopTour(); else startTour(); TRACK.dim=1; if(a)a.volume=1;
+  f.style.transition='none'; f.style.background='#000'; f.style.opacity=1;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transition='opacity 0.9s ease-out'; f.style.opacity=0; f.addEventListener('transitionend',()=>{ f.style.background='#fff'; },{once:true}); }));
+  setTimeout(()=>{ flipping=false; },1000); },520); }
 // PAUSE AND SCRUB (Lloyd, for the storyboard tool): the tour's clocks are shifted as one, so a
 // pause holds the camera, the paper, the rice and the walk together, and a seek lands mid-shot
 // with the event built and everything time-based wound to that moment. window.tourCtl is what
@@ -4528,11 +4540,14 @@ function approachStart(){ if(approach||boom||tour||!portal||roam||roamed)return;
  // where the dive lands: frame() sets the scene off once the eye is inside 1.55 m of the centre,
  // so the same ease is walked here, with the object's float at each future moment, to find that
  // moment and the soundtrack's crash is put on it
- approach.arr=approachArr(approach.from,approach.r0,approach.dur,approach.t0); }
+ approach.arr=approachArr(approach.from,approach.r0,approach.dur,approach.t0); approach.tw=approachWarpT(approach.from,approach.r0,approach.dur,approach.t0); }
 // the landing time for a dive from `from`: the same ease frame() walks, against the object's float
-function approachArr(from,r0,dur,t0){ const C=portal.centre; let arr=dur; for(let i=0;i<=800;i++){ const q=i/800, e=q<0.5?2*q*q:1-2*(1-q)*(1-q); const r=r0+(1.2-r0)*e, y=from.y+(C.y+FLOAT(t0+q*dur)-from.y)*e; if(Math.hypot(r,y-C.y)<1.55){ arr=q*dur; break; } } return arr; }
+function approachArr(from,r0,dur,t0,R=1.55){ const C=portal.centre; let arr=dur; for(let i=0;i<=800;i++){ const q=i/800, e=q<0.5?2*q*q:1-2*(1-q)*(1-q); const r=r0+(1.2-r0)*e, y=from.y+(C.y+FLOAT(t0+q*dur)-from.y)*e; if(Math.hypot(r,y-C.y)<R){ arr=q*dur; break; } } return arr; }
+// (Lloyd, 2026-09-05: "the boom should play when the tesseract fov kicks in") the moment the same dive
+// crosses WARP.far, where the lens starts to open: the file's crash onset (TRACK.bm) is put there
+function approachWarpT(from,r0,dur,t0){ return Math.min(approachArr(from,r0,dur,t0,WARP.far),approachArr(from,r0,dur,t0)); }
 // where a dive from the eye's present spot would join the file (the crash less the landing time)
-function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.sw-approachArr(eye,r0,dur,now); }
+function trackPark(now){ const C=portal.centre, r0=Math.hypot(eye.x-C.x,eye.z-C.z), dur=Math.max(6,eye.distanceTo(C)/0.9); return TRACK.bm-approachWarpT(eye,r0,dur,now); }
 function approachStep(now){ const A=approach, C=portal.centre.clone().setY(portal.centre.y+portal.body.position.y);
  const q=Math.min(1,(now-A.t0)/A.dur), e=q<0.5?2*q*q:1-2*(1-q)*(1-q);   // ease in and out, so the last metre is the slow one
  let da=A.a1-A.a0; da=Math.atan2(Math.sin(da),Math.cos(da)); const a=A.a0+da*smooth(Math.min(1,q*2.5));   // the swing round is done in the first part of the drift
@@ -4542,8 +4557,11 @@ function approachStep(now){ const A=approach, C=portal.centre.clone().setY(porta
  // (Lloyd, V3) the whoosh belongs to the TRANSITION: it starts on the last second of the dive, so
  // its swell peaks right as the kaleidoscope takes over and the wash rides the pull
  if(!A.wh&&(1-q)*A.dur<=1.05){ A.wh=1; sndBoom(); } }
-function boomStart(now){ if(boom||tour)return; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now}; fabSync();
- if(TRACK.on&&Math.abs(TRACK.el.currentTime-TRACK.sw)>0.6)TRACK.el.currentTime=TRACK.sw;   // the crash on the flash; (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
+function boomStart(now){ if(boom||tour)return; const appr=approach&&approach.tw!=null?TRACK.bm-(approach.t0+approach.tw):null; if(approach){ noclip=approach.noclip; approach=null; } boom={t0:now,appr}; fabSync();
+ // (Lloyd, 2026-09-05) the crash is no longer on the flash: on a dive it went off at the fov's kick-in and the
+ // file simply runs on; a free flight by hand still gets the crash here
+ boom.off=(boom.appr!=null)?boom.appr:TRACK.sw-now;
+ if(TRACK.on&&Math.abs(TRACK.el.currentTime-(now+boom.off))>0.6)TRACK.el.currentTime=now+boom.off;   // (was: the crash on the flash); (2026-09-03) a seek IS a skip, so only a real miss is seeked, the rate nudge below holds the rest
  if(TAP.src&&Math.abs(tapPos()-TAP.tr)>0.12)tapCue(TAP.tr);   // (tap synth) and its lift with it: re-cued if a prediction or a hidden tab put it out
  // the whoosh usually fired on the dive already (approachStep); this is the free-flight arrival
  if(!(SND.ctx&&SND.whT!=null&&SND.ctx.currentTime-SND.whT<3))sndBoom();
@@ -4563,7 +4581,7 @@ const BOOM_T={kal:2.5,iris:1.2,hold:0.25};
 // frame asks where the file should be for the state the page is in and pulls it back into line
 // when the two clocks drift apart (a pause, a seek, the tool's loop). While the file plays the
 // synthesised bed is muted; it comes back once the file has nothing to play under.
-const TRACK={sw:21.9, t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0, join:null, bus:null, keep:null};
+const TRACK={dim:1, sw:21.9, bm:20.2, /* the crash's onset in the file, read off its envelope (2026-09-05): quiet from 17.5, up 7 dB at 20.2, peak 21.9 */ t0:21.9+BOOM_T.kal+BOOM_T.iris+BOOM_T.hold, el:null, on:false, duck:false, hidden:false, warm:false, hold:false, ask:0, join:null, bus:null, keep:null};
 // ?mute=1 is the storyboard tool's second, phone-sized frame of the same clip: that copy is silent,
 // or the two frames play the mix twice a few hundred ms apart
 const MUTEQ=new URLSearchParams(location.search).has('mute'); if(MUTEQ){ SND.on=false; document.getElementById('sound').checked=false; }
@@ -4663,12 +4681,15 @@ function floatStep(now,joined){ const c=SND.ctx; if(!c)return; floatDecode(); co
 function trackWant(now){
  if(tour){ const T=tour; if(T.i<0)return null; let acc=0; for(let j=0;j<T.i;j++)acc+=T.segs[j].dur; const sg=T.segs[T.i];
   return {t:TRACK.t0+acc+Math.max(0,Math.min(1,(now-T.t0)/sg.dur))*sg.dur, paused:tourPaused}; }
- if(boom)return {t:TRACK.sw+(now-boom.t0)};
+ if(boom)return {t:now+(boom.off!=null?boom.off:TRACK.sw-boom.t0)};
  // it joins the dive once its crash is due. An Event ticked mid-dive hides the object and the touch
  // never comes (the camera parks at the shell): no crash for that. `tight` pulls the file to within
  // 80 ms on the way in, so by the crash's swell there is nothing left to correct and the crash
  // itself is never seeked
- if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.arr-now, t=TRACK.sw-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
+ // (Lloyd, 2026-09-05) the file's crash onset (bm) lands where the lens starts to open (A.tw), not on the
+ // flash: from the orbit that is 1.5 s after the tap, not 3.2, and the file's quiet dip before the crash
+ // is no longer what the tap is answered with
+ if(approach){ const A=approach; if(A.arr==null||!portal.group.visible)return null; const left=A.t0+A.tw-now, t=TRACK.bm-left; return t>=0?{t,tight:left>1.2,join:true}:null; }
  if(restFinale)return {free:true};   // the tail plays out over the rest
  return null; }
 // the bus every WebAudio sound (the float, the tap synth) goes through: a limiter, so the two
@@ -4719,7 +4740,7 @@ function trackStep(now){ proxStep(now); const a=TRACK.el; if(!a)return; const w=
  // (review) the fade is clocked from the moment the file is actually heard, not from the ask: on a slow
  // link the ask runs seconds ahead of the sound, and the float holds at full until then
  if(w.join&&TRACK.join==null){ if(!a.paused&&a.readyState>=2&&a.currentTime>0)TRACK.join=now; else if(a.volume!==0)a.volume=0; }
- if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/0.5));   /* (2026-09-03) 3.5 s read as late, then 1.5 s still did (Lloyd, 2026-09-04): 0.5 s, the file is there on the tap */ if(Math.abs(a.volume-v)>0.01||(v===1&&a.volume!==1))a.volume=v; } else if(!w.join&&a.volume!==1)a.volume=1;
+ if(w.join&&TRACK.join!=null){ const v=smooth(Math.min(1,(now-TRACK.join)/0.5));   /* (2026-09-03) 3.5 s read as late, then 1.5 s still did (Lloyd, 2026-09-04): 0.5 s, the file is there on the tap */ if(Math.abs(a.volume-v)>0.01||(v===1&&a.volume!==1))a.volume=v; } else if(!w.join&&Math.abs(a.volume-TRACK.dim)>0.005)a.volume=TRACK.dim;   /* TRACK.dim: the Tour button's fade-out (tourFlip), 1 otherwise */
  if(TRACK.hidden||w.paused||(w.free&&TRACK.hold)){ if(!a.paused)a.pause(); if(w.t!=null&&!a.seeking&&Math.abs(a.currentTime-w.t)>0.3)a.currentTime=w.t; return; }
  // (Lloyd, 2026-09-03: the sounds glitch and skip) every seek of an <audio> is a dropout on a phone,
  // and the old rule seeked on 0.3 s of drift, 0.08 s on the way to the crash: a heavy frame in the
