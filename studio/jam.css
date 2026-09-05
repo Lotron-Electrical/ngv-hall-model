@@ -1,94 +1,150 @@
-/* THE JAM'S STYLESHEET (Lloyd, 2026-09-05): loaded after ui.css and only adding what the jam needs.
-   Every token, the transport row, the bottom nav, the sheet and the toast come from ui.css so the
-   jam, the studio and the hall read as one instrument.
-   House rules repeated here because they are easy to break: 44 px minimum for anything a finger
-   hits, near-black text on every accent fill, and nothing may make the page scroll sideways at
-   360 px. A row of tiles is wider than a phone by design, so each row scrolls on its own axis and
-   the page never does. */
+/* THE JAM'S STYLESHEET (Lloyd, 2026-09-05): colour carries the meaning, words are the exception.
+   Every instrument owns a colour and its patterns are tiles in that colour, so the eye finds the
+   drums row without reading it. Only two type sizes exist plus one small uppercase label, and the
+   surface never explains itself in a caption.
+   Loaded after ui.css, which supplies the tokens, the sheet, the toast and the bottom nav shell.
+   House rules that are easy to break: 44 px minimum for anything a finger hits, near-black text on
+   every bright fill, and nothing may scroll the page sideways at 360 px. A row of tiles is wider
+   than a phone by design, so each row scrolls on its own axis and the page never does. */
+:root{
+ --go:#00ff41;               /* the one "this is live" colour: play, the active nav, song play */
+ --on-go:#001a06;            /* near-black, the only text colour allowed on the green */
+ --stop:#ff5c5c;
+ --t1:15px;                  /* the body size: every control, every tile, every name */
+ --t2:22px;                  /* the big size: the tempo, the section blocks */
+ --row-h:72px;
+ --tile-h:64px;
+}
+body{font-size:var(--t1)}
 
-/* ------------------------------------------------------------ the transport
-   The studio's transport row is 38 px tall because a desk operator uses a mouse. The jam is a
-   thumb instrument, so every control in the row goes back to the 44 px minimum. */
-#top{height:auto;min-height:calc(var(--tap) + 8px);padding:4px 8px}
-#top button{min-height:var(--tap)}
-#stop{width:var(--tap);padding:0}
-#menubtn{width:var(--tap);min-height:var(--tap)}
-#bpmval{min-width:56px;font-variant-numeric:tabular-nums}
+/* ------------------------------------------------------------ transport: play, stop, tempo */
+#top{height:auto;min-height:68px;padding:6px 10px;gap:10px}
+#top button{min-height:var(--tap);font-size:var(--t1)}
+#top #play{width:56px;height:56px;min-height:56px;padding:0;border-radius:50%;flex:none;
+ background:var(--go);border-color:var(--go);color:var(--on-go)}
+#top #play:hover{border-color:var(--go);filter:brightness(1.08)}
+#top #play[aria-pressed="true"]{background:var(--go);border-color:var(--go);color:var(--on-go)}
+#top #stop{width:var(--tap);min-height:var(--tap);padding:0;flex:none;color:var(--stop)}
+#top #bpmval{min-width:62px;font-size:var(--t2);font-variant-numeric:tabular-nums;padding:0 10px}
+#top #menubtn{width:var(--tap);min-height:var(--tap);flex:none;padding:0}
 
-/* ------------------------------------------------------------ the style starter chips */
+/* ------------------------------------------------------------ the style pills, one word each */
+.vhead{padding:6px 10px;gap:8px}
 #stylerow{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
- -webkit-overflow-scrolling:touch;padding:2px 0}
+ -webkit-overflow-scrolling:touch}
 #stylerow::-webkit-scrollbar{display:none}
-#stylerow button{min-height:var(--tap);padding:0 12px;font-size:12px;border-radius:18px;flex:none;text-transform:capitalize}
+#stylerow button{flex:none;min-height:var(--tap);padding:0 16px;border-radius:22px;font-size:var(--t1);
+ text-transform:capitalize;background:transparent;border:1px solid var(--c);color:var(--c)}
+#stylerow button:hover{border-color:var(--c)}
+#stylerow button[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#0e0f11;font-weight:600}
 
-/* ------------------------------------------------------------ a row of preset tiles */
-.jrow{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);margin-bottom:var(--gap);overflow:hidden}
-.jrow.on{border-color:var(--accent)}
-.jrhd{display:flex;align-items:center;gap:8px;padding:5px 8px;background:#1a1d22;border-bottom:1px solid var(--rule);min-height:32px}
-.jrhd .nm{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.06em;
- text-transform:uppercase;flex:none;min-width:74px}
-.jrhd .slot{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em}
-.jrhd .pick{margin-left:auto;color:var(--accent);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44%}
-.jrhd .pick.off{color:var(--dim)}
+/* ------------------------------------------------------------ one row per instrument */
+.vbody{padding:6px 0 10px}
+.jrow{display:flex;align-items:center;gap:6px;height:var(--row-h);padding-left:10px}
+.jrow .jdot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--c)}
+.jrow.jfam-colour .jdot{background:linear-gradient(135deg,#ff5c5c,#ffd166 30%,#5fd4a8 60%,#4fa3ff 80%,#b78cff)}
+.jrow .jrn{flex:none;width:68px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+ line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jrow .jstrip{flex:1;min-width:0;display:flex;align-items:center;gap:6px;height:100%;
+ overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+ scroll-snap-type:x proximity;scrollbar-width:none;padding-right:10px}
+.jrow .jstrip::-webkit-scrollbar{display:none}
 
-/* the strip itself: one scroll axis, snapped, and it is the ONLY thing wider than the screen */
-.jstrip{display:flex;gap:6px;padding:6px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
- scroll-snap-type:x proximity;scrollbar-width:thin}
-.jstrip::-webkit-scrollbar{height:5px}
-.jstrip::-webkit-scrollbar-thumb{background:var(--edge);border-radius:3px}
-.tile{flex:none;width:104px;min-height:var(--tap);padding:5px 8px;border-radius:7px;background:#1c1f25;
- border:1px solid var(--rule);flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;
- scroll-snap-align:start;text-align:left;-webkit-tap-highlight-color:transparent}
-.tile .tn{font-size:13px;line-height:1.2;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tile .ts{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
-.tile[aria-pressed="true"] .ts{color:var(--on-accent);opacity:.72}
-.tile.locked{opacity:.42}
-.jstrip .empty{color:var(--dim);font-size:12px;padding:10px 4px}
+/* a tile is the pattern. Coloured edge and coloured text when off, solid colour when on. */
+.jtile{flex:none;width:140px;height:var(--tile-h);min-height:var(--tile-h);padding:0 9px;border-radius:9px;
+ background:#171a1f;border:1px solid #262a31;border-left:5px solid var(--c);color:var(--c);
+ font-size:var(--t1);justify-content:flex-start;text-align:left;scroll-snap-align:start;
+ position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.jtile:hover{border-color:#262a31;border-left-color:var(--c)}
+.jtile .jtn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.jtile[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#0e0f11;font-weight:600}
+.jtile.jlocked{opacity:.38}
+/* the colour family has no single colour, so its edge is the whole spectrum. Two stacked
+   backgrounds do it: the flat tile clipped to the padding box, the gradient clipped to the border
+   box, so the rainbow shows only where a border is transparent, which is the left edge alone. */
+.jrow.jfam-colour .jtile{border-left-color:transparent;color:#ff9ad6;
+ background-image:linear-gradient(#171a1f,#171a1f),
+  linear-gradient(180deg,#ff5c5c,#ffd166 30%,#5fd4a8 60%,#4fa3ff 80%,#b78cff);
+ background-origin:padding-box,border-box;background-clip:padding-box,border-box}
+.jrow.jfam-colour .jtile[aria-pressed="true"]{color:#0e0f11;border-color:transparent;
+ background-image:linear-gradient(100deg,#ff5c5c,#ffd166 28%,#5fd4a8 55%,#4fa3ff 78%,#b78cff);
+ background-origin:border-box;background-clip:border-box}
 
-/* ------------------------------------------------------------ the light layer rows */
-.lxctl{display:flex;align-items:center;gap:8px;padding:0 8px 8px;flex-wrap:wrap}
-.lxctl .syncbtn{min-height:var(--tap);font-size:12px;padding:0 10px;border-radius:18px;flex:none}
-.lxctl label{flex:none}
-.lxctl input[type=range]{flex:1;min-width:110px;height:var(--tap)}
-.lxctl .gv{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink);min-width:30px;text-align:right}
+/* an active light tile carries its own controls: a sync mark and a corner that opens the sheet */
+.jtile.jlx[aria-pressed="true"]{width:184px;padding-right:44px}
+.jtile .jsyncdot{width:10px;height:10px;border-radius:50%;flex:none;margin-right:7px;background:var(--s);
+ box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.jtile .jmore{position:absolute;right:0;top:0;bottom:0;width:44px;border:0;border-radius:0;background:rgba(0,0,0,.18);
+ color:inherit;min-height:0;padding:0}
+.jtile .jmore:hover{background:rgba(0,0,0,.3);border:0}
 
-/* ------------------------------------------------------------ the section cards */
-.seccard{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);margin-bottom:var(--gap);overflow:hidden}
-.seccard.cur{border-color:var(--accent)}
-.sechd{display:flex;align-items:center;gap:8px;width:100%;background:#1a1d22;border:0;border-radius:0;
- min-height:52px;padding:0 8px;justify-content:flex-start;text-align:left}
-.sechd:hover{border:0}
-.sechd .no{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:19px;color:var(--accent);flex:none;min-width:26px}
-.sechd .meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dim)}
-.sechd .bar{flex:none;width:56px;height:6px;background:var(--deep);border-radius:3px;overflow:hidden}
-.sechd .bar i{display:block;height:100%;background:var(--accent)}
-.sechd .cv{flex:none;color:var(--dim);width:14px;display:flex;align-items:center;justify-content:center;
- transition:transform .12s ease}
-.seccard.open .sechd .cv{transform:rotate(180deg);color:var(--accent)}
-.secbody{padding:8px;border-top:1px solid var(--rule);display:none}
-.seccard.open .secbody{display:block}
-.secrow{display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:2px 0;flex-wrap:wrap}
-.secrow>label{flex:none;min-width:70px}
-.secrow>.grow{flex:1;min-width:120px}
-.secrow .seg{flex:1;min-width:150px}
-.secrow .seg button{min-height:var(--tap)}
-.secacts{display:flex;gap:6px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #1e2126;margin-top:6px}
-.secacts button{flex:1;min-width:78px;min-height:var(--tap);font-size:12px}
-.secacts button.danger{color:var(--rec)}
+/* ------------------------------------------------------------ the lights block */
+.jblock{margin-top:6px;border-top:1px solid var(--rule);padding-top:4px}
+.jblockhd{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);padding:6px 10px 2px}
+
+/* ------------------------------------------------------------ song: coloured blocks, then one card */
+#secstrip{display:flex;gap:8px;align-items:center;padding:10px;overflow-x:auto;overflow-y:hidden;
+ -webkit-overflow-scrolling:touch;scrollbar-width:none;flex:none}
+#secstrip::-webkit-scrollbar{display:none}
+.jsecblock{flex:none;width:64px;height:64px;min-height:64px;border-radius:12px;padding:0;
+ font-size:var(--t2);font-weight:600;color:#0e0f11;background:var(--c);border:2px solid transparent}
+.jsecblock:hover{border-color:#fff}
+/* ui.css paints any pressed button in the accent gold, which would throw away the energy colour
+   on the one block that matters most, so the selected block restates its own fill */
+.jsecblock[aria-pressed="true"]{background:var(--c);color:#0e0f11;
+ border-color:var(--ink);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.jsecblock.jplaying{border-color:var(--go);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--go)}
+.jsecadd{flex:none;width:64px;height:64px;min-height:64px;border-radius:12px;padding:0;font-size:var(--t2);
+ background:transparent;border:1px dashed var(--edge);color:var(--dim)}
+
+.jseccard{margin:0 10px;border:1px solid var(--rule);border-radius:12px;background:var(--sunk);overflow:hidden}
+.jseccard .jcardtop{display:flex;align-items:center;gap:10px;padding:10px}
+.jseccard .jswatch{width:34px;height:34px;border-radius:9px;flex:none;background:var(--c)}
+.jseccard input[type=range]{flex:1;min-width:0;height:var(--tap);accent-color:var(--c)}
+.jmorebtn{width:100%;border:0;border-top:1px solid var(--rule);border-radius:0;min-height:var(--tap);
+ background:transparent;color:var(--dim);font-size:var(--t1);gap:8px}
+.jmorebtn:hover{border:0;border-top:1px solid var(--rule);color:var(--ink)}
+.jmorebtn svg{transition:transform .12s ease}
+.jseccard.jmore .jmorebtn svg{transform:rotate(180deg)}
+.jseccard.jmore .jmorebtn{color:var(--ink)}
+.jmorebody{display:none;padding:4px 10px 10px;border-top:1px solid var(--rule)}
+.jseccard.jmore .jmorebody{display:block}
+.jmrow{display:flex;align-items:center;gap:8px;padding:4px 0;flex-wrap:wrap}
+.jmrow>label{flex:none;min-width:64px}
+.jmrow .seg{flex:1;min-width:150px}
+.jmrow .seg button{min-height:var(--tap);font-size:var(--t1)}
+.jsecacts{display:flex;gap:8px;padding:10px}
+.jsecacts button{flex:1;min-height:var(--tap);font-size:var(--t1)}
+.jsecacts button.danger{color:var(--stop)}
+#songplay{background:var(--go);border-color:var(--go);color:var(--on-go);font-weight:600}
+#songplay:hover{border-color:var(--go);filter:brightness(1.08)}
+#songplay[aria-pressed="true"]{background:var(--go);border-color:var(--go);color:var(--on-go)}
 
 /* ------------------------------------------------------------ the hall */
 #simwrap{flex:1;min-height:0;background:#000;display:flex}
 #sim{flex:1;width:100%;border:0;display:block;min-height:0}
-#simstate{font-size:11px;text-transform:uppercase;letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
 
-/* the export sheet's progress line */
+/* ------------------------------------------------------------ bottom nav: icons go green when on */
+#nav button{gap:3px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+#nav button[aria-pressed="true"]{color:var(--go);box-shadow:inset 0 2px 0 var(--go);font-weight:600}
+#nav button svg{opacity:.85}
+#nav button[aria-pressed="true"] svg{opacity:1}
+
+/* ------------------------------------------------------------ sheets */
+#sheet h3{font-size:var(--t2)}
+#sheet .sact{font-size:var(--t1)}
+.jsheetgrid{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px}
+.jsheetgrid button{flex:1 1 30%;min-height:var(--tap);font-size:var(--t1)}
+.jsheetgrid button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 #jbar{height:8px;background:var(--sunk);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:10px 0}
-#jbarfill{height:100%;width:0;background:var(--ok)}
+#jbarfill{height:100%;width:0;background:var(--go)}
 
 /* ------------------------------------------------------------ desktop: wider tiles, tabs up top */
 @media (min-width:900px){
- .tile{width:126px}
- .jrhd .nm{min-width:92px}
- .vbody{padding:12px 14px}
- #jambody,#songbody{max-width:1100px;margin:0 auto;width:100%}
+ .jtile{width:150px}
+ .jtile.jlx[aria-pressed="true"]{width:194px}
+ .jrow .jrn{width:96px;font-size:var(--t1);text-transform:none;letter-spacing:0}
+ #jambody,#songbody{max-width:1080px;margin:0 auto;width:100%}
+ #tabs button{min-height:var(--tap);font-size:var(--t1);gap:7px;color:var(--dim)}
+ #tabs button[aria-pressed="true"]{background:transparent;border-color:var(--go);color:var(--go);font-weight:600}
 }

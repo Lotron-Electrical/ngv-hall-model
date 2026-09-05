@@ -1,17 +1,20 @@
 // THE JAM (Lloyd, 2026-09-05): the simple end of the studio, built for a thumb. The whole document
-// the user edits is a JAM: a name, a tempo, a feel and a list of SECTIONS. A section is a stack of
-// picks, one preset per instrument and up to six light layers, plus the knobs that move energy
-// (energy, feel, meter, chord cycle, transpose, transition, bars).
+// the user edits is a JAM: a name, a tempo and a list of SECTIONS. A section is a stack of picks,
+// one preset per instrument and up to six light layers, plus the knobs that move energy.
+//
+// The surface rule is that COLOUR carries the meaning and words are the exception. Every instrument
+// owns a colour, its patterns are tiles in that colour, and a tile is either filled (on) or an
+// outline (off). Nothing is captioned, nothing is summarised in a sentence, and there are only two
+// type sizes. If a control needs explaining it goes in a sheet, not on the surface.
 //
 // Two projects exist at any moment and only one is live. The STACK is the current section built as
-// a one-bar loop in pattern mode, which is what every tap in the Jam view rebuilds and hot-swaps
-// under a running transport. The SONG is every section rendered and placed on the timeline, built
-// on demand when the user plays the song or exports. `proj` always points at the live one, and the
-// engine and the lights runtime read it through a closure, so swapping is one assignment plus a
-// rebuild.
+// a one-bar loop in pattern mode, which is what every tap rebuilds and hot-swaps under a running
+// transport. The SONG is every section rendered and placed on the timeline, built on demand for
+// song play and export. `proj` points at the live one; the engine and the lights runtime read it
+// through a closure, so swapping is one assignment plus a rebuild.
 //
-// Everything drawable comes from the preset banks (presets.js and the three preset files). This
-// file never authors music: it picks ids, hands them to Studio.PRESETS, and draws what comes back.
+// This file never authors music: it picks preset ids, hands them to Studio.PRESETS, and draws what
+// comes back.
 (function(){
 'use strict';
 const Studio=window.Studio=window.Studio||{};
@@ -22,48 +25,81 @@ const el=(tag,cls,txt)=>{ const e=document.createElement(tag); if(cls)e.classNam
 const clamp=(x,a,b)=>x<a?a:x>b?b:x;
 const fix=(x,n)=>Number(x||0).toFixed(n);
 const pct=(x)=>Math.round(clamp(x,0,1)*100)+'%';
+const cut=(s,n)=>{ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; };
+const svg=(w,h,vb,body)=>'<svg width="'+w+'" height="'+h+'" viewBox="'+vb+'" aria-hidden="true">'+body+'</svg>';
 
 const LSKEY='ngv.jam';
 const STUDIO_KEY='ngv.studio.project';       // the key studio/ui.js restores from
 const FAMILIES=['base','movement','accent','strobe','texture','colour'];
 const INST_ORDER=['drums','perc','bass','sub','pad','chords','keys','lead','arp','fx'];
-const METERS=[[4,4],[3,4],[5,4],[6,8],[7,8],[12,8]];
+const METERS=['4/4','3/4','5/4','6/8','7/8','12/8'];
 const CYCLE_NAMES=['neutral','dark','lift','pull','bright'];
 const TRANSITIONS=['none','fill','riser','drop','gap'];
 const FEELS=['straight','half','double'];
 const STYLES=['dnb','hiphop','house','techno','trap','breakbeat','halftime','dubstep','ambient','abstract'];
 const BARS=[4,8,16];
 
+// the palette. One colour per instrument and per light family, which is the whole vocabulary of
+// the interface: if you can see it you do not need to read it.
+const INST_COLOUR={ drums:'#ffd166', perc:'#ff8a3d', bass:'#ff5c5c', sub:'#c0392b', pad:'#b78cff',
+ chords:'#8e5bff', keys:'#5fd4a8', lead:'#4fa3ff', arp:'#7fd3ff', fx:'#ff5db1' };
+const FAM_COLOUR={ base:'#ffb020', movement:'#35e0e0', accent:'#a8e63a', strobe:'#ffffff',
+ texture:'#ff4fd8', colour:'#ff9ad6' };     // colour's tiles paint a rainbow, this is its text
+const STYLE_COLOUR={ dnb:'#ff5c5c', hiphop:'#ff8a3d', house:'#ffd166', techno:'#a8e63a',
+ trap:'#5fd4a8', breakbeat:'#35e0e0', halftime:'#4fa3ff', dubstep:'#b78cff', ambient:'#ff5db1',
+ abstract:'#cbd2dc' };
+// short names, because a row is 66 px wide and "Percussion" is not a word anyone needs spelled out
+const SHORT={ drums:'Drums', perc:'Perc', bass:'Bass', sub:'Sub', pad:'Pad', chords:'Chords',
+ keys:'Keys', lead:'Lead', arp:'Arp', fx:'FX' };
+// energy as a temperature: cool at rest, hot at full. The only place a number becomes a colour.
+const heat=(e)=>'hsl('+Math.round(210-210*clamp(e,0,1))+' 82% 56%)';
+
+const ICON={
+ play:svg(20,22,'0 0 20 22','<path d="M3 2l15 9-15 9z" fill="currentColor"/>'),
+ pause:svg(18,22,'0 0 18 22','<rect x="1" y="1" width="5.5" height="20" rx="1.2" fill="currentColor"/><rect x="11.5" y="1" width="5.5" height="20" rx="1.2" fill="currentColor"/>'),
+ jam:svg(22,22,'0 0 22 22','<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2 6h18M2 11h18M2 16h18"/></g><g fill="currentColor"><circle cx="7" cy="6" r="2.6"/><circle cx="14" cy="11" r="2.6"/><circle cx="6" cy="16" r="2.6"/></g>'),
+ song:svg(22,22,'0 0 22 22','<g fill="currentColor"><rect x="2" y="7" width="4.5" height="8" rx="1.2"/><rect x="8.7" y="3" width="4.5" height="16" rx="1.2"/><rect x="15.4" y="9" width="4.5" height="4" rx="1.2"/></g>'),
+ hall:svg(22,22,'0 0 22 22','<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2 19h18"/><path d="M4 19V8l7-5 7 5v11"/><path d="M9 19v-5.5a2 2 0 0 1 4 0V19"/></g>'),
+ dots:svg(4,16,'0 0 4 16','<circle cx="2" cy="2.4" r="1.6" fill="currentColor"/><circle cx="2" cy="8" r="1.6" fill="currentColor"/><circle cx="2" cy="13.6" r="1.6" fill="currentColor"/>'),
+ caret:svg(12,8,'0 0 12 8','<path d="M1.5 1.5L6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>')
+};
+
 let toastT=0;
 function say(text,hold){ const t=$('toast'); if(!text){ t.hidden=true; return; }
- t.textContent=text; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; },hold||2200); }
+ t.textContent=text; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; },hold||2000); }
 
 let sheetOpen=false;
 function openSheet(title,build){
  const s=$('sheet'); s.innerHTML='';
- const h=el('h3',null,title); s.appendChild(h);
+ s.appendChild(el('h3',null,title));
  build(s);
  const close=el('button','sact','Close'); close.addEventListener('click',closeSheet); s.appendChild(close);
  $('veil').hidden=false; sheetOpen=true; s.scrollTop=0;
  s.setAttribute('aria-label',title);
 }
 function closeSheet(){ $('veil').hidden=true; sheetOpen=false; }
-
-// a labelled row inside a sheet or a card
-function row(parent,label,node){ const r=el('div','srow'); if(label)r.appendChild(el('label',null,label));
+function sheetRow(parent,label,node){ const r=el('div','srow'); if(label)r.appendChild(el('label',null,label));
  if(node){ node.classList.add('grow'); r.appendChild(node); } parent.appendChild(r); return r; }
-// a segmented control: values in, the chosen one pressed, a callback out
-function seg(values,cur,onPick,labels){
+function seg(values,curVal,onPick,labels){
  const w=el('div','seg');
  values.forEach((v,i)=>{ const b=el('button',null,labels?labels[i]:String(v));
-  b.setAttribute('aria-pressed',v===cur?'true':'false');
+  b.setAttribute('aria-pressed',v===curVal?'true':'false');
   b.addEventListener('click',()=>onPick(v)); w.appendChild(b); });
  return w;
 }
+// a press held on a tile opens its sheet, the same as the corner button. Cancelled by any drag,
+// because the strips scroll under the finger and a scroll must never be read as a hold.
+function longPress(node,fn){
+ let t=0, x=0, y=0;
+ const clear=()=>{ if(t){ clearTimeout(t); t=0; } };
+ node.addEventListener('pointerdown',(e)=>{ x=e.clientX; y=e.clientY; clear();
+  t=setTimeout(()=>{ t=0; fn(); },450); });
+ node.addEventListener('pointermove',(e)=>{ if(t&&(Math.abs(e.clientX-x)>10||Math.abs(e.clientY-y)>10))clear(); });
+ for(const ev of ['pointerup','pointercancel','pointerleave'])node.addEventListener(ev,clear);
+ node.addEventListener('contextmenu',(e)=>e.preventDefault());
+}
 
 // ---------------------------------------------------------------- the preset banks
-// Every read goes through here so a bank that has not landed yet is a quiet empty list rather than
-// a page that will not boot.
 function P(){ return Studio.PRESETS||null; }
 function banksReady(){ const p=P(); return !!(p&&p.buildStack&&p.buildSong&&p.starter&&p.arc); }
 let patCache=null;
@@ -79,13 +115,12 @@ function lightPatterns(){ const b=Studio.PRESETS_LIGHTS; return (b&&Array.isArra
 function lightsFor(family){ return lightPatterns().filter(x=>x.family===family); }
 function lxById(id){ return lightPatterns().find(x=>x.id===id)||null; }
 function patById(id){ return allPatterns().find(x=>x.id===id)||null; }
-// the instrument table, or the ids the patterns imply if presets.js is not in yet
 function instruments(){
  const p=P();
  if(p&&Array.isArray(p.instruments)&&p.instruments.length)return p.instruments;
  const seen={}, out=[];
- for(const id of INST_ORDER){ if(patternsFor(id).length){ seen[id]=1; out.push({id,name:id,slot:id}); } }
- for(const x of allPatterns())if(!seen[x.inst]){ seen[x.inst]=1; out.push({id:x.inst,name:x.inst,slot:x.inst}); }
+ for(const id of INST_ORDER){ if(patternsFor(id).length){ seen[id]=1; out.push({id,name:id}); } }
+ for(const x of allPatterns())if(!seen[x.inst]){ seen[x.inst]=1; out.push({id:x.inst,name:x.inst}); }
  return out;
 }
 
@@ -95,8 +130,7 @@ let stackProj=null, songProj=null, proj=null, mode='pattern';
 let view='jam', hallLoaded=false;
 
 function section(){ return (jam&&jam.sections&&jam.sections[cur])||null; }
-// the shapes are CORE's, so a section this page writes is one presets.js can read back without
-// translation. The literals below are only the fallback for a bank that has not loaded.
+// the shapes are CORE's, so a section this page writes is one presets.js reads back untranslated
 function emptySection(){
  const p=P();
  if(p&&p.newSection)return p.newSection();
@@ -117,7 +151,7 @@ function freshJam(){
  } else { j.sections.push(emptySection()); }
  return j;
 }
-// what comes back from a share link or from storage may be from an older shape or from nowhere
+// what comes back from a share link or from storage may be an older shape, or nonsense
 function sane(j){
  if(!j||typeof j!=='object'||!Array.isArray(j.sections)||!j.sections.length)return null;
  j.name=String(j.name||'jam').slice(0,60);
@@ -154,10 +188,10 @@ function nullEngine(){ return { playing:false, mode:'pattern', stub:true,
  play(){}, pause(){}, stop(){}, seek(){}, rebuild(){}, invalidate(){}, init(){} }; }
 const eng=(Studio.createEngine?Studio.createEngine({project:()=>proj}):nullEngine());
 const L=Studio.createLights?Studio.createLights({project:()=>proj,engine:()=>eng,iframe:()=>$('sim')})
- :{state:{look:'-',palette:'-',level:1},tick(){},invalidate(){},stub:true};
+ :{state:{},tick(){},invalidate(){},stub:true};
 
-// the stack is rebuilt on every tap. eng.rebuild() swaps the rig without touching the transport,
-// so a tap while playing changes the sound on the next step and never stops the music.
+// eng.rebuild swaps the rig without touching the transport, so a tap while playing changes the
+// sound on the next step and never stops the music
 function buildStack(){
  if(!banksReady()||!section())return;
  try{ stackProj=P().buildStack(Studio.clone(section()),jamHeader()); }
@@ -169,7 +203,6 @@ function buildSongProject(){
  try{ songProj=P().buildSong(Studio.clone(jamHeader(true))); return songProj; }
  catch(e){ console.error('buildSong failed',e); say('That song could not be built'); return null; }
 }
-// the jam minus the UI's own bookkeeping, which is all the preset builders want
 function jamHeader(withSections){
  const h={ name:jam.name, bpm:jam.bpm, swing:jam.swing, humanise:jam.humanise, seed:jam.seed,
   key:jam.key||{root:57,scale:'minor'} };
@@ -182,7 +215,7 @@ function hot(){
  try{ L.invalidate&&L.invalidate(); }catch(e){}
  autosave();
 }
-// leaving song playback: the Jam view always edits the stack, so a tap there drops back to it
+// the Jam view always edits the stack, so a tap there drops out of song playback first
 function toStack(){
  if(mode!=='song')return;
  mode='pattern'; buildStack(); proj=stackProj; hot();
@@ -191,32 +224,51 @@ function toStack(){
 }
 
 // ---------------------------------------------------------------- the Jam view
-// the style chips: one tap is a whole stack. The section's own shape (bars, meter, feel, chords,
-// transition, transpose, energy) is deliberately kept, because a starter is a sound, not an
-// arrangement, and losing a 7/8 section to a chip tap would be a nasty surprise.
+// One tap on a style pill is a whole stack. The section's own shape (bars, meter, feel, chords,
+// ending, transpose, energy) is kept, because a starter is a sound and not an arrangement.
 function renderStyles(){
  const host=$('stylerow'); if(!host)return;
  host.innerHTML='';
  const sec=section();
  for(const style of STYLES){
   const b=el('button',null,style); b.type='button';
+  b.style.setProperty('--c',STYLE_COLOUR[style]||'#cbd2dc');
   b.setAttribute('aria-pressed',(sec&&sec.style===style)?'true':'false');
-  b.setAttribute('aria-label','Starter stack: '+style);
   b.addEventListener('click',()=>{
-   if(!banksReady())return say('The preset banks are not loaded');
+   if(!banksReady())return say('No presets loaded');
    const s=section(); if(!s)return;
    toStack();
    let starter=null;
    try{ starter=P().starter(style,s.energy); }catch(e){ console.error(e); }
-   if(!starter)return say('No starter for '+style);
+   if(!starter)return say('No '+style+' starter');
    s.picks=starter.picks; s.lights=starter.lights||[]; s.style=style;
    orderLights(s);
    songProj=null; buildStack(); renderJam(); renderSong(); autosave();
-   say(style+' stack loaded');
   });
   host.appendChild(b);
  }
 }
+
+// a row is a coloured dot, a short name, and a scrolling strip of tiles. Nothing else.
+function makeRow(colour,name,extraClass){
+ const r=el('div','jrow'+(extraClass?' '+extraClass:''));
+ r.style.setProperty('--c',colour);
+ r.appendChild(el('span','jdot'));
+ r.appendChild(el('span','jrn',name));
+ const strip=el('div','jstrip');
+ r.appendChild(strip);
+ return {jrow:r, strip};
+}
+function makeTile(colour,label,on,aria){
+ const t=el('button','jtile'); t.type='button';
+ t.style.setProperty('--c',colour);
+ t.setAttribute('aria-pressed',on?'true':'false');
+ t.setAttribute('aria-label',aria);
+ t.title=aria;
+ t.appendChild(el('span','jtn',cut(label,14)));
+ return t;
+}
+
 function renderJam(){
  renderStyles();
  const body=$('jambody');
@@ -225,99 +277,79 @@ function renderJam(){
  body.innerHTML='';
 
  if(!banksReady()){
-  const w=el('div','jrow'); const b=el('div','jstrip');
-  b.appendChild(el('div','empty','The preset banks are not loaded. Add ?stub to the address for the stand-in bank.'));
-  w.appendChild(b); body.appendChild(w); return;
+  const m=el('div','jblockhd','No presets loaded'); body.appendChild(m); return;
  }
  const sec=section(); if(!sec)return;
 
- // one row per instrument, one tile per preset, at most one tile on
  for(const inst of instruments()){
-  const list=patternsFor(inst.id);
-  const wrap=el('div','jrow'); const pick=sec.picks[inst.id]||null;
-  if(pick)wrap.classList.add('on');
-  const hd=el('div','jrhd');
-  hd.appendChild(el('span','nm',inst.name||inst.id));
-  hd.appendChild(el('span','slot',inst.slot||''));
-  const lbl=el('span','pick'+(pick?'':' pick off'),pick?(patById(pick)?patById(pick).name:pick):'off');
-  lbl.className='pick'+(pick?'':' off'); hd.appendChild(lbl);
-  wrap.appendChild(hd);
-
-  const strip=el('div','jstrip'); strip.dataset.key='i:'+inst.id;
-  if(!list.length)strip.appendChild(el('div','empty','no presets yet'));
-  for(const p of list){
-   const t=el('button','tile'); t.type='button';
-   t.appendChild(el('span','tn',p.name||p.id));
-   t.appendChild(el('span','ts',p.style||''));
+  const colour=INST_COLOUR[inst.id]||'#cbd2dc';
+  const pick=sec.picks[inst.id]||null;
+  const r=makeRow(colour,SHORT[inst.id]||inst.name||inst.id);
+  r.strip.dataset.key='i:'+inst.id;
+  for(const p of patternsFor(inst.id)){
    const on=pick===p.id;
-   t.setAttribute('aria-pressed',on?'true':'false');
-   t.setAttribute('aria-label',(inst.name||inst.id)+': '+(p.name||p.id)+(p.style?', '+p.style:''));
-   if((p.minEnergy||0)>sec.energy)t.classList.add('locked');
+   const t=makeTile(colour,p.name||p.id,on,(SHORT[inst.id]||inst.id)+': '+(p.name||p.id));
+   if((p.minEnergy||0)>sec.energy)t.classList.add('jlocked');
    t.addEventListener('click',()=>{ toStack();
     sec.picks[inst.id]=on?null:p.id;
-    buildStack(); renderJam(); autosave(); });
-   strip.appendChild(t);
+    songProj=null; buildStack(); renderJam(); autosave(); });
+   r.strip.appendChild(t);
   }
-  wrap.appendChild(strip);
-  body.appendChild(wrap);
+  body.appendChild(r.jrow);
  }
 
- // six light rows, one per family, at most one layer each, so at most six layers stack
+ // one Lights block, six short rows inside it. Six families means at most six layers stack.
+ const jblock=el('div','jblock');
+ jblock.appendChild(el('div','jblockhd','Lights'));
  for(const fam of FAMILIES){
-  const list=lightsFor(fam);
+  const colour=FAM_COLOUR[fam];
   const entry=sec.lights.find(x=>{ const p=lxById(x.id); return p&&p.family===fam; })||null;
-  const wrap=el('div','jrow'); if(entry)wrap.classList.add('on');
-  const hd=el('div','jrhd');
-  hd.appendChild(el('span','nm',fam));
-  hd.appendChild(el('span','slot','lights'));
-  const lbl=el('span','pick',entry?(lxById(entry.id)?lxById(entry.id).name:entry.id):'off');
-  if(!entry)lbl.classList.add('off'); hd.appendChild(lbl);
-  wrap.appendChild(hd);
-
-  const strip=el('div','jstrip'); strip.dataset.key='l:'+fam;
-  if(!list.length)strip.appendChild(el('div','empty','no light patterns yet'));
-  for(const p of list){
-   const t=el('button','tile'); t.type='button';
-   t.appendChild(el('span','tn',p.name||p.id));
-   t.appendChild(el('span','ts',fam));
+  const r=makeRow(colour,fam.charAt(0).toUpperCase()+fam.slice(1),fam==='colour'?'jfam-colour':'');
+  r.strip.dataset.key='l:'+fam;
+  for(const p of lightsFor(fam)){
    const on=!!entry&&entry.id===p.id;
-   t.setAttribute('aria-pressed',on?'true':'false');
-   t.setAttribute('aria-label','Light layer '+fam+': '+(p.name||p.id));
+   const t=makeTile(colour,p.name||p.id,on,fam+' light: '+(p.name||p.id));
+   t.classList.add('jlx');
    t.addEventListener('click',()=>{ toStack();
     sec.lights=sec.lights.filter(x=>{ const q=lxById(x.id); return !q||q.family!==fam; });
     if(!on)sec.lights.push({id:p.id, sync:(p.sync||'grid'), gain:(p.gain==null?1:p.gain)});
     orderLights(sec);
-    buildStack(); renderJam(); autosave(); });
-   strip.appendChild(t);
+    songProj=null; buildStack(); renderJam(); autosave(); });
+   // the active tile carries its own controls: a jdot in the colour of whatever it follows, and a
+   // corner that opens the sheet. A held press anywhere on the jtile opens the same sheet.
+   if(on){
+    if(entry.sync&&entry.sync!=='grid'){
+     const d=el('span','jsyncdot');
+     d.style.setProperty('--s',INST_COLOUR[entry.sync]||'#0e0f11');
+     d.title='Following '+(SHORT[entry.sync]||entry.sync);
+     t.insertBefore(d,t.firstChild);
+    }
+    const jmore=el('button','jmore'); jmore.type='button';
+    jmore.innerHTML=ICON.dots;
+    jmore.setAttribute('aria-label',fam+' layer settings');
+    jmore.title='Sync and gain';
+    jmore.addEventListener('click',(e)=>{ e.stopPropagation(); layerSheet(fam,entry); });
+    t.appendChild(jmore);
+    longPress(t,()=>layerSheet(fam,entry));
+   }
+   r.strip.appendChild(t);
   }
-  wrap.appendChild(strip);
-
-  // the active layer's own controls: what it is quantised to, and how hard it hits
-  if(entry){
-   const ctl=el('div','lxctl');
-   const sync=el('button','syncbtn'); sync.type='button';
-   sync.textContent='Sync: '+syncLabel(entry.sync);
-   sync.title='What this layer is locked to';
-   sync.addEventListener('click',()=>{ toStack();
-    const opts=syncOptions(sec); const i=opts.indexOf(entry.sync);
-    entry.sync=opts[(i<0?0:i+1)%opts.length];
-    sync.textContent='Sync: '+syncLabel(entry.sync);
-    buildStack(); autosave(); });
-   ctl.appendChild(sync);
-   ctl.appendChild(el('label',null,'Gain'));
-   const g=document.createElement('input'); g.type='range'; g.min='0'; g.max='1'; g.step='0.05';
-   g.value=String(entry.gain==null?1:entry.gain);
-   g.setAttribute('aria-label',fam+' layer gain');
-   const gv=el('span','gv',fix(entry.gain==null?1:entry.gain,2));
-   g.addEventListener('input',()=>{ entry.gain=+g.value; gv.textContent=fix(entry.gain,2); });
-   g.addEventListener('change',()=>{ toStack(); buildStack(); autosave(); });
-   ctl.appendChild(g); ctl.appendChild(gv);
-   wrap.appendChild(ctl);
-  }
-  body.appendChild(wrap);
+  jblock.appendChild(r.jrow);
  }
+ body.appendChild(jblock);
 
- body.querySelectorAll('.jstrip[data-key]').forEach(s=>{ if(scroll[s.dataset.key]!=null)s.scrollLeft=scroll[s.dataset.key]; });
+ // put each strip back where the finger left it, and on a first draw scroll the chosen tile into
+ // view: a row whose only marker is a filled tile is useless if that tile is off the right edge
+ body.querySelectorAll('.jstrip[data-key]').forEach(s=>{
+  if(scroll[s.dataset.key]!=null)s.scrollLeft=scroll[s.dataset.key];
+  const on=s.querySelector('.jtile[aria-pressed="true"]');
+  if(!on)return;
+  // only when the chosen tile is off the edge, so a tap leaves the strip where the finger put it
+  // but changing section walks each row to its new pick. Rect maths, not offsetLeft: a tile's
+  // offsetParent is the positioned .view, so offsetLeft carries the row's dot and name too.
+  const a=on.getBoundingClientRect(), b=s.getBoundingClientRect();
+  if(a.left<b.left-1||a.right>b.right+1)s.scrollLeft=Math.max(0,s.scrollLeft+(a.left-b.left)-6);
+ });
  body.scrollTop=top;
 }
 // layers stack in family order so the compositor sees base first and strobe last
@@ -330,91 +362,145 @@ function syncOptions(sec){
  for(const i of instruments())if(sec.picks[i.id])out.push(i.id);
  return out;
 }
-function syncLabel(id){
- if(!id||id==='grid')return 'Grid';
- const i=instruments().find(x=>x.id===id);
- return i?(i.name||i.id):id;
+// everything a light layer can be told, kept off the surface and put here
+function layerSheet(fam,entry){
+ const sec=section(); if(!sec||!entry)return;
+ const preset=lxById(entry.id);
+ openSheet(preset?preset.name:fam,(s)=>{
+  s.appendChild(el('p','muted','What this layer follows.'));
+  const opts=syncOptions(sec);
+  const g=el('div','jsheetgrid');
+  for(const o of opts){
+   const b=el('button',null,o==='grid'?'Beat':(SHORT[o]||o)); b.type='button';
+   b.setAttribute('aria-pressed',entry.sync===o?'true':'false');
+   if(o!=='grid')b.style.color=INST_COLOUR[o]||'';
+   b.addEventListener('click',()=>{ toStack(); entry.sync=o;
+    g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    songProj=null; buildStack(); renderJam(); autosave(); });
+   g.appendChild(b);
+  }
+  s.appendChild(g);
+  const i=document.createElement('input'); i.type='range'; i.min='0'; i.max='1'; i.step='0.05';
+  i.value=String(entry.gain==null?1:entry.gain); i.setAttribute('aria-label','Layer gain');
+  i.style.accentColor=FAM_COLOUR[fam]||'';
+  const v=el('span','val',fix(entry.gain==null?1:entry.gain,2));
+  i.addEventListener('input',()=>{ entry.gain=+i.value; v.textContent=fix(entry.gain,2); });
+  i.addEventListener('change',()=>{ toStack(); songProj=null; buildStack(); autosave(); });
+  sheetRow(s,'Gain',i).appendChild(v);
+  const off=el('button','sact danger','Turn this layer off');
+  off.addEventListener('click',()=>{ toStack();
+   sec.lights=sec.lights.filter(x=>x!==entry);
+   songProj=null; buildStack(); renderJam(); closeSheet(); autosave(); });
+  s.appendChild(off);
+ });
 }
 
 // ---------------------------------------------------------------- the Song view
+// The song is a strip of coloured blocks, hot where the energy is. Tapping one selects it; the one
+// card below is that section and nothing else, with everything but energy behind More.
 function renderSong(){
- const body=$('songbody'), open={};
- body.querySelectorAll('.seccard.open').forEach(c=>{ open[c.dataset.i]=1; });
+ renderStrip();
+ const body=$('songbody');
+ const wasMore=!!body.querySelector('.jseccard.jmore');
  body.innerHTML='';
- if(!jam||!jam.sections.length)return;
+ const s=section(); if(!s)return;
 
+ const card=el('div','jseccard'); if(wasMore)card.classList.add('jmore');
+ card.style.setProperty('--c',heat(s.energy));
+
+ const top=el('div','jcardtop');
+ const sw=el('span','jswatch'); top.appendChild(sw);
+ const e=document.createElement('input'); e.type='range'; e.min='0'; e.max='1'; e.step='0.05';
+ e.value=String(s.energy); e.setAttribute('aria-label','Energy');
+ const ev=el('span','val',pct(s.energy));
+ e.addEventListener('input',()=>{ s.energy=+e.value; ev.textContent=pct(s.energy);
+  card.style.setProperty('--c',heat(s.energy)); paintStrip(); });
+ e.addEventListener('change',()=>{ songProj=null; buildStack(); renderJam(); autosave(); });
+ top.appendChild(e); top.appendChild(ev);
+ card.appendChild(top);
+
+ const mb=el('button','jmorebtn'); mb.type='button';
+ mb.appendChild(el('span',null,'More'));
+ const cv=el('span',null); cv.innerHTML=ICON.caret; mb.appendChild(cv);
+ mb.setAttribute('aria-expanded',wasMore?'true':'false');
+ mb.addEventListener('click',()=>{ const on=card.classList.toggle('jmore');
+  mb.setAttribute('aria-expanded',on?'true':'false'); });
+ card.appendChild(mb);
+
+ const mo=el('div','jmorebody');
+ const jmrow=(label,node)=>{ const r=el('div','jmrow'); r.appendChild(el('label',null,label));
+  r.appendChild(node); mo.appendChild(r); return r; };
+ jmrow('Bars',seg(BARS,s.bars,(v)=>{ s.bars=v; touched(); }));
+ jmrow('Feel',seg(FEELS,s.feel,(v)=>{ s.feel=v; touched(); },['Straight','Half','Double']));
+ jmrow('Meter',seg(METERS,s.meter.beats+'/'+s.meter.div,(v)=>{
+  const p=v.split('/'); s.meter={beats:+p[0],div:+p[1]}; touched(); }));
+ jmrow('Chords',seg(CYCLE_NAMES,s.cycle,(v)=>{ s.cycle=v; touched(); }));
+ jmrow('Ending',seg(TRANSITIONS,s.transition,(v)=>{ s.transition=v; touched(); }));
+ const tr=el('div','jmrow'); tr.appendChild(el('label',null,'Key'));
+ const dn=el('button',null,'−'); dn.setAttribute('aria-label','Down a semitone');
+ const tv=el('span','val',(s.transpose>0?'+':'')+s.transpose);
+ const up=el('button',null,'+'); up.setAttribute('aria-label','Up a semitone');
+ dn.addEventListener('click',()=>{ s.transpose=clamp(s.transpose-1,-12,12); tv.textContent=(s.transpose>0?'+':'')+s.transpose; touched(true); });
+ up.addEventListener('click',()=>{ s.transpose=clamp(s.transpose+1,-12,12); tv.textContent=(s.transpose>0?'+':'')+s.transpose; touched(true); });
+ tr.appendChild(dn); tr.appendChild(tv); tr.appendChild(up); mo.appendChild(tr);
+ card.appendChild(mo);
+
+ const acts=el('div','jsecacts');
+ const dup=el('button',null,'Copy');
+ dup.addEventListener('click',()=>{ jam.sections.splice(cur+1,0,JSON.parse(JSON.stringify(s)));
+  cur++; songProj=null; renderSong(); autosave(); });
+ const lf=el('button',null,'‹'); lf.setAttribute('aria-label','Move earlier'); lf.disabled=cur===0;
+ lf.addEventListener('click',()=>move(-1));
+ const rt=el('button',null,'›'); rt.setAttribute('aria-label','Move later'); rt.disabled=cur===jam.sections.length-1;
+ rt.addEventListener('click',()=>move(1));
+ const rm=el('button','danger','Delete'); rm.disabled=jam.sections.length<2;
+ rm.addEventListener('click',()=>{ jam.sections.splice(cur,1); cur=clamp(cur,0,jam.sections.length-1);
+  songProj=null; buildStack(); renderJam(); renderSong(); autosave(); });
+ for(const x of [dup,lf,rt,rm])acts.appendChild(x);
+ card.appendChild(acts);
+
+ body.appendChild(card);
+}
+// the blocks themselves: colour is energy, the ring is what you are editing, green is what plays
+function renderStrip(){
+ const host=$('secstrip'); if(!host||!jam)return;
+ host.innerHTML='';
  jam.sections.forEach((s,i)=>{
-  const card=el('div','seccard'); card.dataset.i=String(i);
-  if(i===cur)card.classList.add('cur');
-  if(open[String(i)])card.classList.add('open');
-
-  const hd=el('button','sechd'); hd.type='button';
-  hd.setAttribute('aria-expanded',card.classList.contains('open')?'true':'false');
-  hd.appendChild(el('span','no',String(i+1)));
-  const meta=el('span','meta', s.bars+' bars, '+s.meter.beats+'/'+s.meter.div+', '+s.feel+', '+s.cycle+
-   (s.transition!=='none'?', '+s.transition:'')+(s.transpose?', '+(s.transpose>0?'+':'')+s.transpose:''));
-  hd.appendChild(meta);
-  const bar=el('span','bar'); const fill=el('i'); fill.style.width=pct(s.energy); bar.appendChild(fill);
-  hd.appendChild(bar);
-  const cv=el('span','cv');
-  cv.innerHTML='<svg width="11" height="7" viewBox="0 0 11 7" aria-hidden="true">'+
-   '<path d="M1 1l4.5 4.5L10 1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-  hd.appendChild(cv);
-  hd.addEventListener('click',()=>{ const on=card.classList.toggle('open');
-   hd.setAttribute('aria-expanded',on?'true':'false'); });
-  card.appendChild(hd);
-
-  const b=el('div','secbody');
-
-  const e=document.createElement('input'); e.type='range'; e.min='0'; e.max='1'; e.step='0.05';
-  e.value=String(s.energy); e.setAttribute('aria-label','Section '+(i+1)+' energy');
-  const ev=el('span','gv',pct(s.energy));
-  e.addEventListener('input',()=>{ s.energy=+e.value; ev.textContent=pct(s.energy); fill.style.width=pct(s.energy); });
-  e.addEventListener('change',()=>{ touched(i); });
-  const er=row(b,'Energy',e); er.appendChild(ev);
-
-  row(b,'Bars',seg(BARS,s.bars,(v)=>{ s.bars=v; touched(i); renderSong(); }));
-  row(b,'Feel',seg(FEELS,s.feel,(v)=>{ s.feel=v; touched(i); renderSong(); },['Straight','Half','Double']));
-  row(b,'Meter',seg(METERS.map(m=>m[0]+'/'+m[1]),s.meter.beats+'/'+s.meter.div,(v)=>{
-   const p=v.split('/'); s.meter={beats:+p[0],div:+p[1]}; touched(i); renderSong(); }));
-  row(b,'Chords',seg(CYCLE_NAMES,s.cycle,(v)=>{ s.cycle=v; touched(i); renderSong(); }));
-  row(b,'End',seg(TRANSITIONS,s.transition,(v)=>{ s.transition=v; touched(i); renderSong(); }));
-
-  const tr=el('div','secrow'); tr.appendChild(el('label',null,'Transpose'));
-  const dn=el('button',null,'-'); dn.setAttribute('aria-label','Transpose down');
-  const tv=el('span','gv',(s.transpose>0?'+':'')+s.transpose);
-  const up=el('button',null,'+'); up.setAttribute('aria-label','Transpose up');
-  dn.addEventListener('click',()=>{ s.transpose=clamp(s.transpose-1,-12,12); tv.textContent=(s.transpose>0?'+':'')+s.transpose; touched(i); });
-  up.addEventListener('click',()=>{ s.transpose=clamp(s.transpose+1,-12,12); tv.textContent=(s.transpose>0?'+':'')+s.transpose; touched(i); });
-  tr.appendChild(dn); tr.appendChild(tv); tr.appendChild(up); b.appendChild(tr);
-
-  const acts=el('div','secacts');
-  const edit=el('button',null,'Jam this'); edit.addEventListener('click',()=>{ cur=i; mode='pattern';
-   buildStack(); renderJam(); renderSong(); setView('jam'); });
-  const dup=el('button',null,'Duplicate'); dup.addEventListener('click',()=>{
-   jam.sections.splice(i+1,0,JSON.parse(JSON.stringify(s))); if(cur>i)cur++; songProj=null; renderSong(); autosave(); });
-  const upB=el('button',null,'Up'); upB.disabled=i===0;
-  upB.addEventListener('click',()=>{ move(i,-1); });
-  const dnB=el('button',null,'Down'); dnB.disabled=i===jam.sections.length-1;
-  dnB.addEventListener('click',()=>{ move(i,1); });
-  const rm=el('button','danger','Remove'); rm.disabled=jam.sections.length<2;
-  rm.addEventListener('click',()=>{ jam.sections.splice(i,1); cur=clamp(cur>=i?cur-1:cur,0,jam.sections.length-1);
-   songProj=null; buildStack(); renderJam(); renderSong(); autosave(); });
-  for(const x of [edit,dup,upB,dnB,rm])acts.appendChild(x);
-  b.appendChild(acts);
-
-  card.appendChild(b);
-  body.appendChild(card);
+  const b=el('button','jsecblock',String(i+1)); b.type='button';
+  b.style.setProperty('--c',heat(s.energy));
+  b.setAttribute('aria-pressed',i===cur?'true':'false');
+  b.setAttribute('aria-label','Section '+(i+1)+', energy '+pct(s.energy));
+  b.title='Section '+(i+1)+', energy '+pct(s.energy);
+  b.addEventListener('click',()=>{ cur=i; buildStack(); renderJam(); renderSong(); });
+  host.appendChild(b);
  });
+ const add=el('button','jsecadd','+'); add.type='button';
+ add.setAttribute('aria-label','Add a section');
+ add.title='Add a section';
+ add.addEventListener('click',()=>{
+  const s=JSON.parse(JSON.stringify(section()||emptySection()));
+  jam.sections.splice(cur+1,0,s); cur++; songProj=null;
+  renderSong(); renderJam(); autosave();
+ });
+ host.appendChild(add);
 }
-function move(i,d){
- const j=i+d; if(j<0||j>=jam.sections.length)return;
- const t=jam.sections[i]; jam.sections[i]=jam.sections[j]; jam.sections[j]=t;
- if(cur===i)cur=j; else if(cur===j)cur=i;
- songProj=null; renderSong(); autosave();
+// only the colours change while the energy slider moves, so the strip is not rebuilt under the finger
+function paintStrip(){
+ const host=$('secstrip'); if(!host||!jam)return;
+ const blocks=host.querySelectorAll('.jsecblock');
+ jam.sections.forEach((s,i)=>{ if(blocks[i])blocks[i].style.setProperty('--c',heat(s.energy)); });
 }
-// any edit to a section invalidates the song, and the current one also rebuilds the live stack
-function touched(i){ songProj=null; if(i===cur)buildStack(); if(i===cur)renderJam(); autosave(); }
+function move(d){
+ const j=cur+d; if(j<0||j>=jam.sections.length)return;
+ const t=jam.sections[cur]; jam.sections[cur]=jam.sections[j]; jam.sections[j]=t;
+ cur=j; songProj=null; renderSong(); autosave();
+}
+// an edit to the current section invalidates the song and rebuilds the live stack
+function touched(keepCard){
+ songProj=null; buildStack(); renderJam(); autosave();
+ if(!keepCard)renderSong();
+}
 
 // ---------------------------------------------------------------- views and the transport
 function setView(v){
@@ -424,21 +510,24 @@ function setView(v){
  }
  document.querySelectorAll('#nav button,#tabs button').forEach(b=>{
   b.setAttribute('aria-pressed',b.dataset.view===v?'true':'false'); });
- // the hall is heavy: it is only mounted the first time it is asked for
  if(v==='hall'&&!hallLoaded){ hallLoaded=true; $('sim').src='index.html?embed=1&show=live&bare=1'; }
 }
 function setPlaying(on){
- const b=$('play'); b.textContent=on?'Pause':'Play'; b.setAttribute('aria-pressed',on?'true':'false');
+ const b=$('play');
+ b.innerHTML=on?ICON.pause:ICON.play;
+ b.setAttribute('aria-label',on?'Pause':'Play');
+ b.title=on?'Pause':'Play';
+ b.setAttribute('aria-pressed',on?'true':'false');
 }
 function playPause(){
  if(!proj)buildStack();
  if(eng.playing){ eng.pause(); setPlaying(false); return; }
- try{ eng.play({mode:mode}); }catch(e){ console.error(e); say('The audio engine would not start'); }
+ try{ eng.play({mode:mode}); }catch(e){ console.error(e); say('No audio'); }
  setPlaying(!!eng.playing);
 }
 function stopAll(){ try{ eng.stop(); }catch(e){} setPlaying(false); }
 function playSong(){
- if(!banksReady())return say('The preset banks are not loaded');
+ if(!banksReady())return say('No presets loaded');
  const p=songProj||buildSongProject(); if(!p)return;
  mode='song'; proj=p; hot();
  $('songplay').setAttribute('aria-pressed','true');
@@ -458,8 +547,8 @@ function unb64url(str){
  for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
  return out;
 }
-// the jam in the hash. j1 is deflate-raw, j0 is the plain JSON fallback for a browser without
-// CompressionStream, so a link made on one machine always opens on another.
+// the jam in the hash. j1 is deflate-raw, j0 is plain JSON for a browser without CompressionStream,
+// so a link made on one machine always opens on another.
 async function encodeJam(j){
  const bytes=new TextEncoder().encode(JSON.stringify(j));
  if(typeof CompressionStream==='function'){
@@ -491,17 +580,16 @@ async function shareLink(){
  try{ history.replaceState(null,'','#'+h); }catch(e){}
  let copied=false;
  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ await navigator.clipboard.writeText(url); copied=true; } }catch(e){}
- openSheet('Share this jam',(s)=>{
-  s.appendChild(el('p','muted',copied?'The link is on the clipboard and in the address bar.':'Copy this link:'));
+ openSheet('Share',(s)=>{
+  s.appendChild(el('p','muted',copied?'Copied. The link is in the address bar too.':'Copy this link.'));
   const box=document.createElement('input'); box.type='text'; box.value=url; box.readOnly=true;
   box.setAttribute('aria-label','Share link'); box.className='grow';
   const r=el('div','srow'); r.appendChild(box); s.appendChild(r);
   box.addEventListener('focus',()=>box.select());
   const c=el('button','sact','Copy again');
   c.addEventListener('click',()=>{ box.select();
-   try{ navigator.clipboard.writeText(url); say('Link copied'); }catch(e){ say('Copy it by hand'); } });
+   try{ navigator.clipboard.writeText(url); say('Copied'); }catch(e){ say('Copy it by hand'); } });
   s.appendChild(c);
-  s.appendChild(el('p','muted','Link length '+url.length+' characters.'));
  });
  return url;
 }
@@ -514,14 +602,13 @@ function download(blob,name){
 // the site is a static host, so the studio's POST-to-disk export is no use here: the same render
 // and cue-file code comes back through Studio.exportFiles and lands as two browser downloads.
 async function exportShow(){
- if(typeof Studio.exportFiles!=='function')
-  return say('Export is not available in this build yet',3200);
+ if(typeof Studio.exportFiles!=='function')return say('Export is not in this build yet',3000);
  const p=buildSongProject(); if(!p)return;
  let fill=null;
  openSheet('Export',(s)=>{
-  s.appendChild(el('p','muted','Rendering the song and measuring the mix. This runs offline and is faster than real time.'));
-  const bar=el('div',null); bar.id='jbar'; fill=el('div',null); fill.id='jbarfill'; bar.appendChild(fill); s.appendChild(bar);
-  s.appendChild(el('p','muted','Two files land in your downloads: the WAV and the cue JSON.'));
+  s.appendChild(el('p','muted','Rendering the song. Two files land in your downloads.'));
+  const bar=el('div',null); bar.id='jbar'; fill=el('div',null); fill.id='jbarfill';
+  bar.appendChild(fill); s.appendChild(bar);
  });
  const name=(Studio.safeName?Studio.safeName(jam.name):String(jam.name||'jam'));
  try{
@@ -531,16 +618,16 @@ async function exportShow(){
   const cues=typeof r.cuesJson==='string'?new Blob([r.cuesJson],{type:'application/json'})
    :new Blob([JSON.stringify(r.cuesJson)],{type:'application/json'});
   download(wav,name+'.wav'); download(cues,name+'.cues.json');
-  closeSheet(); say('Exported '+name+'.wav and '+name+'.cues.json',3200);
+  closeSheet(); say('Exported');
   return {wav:wav.size, cues:cues.size};
- }catch(e){ console.error('export failed',e); closeSheet(); say('The export failed: '+e.message,4000); return null; }
+ }catch(e){ console.error('export failed',e); closeSheet(); say('Export failed',3500); return null; }
 }
 // the studio restores whatever is under this key on boot, so handing a jam over is one write
 function openInStudio(){
  const p=buildSongProject(); if(!p)return;
  p.name=jam.name||'jam';
  try{ localStorage.setItem(STUDIO_KEY,JSON.stringify(p)); }
- catch(e){ return say('That song is too big to hand over'); }
+ catch(e){ return say('Too big to hand over'); }
  location.href='studio.html';
 }
 
@@ -550,65 +637,68 @@ function menuSheet(){
   const n=document.createElement('input'); n.type='text'; n.value=jam.name; n.maxLength=60;
   n.setAttribute('aria-label','Jam name');
   n.addEventListener('change',()=>{ jam.name=n.value.trim()||'jam'; autosave(); });
-  row(s,'Name',n);
-
-  const share=el('button','sact','Share link'); share.addEventListener('click',()=>{ shareLink(); });
-  const exp=el('button','sact','Export WAV and cues'); exp.addEventListener('click',()=>{ exportShow(); });
+  sheetRow(s,'Name',n);
+  const share=el('button','sact','Share a link'); share.addEventListener('click',()=>{ shareLink(); });
+  const exp=el('button','sact','Export the audio'); exp.addEventListener('click',()=>{ exportShow(); });
   const st=el('button','sact','Open in the studio'); st.addEventListener('click',openInStudio);
-  const nu=el('button','sact danger','Start a new jam');
+  const nu=el('button','sact danger','Start again');
   nu.addEventListener('click',()=>{ jam=freshJam(); cur=0; songProj=null;
    try{ history.replaceState(null,'',location.pathname); }catch(e){}
-   buildStack(); renderJam(); renderSong(); closeSheet(); autosave(); say('New jam'); });
+   buildStack(); renderJam(); renderSong(); closeSheet(); autosave(); });
   for(const b of [share,exp,st,nu])s.appendChild(b);
-  s.appendChild(el('p','muted','Sections: '+jam.sections.length+'. Bars: '+
-   jam.sections.reduce((a,x)=>a+x.bars,0)+'.'));
  });
 }
 function tempoSheet(){
- openSheet('Tempo and feel',(s)=>{
+ openSheet('Tempo',(s)=>{
   const mk=(label,min,max,step,val,onSet,fmt)=>{
    const i=document.createElement('input'); i.type='range'; i.min=String(min); i.max=String(max);
    i.step=String(step); i.value=String(val); i.setAttribute('aria-label',label);
-   const v=el('span','gv',fmt(val));
+   const v=el('span','val',fmt(val));
    i.addEventListener('input',()=>{ v.textContent=fmt(+i.value); });
    i.addEventListener('change',()=>{ onSet(+i.value); });
-   const r=row(s,label,i); r.appendChild(v);
+   sheetRow(s,label,i).appendChild(v);
   };
   mk('Tempo',70,180,1,jam.bpm,(v)=>{ jam.bpm=v; $('bpmval').textContent=String(v); apply(); },(v)=>String(Math.round(v)));
   mk('Swing',0,0.6,0.01,jam.swing,(v)=>{ jam.swing=v; apply(); },(v)=>fix(v,2));
-  mk('Humanise',0,1,0.05,jam.humanise,(v)=>{ jam.humanise=v; apply(); },(v)=>fix(v,2));
+  mk('Loose',0,1,0.05,jam.humanise,(v)=>{ jam.humanise=v; apply(); },(v)=>fix(v,2));
   function apply(){ songProj=null; buildStack(); autosave(); }
  });
 }
 
 // ---------------------------------------------------------------- the frame loop
-let frames=0, fpsWindow=[], lastT=0;
+let frames=0, fpsWindow=[], lastT=0, lastPlayingSec=-1;
 function loop(ts){
  requestAnimationFrame(loop); frames++;
  if(lastT){ const dt=ts-lastT; if(dt>0&&dt<500){ fpsWindow.push(dt); if(fpsWindow.length>120)fpsWindow.shift(); } }
  lastT=ts;
- let p; try{ p=eng.pos?eng.pos():null; }catch(e){ p=null; }
- if(p){
-  const bar=(p.bar!=null?p.bar:Math.floor(p.step/16))+1;
-  const beat=(p.beat!=null?p.beat:Math.floor(p.step/4)%4)+1;
-  $('pos').textContent=bar+':'+beat;
- }
- if(eng.playing!==($('play').textContent==='Pause'))setPlaying(!!eng.playing);
+ if(eng.playing!==($('play').getAttribute('aria-pressed')==='true'))setPlaying(!!eng.playing);
  if(L.tick&&(eng.playing||frames%4===0)){ try{ L.tick(); }catch(e){} }
- if(view==='hall'&&frames%6===0){ const st=L.state||{};
-  $('simstate').textContent=(st.look||'-')+' / '+(st.palette||'-')+' / '+fix(st.level==null?1:st.level,2); }
+ // the section strip is the only playhead the jam shows: the jblock that is sounding goes green
+ if(view==='song'&&frames%6===0){
+  let si=-1;
+  if(mode==='song'&&eng.playing&&songProj&&songProj.song&&songProj.song.sections){
+   let p=null; try{ p=eng.pos(); }catch(e){}
+   if(p){ const T=Studio.timeline?Studio.timeline(songProj):null;
+    const bar=T?T.stepBar(p.step):Math.floor(p.step/16);
+    songProj.song.sections.forEach((s,i)=>{ if(bar>=s.bar&&bar<s.bar+s.len)si=i; }); }
+  }
+  if(si!==lastPlayingSec){ lastPlayingSec=si;
+   const blocks=$('secstrip').querySelectorAll('.jsecblock');
+   blocks.forEach((b,i)=>b.classList.toggle('jplaying',i===si)); }
+ }
 }
 function fps(){ if(!fpsWindow.length)return 0;
  const mean=fpsWindow.reduce((a,b)=>a+b,0)/fpsWindow.length; return Math.round(1000/mean); }
 
 // ---------------------------------------------------------------- boot
 function navButtons(){
- const defs=[['jam','Jam'],['song','Song'],['hall','Hall']];
+ const defs=[['jam','Jam',ICON.jam],['song','Song',ICON.song],['hall','Hall',ICON.hall]];
  for(const host of [$('nav'),$('tabs')]){
   if(!host)continue;
   host.innerHTML='';
   for(const d of defs){
    const b=el('button',null); b.type='button'; b.dataset.view=d[0];
+   const ic=el('span',null); ic.innerHTML=d[2]; b.appendChild(ic);
    b.appendChild(el('span',null,d[1]));
    b.setAttribute('aria-pressed',d[0]===view?'true':'false');
    b.addEventListener('click',()=>setView(d[0]));
@@ -626,6 +716,7 @@ async function boot(){
  jam=j; cur=0;
 
  navButtons();
+ setPlaying(false);
  $('bpmval').textContent=String(jam.bpm);
  $('play').addEventListener('click',playPause);
  $('stop').addEventListener('click',stopAll);
@@ -634,23 +725,17 @@ async function boot(){
  $('veil').addEventListener('click',(e)=>{ if(e.target===$('veil'))closeSheet(); });
  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&sheetOpen){ e.preventDefault(); closeSheet(); } });
 
- $('addsec').addEventListener('click',()=>{
-  const s=JSON.parse(JSON.stringify(section()||emptySection()));
-  jam.sections.splice(cur+1,0,s); cur=cur+1; songProj=null;
-  renderSong(); renderJam(); autosave(); say('Section added');
- });
  $('arcbtn').addEventListener('click',()=>{
-  if(!banksReady())return say('The preset banks are not loaded');
+  if(!banksReady())return say('No presets loaded');
   const a=P().arc(jam.sections.length);
   jam.sections.forEach((s,i)=>{ s.energy=clamp(a[i]==null?s.energy:a[i],0,1); });
-  songProj=null; buildStack(); renderSong(); renderJam(); autosave(); say('Energy arc written');
+  songProj=null; buildStack(); renderSong(); renderJam(); autosave();
  });
  $('songplay').addEventListener('click',playSong);
 
  buildStack();
  renderJam(); renderSong(); setView('jam');
- setPlaying(false);
- if(!banksReady())say('The preset banks are still being written. Add ?stub to the address for the stand-in bank.',6000);
+ if(!banksReady())say('No presets loaded. Add ?stub for the stand-in bank.',5000);
  requestAnimationFrame(loop);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
@@ -660,7 +745,7 @@ Studio.jam={
  get jam(){ return jam; }, get project(){ return proj; }, get engine(){ return eng; }, get lights(){ return L; },
  get section(){ return section(); }, get mode(){ return mode; }, get view(){ return view; },
  setView, renderJam, renderSong, playSong, playPause, stopAll, shareLink, exportShow, openInStudio,
- menuSheet, tempoSheet, encodeJam, decodeJam, fps, banksReady,
+ menuSheet, tempoSheet, layerSheet, encodeJam, decodeJam, fps, banksReady,
  buildSong:buildSongProject,
  setCur(i){ cur=clamp(i|0,0,jam.sections.length-1); buildStack(); renderJam(); renderSong(); },
  load(j){ const s=sane(j); if(!s)return false; jam=s; cur=0; songProj=null;

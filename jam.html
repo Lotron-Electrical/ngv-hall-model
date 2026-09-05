@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="studio/ui.css">
 <link rel="stylesheet" href="studio/jam.css">
-<!-- THE JAM (Lloyd, 2026-09-05): the simple end of the studio. You tap one preset per instrument,
-     stack six light layers on top, chain the stacks into sections and play the song. Everything is
-     a preset, nothing is a note, and every tap rebuilds the rig without stopping the transport.
+<!-- THE JAM (Lloyd, 2026-09-05): the simple end of the studio. Tap a coloured tile per instrument,
+     stack light layers on top, chain the stacks into sections and play the song. Colour does the
+     explaining, so there is almost no text on the surface.
      This file is the shell and the load order only: the lightshow first (model.js reads its look
      and palette lists at load), then the model, the machines, the engine, the lights runtime, the
      export, the preset banks, and jam.js last. Every file is a classic script adding to
@@ -31,9 +31,8 @@
 <body>
 
 <div id="top">
- <button id="play" title="Play or pause">Play</button>
- <button id="stop" title="Stop" aria-label="Stop"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="1.5" fill="currentColor"/></svg></button>
- <span id="pos" title="Bar and beat">1:1</span>
+ <button id="play" title="Play" aria-label="Play" aria-pressed="false"></button>
+ <button id="stop" title="Stop" aria-label="Stop"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="2" fill="currentColor"/></svg></button>
  <button id="bpmval" title="Tempo, swing and humanise">124</button>
  <span class="sp"></span>
  <div id="tabs"></div>
@@ -44,26 +43,21 @@
  <div id="viewwrap">
 
   <section class="view on" id="view-jam">
-   <div class="vhead">
-    <h2>JAM</h2>
-    <div id="stylerow" role="group" aria-label="Style starters"></div>
-   </div>
+   <div class="vhead"><div id="stylerow" role="group" aria-label="Style starters"></div></div>
    <div class="vbody" id="jambody"></div>
   </section>
 
   <section class="view" id="view-song">
    <div class="vhead">
-    <h2>SONG</h2>
-    <button id="arcbtn" class="sm">Arc</button>
+    <button id="arcbtn">Shape</button>
     <span class="sp"></span>
-    <button id="addsec" class="sm">Add section</button>
-    <button id="songplay" class="sm go" aria-pressed="false">Play song</button>
+    <button id="songplay" aria-pressed="false">Play song</button>
    </div>
+   <div id="secstrip" role="group" aria-label="Sections"></div>
    <div class="vbody" id="songbody"></div>
   </section>
 
   <section class="view" id="view-hall">
-   <div class="vhead"><h2>HALL</h2><span class="sp"></span><span id="simstate" class="muted">-</span></div>
    <div id="simwrap"><iframe id="sim" title="The hall" allow="autoplay"></iframe></div>
   </section>
 
