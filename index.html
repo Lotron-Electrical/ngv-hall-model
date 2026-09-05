@@ -5000,7 +5000,7 @@ const SPARK={rate:0.025, amp:0.5};   // the object's sparkle: the share of pixel
 const HASH=x=>{ const v=Math.sin(x)*43758.5453; return v-Math.floor(v); };
 function portalStep(now){ const Q=portal; if(!Q)return;   // Q, not P: P is the column pixel buffer
  // once a tour has run (even stopped in its first shot) the tesseract does not come back (Lloyd)
- Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed&&!IG;   /* (2026-09-04) and not on a night shift: the crew's hall has no object floating in it */
+ Q.group.visible=!tour&&!tourDone&&!document.getElementById('event').checked&&!roamed&&!IG&&!installBusy;   /* (2026-09-04) and not on a night shift: the crew's hall has no object floating in it */
  for(const m of photoMats)if(m.uniforms.hole&&m.uniforms.hole.value.w!==(Q.group.visible?1:0))m.uniforms.hole.value.w=Q.group.visible?1:0;   // the hole in the carpet goes with the void (Lloyd: it showed during the tour)
  if(!Q.group.visible)return;
  if(Q.sunk)portalReset();
@@ -5382,7 +5382,10 @@ function sticksSync(){ const now=performance.now()/1000, landed=roamed&&!(roam&&
  const up=TOUCH&&landed&&!tour&&!boom&&!approach&&!SHOT&&!TOURQ&&!finale&&!restFinale; if(!up){ STK.move.touched=STK.look.touched=false; }
  for(const k of ['move','look']){ const S=STK[k]; document.getElementById('stk'+k).classList.toggle('show',up&&(!S.touched||S.held||now-S.t<STK.linger)); } }
 function stkHold(k,on){ const S=STK[k]; S.touched=true; S.held=on; S.t=performance.now()/1000; }
-function roamFabSync(){ sticksSync(); const b=document.getElementById('roamfab'); let want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!!portal&&(portal.group.visible||tourDone);
+// (Lloyd, 2026-09-05: "when we click the install, Free roam still appears") the button sits above
+// the loader (z 30), so while the shift was building it came up over the black. Not while the
+// shift is building or up
+function roamFabSync(){ sticksSync(); const b=document.getElementById('roamfab'); let want=entered&&!tour&&!boom&&!approach&&!roam&&!roamed&&!restFinale&&!SHOT&&!TOURQ&&!IG&&!installBusy&&!!portal&&(portal.group.visible||tourDone);
  if(want&&idle&&!tourDone&&(idleT0===null||performance.now()/1000-idleT0<5))want=false;
  b.classList.toggle('up',want); }
 requestAnimationFrame(frame);
