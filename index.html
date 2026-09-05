@@ -5329,8 +5329,13 @@ document.getElementById('enter').textContent='Enter Gandel Hall';   /* (Lloyd, 2
   // (Lloyd, 2026-09-04: "when I hit install, I just want it to start me in Gandel Hall like free roam
   // does") no orbit, no object, no card to read: the tap enters the hall, builds the shift and starts
   // it, standing on the floor at the far wall looking down the hall. The sticks are live at once
-  if(INSTALL_OK){ b.hidden=false; b.onclick=async()=>{ document.getElementById('enter').onclick(); idle=false; idleT0=null; if(portal)portal.group.visible=false;
-   const box=document.getElementById('install'); box.checked=true; await setInstall(true); if(IG&&!document.body.classList.contains('playing'))installStart(IG); }; } }
+  // (Lloyd, 2026-09-05: "it showed the tesseract scene first then flashed to the install mode") the
+  // loader stays up while the shift builds; buildInstall takes it down itself once the hall is the
+  // crew's. Only the sound gesture is taken from Enter, not its unveiling
+  if(INSTALL_OK){ b.hidden=false; b.onclick=async()=>{ entered=true; idle=false; idleT0=null; if(portal)portal.group.visible=false; fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{});
+   b.disabled=true; document.getElementById('enter').disabled=true;
+   const box=document.getElementById('install'); box.checked=true; await setInstall(true); if(IG&&!document.body.classList.contains('playing'))installStart(IG);
+   b.disabled=false; document.getElementById('enter').disabled=false; }; } }
 document.getElementById('enter').onclick=()=>{ entered=true; if(!tour&&!approach&&!boom){ idle=true; idleT0=null; } fabSync(); sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); trackWarm(); document.getElementById('loader').classList.add('gone'); };
 document.getElementById('roamfab').onclick=()=>{ sndInit(); if(SND.ctx&&SND.ctx.state!=='running')SND.ctx.resume().catch(()=>{}); roamStart(); };
 // the button is up while the object floats and nothing else is happening: the same state the float's sound plays in
