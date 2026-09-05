@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NGV Hall v29</title>
+<title>Gandel Hall Sim</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
@@ -240,7 +240,7 @@ html.embed body,html.embed main{margin:0;padding:0;max-width:none}
 html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!important}   /* the stage fills the frame; the 960px cap left a dead right side in wide embeds (Lloyd, on the tour video) */
 </style></head><body><main>
 <script>{const q=new URLSearchParams(location.search); if(q.has('embed'))document.documentElement.classList.add('embed'); if(q.has('bare'))document.documentElement.classList.add('bare');}</script>
-<header><span class="sub">Sitecapture, 30 Aug 2026</span><h1>NGV Hall, clean model v29</h1></header>
+<header><span class="sub">Sandbox</span><h1>Gandel Hall Sim</h1></header>
 <div id="stage"><canvas id="cv"></canvas><div id="flash"></div><div id="restbtns"><button type="button" id="restroam">Free roam</button><button type="button" id="restagain">Start again</button></div><div id="loader"><i></i><button type="button" id="enter">Enter Gandel Hall</button><button type="button" id="enterInstall" hidden>The Install</button></div>
  <div class="bar" id="bar">Loading model, 8.4 MB</div>
  <div id="pad"><div id="knob"></div></div>
@@ -379,6 +379,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
  </details>
 </div>
 <script src="show/lightshow.js"></script>
+<script src="show/looks2.js" onerror="console.warn('looks2.js missing: the hall runs on the first twelve looks')"></script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1324,7 +1325,9 @@ function hash(i){i=Math.imul(i^(i>>>16),2246822507); i=Math.imul(i^(i>>>13),3266
 const SHOW=window.NGVShow.createShow(); SHOW.cf=null; SHOW.el=null; SHOW.name=''; SHOW.live=false;
 const SHOWQ=new URLSearchParams(location.search).get('show')||'';
 window.addEventListener('message',e=>{ const m=e.data; if(!m||m.t!=='show')return;
- if(m.frame){ Object.assign(SHOW.frame,m.frame); } if(m.state){ Object.assign(SHOW.state,m.state); }
+ if(m.frame){ Object.assign(SHOW.frame,m.frame); }
+ // a sender with no layer stack (an older studio) must not leave the last one standing
+ if(m.state){ if(!m.state.layers)delete SHOW.state.layers; Object.assign(SHOW.state,m.state); }
  if(m.on!=null){ SHOW.on=!!m.on; SHOW.live=SHOW.on; sceneDirty=true; } });
 function showStep(now){ if(!SHOW.on||SHOW.live)return; const el=SHOW.el; if(!el||!SHOW.cf)return;
  // the clock is the audio element's, carried between its updates by the page's clock
@@ -1375,7 +1378,11 @@ function animate(time){
   for(let i=0;i<n;i++){const buf=live.uni.get(P.univ[i]+off); if(!buf)continue; const c=P.dmxC[i], o=i*3;
    a[o]=lin(buf[c]/255); a[o+1]=lin(buf[c+1]/255); a[o+2]=lin(buf[c+2]/255); w4[i]=lin(buf[c+3]/255); lit_++;}
   live.litLeds=lit_;
- } else if(SHOW.on){ SHOW.paint(a,P); }
+ } else if(SHOW.on){
+  // up to six light layers composited into one hall; a v1 cue file has no stack and paints as it did
+  const LY=SHOW.state.layers;
+  if(LY&&LY.length&&SHOW.paintLayers)SHOW.paintLayers(a,P,LY); else SHOW.paint(a,P);
+ }
  else
  for(const Ly of state.layers){ if(!Ly.on||Ly.opacity<=0)continue;
   const T=time*(0.2+Ly.speed*3), kind=Ly.anim, op=Ly.opacity, bl=Ly.blend;
