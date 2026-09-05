@@ -10,7 +10,11 @@ import * as THREE from 'three';
 //
 // The run polyline is the strip line 12 mm proud of the shaft valley, which is why EXT_BACK is
 // negative: the extrusion runs from the valley (-12 mm) out to its face (+8 mm).
-export const EXT_W = 0.020, EXT_D = 0.020, EXT_BACK = -0.012, FACE_W = 0.016, WALL = 0.002;
+// (Lloyd, 2026-09-05: "the lights should also look like our pixel bars") the fitted light is the
+// NGV-PX-20x45 seamless magnetic bar: 20 mm wide, 45 mm deep, black anodised, a full-face black
+// diffuser (32 % T, so it reads black with the strip off). The run polyline is still the strip line
+// 12 mm proud of the valley; the bar's face is now 33 mm proud of it
+export const EXT_W = 0.020, EXT_D = 0.045, EXT_BACK = -0.012, FACE_W = 0.018, WALL = 0.002;
 export const TILE_T = 0.001, LEDS_PER_M = 60;
 // black acrylic passes only part of the light; 0.25 sits on the ACRYLITE LED black/white figure,
 // near the middle of the measured range for day/night cover grades
@@ -58,12 +62,15 @@ export class FixtureSet {
     this.leds = Math.max(1, Math.round((slots[0]?.len || 1.5) / PITCH));
     const L = this.leds;
     this.vis = new Array(n).fill(false);
+    // (Lloyd, 2026-09-05: "they are black until turned on") a fitted bar is a black bar until its
+    // column is powered; lit[i] is the power, vis[i] the bar
+    this.lit = new Array(n).fill(false);
     this.colour = slots.map(() => new THREE.Color(1, 1, 1));
 
     this.ribbon = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0x232326, metalness: 0.7, roughness: 0.45 }), n * RIBBON_PARTS);
+      new THREE.MeshStandardMaterial({ color: 0x0c0c0e, metalness: 0.55, roughness: 0.5 }), n * RIBBON_PARTS);   // black anodised
     this.cover = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshPhongMaterial({ color: 0x141414, specular: 0x2a2a2a, shininess: 24 }), n);
+      new THREE.MeshPhongMaterial({ color: 0x08080a, specular: 0x222222, shininess: 30 }), n);   // the black diffuser, off
     this.emit = new THREE.InstancedMesh(new THREE.BoxGeometry(FACE_W, PITCH, 0.0005),
       new THREE.MeshBasicMaterial({ color: new THREE.Color().setScalar(EMIT_EXPOSURE), toneMapped: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), n * L);
     this.emit.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * L * 3), 3);
@@ -138,7 +145,7 @@ export class FixtureSet {
   }
 
   writeColour(i) {
-    const L = this.leds, a = this.emit.instanceColor.array, c = this.colour[i], on = this.vis[i];
+    const L = this.leds, a = this.emit.instanceColor.array, c = this.colour[i], on = this.vis[i] && this.lit[i];
     const r = on ? c.r : 0, g = on ? c.g : 0, bl = on ? c.b : 0;
     for (let j = 0; j < L; j++) { const k = (i * L + j) * 3; a[k] = r; a[k + 1] = g; a[k + 2] = bl; }
   }
@@ -162,11 +169,20 @@ export class FixtureSet {
 
   // one pass over the whole buffer for the guide's pulse, instead of 768 calls that each set the
   // same two dirty flags
+  // power for one slot's bar: lit, its LEDs show the colour; unpowered, the bar stays black
+  power(i, on) {
+    if (this.lit[i] === !!on) return;
+    this.lit[i] = !!on;
+    this.writeColour(i);
+    this.emit.instanceColor.needsUpdate = true;
+    this.halo.geometry.attributes.color.needsUpdate = true;
+  }
+
   setColourAll(colour) {
     const L = this.leds, a = this.emit.instanceColor.array;
     for (let i = 0; i < this.slots.length; i++) {
       this.colour[i].copy(colour);
-      if (!this.vis[i]) continue;
+      if (!this.vis[i] || !this.lit[i]) continue;
       for (let j = 0; j < L; j++) { const k = (i * L + j) * 3; a[k] = colour.r; a[k + 1] = colour.g; a[k + 2] = colour.b; }
     }
     this.emit.instanceColor.needsUpdate = true;

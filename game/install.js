@@ -73,6 +73,10 @@ export class Install {
       this.fx.setColour(i, WHITE);
       if (this.fitted.has(slot.id)) { this.fx.show(i, true); this.guides.show(i, false); }
     }
+    // (Lloyd, 2026-09-05: "they are black until turned on") a column is powered up when its last
+    // bar goes in, the crew's test-fire; a saved game comes back with its finished columns lit
+    this.powered = new Set();
+    for (const c of new Set(this.slots.map((s) => s.column))) if (this.columnComplete(c)) this.powerColumn(c);
     let g = null;
     try { g = localStorage.getItem(GUIDE_KEY); } catch (e) { g = null; }
     this.guide = g === null ? true : g === '1';
@@ -141,7 +145,14 @@ export class Install {
     this.guides.show(slot.i, false);
     this.lastFit = slot;
     player.carry = null;
+    if (!this.powered.has(slot.column) && this.columnComplete(slot.column)) { this.powerColumn(slot.column); this.justPowered = slot.column; }
     return true;
+  }
+
+  columnComplete(column) { return this.slots.every((s) => s.column !== column || this.fitted.has(s.id)); }
+  powerColumn(column) {
+    this.powered.add(column);
+    for (const s of this.slots) if (s.column === column) this.fx.power(s.i, true);
   }
 
   // fx.js hides a fitted light for a few seconds in the small hours; it used to reach into a

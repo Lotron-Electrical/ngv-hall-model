@@ -46,7 +46,8 @@ say(r.bars === r.total && r.meshVisible && r.guide, `guide on with 0 fitted: ${r
 say(r.lit === 0 && r.fitted === 0, `no fixture shown before any fit (lit=${r.lit})`);
 
 // (c) fit two slots: their fixture instances take a real scale, everyone else's stay zero
-r = JSON.parse(await ev(`(()=>{const I=ngv.game.install;I.fit(I.slots[0],{carry:null});I.fit(I.slots[1],{carry:null});
+// (2026-09-05) a fitted bar is black until its column is powered, so the colour checks below power it
+r = JSON.parse(await ev(`(()=>{const I=ngv.game.install;I.fit(I.slots[0],{carry:null});I.fit(I.slots[1],{carry:null});I.powerColumn(I.slots[0].column);
  const P=3,L=I.fx.leds;const sc=i=>({rib:[0,1,2].map(k=>qs(i*P+k,I.fx.ribbon)),cov:qs(i,I.fx.cover),em:qs(i*L,I.fx.emit),bar:qs(i,I.guides.mesh)});
  let others=0;for(let i=2;i<I.slots.length;i++){if(qs(i,I.fx.cover)>1e-6||qs(i*L,I.fx.emit)>1e-6||qs(i*P,I.fx.ribbon)>1e-6)others++;}
  return JSON.stringify({a:sc(0),b:sc(1),others,fitted:I.counts().fitted});})()`));

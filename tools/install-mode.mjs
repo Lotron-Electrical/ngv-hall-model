@@ -37,6 +37,8 @@ const tickStart = () => ev(`(()=>{window.__t=0; if(!window.__raf){window.__raf=r
 const ticks = async (ms) => { await ev('window.__t=0'); await sleep(ms); return ev('window.__t'); };
 const snap = () => ev(`(()=>({kids:ngv.scene.children.length, solids:dbg.solids, cam:ngv.cam.children.length, game:!!ngv.game}))()`);
 
+// the key is cleared first, so this check does not depend on which tool ran before it (2026-09-05)
+await send('Page.navigate', { url: base }); await sleep(1500); await ev(`localStorage.removeItem('ngv.install'); 1`);
 // ---- 1. locked: no row, no game, no game module fetched
 await ev(`try{localStorage.clear()}catch(e){}`);
 await load(base + '?cb=' + Date.now());

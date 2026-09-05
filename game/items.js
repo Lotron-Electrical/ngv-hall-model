@@ -87,14 +87,18 @@ function makeBoxObject(lights = 8) {
   return { type: 'box', lights, carried: false, disposed: false, mesh };
 }
 
+// (Lloyd, 2026-09-05) the light in hand is the pixel bar itself: 20 x 45 x 1500, black anodised,
+// black face, no glow (it is not powered); wrapped, a translucent sleeve sits over it
+function makeBarMesh(wrapped) {
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.02, 1.5), mat(0x0c0c0e, 0.5, { metalness: 0.55 }));
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.018, 1.49), mat(0x08080a, 0.35));
+  face.position.x = 0.0225; bar.add(face);
+  if (wrapped) { const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.035, 1.52), mat(0xf4f4ee, 0.25, { transparent: true, opacity: 0.5 })); bar.add(sleeve); }
+  return bar;
+}
 function makeCarryLight(wrapped) {
   const group = new THREE.Group();
-  const bar = new THREE.Mesh(
-    new THREE.BoxGeometry(0.08, 0.08, 1.5),
-    wrapped
-      ? mat(0xf4f4ee, 0.25, { transparent: true, opacity: 0.56 })
-      : mat(0xffffff, 0.35, { emissive: 0xe4f5ff, emissiveIntensity: 0.55 })
-  );
+  const bar = makeBarMesh(wrapped);
   group.add(bar);
   // held low and to the right, slanted away, so it does not fill the view (Lloyd's phone shot)
   group.position.set(0.42, -0.62, -1.0);
@@ -102,7 +106,77 @@ function makeCarryLight(wrapped) {
   return group;
 }
 
+// what a body rests its centre on, and how wide it is on the plan
+const REST = { box: 0.17, emptyBox: 0.17, bag: 0.41, wrap: 0.04, light: 0.012, wrapped: 0.02, jack: 0 };
+const RADIUS = { box: 0.4, emptyBox: 0.4, bag: 0.45, wrap: 0.3, light: 0.3, wrapped: 0.3, jack: 0.5 };
+const TOPS = { box: 0.34, emptyBox: 0.34, bag: 0.82 };   // what can be stood on, and how tall it is
+function restOf(o) { return REST[o.type] ?? 0.05; }
+
+// the bodies that are loose right now: not carried, not in a bag, not the lift's own box
+function bodiesOf(items) {
+  const out = [];
+  for (const b of items.boxes) if (!b.carried && !b.disposed && !b.onLift) out.push(b);
+  for (const b of items.bags) if (!b.carried && !b.disposed) out.push(b);
+  for (const w of items.wraps) if (!w.carried && !w.bagged) out.push(w);
+  for (const l of items.lights) if (!l.carried) out.push(l);
+  if (items.jack && !items.jack.held && !items.jack.by) out.push(items.jack);
+  for (const j of items.jacks || []) if (!j.held && !j.by) out.push(j);
+  return out;
+}
+
+// one body, one step: gravity, the fall, the landing, the slide to rest. A body that lands on
+// the deck is captured in deck coordinates and rides the machine until it is picked up again
+function stepBody(o, dt, items, lift, others) {
+  if (!o.vel) o.vel = new THREE.Vector3();
+  const m = o.mesh, rest = restOf(o), floorY = items.world.floorY;
+  if (o.deck) {   // riding the deck
+    const p = lift.deckPoint(o.deck.x, o.deck.y);
+    m.position.set(p.x, lift.floorY + lift.deckY + lift.height + 0.07 + rest, p.z);
+    m.rotation.y = (o.deckYaw || 0) + lift.yaw;
+    return;
+  }
+  const v = o.vel;
+  const y0 = m.position.y - rest;   // where the underside WAS: a surface counts if it was under it before this step, so a slow frame cannot tunnel through the deck
+  v.y -= 9.8 * dt;
+  m.position.addScaledVector(v, dt);
+  // what is under it: the floor, the deck when it is over the deck plate, or the top of a box or bag
+  let support = floorY, onDeck = false, under = null;   // `under`: the thing it stands on, which must not shove it sideways
+  const deckTop = lift.floorY + lift.deckY + lift.height + 0.07;
+  const d = lift.toDeck(m.position);
+  if (Math.abs(d.x) < 1.25 && Math.abs(d.y) < 0.6 && y0 >= deckTop - 0.05) { support = deckTop; onDeck = true; under = lift; }
+  for (const b of others) {
+    if (b === o || !TOPS[b.type]) continue;
+    const top = b.mesh.position.y - restOf(b) + TOPS[b.type];
+    if (top <= support) continue;
+    if (Math.hypot(b.mesh.position.x - m.position.x, b.mesh.position.z - m.position.z) < 0.42 && y0 >= top - 0.05) { support = top; onDeck = false; under = b; }
+  }
+  if (m.position.y - rest <= support) {
+    m.position.y = support + rest;
+    if (v.y < 0) { v.y = Math.abs(v.y) > 1.2 ? -v.y * 0.18 : 0; }
+    // friction on whatever it landed on
+    const k = Math.exp(-6 * dt); v.x *= k; v.z *= k;
+    if (v.lengthSq() < 0.0004) { v.set(0, 0, 0); if (onDeck) { o.deck = d.clone(); o.deckYaw = m.rotation.y - lift.yaw; } }
+  } else { const k = Math.exp(-0.3 * dt); v.x *= k; v.z *= k; }
+  // walls, columns and the other things on the floor stop it sliding through them
+  // (2026-09-05) the lift's own plan circles used to push a box straight off its deck: whatever
+  // the body stands on is left out of the push
+  if (v.x !== 0 || v.z !== 0) { const ig = [o]; if (under) ig.push(under); collideWorldRef(m.position, RADIUS[o.type] ?? 0.3, items.world, ig); }
+}
+let collideWorldRef = null;   // set by createItems: world.js's collider, so this module does not import it twice
+export function setCollider(fn) { collideWorldRef = fn; }
+
+// let go of something: a small toss from the hands, out and a little up, with the walk's speed
+function toss(o, player, dist = 0.9) {
+  const m = o.mesh;
+  const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
+  m.position.copy(player.camera.position).addScaledVector(fwd, dist); m.position.y -= 0.45;
+  m.rotation.set(0, player.yaw, 0);
+  o.vel = fwd.multiplyScalar(1.4); o.vel.y = 0.6;
+  o.deck = null; o.onDeck = null;
+}
+
 function carry(player, item) {
+  item.deck = null; item.vel = null;
   if (item.mesh) {
     item.mesh.removeFromParent();
     player.camera.add(item.mesh);
@@ -121,15 +195,16 @@ function palletHome(i, world) { const row = i < 6 ? 0 : 1; return hallToWorld(51
 export function refreshObstacles(items, lifts) {
   const O = items.world.obstacles; O.length = 0;
   for (const p of items.pallets) { if (isCarriedPallet(p, items)) continue; O.push({ x: p.mesh.position.x, z: p.mesh.position.z, r: 0.95, ref: p }); }
-  for (const b of items.boxes) { if (b.carried || b.onLift || b.disposed) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.4, ref: b }); }
-  for (const b of items.bags) { if (b.carried || b.disposed) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.45, ref: b }); }
+  for (const b of items.boxes) { if (b.carried || b.onLift || b.disposed || b.deck) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.4, ref: b }); }
+  for (const b of items.bags) { if (b.carried || b.disposed || b.deck) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.45, ref: b }); }
   for (const L of lifts) { const ax = new THREE.Vector3(0.75, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), L.yaw); O.push({ x: L.pos.x + ax.x, z: L.pos.z + ax.z, r: 0.85, ref: L }, { x: L.pos.x - ax.x, z: L.pos.z - ax.z, r: 0.85, ref: L }); }
   O.push({ x: items.world.skip.x, z: items.world.skip.z, r: 1.9, ref: 'skip' });
 }
 function isCarriedPallet(p, items) { if (items.jack.carrying === p) return true; for (const j of items.jacks || []) if (j.carrying === p) return true; return false; }
 
-export function createItems(scene, world, camera) {
+export function createItems(scene, world, camera, collide) {
   const items = { pallets: [], boxes: [], wraps: [], bags: [], lights: [], jack: null, scene, world, camera };
+  if (collide) collideWorldRef = collide;
   for (const [i, column] of COLUMNS.entries()) {
     const home = palletHome(i, world);
     const made = makePallet(column);
@@ -170,6 +245,8 @@ export function nearestAction(player, lift, install, items) {
   const liftNear = (r) => Math.hypot(lift.pos.x - p.x, lift.pos.z - p.z) < r;
 
   if (player.carry?.type === 'box' && liftNear(2.4) && lift.height < 0.3 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
+  // (2026-09-05) anything in hand can be set down where you stand, on the floor or on the deck
+  if (player.carry && ['bag', 'wrap', 'emptyBox'].includes(player.carry.type) && lift.aboard) return { label: `Put ${player.carry.type === 'emptyBox' ? 'box' : player.carry.type} down on the deck`, run: () => dropCarry(player, items) };
   if ((player.carry?.type === 'box' || player.carry?.type === 'emptyBox' || player.carry?.type === 'bag') && skipNear) return { label: `Dispose ${player.carry.type}`, run: () => disposeCarry(player, items) };
   if (player.carry?.type === 'box') return { label: 'Set down box', run: () => dropCarry(player, items) };
   if (player.carry?.type === 'emptyBox') return { label: 'Carry empty box to skip', run: null };
@@ -249,11 +326,13 @@ function takeLightFromBox(player, box, items) {
 }
 
 function putBoxOnLift(player, lift, items) {
-  lift.box = player.carry;
-  lift.box.carried = false;
-  lift.box.onLift = true;
-  lift.box.mesh.removeFromParent();
-  items.scene.add(lift.box.mesh);
+  const box = player.carry;
+  box.carried = false; box.onLift = true; box.vel = null;
+  box.mesh.removeFromParent(); items.scene.add(box.mesh);
+  // (2026-09-05) it goes down where you stand on the deck (or the nearest deck point from the floor), not the deck's centre
+  const d = lift.toDeck(player.pos); d.x = THREE.MathUtils.clamp(d.x, -1.0, 0.5); d.y = THREE.MathUtils.clamp(d.y, -0.35, 0.35);
+  box.deck = d; box.deckYaw = 0;
+  lift.box = box;
   player.carry = null;
   lift.refresh();
 }
@@ -304,7 +383,7 @@ function carryEmptyBox(player, box) {
 function takeEmptyLiftBox(player, lift) {
   const box = lift.box;
   lift.box = null;
-  box.onLift = false;
+  box.onLift = false; box.deck = null;
   box.type = 'emptyBox';
   carry(player, box);
 }
@@ -337,15 +416,10 @@ export function dropCarry(player, items) {
   const item = player.carry;
   if (item.type === 'light' || item.type === 'wrapped') {
     item.mesh.removeFromParent();
-    const bar = makeCarryLight(item.type === 'wrapped').children[0];
-    bar.rotation.set(0, 0, 0);
-    const ahead = new THREE.Vector3(0, 0, -1.0).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
-    bar.position.copy(player.pos).add(ahead); bar.position.y = player.pos.y + 0.05;
-    bar.rotation.y = player.yaw + Math.PI / 2;
+    const bar = makeBarMesh(item.type === 'wrapped');
     items.scene.add(bar);
     const light = { type: item.type, mesh: bar, carried: false };
-    // (2026-09-04) put down on the deck, it rides the deck: remember where in chassis terms
-    if (player.onLift && items.lift) { const d = items.lift.toDeck(bar.position); if (Math.abs(d.x) < 1.3 && Math.abs(d.y) < 0.65) { light.onDeck = d; light.deckYaw = bar.rotation.y - items.lift.yaw; } }
+    toss(light, player, 0.8); bar.rotation.y += Math.PI / 2;   // the bar lies across the way you face
     items.lights.push(light);
     player.carry = null;
     return;
@@ -353,15 +427,16 @@ export function dropCarry(player, items) {
   if (item.mesh) {
     item.mesh.removeFromParent();
     items.scene.add(item.mesh);
-    item.mesh.position.copy(player.camera.position).add(new THREE.Vector3(0, -1.0, -0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw));
-    item.mesh.position.y = items.world.floorY + (item.type === 'wrap' ? 0.05 : 0.2);
-    item.mesh.rotation.set(0, player.yaw, 0);
     item.carried = false;
+    toss(item, player, 0.9);
   }
   player.carry = null;
 }
 
-export function updateItems(player, lift, items) {
+export function updateItems(player, lift, items, dt = 0) {
+  // (2026-09-05) every loose thing has its own physics: gravity, a landing, a slide to rest, and
+  // the deck under it when it is over the deck
+  if (dt > 0) { const bodies = bodiesOf(items); for (const o of bodies) stepBody(o, dt, items, lift, bodies); }
   if (items.jack.held && !items.jack.by) {
     items.jack.mesh.position.copy(player.camera.position).add(new THREE.Vector3(0, -1.35, -1.05).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw));
     items.jack.mesh.position.y = items.world.floorY;
@@ -373,10 +448,6 @@ export function updateItems(player, lift, items) {
     }
   }
   if (lift.box) lift.refresh();
-  for (const l of items.lights) {
-    if (!l.onDeck || l.carried) continue;
-    const p = lift.deckPoint(l.onDeck.x, l.onDeck.y); l.mesh.position.set(p.x, lift.floorY + lift.deckY + lift.height + 0.05, p.z); l.mesh.rotation.y = l.deckYaw + lift.yaw;
-  }
 }
 
 export function resetForNight(player, lift, items) {
@@ -384,7 +455,7 @@ export function resetForNight(player, lift, items) {
   for (const [i, box] of items.boxes.entries()) {
     if (box.disposed) continue;
     box.carried = false;
-    box.onLift = false;
+    box.onLift = false; box.deck = null; box.vel = null;
     box.mesh.removeFromParent();
     items.scene.add(box.mesh);
     box.mesh.position.copy(hallToWorld(50.2 + (i % 6) * 0.62, 11.5 - Math.floor(i / 6) * 0.5, items.world.floorY + 0.2));
@@ -393,7 +464,10 @@ export function resetForNight(player, lift, items) {
     if (wrap.bagged) continue;
     wrap.mesh.position.copy(hallToWorld(64.6, 9.3 + (i % 8) * 0.12, items.world.floorY + 0.05));
   }
-  for (const [i, l] of items.lights.entries()) l.mesh.position.copy(hallToWorld(50.0 + (i % 6) * 0.3, 3.5 + Math.floor(i / 6) * 0.25, items.world.floorY + 0.05));
+  for (const [i, l] of items.lights.entries()) { l.deck = null; l.vel = null; l.mesh.position.copy(hallToWorld(50.0 + (i % 6) * 0.3, 3.5 + Math.floor(i / 6) * 0.25, items.world.floorY + 0.05)); }
+  for (const b of items.bags) { b.deck = null; b.vel = null; }
+  for (const w of items.wraps) { w.deck = null; w.vel = null; }
+  items.jack.deck = null; items.jack.vel = null;
   items.jack.held = false;
   items.jack.carrying = null;
   items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));

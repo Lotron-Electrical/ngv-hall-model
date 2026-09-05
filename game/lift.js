@@ -135,7 +135,8 @@ export class Lift {
     }
     for (const W of this.wheels) W.hub.rotation.y = W.front ? -this.steer : 0;
     this.group.updateMatrixWorld(true);
-    if (this.box) this.box.mesh.position.copy(this.deckWorld()).add(new THREE.Vector3(0, 0.18, 0));
+    // (2026-09-05) a box with deck coordinates rides where it was set down; the old centre placement is the fallback
+    if (this.box) { if (this.box.deck) { const p = this.deckPoint(this.box.deck.x, this.box.deck.y); this.box.mesh.position.set(p.x, this.floorY + this.deckY + this.height + 0.07 + 0.17, p.z); this.box.mesh.rotation.y = (this.box.deckYaw || 0) + this.yaw; } else this.box.mesh.position.copy(this.deckWorld()).add(new THREE.Vector3(0, 0.18, 0)); }
   }
 
   deckWorld() {
