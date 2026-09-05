@@ -71,8 +71,8 @@ Studio.newFx=(type)=>({ type, params:Studio.defaultParams(Studio.FX_TYPES[type].
 Studio.newProject=(name)=>({ name:name||'untitled', bpm:124, swing:0, machines:[], song:{bars:16, tracks:{}}, master:{vol:0.9, delay:Studio.newFx('delay'), reverb:Studio.newFx('reverb')}, version:1 });
 
 // pattern helpers
-Studio.patternSteps=(p)=>p.bars*Studio.STEPS_PER_BAR;
-Studio.resizePattern=(p,bars)=>{ bars=Math.max(1,Math.min(Studio.MAX_BARS,bars|0)); const n=bars*Studio.STEPS_PER_BAR; p.bars=bars; p.notes=p.notes.filter(x=>x.s<n);
+Studio.patternSteps=(p)=>p.bars*(p.spb||Studio.STEPS_PER_BAR);   // spb: steps per bar, 16 unless the pattern was rendered for another meter
+Studio.resizePattern=(p,bars)=>{ bars=Math.max(1,Math.min(Studio.MAX_BARS,bars|0)); const n=bars*(p.spb||Studio.STEPS_PER_BAR); p.bars=bars; p.notes=p.notes.filter(x=>x.s<n);
  if(p.level){ const L=new Array(n).fill(null); for(let i=0;i<Math.min(n,p.level.length);i++)L[i]=p.level[i]; p.level=L; } return p; };
 Studio.addNote=(p,note)=>{ const n=Studio.patternSteps(p); if(note.s<0||note.s>=n)return null; note.l=Math.max(1,Math.min(note.l||1,n-note.s));
  // a synth may hold a chord, but one note per pitch per step; drums and cues are one per (step, n)
@@ -95,18 +95,56 @@ Studio.barSeconds=(bpm)=>60/bpm*4;
 // patterns (mode 'pattern'): every machine's current pattern from step 0, looped by the caller.
 Studio.flatten=(proj,mode)=>{ const out=[];
  if(mode==='pattern'){ for(const m of proj.machines){ const p=m.patterns[m.curPat]; if(!p)continue; for(const x of p.notes)out.push({mid:m.id,s:x.s,l:x.l,n:x.n,v:x.v,pat:m.curPat,type:m.type}); } }
- else { for(const m of proj.machines){ for(const b of Studio.track(proj,m.id)){ const p=m.patterns[b.pat]; if(!p)continue; const ps=Studio.patternSteps(p), blockSteps=b.len*Studio.STEPS_PER_BAR;
-   // a block longer than its pattern repeats the pattern (Caustic does the same)
-   for(let off=0;off<blockSteps;off+=ps)for(const x of p.notes){ if(off+x.s>=blockSteps)continue; out.push({mid:m.id,s:b.bar*Studio.STEPS_PER_BAR+off+x.s,l:Math.min(x.l,blockSteps-off-x.s),n:x.n,v:x.v,pat:b.pat,type:m.type}); } } } }
+ else { const T=Studio.timeline(proj); for(const m of proj.machines){ for(const b of Studio.track(proj,m.id)){ const p=m.patterns[b.pat]; if(!p)continue; const ps=Studio.patternSteps(p), b0=T.barStep(b.bar), blockSteps=T.barStep(b.bar+b.len)-b0;
+   // a block longer than its pattern repeats the pattern (Caustic does the same); bars come
+   // from the timeline, so a 7/8 section's bars are 14 steps and the block ends where they do
+   for(let off=0;off<blockSteps;off+=ps)for(const x of p.notes){ if(off+x.s>=blockSteps)continue; out.push({mid:m.id,s:b0+off+x.s,l:Math.min(x.l,blockSteps-off-x.s),n:x.n,v:x.v,pat:b.pat,type:m.type}); } } } }
  out.sort((a,b)=>a.s-b.s||a.n-b.n); return out; };
 // the Lights level lane, flattened the same way: [{s, v}]
 Studio.flattenLevel=(proj,mode)=>{ const out=[]; for(const m of proj.machines){ if(m.type!=='lights')continue;
  if(mode==='pattern'){ const p=m.patterns[m.curPat]; if(p&&p.level)p.level.forEach((v,i)=>{ if(v!=null)out.push({s:i,v}); }); }
- else for(const b of Studio.track(proj,m.id)){ const p=m.patterns[b.pat]; if(!p||!p.level)continue; const ps=Studio.patternSteps(p), bs=b.len*Studio.STEPS_PER_BAR;
-   for(let off=0;off<bs;off+=ps)p.level.forEach((v,i)=>{ if(v!=null&&off+i<bs)out.push({s:b.bar*Studio.STEPS_PER_BAR+off+i,v}); }); } }
+ else { const T=Studio.timeline(proj); for(const b of Studio.track(proj,m.id)){ const p=m.patterns[b.pat]; if(!p||!p.level)continue; const ps=Studio.patternSteps(p), b0=T.barStep(b.bar), bs=T.barStep(b.bar+b.len)-b0;
+   for(let off=0;off<bs;off+=ps)p.level.forEach((v,i)=>{ if(v!=null&&off+i<bs)out.push({s:b0+off+i,v}); }); } } }
  out.sort((a,b)=>a.s-b.s); return out; };
 // pattern-mode loop length in steps: the longest current pattern across the rack
 Studio.patternLoopSteps=(proj)=>{ let n=Studio.STEPS_PER_BAR; for(const m of proj.machines){ const p=m.patterns[m.curPat]; if(p)n=Math.max(n,Studio.patternSteps(p)); } return n; };
+
+// SECTIONS AND THE TIMELINE (Lloyd, 2026-09-05): a step is always a 16th. A song is a run of
+// SECTIONS, each with its own meter (steps per bar = beats * 16 / div: 4/4 = 16, 3/4 = 12, 6/8 =
+// 12, 5/4 = 20, 7/8 = 14), tempo, feel (half: every step lasts twice as long, double: half),
+// key, chord cycle, transpose, energy, transition and seed. A project with no sections is one
+// 4/4 section at proj.bpm, and then every number below is exactly what it was before sections
+// existed. The timeline maps bars to absolute steps and steps to seconds; the engine, the
+// lights frame and the export all read it rather than multiplying by 16.
+Studio.barSteps=(meter)=>Math.max(1,Math.round(((meter&&meter.beats)||4)*16/((meter&&meter.div)||4)));
+Studio.feelScale=(feel)=>feel==='half'?2:feel==='double'?0.5:1;
+Studio.defaultSection=(proj,bar,len)=>({ bar:bar||0, len:len||Math.max(1,Studio.songLengthBars(proj)), meter:{beats:4,div:4}, bpm:proj.bpm||124, feel:'straight',
+ key:{root:57,scale:'minor'}, chords:['Am','F','C','G'], cycleBars:1, transpose:0, energy:0.6, transition:'none', seed:1 });
+Studio.timeline=(proj)=>{
+ const raw=(proj.song&&proj.song.sections||[]).filter(s=>s&&s.len>0).slice().sort((a,b)=>a.bar-b.bar);
+ const total=Math.max(Studio.songLengthBars(proj), raw.length?raw[raw.length-1].bar+raw[raw.length-1].len:0, 1);
+ // normalise: gaps get a default section, overlaps are cut, the last section runs to the end
+ const sections=[]; let at=0;
+ for(const s of raw){ if(s.bar>at)sections.push(Studio.defaultSection(proj,at,s.bar-at)); if(s.bar<at)continue; sections.push(Object.assign({},s)); at=s.bar+s.len; }
+ if(at<total)sections.push(raw.length?Object.assign({},sections[sections.length-1],{bar:at,len:total-at}):Studio.defaultSection(proj,at,total-at));
+ const bars=[]; let step=0, sec=0;
+ sections.forEach((S,si)=>{ const spb=Studio.barSteps(S.meter), stepSec=60/((S.bpm||proj.bpm||124))/4*Studio.feelScale(S.feel);
+  for(let b=0;b<S.len;b++){ bars.push({bar:S.bar+b,step,sec,spb,stepSec,meter:S.meter||{beats:4,div:4},bpm:S.bpm||proj.bpm||124,si}); step+=spb; sec+=spb*stepSec; } });
+ const totalSteps=step, totalSec=sec;
+ const barOf=(st)=>{ let lo=0,hi=bars.length-1; while(lo<hi){ const md=(lo+hi+1)>>1; if(bars[md].step<=st)lo=md; else hi=md-1; } return bars[lo]; };
+ const T={ sections, bars, totalSteps, totalSec,
+  barStep:(bar)=>bar<bars.length?bars[bar].step:totalSteps+(bar-bars.length)*(bars.length?bars[bars.length-1].spb:16),
+  stepBar:(st)=>barOf(Math.max(0,st)).bar,
+  time:(st)=>{ if(st<=0)return st*(bars[0]?bars[0].stepSec:60/(proj.bpm||124)/4); const B=barOf(st); const last=bars[bars.length-1]; return (st>=totalSteps?totalSec+(st-totalSteps)*last.stepSec:B.sec+(st-B.step)*B.stepSec); },
+  stepAt:(t)=>{ if(t<=0)return t/(bars[0]?bars[0].stepSec:60/(proj.bpm||124)/4); if(t>=totalSec){ const last=bars[bars.length-1]; return totalSteps+(t-totalSec)/last.stepSec; }
+   let lo=0,hi=bars.length-1; while(lo<hi){ const md=(lo+hi+1)>>1; if(bars[md].sec<=t)lo=md; else hi=md-1; } const B=bars[lo]; return B.step+(t-B.sec)/B.stepSec; },
+  at:(st)=>{ const B=barOf(Math.max(0,st)); const stepInBar=st-B.step, spBeat=16/B.meter.div, beatsPerBar=B.meter.beats;
+   return { bar:B.bar, stepInBar, spb:B.spb, stepSec:B.stepSec, meter:B.meter, bpm:B.bpm, section:sections[B.si], si:B.si,
+    beatN:Math.floor(B.step/spBeat)+Math.floor(stepInBar/spBeat), beatInBar:Math.floor(stepInBar/spBeat), beatPhase:(stepInBar%spBeat)/spBeat, barPhase:stepInBar/B.spb, beatsPerBar, sec:B.sec+stepInBar*B.stepSec }; } };
+ return T; };
+// parameter automation: [{mid, param, s, v, ramp}] at absolute steps in the song; a ramp is
+// expanded by the builder into a run of events, so the engine only ever sets values
+Studio.flattenAutom=(proj,mode)=>mode==='pattern'?[]:((proj.song&&proj.song.autom)||[]).slice().sort((a,b)=>a.s-b.s);
 
 // THE DEMO PROJECT: the studio opens on something that plays, so the first Play makes sound and
 // light. Four bars of a 124 bpm groove in A minor, looks changing on the bar.

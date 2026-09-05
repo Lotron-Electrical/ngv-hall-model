@@ -18,6 +18,7 @@
 <iframe id="sim" src="../index.html?embed=1&amp;show=live"></iframe>
 
 <script src="../show/lightshow.js"></script>
+<script src="../show/looks2.js" onerror="window.NO_LOOKS2=1"></script>
 <script src="model.js"></script>
 <script src="machines.js" onerror="window.NO_MACHINES=1"></script>
 <script src="engine.js" onerror="window.NO_ENGINE=1"></script>
@@ -99,11 +100,16 @@ const R={ok:false, engine:'', steps:{}};
  const hallOn=!!(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.on);
  eng.stop();
 
+ // the hall must also have been handed a LAYER STACK, not just the flat state: that is what makes
+ // it paint through the compositor rather than the single-look path
+ const hallLayers=(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.state.layers)||null;
  R.steps.look0=look0; R.steps.bar1Look=bar1Look; R.steps.hallLook=hallLook; R.steps.hallOn=hallOn;
+ R.steps.hallLayers=hallLayers?hallLayers.length:'none';
+ R.steps.hallLayer0=hallLayers&&hallLayers[0]?hallLayers[0].look+'/'+hallLayers[0].family:'';
  R.steps.frameT=Math.round(frameT*100)/100; R.steps.endStep=Math.round(eng.pos().step*10)/10;
  R.assert1=(look0==='pulse');
  R.assert2=(frameT>2);
- R.assert3=(bar1Look==='beatwave'&&hallLook==='beatwave');
+ R.assert3=(bar1Look==='beatwave'&&hallLook==='beatwave'&&!!hallLayers&&hallLayers.length===1&&hallLayers[0].look==='beatwave');
  say('look at step 0: '+look0+'   look after bar 1: '+bar1Look+'   hall look: '+hallLook);
  say('iframe ngvShow.frame.t = '+R.steps.frameT+'  (needs > 2), hall on = '+hallOn);
 
@@ -148,7 +154,76 @@ const R={ok:false, engine:'', steps:{}};
   R.assert6=lens.every(x=>x===lens[0])&&readLens.every(x=>x===lens[0])&&lens[0]>10;
  }catch(e){ R.steps.exportError=String(e&&e.message||e); R.assert5=false; R.assert6=false; }
 
- R.ok=!!(R.assert1&&R.assert2&&R.assert3&&R.assert4&&R.assert5&&R.assert6);
+ // 4) SIX LAYERS (2026-09-05). A rack of six Lights machines, one per layer, the second of them
+ // synced to the drums. Three things are measured: the stack resolves to six layers, six layers
+ // painted together are brighter than one but nowhere near six times brighter and never wash the
+ // hall to white, and the synced layer's trigger index steps on the drum notes and wraps with the
+ // drum pattern rather than running off down the song.
+ const LOOK6=['pulse','beatwave','sparkle','rainbow','sweep','strobe'];
+ function layerProject(){
+  const pr=Studio.newProject('layers');
+  const drums=Studio.newMachine('beatbox','Drums'); const dp=drums.patterns.A1;
+  [0,4,8,12].forEach(s=>Studio.addNote(dp,{s,n:0,v:1,l:1}));      // kick on every beat
+  [4,12].forEach(s=>Studio.addNote(dp,{s,n:1,v:0.9,l:1}));        // snare doubles two of them
+  pr.machines.push(drums);
+  for(let i=0;i<6;i++){ const m=Studio.newMachine('lights','L'+i);
+   m.layer=i; m.sync=i===1?drums.id:'grid'; m.params.level=1;
+   const p=m.patterns.A1;
+   Studio.addNote(p,{s:0,n:Studio.lightKeyIndex('look',LOOK6[i]),v:1,l:1});
+   Studio.addNote(p,{s:0,n:Studio.lightKeyIndex('palette','helix'),v:1,l:1});
+   pr.machines.push(m); }
+  for(const m of pr.machines)Studio.placeBlock(pr,m.id,0,'A1',1);
+  return pr;
+ }
+ // a synthetic pixel map with the same fields index.html hands the compositor
+ function makeP(n){ const per=n/12, P={n, s:new Float32Array(n), col:new Int32Array(n),
+   colx:new Float32Array(n), gap:new Int32Array(n), pid:new Int32Array(n)};
+  for(let i=0;i<n;i++){ const c=Math.floor(i/per); P.col[i]=c; P.colx[i]=(c%6)/5;
+   P.s[i]=(i%per)/(per-1); P.gap[i]=i%8; P.pid[i]=i; }
+  return P; }
+ function warm(show,a,P,layers){ show.frame.t=0; show.sm.lastT=0;
+  for(let k=0;k<50;k++){ show.frame.t+=0.016; show.paintLayers(a,P,layers); } }
+ const mean=a=>{ let s=0; for(let i=0;i<a.length;i++)s+=a[i]; return s/a.length; };
+ // a wash is a PIXEL pinned white on all three channels; one hot channel is just a saturated colour
+ const washed=a=>{ let c=0, n=a.length/3; for(let i=0;i<n;i++)if(a[i*3]>=0.999&&a[i*3+1]>=0.999&&a[i*3+2]>=0.999)c++; return c/n; };
+ const spread=a=>{ const m=mean(a); let s=0; for(let i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m); return Math.sqrt(s/a.length); };
+
+ try{
+  const lpr=layerProject();
+  let curStep=0;
+  const fake={mode:'pattern', playing:true, pos:()=>({step:curStep,t:0})};
+  const LP=Studio.createLights({project:()=>lpr, engine:()=>fake, iframe:()=>null});
+  LP.resolve({step:0});
+  R.steps.layerCount=LP.state.layers.length;
+  R.steps.layerLooks=LP.state.layers.map(l=>l.look);
+  R.assert7=LP.state.layers.length===6&&LOOK6.every((n,i)=>LP.state.layers[i].look===n);
+
+  const P=makeP(240), a1=new Float32Array(720), a6=new Float32Array(720);
+  const layers=LP.state.layers.map(l=>Object.assign({},l));
+  const setF=s=>{ s.frame.bpm=124; s.frame.beatN=1; s.frame.beatPhase=0.25; s.frame.barPhase=0.3;
+   s.frame.bass=0.8; s.frame.mid=0.6; s.frame.high=0.5; s.frame.rms=0.7; s.frame.onset=0;
+   s.state.level=1; s.state.hitAt=-9; };
+  const s1=window.NGVShow.createShow(), s6=window.NGVShow.createShow();
+  setF(s1); setF(s6);
+  warm(s1,a1,P,[layers[0]]); warm(s6,a6,P,layers);
+  const m1=mean(a1), m6=mean(a6), ratio=m1>0?m6/m1:0;
+  R.steps.mean1=Math.round(m1*1000)/1000; R.steps.mean6=Math.round(m6*1000)/1000;
+  R.steps.ratio=Math.round(ratio*100)/100; R.steps.washed=Math.round(washed(a6)*1000)/1000;
+  R.steps.spread6=Math.round(spread(a6)*1000)/1000;
+  R.assert8=(ratio>=1.0&&ratio<=3.0&&washed(a6)<0.02&&spread(a6)>0.05&&m6>0.01);
+  say('layers: '+R.steps.layerCount+'  mean 1 = '+R.steps.mean1+'  mean 6 = '+R.steps.mean6+'  ratio '+R.steps.ratio+'  white pixels '+R.steps.washed+'  spread '+R.steps.spread6);
+
+  // the synced layer: [0,4,8,12] are the drum steps, the pattern is 16 long, so step 16 is step 0
+  const probe=s=>{ curStep=s; LP.resolve({step:s}); const L=LP.state.layers[1];
+   return {n:L.trigN, tp:Math.round(L.trigPhase*1000)/1000, cy:Math.round(L.cyclePhase*1000)/1000}; };
+  const pr0=probe(0), pr4=probe(4), pr6=probe(6), pr12=probe(12), pr16=probe(16), pr18=probe(18);
+  R.steps.sync=[pr0,pr4,pr6,pr12,pr16,pr18];
+  R.assert9=(pr0.n===0&&pr0.cy===0&&pr4.n===1&&pr4.cy===0.25&&pr6.n===1&&pr6.tp===0.5
+   &&pr12.n===3&&pr12.cy===0.75&&pr16.n===0&&pr16.cy===0&&pr18.n===0&&pr18.tp===0.5);
+  say('sync to drums: '+JSON.stringify(R.steps.sync));
+ }catch(e){ R.steps.layerError=String(e&&e.stack||e); R.assert7=false; R.assert8=false; R.assert9=false; }
+
+ R.ok=!!(R.assert1&&R.assert2&&R.assert3&&R.assert4&&R.assert5&&R.assert6&&R.assert7&&R.assert8&&R.assert9);
  say('');
  say(JSON.stringify(R));
  window.LIGHTS_TEST=R;

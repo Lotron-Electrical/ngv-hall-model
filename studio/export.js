@@ -112,44 +112,78 @@ Studio.listShows=async function(){
  catch(e){ return []; }
 };
 
-// the cue timeline: the Lights machine's notes and its level lane, merged by time. One entry per
-// moment, so the hall applies a look, its palette and a hit from a single stamp.
+// the Lights machines in layer order, capped at six, exactly as studio/lights.js orders them
+function lightLayers(proj){ const out=proj.machines.filter(m=>m.type==='lights');
+ out.sort((a,b)=>(a.layer|0)-(b.layer|0)); return out.slice(0,6); }
+
+// THE CUE TIMELINE (v2, 2026-09-05): every Lights machine's notes and the shared level lane, on
+// the timeline's clock so a 7/8 or 130 bpm section lands where it sounds. One entry per (layer,
+// moment), so the hall applies a look, its palette and a hit from a single stamp.
+//
+// Layer 0 keeps the v1 fields (look, palette, level, hit) untouched, so a player that has never
+// heard of layers still gets the main look and the master level. Layers 1..5 add `layer`, plus the
+// `gain`, `sync` and `family` the compositor needs, stamped at t = 0 where the layer starts.
 function cueList(proj){
- const bpm=proj.bpm||124, sec=Studio.stepSeconds(bpm), by=new Map();
- const at=s=>{ const t=r4(s*sec); let e=by.get(t); if(!e){ e={t}; by.set(t,e); } return e; };
- const lights=proj.machines.filter(m=>m.type==='lights').map(m=>m.id);
+ const T=Studio.timeline?Studio.timeline(proj):null;
+ const sec=Studio.stepSeconds(proj.bpm||124);
+ const tAt=s=>r4(T?T.time(s):s*sec);
+ const by=new Map();
+ const at=(layer,s)=>{ const t=tAt(s), k=layer+'@'+t; let e=by.get(k); if(!e){ e={t,layer}; by.set(k,e); } return e; };
+ const machs=lightLayers(proj), idx=new Map(); machs.forEach((m,i)=>idx.set(m.id,i));
+ // the layer's own settings, on the first stamp: the compositor reads them straight off the cue
+ machs.forEach((m,i)=>{ const e=at(i,0);
+  e.gain=r4(clamp((m.params&&m.params.level!=null?m.params.level:1)*(m.gain!=null?m.gain:1),0,1));
+  e.sync=m.sync||'grid';
+  if(m.family)e.family=m.family; });
  for(const x of Studio.flatten(proj,'song')){
-  if(lights.indexOf(x.mid)<0)continue;
+  const li=idx.get(x.mid); if(li==null)continue;
   const k=Studio.LIGHT_KEYS[x.n]; if(!k)continue;
-  const e=at(x.s);
+  const e=at(li,x.s);
   if(k.kind==='look')e.look=k.val; else if(k.kind==='palette')e.palette=k.val; else if(k.kind==='hit')e.hit=true;
  }
- { const lm=proj.machines.find(m=>m.type==='lights'), g=lm&&lm.params&&lm.params.level!=null?lm.params.level:1;   // the rack's Level knob, baked in
-   for(const l of Studio.flattenLevel(proj,'song'))at(l.s).level=r4(clamp(l.v*g,0,1)); }
- return Array.from(by.values()).sort((a,b)=>a.t-b.t);
+ // the level lane is the hall master and belongs to layer 0, whichever machine wrote it
+ for(const l of Studio.flattenLevel(proj,'song'))at(0,l.s).level=r4(clamp(l.v,0,1));
+ return Array.from(by.values()).sort((a,b)=>a.t-b.t||a.layer-b.layer);
+}
+
+// the beat grid, off the timeline so odd meters and per-section tempo are honoured: a downbeat is
+// the first beat of a bar, whatever that bar's meter says.
+function beatGrid(proj,bpm,dur){
+ const beats=[], downbeats=[], T=Studio.timeline?Studio.timeline(proj):null;
+ if(T&&T.bars&&T.bars.length){
+  for(const B of T.bars){ const div=(B.meter&&B.meter.div)||4, n=(B.meter&&B.meter.beats)||4, spBeat=16/div;
+   for(let k=0;k<n;k++){ const t=r4(T.time(B.step+k*spBeat)); if(t>dur)break; beats.push(t); if(k===0)downbeats.push(t); } }
+  const last=beats.length?beats[beats.length-1]:0, step=60/bpm;
+  for(let t=last+step;t<dur;t+=step)beats.push(r4(t));   // the tail past the last bar, so the hall keeps a beat
+ } else { const beatSec=60/bpm;
+  for(let b=0;b*beatSec<dur;b++){ beats.push(r4(b*beatSec)); if(b%4===0)downbeats.push(r4(b*beatSec)); } }
+ return {beats,downbeats};
 }
 
 // sections, one per four bars, named after what is playing: no drums reads as a break, drums with
 // bass and pad under them read as a drop, anything else is on its way up
 function sections(proj,bpm){
- const barSec=Studio.barSeconds(bpm), S=Studio.STEPS_PER_BAR;
+ const T=Studio.timeline?Studio.timeline(proj):null, S=Studio.STEPS_PER_BAR, barSec=Studio.barSeconds(bpm);
+ const stepOf=b=>T?T.barStep(b):b*S, timeOf=b=>r4(T?T.time(stepOf(b)):b*barSec);
  const notes=Studio.flatten(proj,'song'), bars=Studio.songLengthBars(proj), out=[];
  for(let b=0;b<bars;b+=4){
-  const s0=b*S, s1=Math.min(bars,b+4)*S;
+  const e=Math.min(bars,b+4), s0=stepOf(b), s1=stepOf(e);
   const types={};
   for(const x of notes){ if(x.s<s0)continue; if(x.s>=s1)break; types[x.type]=true; }
   const drums=!!types.beatbox, bass=!!types.bassline, pad=!!types.padsynth;
   const label=!drums?'break':(drums&&bass&&pad?'drop':'build');
   const kinds=['beatbox','bassline','padsynth','subsynth','fmsynth'].filter(k=>types[k]).length;
-  out.push({t0:r4(b*barSec), t1:r4(Math.min(bars,b+4)*barSec), label, energy:r4(kinds/5)});
+  out.push({t0:timeOf(b), t1:timeOf(e), label, energy:r4(kinds/5)});
  }
  return out;
 }
 
-// ---- the whole job: render, encode, measure, write
-Studio.exportShow=async function(proj,eng,name,progress){
+// ---- the two files, made in memory and handed back. The jam page runs on the public site where
+// there is no dev server to POST to, so the render, the analysis and the cue file are separated
+// from the writing: this makes them, exportShow below writes them into the repo.
+Studio.exportFiles=async function(proj,eng,name,progress){
  const say=(text,p)=>{ if(progress)try{ progress(text,p); }catch(e){} };
- name=safeName(name||proj.name);
+ name=safeName(name||(proj&&proj.name));
  if(!eng||!eng.render)throw new Error('export needs an engine with render()');
 
  say('Rendering the music',0.05);
@@ -164,28 +198,38 @@ Studio.exportShow=async function(proj,eng,name,progress){
  await new Promise(r=>setTimeout(r,20));
  const fr=analyseBuffer(buf);
 
- const bpm=proj.bpm||124, beatSec=60/bpm, dur=buf.duration;
- const beats=[], downbeats=[];
- for(let b=0;b*beatSec<dur;b++){ beats.push(r4(b*beatSec)); if(b%4===0)downbeats.push(r4(b*beatSec)); }
+ const bpm=proj.bpm||124, dur=buf.duration;
+ const grid=beatGrid(proj,bpm,dur);
  const cues={
-  file:name+'.wav', duration:r4(dur), sr:44100, hop_s:r4(fr.hop_s), bpm,
-  beats, downbeats, sections:sections(proj,bpm),
+  file:name+'.wav', duration:r4(dur), sr:44100, hop_s:r4(fr.hop_s), bpm, cueVersion:2,
+  beats:grid.beats, downbeats:grid.downbeats, sections:sections(proj,bpm),
   frames:{rms:arr4(fr.rms),bass:arr4(fr.bass),mid:arr4(fr.mid),high:arr4(fr.high),onset:arr4(fr.onset)},
   cues:cueList(proj),
   project:Studio.clone(proj),
  };
+ const cuesJson=JSON.stringify(cues);
+ say('Files ready',0.95);
+ return { wavBlob:new Blob([wav],{type:'audio/wav'}), cuesJson, wav, cues, name, frames:fr.nf };
+};
+
+// ---- the whole job: render, encode, measure, write into show/ through the dev server
+Studio.exportShow=async function(proj,eng,name,progress){
+ const say=(text,p)=>{ if(progress)try{ progress(text,p); }catch(e){} };
+ const made=await Studio.exportFiles(proj,eng,name,progress);
+ const wav=made.wav, cues=made.cues; name=made.name;
 
  say('Writing the files',0.8);
- await post('show/'+name+'.wav',wav,'audio/wav');
- await post('show/'+name+'.cues.json',JSON.stringify(cues),'application/json');
+ await post('show/'+name+'.wav',made.wavBlob,'audio/wav');
+ await post('show/'+name+'.cues.json',made.cuesJson,'application/json');
  const list=await Studio.listShows();
  if(list.indexOf(name)<0){ list.push(name); await post('show/shows.json',JSON.stringify(list),'application/json'); }
  await post('show/'+name+'.project.json',JSON.stringify(proj,null,1),'application/json');
 
  say('Done',1);
- return {wav, cues, url:'index.html?show='+encodeURIComponent(name), name, frames:fr.nf};
+ return {wav, cues, url:'index.html?show='+encodeURIComponent(name), name, frames:made.frames};
 };
 
 // exposed so the test page can measure the pieces on their own
 Studio.wav16=wav16; Studio.analyseBuffer=analyseBuffer; Studio.fft=fft; Studio.cueList=cueList;
+Studio.lightLayers=lightLayers; Studio.beatGrid=beatGrid;
 })();

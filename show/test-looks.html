@@ -1,0 +1,215 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>looks2 test</title>
+<style>
+ body{background:#0b0c10;color:#e8ecf1;font:13px/1.5 system-ui,Segoe UI,Arial,sans-serif;margin:0;padding:18px}
+ h1{font-size:16px;margin:0 0 4px}
+ .sub{color:#8b95a5;margin:0 0 14px}
+ #verdict{font-weight:700;padding:8px 12px;border-radius:6px;display:inline-block;margin-bottom:14px}
+ .pass{background:#0d3b1e;color:#7ff0a8}.fail{background:#4a1113;color:#ff9aa0}
+ .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+ .card{background:#15181f;border:1px solid #252a34;border-radius:8px;padding:10px}
+ .card h2{font-size:14px;margin:0 0 2px}
+ .fam{color:#7fb2ff;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+ .desc{color:#98a2b3;margin:2px 0 8px;min-height:32px}
+ canvas{display:block;image-rendering:pixelated;border:1px solid #2b3140;border-radius:3px;background:#000}
+ .lbl{color:#6f7887;font-size:11px;margin:6px 0 2px}
+ .row{display:flex;gap:10px;align-items:flex-start}
+ .num{color:#8b95a5;font-size:11px;margin-top:6px}
+ table{border-collapse:collapse;margin-top:18px;font-size:11px}
+ td,th{border:1px solid #262c37;padding:2px 5px;text-align:right}
+ th{color:#8b95a5;font-weight:600}
+ .ok{color:#7ff0a8}.bad{color:#ff9aa0}
+</style>
+<h1>looks2: twelve new painters</h1>
+<p class="sub">12 columns x 8 gaps x 200 pixels, 4 bars at 124 bpm, fake bands. Left image: the hall at one beat (x = column and gap, y = up the strip). Right image: each column's mean colour over the whole four bars (x = time, y = column).</p>
+<div id="verdict">running...</div>
+<div class="grid" id="grid"></div>
+<div id="tables"></div>
+
+<script src="lightshow.js"></script>
+<script src="looks2.js"></script>
+<script>
+'use strict';
+// A private harness. It does NOT use NGVShow.createShow: the compositor's painter table has not
+// landed yet, so this page drives the painters straight, copying lightshow's band smoothing,
+// palette setup and gamma so what is measured here is what the hall will see.
+
+const BPM=124, BARS=4, FPS=50;
+const SECS=BARS*4*60/BPM, NF=Math.round(SECS*FPS);
+const COLS=12, GAPS=8, PIX=200, N=COLS*GAPS*PIX;
+
+// ---- synthetic P, laid out like index.html's pixel map ----
+const P={n:N, s:new Float32Array(N), col:new Uint8Array(N), colx:new Float32Array(N),
+         gap:new Uint8Array(N), pid:new Uint32Array(N)};
+(function(){ let k=0;
+ for(let col=0;col<COLS;col++) for(let g=0;g<GAPS;g++) for(let p=0;p<PIX;p++,k++){
+  P.s[k]=(p+0.5)/PIX; P.col[k]=col; P.gap[k]=g;
+  // colx runs the hall: N1..N6 then S1..S6, both sides walking the same way
+  P.colx[k]=(col%6)/5; P.pid[k]=k;
+ }})();
+
+// a balanced sample of pixels for the numbers (every 5th pixel of every gap of every column)
+const SAMP=[]; for(let col=0;col<COLS;col++) for(let g=0;g<GAPS;g++) for(let p=0;p<PIX;p+=5) SAMP.push((col*GAPS+g)*PIX+p);
+
+// ---- fake music: kick, snare, hats on a 124 bpm grid ----
+const beat=60/BPM;
+const kicks=[], snares=[], hats=[];
+for(let b=0;b<BARS;b++){ const t0=b*4*beat;
+ kicks.push(t0, t0+2.5*beat); snares.push(t0+beat, t0+3*beat);
+ for(let h=0;h<8;h++)hats.push(t0+h*beat*0.5);
+}
+const env=(t,list,tau)=>{ let m=0; for(const e of list){ if(t>=e-1e-6){ const v=Math.exp(-(t-e)/tau); if(v>m)m=v; } } return m; };
+function music(t){
+ const k=env(t,kicks,0.12), sn=env(t,snares,0.15), hh=env(t,hats,0.05);
+ const bass=Math.min(1,0.08+0.92*k);
+ const mid=Math.min(1,0.2+0.8*sn);
+ const high=Math.min(1,0.12+0.85*hh);
+ const rms=Math.min(1,0.15+0.55*k+0.3*sn+0.15*hh);
+ const onset=(k>0.93||sn>0.93)?1:0;
+ const trg=Math.exp(-(t-Math.max.apply(null,kicks.filter(x=>x<=t+1e-6).concat([-9])))/0.22);
+ return {bass,mid,high,rms,onset,trig:Math.max(0,Math.min(1,trg))};
+}
+
+// ---- the context, exactly the fields the painter contract names ----
+const PAL=NGVShow.PALETTES.helix;
+function hsv(h,s,v,out){ const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c; let r,g,b; h=((h%360)+360)%360;
+ if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+ out[0]=r+m;out[1]=g+m;out[2]=b+m; return out; }
+const C={r:0,g:0,b:0,s:0,col:0,colx:0,gap:0,pid:0,t:0,beatN:0,beatPhase:0,barPhase:0,
+ bassS:0,midS:0,highS:0,rmsS:0,strobeN:0,strobeK:0,trig:0,A:[0,0,0],B:[0,0,0],M:[0,0,0],tmp:[0,0,0]};
+hsv(PAL.A.h,PAL.A.s,PAL.A.v,C.A); hsv(PAL.B.h,PAL.B.s,PAL.B.v,C.B);
+for(let q=0;q<3;q++)C.M[q]=(C.A[q]+C.B[q])*0.5;
+
+// the frame clock, rebuilt per look so smoothing starts from the same place every time
+function newClock(){ return {bass:0,mid:0,high:0,rms:0,strobeN:0,lastOnset:-9,lastT:0}; }
+function setFrame(m,t){
+ const f=music(t), dt=Math.max(0,Math.min(0.1,t-m.lastT)); m.lastT=t;
+ const rise=1-Math.exp(-dt*40), fall=1-Math.exp(-dt*7);
+ const v={bass:f.bass,mid:f.mid,high:f.high,rms:f.rms};
+ for(const k in v){ m[k]+=(v[k]>m[k]?rise:fall)*(v[k]-m[k]); }
+ if(f.onset>0.6&&t-m.lastOnset>0.11){ m.lastOnset=t; m.strobeN++; }
+ C.t=t; C.beatN=Math.floor(t/beat); C.beatPhase=(t/beat)%1; C.barPhase=(t/(beat*4))%1;
+ C.bassS=m.bass; C.midS=m.mid; C.highS=m.high; C.rmsS=m.rms;
+ C.strobeN=m.strobeN; C.strobeK=Math.exp(-(t-m.lastOnset)/0.09); C.trig=f.trig;
+}
+function px(paint,i){ C.s=P.s[i]; C.col=P.col[i]; C.colx=P.colx[i]; C.gap=P.gap[i]; C.pid=P.pid[i];
+ C.r=0;C.g=0;C.b=0; paint(i,C);
+ return [Math.max(0,Math.min(1,C.r)),Math.max(0,Math.min(1,C.g)),Math.max(0,Math.min(1,C.b))]; }
+
+// ---- run every look ----
+const LOOKS=NGVShow.LOOKS2;
+const results=LOOKS.map(L=>{
+ const m=newClock();
+ const mean=[0,0,0], lowMean=[0,0,0], hiMean=[0,0,0];
+ let peak=0, whiteFracMax=0, lowN=0, hiN=0;
+ const timeImg=new Float32Array(NF*COLS*3), colN=new Float32Array(COLS);
+ for(let c=0;c<COLS;c++)colN[c]=0;
+ for(let fr=0;fr<NF;fr++){
+  const t=fr/FPS; setFrame(m,t);
+  const acc=new Float32Array(COLS*3), cnt=new Float32Array(COLS);
+  let white=0;
+  for(let q=0;q<SAMP.length;q++){
+   const i=SAMP[q], v=px(L.painter,i), col=P.col[i];
+   mean[0]+=v[0]; mean[1]+=v[1]; mean[2]+=v[2];
+   if(P.s[i]<0.34){ lowMean[0]+=v[0];lowMean[1]+=v[1];lowMean[2]+=v[2]; lowN++; }
+   else if(P.s[i]>0.66){ hiMean[0]+=v[0];hiMean[1]+=v[1];hiMean[2]+=v[2]; hiN++; }
+   const mx=Math.max(v[0],v[1],v[2]); if(mx>peak)peak=mx;
+   if(Math.min(v[0],v[1],v[2])>0.9)white++;
+   acc[col*3]+=v[0]; acc[col*3+1]+=v[1]; acc[col*3+2]+=v[2]; cnt[col]++;
+  }
+  const wf=white/SAMP.length; if(wf>whiteFracMax)whiteFracMax=wf;
+  for(let c=0;c<COLS;c++){ const o=(fr*COLS+c)*3, d=cnt[c]||1;
+   timeImg[o]=acc[c*3]/d; timeImg[o+1]=acc[c*3+1]/d; timeImg[o+2]=acc[c*3+2]/d; }
+ }
+ const tot=SAMP.length*NF;
+ for(let q=0;q<3;q++){ mean[q]/=tot; lowMean[q]/=(lowN||1); hiMean[q]/=(hiN||1); }
+ return {L, mean, lowMean, hiMean, peak, whiteFracMax, timeImg, clock:m};
+});
+
+// ---- assertions ----
+const MEAN_MIN=0.004;      // some light must be on: a black look is a bug, blackout already exists
+const PEAK_MIN=0.30;       // and it must be readable at the far end of the hall
+const WHITE_MAX=0.60;      // never a full-white wash
+const DIST_MIN=0.010;      // mean colour over time must separate every pair
+const SHAPE_MIN=0.030;     // and so must the shape: mean, bottom third and top third together
+const fails=[];
+const lum=v=>0.2126*v[0]+0.7152*v[1]+0.0722*v[2];
+results.forEach(r=>{
+ if(lum(r.mean)<MEAN_MIN)fails.push(r.L.name+': mean luminance '+lum(r.mean).toFixed(4)+' < '+MEAN_MIN);
+ if(r.peak<PEAK_MIN)fails.push(r.L.name+': peak '+r.peak.toFixed(3)+' < '+PEAK_MIN);
+ if(r.whiteFracMax>WHITE_MAX)fails.push(r.L.name+': white wash '+(r.whiteFracMax*100).toFixed(0)+'% > '+(WHITE_MAX*100)+'%');
+});
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+const D=[]; let minD=9, minPair='';
+for(let a=0;a<results.length;a++){ D.push([]);
+ for(let b=0;b<results.length;b++){ const d=a===b?0:dist(results[a].mean,results[b].mean); D[a].push(d);
+  if(a<b&&d<minD){ minD=d; minPair=results[a].L.name+' / '+results[b].L.name; }
+  if(a<b&&d<DIST_MIN)fails.push('mean colour too close: '+results[a].L.name+' and '+results[b].L.name+' ('+d.toFixed(4)+')');
+  // mean colour alone is a weak test for two dim accents: also require the shape of the look to
+  // differ, as the bottom third and top third of the strip see it
+  if(a<b){ const A=results[a], B=results[b];
+   const sd=Math.hypot(dist(A.mean,B.mean),dist(A.lowMean,B.lowMean),dist(A.hiMean,B.hiMean));
+   if(sd<SHAPE_MIN)fails.push('shape too close: '+A.L.name+' and '+B.L.name+' ('+sd.toFixed(4)+')');
+  }
+ }}
+
+// ---- pictures ----
+function snapshot(painter,t){
+ const cv=document.createElement('canvas'); cv.width=COLS*GAPS; cv.height=PIX;
+ const ctx=cv.getContext('2d'), img=ctx.createImageData(cv.width,cv.height);
+ const m=newClock();
+ for(let f=0;f<=Math.round(t*FPS);f++)setFrame(m,f/FPS);   // warm the smoothing up to t
+ for(let col=0;col<COLS;col++)for(let g=0;g<GAPS;g++)for(let p=0;p<PIX;p++){
+  const i=(col*GAPS+g)*PIX+p, v=px(painter,i);
+  const x=col*GAPS+g, y=PIX-1-p, o=(y*cv.width+x)*4;
+  img.data[o]=v[0]*255; img.data[o+1]=v[1]*255; img.data[o+2]=v[2]*255; img.data[o+3]=255;
+ }
+ ctx.putImageData(img,0,0); return cv;
+}
+function timeStrip(timeImg){
+ const cv=document.createElement('canvas'); cv.width=NF; cv.height=COLS;
+ const ctx=cv.getContext('2d'), img=ctx.createImageData(NF,COLS);
+ for(let fr=0;fr<NF;fr++)for(let c=0;c<COLS;c++){
+  const s=(fr*COLS+c)*3, o=(c*NF+fr)*4;
+  img.data[o]=Math.min(255,timeImg[s]*255); img.data[o+1]=Math.min(255,timeImg[s+1]*255);
+  img.data[o+2]=Math.min(255,timeImg[s+2]*255); img.data[o+3]=255;
+ }
+ ctx.putImageData(img,0,0); return cv;
+}
+
+const grid=document.getElementById('grid');
+results.forEach(r=>{
+ const d=document.createElement('div'); d.className='card';
+ d.innerHTML='<div class="fam">'+r.L.family+'</div><h2>'+r.L.name+'</h2><div class="desc">'+r.L.description+'</div>';
+ const row=document.createElement('div'); row.className='row';
+ const a=document.createElement('div'), b=document.createElement('div');
+ a.innerHTML='<div class="lbl">hall on the hit</div>'; b.innerHTML='<div class="lbl">columns over 4 bars</div>';
+ // accents and strobes are only alive just after a hit: snapshot them there, not mid-decay.
+ // strobes die in 90 ms so they need 12 ms; accents run on a 220 ms trigger, so 90 ms shows travel
+ const f=r.L.family;
+ const st=f==='strobe'?beat*4+0.012:(f==='accent'?beat*4+0.09:beat*4.35);
+ const snap=snapshot(r.L.painter,st); snap.style.width='96px'; snap.style.height='190px';
+ const ts=timeStrip(r.timeImg); ts.style.width='190px'; ts.style.height='120px';
+ a.appendChild(snap); b.appendChild(ts); row.appendChild(a); row.appendChild(b); d.appendChild(row);
+ const n=document.createElement('div'); n.className='num';
+ n.textContent='mean rgb '+r.mean.map(v=>v.toFixed(3)).join(' / ')+'  peak '+r.peak.toFixed(2)+'  white '+(r.whiteFracMax*100).toFixed(0)+'%';
+ d.appendChild(n); grid.appendChild(d);
+});
+
+let html='<table><tr><th>mean colour distance</th>'+results.map(r=>'<th>'+r.L.name.slice(0,5)+'</th>').join('')+'</tr>';
+for(let a=0;a<results.length;a++){ html+='<tr><th style="text-align:left">'+results[a].L.name+'</th>';
+ for(let b=0;b<results.length;b++){ const v=D[a][b];
+  html+='<td class="'+(a===b?'':(v<DIST_MIN?'bad':'ok'))+'">'+(a===b?'-':v.toFixed(3))+'</td>'; }
+ html+='</tr>'; }
+html+='</table>';
+html+='<p class="num">closest pair: '+minPair+' at '+minD.toFixed(4)+' (threshold '+DIST_MIN+'). Registration route: '+
+ results.map(r=>r.L.how).filter((v,i,s)=>s.indexOf(v)===i).join(', ')+'. registerLook present: '+(typeof NGVShow.registerLook==='function')+'.</p>';
+document.getElementById('tables').innerHTML=html;
+
+const vd=document.getElementById('verdict');
+vd.className=fails.length?'fail':'pass';
+vd.textContent=fails.length?('FAIL ('+fails.length+'): '+fails.join(' | ')):('PASS: '+results.length+' looks, all lit, none washed white, all mean colours separated (closest '+minD.toFixed(3)+')');
+window.TESTRESULT={pass:!fails.length, fails, minD, minPair,
+ looks:results.map(r=>({name:r.L.name,family:r.L.family,mean:r.mean,peak:r.peak,white:r.whiteFracMax,how:r.L.how}))};
+</script>

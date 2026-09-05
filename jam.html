@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#16181c">
+<title>NGV Jam</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="studio/ui.css">
+<link rel="stylesheet" href="studio/jam.css">
+<!-- THE JAM (Lloyd, 2026-09-05): the simple end of the studio. You tap one preset per instrument,
+     stack six light layers on top, chain the stacks into sections and play the song. Everything is
+     a preset, nothing is a note, and every tap rebuilds the rig without stopping the transport.
+     This file is the shell and the load order only: the lightshow first (model.js reads its look
+     and palette lists at load), then the model, the machines, the engine, the lights runtime, the
+     export, the preset banks, and jam.js last. Every file is a classic script adding to
+     window.Studio. Markup here is the frame; jam.js builds everything inside it. -->
+<script src="show/lightshow.js"></script>
+<script src="show/looks2.js"></script>
+<script src="studio/model.js"></script>
+<script src="studio/machines.js"></script>
+<script src="studio/engine.js"></script>
+<script src="studio/lights.js"></script>
+<script src="studio/export.js"></script>
+<script src="studio/presets.drums.js"></script>
+<script src="studio/presets.pitch.js"></script>
+<script src="studio/presets.lights.js"></script>
+<script src="studio/presets.js"></script>
+<!-- ?stub fills in whichever preset bank has not landed yet, so the page is usable mid-build -->
+<script>if(new URLSearchParams(location.search).has('stub'))document.write('<script src="studio\/jam-stub.js"><\/script>');</script>
+<script src="studio/jam.js" defer></script>
+</head>
+<body>
+
+<div id="top">
+ <button id="play" title="Play or pause">Play</button>
+ <button id="stop" title="Stop" aria-label="Stop"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="1.5" fill="currentColor"/></svg></button>
+ <span id="pos" title="Bar and beat">1:1</span>
+ <button id="bpmval" title="Tempo, swing and humanise">124</button>
+ <span class="sp"></span>
+ <div id="tabs"></div>
+ <button id="menubtn" title="More" aria-label="More" aria-haspopup="dialog"><svg width="4" height="18" viewBox="0 0 4 18" aria-hidden="true"><circle cx="2" cy="3" r="1.8" fill="currentColor"/><circle cx="2" cy="9" r="1.8" fill="currentColor"/><circle cx="2" cy="15" r="1.8" fill="currentColor"/></svg></button>
+</div>
+
+<div id="main">
+ <div id="viewwrap">
+
+  <section class="view on" id="view-jam">
+   <div class="vhead">
+    <h2>JAM</h2>
+    <div id="stylerow" role="group" aria-label="Style starters"></div>
+   </div>
+   <div class="vbody" id="jambody"></div>
+  </section>
+
+  <section class="view" id="view-song">
+   <div class="vhead">
+    <h2>SONG</h2>
+    <button id="arcbtn" class="sm">Arc</button>
+    <span class="sp"></span>
+    <button id="addsec" class="sm">Add section</button>
+    <button id="songplay" class="sm go" aria-pressed="false">Play song</button>
+   </div>
+   <div class="vbody" id="songbody"></div>
+  </section>
+
+  <section class="view" id="view-hall">
+   <div class="vhead"><h2>HALL</h2><span class="sp"></span><span id="simstate" class="muted">-</span></div>
+   <div id="simwrap"><iframe id="sim" title="The hall" allow="autoplay"></iframe></div>
+  </section>
+
+ </div>
+</div>
+
+<nav id="nav"></nav>
+
+<div id="toast" hidden></div>
+<div id="veil" hidden><div id="sheet" role="dialog" aria-modal="true"></div></div>
+
+</body></html>

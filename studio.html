@@ -13,11 +13,16 @@
      The markup here is the frame only: one transport row, the views, the mounted hall, the play
      drawer, the bottom nav and one sheet. Everything inside them is built by ui.js. -->
 <script src="show/lightshow.js"></script>
+<script src="show/looks2.js"></script>
 <script src="studio/model.js"></script>
 <script src="studio/machines.js"></script>
 <script src="studio/engine.js"></script>
 <script src="studio/lights.js"></script>
 <script src="studio/export.js"></script>
+<script src="studio/presets.drums.js"></script>
+<script src="studio/presets.pitch.js"></script>
+<script src="studio/presets.lights.js"></script>
+<script src="studio/presets.js"></script>
 <!-- ?stub loads a fake engine so the views and the playhead can be driven with no audio at all -->
 <script>if(new URLSearchParams(location.search).has('stub'))document.write('<script src="studio\/engine-stub.js"><\/script>');</script>
 <script src="studio/ui.js" defer></script>

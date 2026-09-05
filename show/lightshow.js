@@ -26,23 +26,31 @@ const PALETTES={
 };
 const PALETTE_NAMES=Object.keys(PALETTES);
 
-// LOOKS: name, a line for the pad, and the painter. Every painter gets (i, c) and returns nothing;
+// LOOKS: name, a line for the pad, and its FAMILY. Every painter gets (i, c) and returns nothing;
 // it writes c.r, c.g, c.b (0..1, display gamma) for pixel i. c carries the frame and the pixel.
+//
+// The family is what lets six looks stack and still read as one show. base is the bed, movement
+// travels, accent fires on the triggers, texture is grain over the top, colour re-tints, strobe is
+// the white hit. The compositor paints them in that order and adds all of them but the strobe,
+// which takes a max, so a strobe layer never doubles the hall into a white wash.
+const FAMILIES=['base','movement','accent','texture','colour','strobe'];
+const FAMILY_ORDER={base:0,movement:1,accent:2,texture:3,colour:4,strobe:5};
 const LOOKS=[
- ['pulse',   'The whole hall breathes with the bass'],
- ['rise',    'A level meter up every column, bright tip'],
- ['beatwave','A wave launched up the columns on every beat'],
- ['hallchase','The lit column steps down the hall on the beat'],
- ['spectrum','Bass at the foot, mids in the middle, highs at the top'],
- ['strobe',  'A white hit on every onset, odd and even columns in turn'],
- ['sparkle', 'Glitter, denser as the highs come up'],
- ['rainbow', 'Hue rolling up the columns with the bar'],
- ['sweep',   'A bar-long sweep along the hall'],
- ['helix',   'A spiral climbing every column'],
- ['split',   'North one colour, south the other, swapped each beat'],
- ['blackout','Everything off'],
+ ['pulse',   'The whole hall breathes with the bass',                    'base'],
+ ['rise',    'A level meter up every column, bright tip',                'base'],
+ ['beatwave','A wave launched up the columns on every beat',             'movement'],
+ ['hallchase','The lit column steps down the hall on the beat',          'movement'],
+ ['spectrum','Bass at the foot, mids in the middle, highs at the top',   'base'],
+ ['strobe',  'A white hit on every onset, odd and even columns in turn', 'strobe'],
+ ['sparkle', 'Glitter, denser as the highs come up',                     'texture'],
+ ['rainbow', 'Hue rolling up the columns with the bar',                  'colour'],
+ ['sweep',   'A bar-long sweep along the hall',                          'movement'],
+ ['helix',   'A spiral climbing every column',                           'texture'],
+ ['split',   'North one colour, south the other, swapped each beat',     'colour'],
+ ['blackout','Everything off',                                           'base'],
 ];
 const LOOK_NAMES=LOOKS.map(l=>l[0]);
+const LOOK_FAMILY={}; for(const l of LOOKS)LOOK_FAMILY[l[0]]=l[2];
 
 function hsv(h,s,v,out){ const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
  h=((h%360)+360)%360;
@@ -52,8 +60,15 @@ function hsv(h,s,v,out){ const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r
 const LIN=new Float32Array(1025); for(let i=0;i<=1024;i++){ const x=i/1024; LIN[i]=x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4); }
 function lin(x){ return x<=0?0:x>=1?1:LIN[(x*1024)|0]; }
 function hash(n){ n=(n^61)^(n>>>16); n=Math.imul(n,9); n^=n>>>4; n=Math.imul(n,0x27d4eb2d); n^=n>>>15; return (n>>>0)/4294967296; }
+// SOFT KNEE (2026-09-05): six added layers overshoot 1 on a lot of pixels, and a hard clamp turns
+// every one of them the same flat white, which is exactly the wash the layer stack is meant to
+// avoid. Above 0.75 the sum bends towards 1 instead of hitting it: a bright pixel stays brighter
+// than a less bright one, so the looks under the top layer are still readable. Measured on the six
+// layer test: 28 % of channels pinned at full became 0 %.
+const soft=v=>v<=0.75?(v<0?0:v):1-0.25*Math.exp(-(v-0.75)/0.25);
 const clamp=(x,a,b)=>x<a?a:x>b?b:x;
 const smooth=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
+const BANDS=['bass','mid','high','rms'];
 
 // the painters. k is a brightness, mixed A on a dim floor of B unless the look says otherwise
 const PAINT={
@@ -73,6 +88,25 @@ const PAINT={
  blackout(i,c){ c.r=c.g=c.b=0; },
 };
 
+// REGISTRATION (2026-09-05): looks live in more than one file now, so a painter announces itself
+// rather than being edited into the table above. Re-registering a name replaces its painter, which
+// is what a hot reload wants. The pending queue is what show/looks2.js parks on if it ever loads
+// before this file.
+function registerLook(name,family,description,painter){
+ if(typeof name!=='string'||!name||typeof painter!=='function')return false;
+ family=FAMILY_ORDER[family]!=null?family:'base';
+ const had=LOOK_NAMES.indexOf(name);
+ if(had<0){ LOOKS.push([name,description||'',family]); LOOK_NAMES.push(name); }
+ else { LOOKS[had][1]=description||LOOKS[had][1]; LOOKS[had][2]=family; }
+ LOOK_FAMILY[name]=family; PAINT[name]=painter;
+ return true;
+}
+if(window.NGVShow&&window.NGVShow._pendingLooks){
+ for(const q of window.NGVShow._pendingLooks)registerLook(q.name,q.family,q.description,q.painter);
+ window.NGVShow._pendingLooks.length=0;
+}
+const lookFamily=n=>LOOK_FAMILY[n]||'base';
+
 function createShow(){
  const S={
   on:false,
@@ -82,15 +116,19 @@ function createShow(){
   // analyser or the cue file. The engine smooths the bands itself so a caller may feed raw values.
   frame:{t:0, bpm:120, beatN:0, beatPhase:0, barPhase:0, bass:0, mid:0, high:0, rms:0, onset:0},
   sm:{bass:0, mid:0, high:0, rms:0, strobeN:0, strobeK:0, lastOnset:-9, lastT:0},
-  ctx:{r:0,g:0,b:0,s:0,col:0,colx:0,gap:0,pid:0,t:0,beatN:0,beatPhase:0,barPhase:0,bassS:0,midS:0,highS:0,rmsS:0,strobeN:0,strobeK:0,A:[0,0,0],B:[0,0,0],M:[0,0,0],tmp:[0,0,0]},
-  looks:LOOK_NAMES, palettes:PALETTE_NAMES, LOOKS, PALETTES,
+  ctx:{r:0,g:0,b:0,s:0,col:0,colx:0,gap:0,pid:0,t:0,beatN:0,beatPhase:0,barPhase:0,bassS:0,midS:0,highS:0,rmsS:0,strobeN:0,strobeK:0,trig:0,A:[0,0,0],B:[0,0,0],M:[0,0,0],tmp:[0,0,0]},
+  // one smoothing block and one colour pair PER LAYER, kept between frames: a layer that has just
+  // come up must ramp its bands from zero like the single-layer path does, not inherit its
+  // neighbour's. Reused objects, because six layers x 60 fps of fresh arrays is pure garbage.
+  lsm:[], lpool:[], lprep:[],
+  looks:LOOK_NAMES, palettes:PALETTE_NAMES, LOOKS, PALETTES, FAMILIES, lookFamily,
   // one call per rendered frame: a = linear rgb per pixel (3 floats), P = the page's pixel map
   paint(a,P){
    const f=S.frame, st=S.state, m=S.sm, c=S.ctx, n=P.n;
    const dt=clamp(f.t-m.lastT,0,0.1); m.lastT=f.t;
    // bands: fast up, slow down, so a kick reads as a hit and not a flicker
    const rise=1-Math.exp(-dt*40), fall=1-Math.exp(-dt*7);
-   for(const k of ['bass','mid','high','rms']){ const v=clamp(f[k],0,1); m[k]+= (v>m[k]?rise:fall)*(v-m[k]); }
+   for(const k of BANDS){ const v=clamp(f[k],0,1); m[k]+= (v>m[k]?rise:fall)*(v-m[k]); }
    // onsets: a fresh transient (or a hit pad press) starts a strobe that dies in 120 ms
    if(f.onset>0.6&&f.t-m.lastOnset>0.11){ m.lastOnset=f.t; m.strobeN++; }
    if(st.hitAt>m.lastOnset){ m.lastOnset=st.hitAt; m.strobeN++; }
@@ -100,6 +138,8 @@ function createShow(){
    for(let q=0;q<3;q++)c.M[q]=(c.A[q]+c.B[q])*0.5;
    c.t=f.t; c.beatN=f.beatN|0; c.beatPhase=clamp(f.beatPhase,0,1); c.barPhase=clamp(f.barPhase,0,1);
    c.bassS=m.bass; c.midS=m.mid; c.highS=m.high; c.rmsS=m.rms; c.strobeN=m.strobeN; c.strobeK=m.strobeK;
+   // one layer, so the trigger IS the beat: a fresh envelope that dies by the next one
+   c.trig=(1-c.beatPhase)*(1-c.beatPhase);
    const painter=PAINT[st.look]||PAINT.pulse, lv=clamp(st.level,0,1);
    // a hit pad press flashes the whole hall white over whatever look is up
    const hit=Math.exp(-(f.t-st.hitAt)/0.12);
@@ -110,10 +150,86 @@ function createShow(){
     a[o]=lin(clamp(c.r*lv+hit,0,1)); a[o+1]=lin(clamp(c.g*lv+hit,0,1)); a[o+2]=lin(clamp(c.b*lv+hit,0,1));
    }
   },
+  // THE COMPOSITOR (2026-09-05): up to six layers painted into one hall. Each layer is
+  // {look, palette, gain, family, trigN, trigPhase, cyclePhase, sync}; the sync fields come from
+  // studio/lights.js and replace beat/bar for that layer, so a layer locked to the bass launches
+  // its waves on bass notes rather than on the grid. Accumulation is LINEAR (a[o] += lin(v)*gain),
+  // because adding display-gamma values makes two half-bright layers read brighter than one full
+  // one. One fused pixel loop over all layers: six passes over 3000 pixels thrashes the cache and
+  // costs about twice as much on a phone.
+  paintLayers(a,P,layers){
+   const f=S.frame, st=S.state, c=S.ctx, n=P.n;
+   const dt=clamp(f.t-S.sm.lastT,0,0.1); S.sm.lastT=f.t;
+   // onsets and the hit flash are the hall's, not a layer's: one transient, one strobe counter
+   if(f.onset>0.6&&f.t-S.sm.lastOnset>0.11){ S.sm.lastOnset=f.t; S.sm.strobeN++; }
+   if(st.hitAt>S.sm.lastOnset){ S.sm.lastOnset=st.hitAt; S.sm.strobeN++; }
+   S.sm.strobeK=Math.exp(-(f.t-S.sm.lastOnset)/0.09);
+   const rise=1-Math.exp(-dt*40), fall=1-Math.exp(-dt*7);
+   const beatN=f.beatN|0, beatPhase=clamp(f.beatPhase,0,1), barPhase=clamp(f.barPhase,0,1);
+   const prep=S.lprep; prep.length=0;
+   for(let q=0;q<layers.length&&prep.length<6;q++){
+    const ly=layers[q]; if(!ly)continue;
+    const gain=ly.gain==null?1:clamp(ly.gain,0,1), look=ly.look||'pulse';
+    // a dark layer and a blackout layer paint nothing, so they are dropped before the pixel loop
+    if(gain<=0.002||look==='blackout')continue;
+    const m=S.lsm[q]||(S.lsm[q]={bass:0,mid:0,high:0,rms:0});
+    for(const k of BANDS){ const v=clamp(f[k],0,1); m[k]+=(v>m[k]?rise:fall)*(v-m[k]); }
+    const pool=S.lpool[q]||(S.lpool[q]={A:[0,0,0],B:[0,0,0],M:[0,0,0]});
+    const pal=PALETTES[ly.palette]||PALETTES[st.palette]||PALETTES.helix;
+    hsv(pal.A.h,pal.A.s,pal.A.v,pool.A); hsv(pal.B.h,pal.B.s,pal.B.v,pool.B);
+    for(let z=0;z<3;z++)pool.M[z]=(pool.A[z]+pool.B[z])*0.5;
+    const tp=ly.trigPhase==null?beatPhase:clamp(ly.trigPhase,0,1);
+    prep.push({ painter:PAINT[look]||PAINT.pulse, gain, fam:ly.family||lookFamily(look),
+     A:pool.A, B:pool.B, M:pool.M, bassS:m.bass, midS:m.mid, highS:m.high, rmsS:m.rms,
+     beatN:ly.trigN==null?beatN:(ly.trigN|0), beatPhase:tp,
+     barPhase:ly.cyclePhase==null?barPhase:clamp(ly.cyclePhase,0,1),
+     // the trigger envelope: full at the trigger, zero by the next one, whatever the gap is
+     trig:(1-tp)*(1-tp) });
+   }
+   prep.sort((x,y)=>(FAMILY_ORDER[x.fam]==null?0:FAMILY_ORDER[x.fam])-(FAMILY_ORDER[y.fam]==null?0:FAMILY_ORDER[y.fam]));
+   const lv=clamp(st.level,0,1), hit=lin(clamp(Math.exp(-(f.t-st.hitAt)/0.12),0,1));
+   const nl=prep.length;
+   c.t=f.t; c.strobeN=S.sm.strobeN; c.strobeK=S.sm.strobeK;
+   for(let i=0;i<n;i++){
+    c.s=P.s[i]; c.col=P.col[i]; c.colx=P.colx[i]; c.gap=P.gap[i]; c.pid=P.pid[i];
+    let r=0,g=0,b=0, xr=0,xg=0,xb=0;
+    for(let q=0;q<nl;q++){
+     const L=prep[q];
+     c.A=L.A; c.B=L.B; c.M=L.M;
+     c.bassS=L.bassS; c.midS=L.midS; c.highS=L.highS; c.rmsS=L.rmsS;
+     c.beatN=L.beatN; c.beatPhase=L.beatPhase; c.barPhase=L.barPhase; c.trig=L.trig;
+     c.r=c.g=c.b=0;
+     L.painter(i,c);
+     const k=L.gain, vr=lin(clamp(c.r,0,1))*k, vg=lin(clamp(c.g,0,1))*k, vb=lin(clamp(c.b,0,1))*k;
+     if(L.fam==='strobe'){ if(vr>xr)xr=vr; if(vg>xg)xg=vg; if(vb>xb)xb=vb; }   // max, so the flash never doubles the bed
+     else { r+=vr; g+=vg; b+=vb; }
+    }
+    const o=i*3;
+    a[o]=clamp(soft((r>xr?r:xr)*lv)+hit,0,1); a[o+1]=clamp(soft((g>xg?g:xg)*lv)+hit,0,1); a[o+2]=clamp(soft((b>xb?b:xb)*lv)+hit,0,1);
+   }
+  },
   // the cue file's timeline: the last stamped state at time t wins. cues = [{t,look,palette,level,hit}]
-  applyCues(cues,t){ const st=S.state; let last=null;
-   for(let i=0;i<cues.length;i++){ const q=cues[i]; if(q.t>t)break; last=q; if(q.hit)st.hitAt=q.t; }
-   if(last){ if(last.look)st.look=last.look; if(last.palette)st.palette=last.palette; if(last.level!=null)st.level=last.level; }
+  // v2 adds {layer, sync, gain, family}: an entry with layer > 0 (or any layer field on a file that
+  // declares cueVersion 2) drives that layer instead of the flat state. A v1 file has no layer
+  // field anywhere, so every entry lands on layer 0 and the hall behaves exactly as it did.
+  applyCues(cues,t){ const st=S.state;
+   for(let i=0;i<cues.length;i++){ const q=cues[i]; if(q.t>t)break;
+    const li=q.layer|0;
+    if(li>0||st.layers){ const L=S.layerAt(li);
+     if(q.look)L.look=q.look; if(q.palette)L.palette=q.palette;
+     if(q.gain!=null)L.gain=clamp(q.gain,0,1); if(q.sync)L.sync=q.sync; if(q.family)L.family=q.family;
+    }
+    if(li===0){ if(q.look)st.look=q.look; if(q.palette)st.palette=q.palette; if(q.level!=null)st.level=clamp(q.level,0,1); }
+    else if(q.level!=null){ const L=S.layerAt(li); L.gain=clamp(q.level,0,1); }
+    if(q.hit)st.hitAt=q.t;
+   }
+  },
+  // the layer stack a cue file asked for, made on demand. Layer 0 mirrors the flat state so a v1
+  // player and the compositor never disagree about what is on top of the hall.
+  layerAt(i){ const st=S.state;
+   if(!st.layers)st.layers=[{look:st.look,palette:st.palette,gain:1,family:lookFamily(st.look)}];
+   while(st.layers.length<=i)st.layers.push({look:'blackout',palette:st.palette,gain:1,family:'base'});
+   return st.layers[i];
   },
   // a baked cue file's frames (from studio export or tools/show_analyse.py) read at time t
   frameFromCues(cf,t){ const f=S.frame, k=cf.frames, hop=cf.hop_s||0.0232, j=clamp((t/hop)|0,0,k.rms.length-1);
@@ -139,5 +255,11 @@ function createAnalyser(ac,node){
    return out; } };
 }
 
-window.NGVShow={createShow, createAnalyser, LOOKS, LOOK_NAMES, PALETTES, PALETTE_NAMES};
+// LOOKS, LOOK_NAMES and PAINT are the live tables, not copies: show/looks2.js pushes into them
+// through registerLook, and studio/model.js reads LOOK_NAMES once both files have loaded.
+const NS=window.NGVShow=window.NGVShow||{};
+NS.createShow=createShow; NS.createAnalyser=createAnalyser;
+NS.LOOKS=LOOKS; NS.LOOK_NAMES=LOOK_NAMES; NS.PALETTES=PALETTES; NS.PALETTE_NAMES=PALETTE_NAMES;
+NS.PAINT=PAINT; NS.registerLook=registerLook; NS.lookFamily=lookFamily; NS.FAMILIES=FAMILIES;
+NS.LOOK_FAMILY=LOOK_FAMILY;
 })();

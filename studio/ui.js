@@ -73,7 +73,18 @@ function autosave(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{
 const machine=(id)=>proj.machines.find(m=>m.id===id)||null;
 const sel=()=>machine(selId)||proj.machines[0]||null;
 const kindOf=(m)=>m?MT[m.type].kind:'synth';
-function commit(){ try{ eng.invalidate&&eng.invalidate(); }catch(e){} try{ L.invalidate&&L.invalidate(); }catch(e){} autosave(); }
+function commit(){ tlCache=null; try{ eng.invalidate&&eng.invalidate(); }catch(e){} try{ L.invalidate&&L.invalidate(); }catch(e){} autosave(); }
+
+// the song grid counts in bars, and a bar is only 16 steps in 4/4, so every step-to-bar sum here
+// goes through the timeline. Cached because it is rebuilt from the whole song and read every frame.
+let tlCache=null;
+function TL(){ return tlCache||(tlCache=Studio.timeline(proj)); }
+const barOfStep=(step)=>TL().stepBar(Math.max(0,step));
+// bar position as a float, so the song playhead moves smoothly through a 7/8 bar
+function barPos(step){ const T=TL(), b=T.stepBar(Math.max(0,step)), s0=T.barStep(b);
+ const spb=(T.bars[b]&&T.bars[b].spb)||SPB; return b+(Math.max(0,step)-s0)/spb; }
+const stepOfBarPos=(pos)=>{ const T=TL(), b=Math.max(0,Math.floor(pos));
+ const spb=(T.bars[b]&&T.bars[b].spb)||SPB; return T.barStep(b)+(pos-b)*spb; };
 
 /* ------------------------------------------------------------------ engine and lights */
 function nullEngine(){
@@ -441,7 +452,7 @@ function renderSong(){
  scroll.appendChild(sin); wrap.appendChild(scroll);
  scroll.addEventListener('scroll',()=>{ rin.style.transform='translateX('+(-scroll.scrollLeft)+'px)'; });
  ruler.addEventListener('pointerdown',(e)=>{ const r=rin.getBoundingClientRect();
-  eng.seek&&eng.seek(Math.max(0,(e.clientX-r.left)/BW)*SPB); });
+  eng.seek&&eng.seek(stepOfBarPos(Math.max(0,(e.clientX-r.left)/BW))); });
  songEls={scroll,head,nameW,BW};
 }
 function deleteBlock(){ if(!selBlock){ say('Tap a block first'); return; }
@@ -683,9 +694,9 @@ function patternForWrite(m){
  let step=0, pat=m.patterns[m.curPat];
  let p; try{ p=eng.pos(); }catch(e){ p={step:0}; }
  if(eng.mode==='song'){
-  const bar=Math.floor(p.step/SPB);
+  const bar=barOfStep(p.step);
   const blk=Studio.track(proj,m.id).find(b=>bar>=b.bar&&bar<b.bar+b.len);
-  if(blk){ pat=m.patterns[blk.pat]; step=p.step-blk.bar*SPB; } else step=p.step;
+  if(blk){ pat=m.patterns[blk.pat]; step=p.step-TL().barStep(blk.bar); } else step=p.step;
  } else step=p.step;
  if(!pat)return null;
  const n=Studio.patternSteps(pat), q=quant||1;
@@ -865,14 +876,14 @@ let frames=0;
 function loop(){
  requestAnimationFrame(loop); frames++;
  let p; try{ p=eng.pos(); }catch(e){ p={step:0,t:0}; }
- $('pos').textContent=(Math.floor(p.step/SPB)+1)+':'+(Math.floor(p.step/4)%4+1);
+ $('pos').textContent=((p.bar==null?Math.floor(p.step/SPB):p.bar)+1)+':'+((p.beat==null?Math.floor(p.step/4)%4:p.beat)+1);
  if(eng.playing!==($('play').textContent==='Pause'))setPlaying(!!eng.playing);
  let rms=0; try{ if(eng.analyser){ const o={}; eng.analyser.read(o); rms=o.rms||0; } }catch(e){}
  $('meterfill').style.width=Math.round(clamp(rms,0,1)*100)+'%';
  if(view==='pattern'&&gridEls){ const m=machine(gridEls.mid);
   if(m){ const pat=m.patterns[m.curPat]; const n=pat?Studio.patternSteps(pat):SPB;
    gridEls.head.style.left=((p.step%n)*gridEls.STEPW)+'px'; } }
- if(view==='song'&&songEls)songEls.head.style.left=(songEls.nameW+(p.step/SPB)*songEls.BW)+'px';
+ if(view==='song'&&songEls)songEls.head.style.left=(songEls.nameW+barPos(p.step)*songEls.BW)+'px';
  if(L.tick&&(eng.playing||frames%4===0)){ try{ L.tick(); }catch(e){} }
  if(frames%6===0){ const st=L.state||{};
   $('simstate').textContent=(st.look||'-')+' / '+(st.palette||'-')+' / '+fix(st.level==null?1:st.level,2);

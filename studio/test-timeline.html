@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio timeline test</title>
+<style>
+ body{background:#0d0f14;color:#dfe6f2;font:13px/1.5 ui-monospace,Consolas,monospace;margin:0;padding:16px}
+ h1{font-size:15px;margin:0 0 10px;color:#7fd4ff}
+ pre{white-space:pre-wrap;word-break:break-word;background:#151922;border:1px solid #263041;border-radius:6px;padding:12px;margin:0 0 12px}
+ .ok{color:#5fd4a8} .bad{color:#ff6b6b}
+</style>
+</head>
+<body>
+<h1>Studio timeline test</h1>
+<pre id="out">running...</pre>
+<pre id="notes"></pre>
+
+<script src="../show/lightshow.js"></script>
+<script src="model.js"></script>
+<script src="machines.js"></script>
+<script src="engine.js"></script>
+<script>
+'use strict';
+// The timeline is the studio's clock: bars vary in step count, steps vary in length, and the
+// engine reads nothing else. These checks are the ones the spec names: a project with no sections
+// must behave exactly as it did when a bar was always 16 steps, odd meters must count right,
+// time and stepAt must invert, a tempo section must stay inside itself, a rebuild must not move
+// the playhead, and live play across a meter change must stay monotonic with the right bar.
+const out=document.getElementById('out'), notes=document.getElementById('notes');
+const fails=[];
+const near=(a,b,eps)=>Math.abs(a-b)<=(eps==null?1e-9:eps);
+const check=(cond,msg)=>{ if(!cond)fails.push(msg); return !!cond; };
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+// the old bar maths, kept here on purpose: a project with no sections must flatten to this
+function flattenLegacy(proj){ const out=[];
+ for(const m of proj.machines){ for(const b of Studio.track(proj,m.id)){ const p=m.patterns[b.pat]; if(!p)continue;
+  const ps=Studio.patternSteps(p), b0=b.bar*16, blockSteps=b.len*16;
+  for(let off=0;off<blockSteps;off+=ps)for(const x of p.notes){ if(off+x.s>=blockSteps)continue;
+   out.push({mid:m.id,s:b0+off+x.s,l:Math.min(x.l,blockSteps-off-x.s),n:x.n,v:x.v,pat:b.pat,type:m.type}); } } }
+ out.sort((a,b)=>a.s-b.s||a.n-b.n); return out; }
+
+// a bare project with one drum machine over `bars` bars, plus whatever sections are handed in
+function makeProj(sections,bars){
+ const pr=Studio.newProject('t'); pr.bpm=124;
+ const d=Studio.newMachine('beatbox','Drums'); const p=d.patterns.A1;
+ for(let i=0;i<16;i+=4)Studio.addNote(p,{s:i,n:0,v:1,l:1});
+ pr.machines.push(d); Studio.placeBlock(pr,d.id,0,'A1',bars);
+ pr.song.bars=bars; if(sections)pr.song.sections=sections;
+ return pr;
+}
+const S44=(bar,len,bpm)=>({bar,len,meter:{beats:4,div:4},bpm:bpm||124,feel:'straight',key:{root:57,scale:'minor'},chords:['Am','F','C','G'],cycleBars:1,transpose:0,energy:0.6,transition:'none',seed:1});
+
+async function run(){
+ const R={ok:false, engine:'timeline'};
+
+ // ---- 1. no sections: byte-identical to the old 16-steps-a-bar maths -------------------------
+ try{
+  const proj=Studio.demoProject();
+  const T=Studio.timeline(proj), sd=Studio.stepSeconds(proj.bpm);
+  let barsOk=true;
+  for(let b=0;b<T.bars.length;b++){ if(T.barStep(b)!==b*16||T.bars[b].spb!==16||!near(T.bars[b].stepSec,sd))barsOk=false; }
+  const flatOk=JSON.stringify(Studio.flatten(proj,'song'))===JSON.stringify(flattenLegacy(proj));
+  let timeOk=true;
+  for(let s=0;s<=T.totalSteps;s+=0.5)if(!near(T.time(s),s*sd,1e-9))timeOk=false;
+  R.assert1=check(barsOk,'no-section bars are not b*16')
+   &&check(T.totalSteps===Studio.songLengthBars(proj)*16,'totalSteps '+T.totalSteps+' != bars*16')
+   &&check(near(T.totalSec,Studio.songLengthBars(proj)*16*sd),'totalSec off')
+   &&check(flatOk,'flatten differs from the old bar*16 maths')
+   &&check(timeOk,'time(s) is not s*stepSeconds');
+  R.noSection={totalSteps:T.totalSteps,totalSec:Math.round(T.totalSec*1e6)/1e6};
+ }catch(e){ R.assert1=false; fails.push('assert1 threw: '+e.message); }
+
+ // ---- 2. odd meters count the steps the spec says --------------------------------------------
+ try{
+  const want={'4/4':16,'3/4':12,'6/8':12,'5/4':20,'7/8':14,'12/8':24};
+  const got={}; let ok=true;
+  for(const k in want){ const [beats,div]=k.split('/').map(Number);
+   got[k]=Studio.barSteps({beats,div}); if(got[k]!==want[k])ok=false; }
+  // and the same numbers must come out of a real timeline, bar by bar
+  const metres=[[3,4],[6,8],[5,4],[7,8]];
+  const secs=metres.map(([beats,div],i)=>Object.assign(S44(i*2,2),{meter:{beats,div}}));
+  const pr=makeProj(secs,8); const T=Studio.timeline(pr);
+  const spb=T.bars.map(b=>b.spb).join(',');
+  const steps=T.bars.map(b=>b.step).join(',');
+  ok=ok&&spb==='12,12,12,12,20,20,14,14'&&T.totalSteps===12+12+12+12+20+20+14+14;
+  R.assert2=check(ok,'meter step counts wrong: '+JSON.stringify(got)+' spb='+spb);
+  R.meters=got; R.meterSpb=spb; R.meterSteps=steps;
+ }catch(e){ R.assert2=false; fails.push('assert2 threw: '+e.message); }
+
+ // ---- 3. time() and stepAt() invert across meters and tempi ----------------------------------
+ try{
+  const secs=[S44(0,2,124),Object.assign(S44(2,2,150),{meter:{beats:7,div:8}}),Object.assign(S44(4,2,96),{meter:{beats:3,div:4},feel:'half'}),S44(6,2,124)];
+  const pr=makeProj(secs,8); const T=Studio.timeline(pr);
+  let worstS=0, worstT=0;
+  for(let s=-4;s<=T.totalSteps+8;s+=0.25){ const d=Math.abs(T.stepAt(T.time(s))-s); if(d>worstS)worstS=d; }
+  for(let t=0;t<=T.totalSec+2;t+=0.01){ const d=Math.abs(T.time(T.stepAt(t))-t); if(d>worstT)worstT=d; }
+  R.invertStep=worstS; R.invertTime=worstT;
+  R.assert3=check(worstS<1e-6,'stepAt(time(s)) off by '+worstS)&&check(worstT<1e-9,'time(stepAt(t)) off by '+worstT);
+ }catch(e){ R.assert3=false; fails.push('assert3 threw: '+e.message); }
+
+ // ---- 4. a 130 bpm section changes the step length inside itself and nowhere else -------------
+ try{
+  const pr=makeProj([S44(0,2,124),S44(2,2,130),S44(4,2,124)],6);
+  const T=Studio.timeline(pr);
+  const a=Studio.stepSeconds(124), b=Studio.stepSeconds(130);
+  const want=[a,a,b,b,a,a];
+  let ok=true; T.bars.forEach((B,i)=>{ if(!near(B.stepSec,want[i]))ok=false; });
+  // and the seconds add up bar by bar: two 124 bars, two 130 bars, two 124 bars
+  ok=ok&&near(T.totalSec,32*a+32*b+32*a)&&near(T.time(32)-T.time(16),16*a)&&near(T.time(48)-T.time(32),16*b);
+  R.assert4=check(ok,'tempo section leaked outside itself');
+  R.stepSecs=T.bars.map(B=>Math.round(B.stepSec*1e6)/1e6);
+ }catch(e){ R.assert4=false; fails.push('assert4 threw: '+e.message); }
+
+ // ---- 5. rebuild() while playing hot-swaps the rig and keeps the position ---------------------
+ try{
+  const pr=makeProj([S44(0,2),Object.assign(S44(2,2),{meter:{beats:7,div:8}})],4);
+  const eng=Studio.createEngine({project:()=>pr});
+  eng.init(); if(eng.ac.state!=='running')await eng.ac.resume().catch(()=>{});
+  eng.loop=true; eng.play({mode:'song',fromStep:0});
+  await wait(700);
+  const before=eng.pos().step;
+  // the jam does exactly this on every tile tap: change the rack, rebuild, keep playing
+  const extra=Studio.newMachine('subsynth','Lead'); Studio.addNote(extra.patterns.A1,{s:0,n:69,v:0.8,l:4});
+  pr.machines.push(extra); Studio.placeBlock(pr,extra.id,0,'A1',4);
+  eng.rebuild();
+  const after=eng.pos().step;
+  await wait(400);
+  const later=eng.pos().step;
+  const jump=Math.abs(after-before);
+  R.rebuild={before:Math.round(before*100)/100, after:Math.round(after*100)/100, later:Math.round(later*100)/100, jump:Math.round(jump*1000)/1000};
+  R.assert5=check(jump<0.5,'rebuild moved the playhead by '+jump+' steps')
+   &&check(eng.playing===true,'rebuild stopped the transport')
+   &&check(later>after,'the transport did not keep running after a rebuild');
+  eng.stop();
+ }catch(e){ R.assert5=false; fails.push('assert5 threw: '+e.message); }
+
+ // ---- 6. live play across a 4/4 to 7/8 boundary: step monotonic, bar correct ------------------
+ try{
+  const pr=makeProj([S44(0,2),Object.assign(S44(2,2),{meter:{beats:7,div:8}})],4);
+  const T=Studio.timeline(pr);
+  const eng=Studio.createEngine({project:()=>pr});
+  eng.init(); if(eng.ac.state!=='running')await eng.ac.resume().catch(()=>{});
+  eng.loop=true; eng.play({mode:'song',fromStep:24});      // bar 1, eight steps before the change
+  let last=-1, mono=true, barsOk=true, spbSeen={}, seen={};
+  await new Promise(done=>{ const t0=performance.now();
+   (function loop(){ const p=eng.pos();
+    if(p.step<last-1e-9)mono=false; last=p.step;
+    if(p.bar!==T.stepBar(p.step))barsOk=false;
+    seen[p.bar]=true; spbSeen[p.spb]=true;
+    if(performance.now()-t0<3000)requestAnimationFrame(loop); else done(); })(); });
+  const end=eng.pos();
+  eng.stop();
+  R.live={endStep:Math.round(last*100)/100, endBar:end.bar, bars:Object.keys(seen).join(','), spb:Object.keys(spbSeen).join(',')};
+  R.assert6=check(mono,'pos().step went backwards across the meter change')
+   &&check(barsOk,'pos().bar did not match the timeline')
+   &&check(seen[1]&&seen[2]&&seen[3],'play did not cross the 4/4 to 7/8 boundary, bars seen '+R.live.bars)
+   &&check(spbSeen[16]&&spbSeen[14],'steps per bar did not change at the boundary: '+R.live.spb)
+   &&check(end.beatsPerBar===7,'beatsPerBar '+end.beatsPerBar+' in the 7/8 section');
+ }catch(e){ R.assert6=false; fails.push('assert6 threw: '+e.message); }
+
+ // ---- 7. automation fires offline and live, and a bounce leaves the project alone -------------
+ try{
+  const pr=makeProj([S44(0,2)],2);
+  const lead=Studio.newMachine('subsynth','Lead');
+  for(let i=0;i<16;i+=4)Studio.addNote(lead.patterns.A1,{s:i,n:69,v:0.9,l:2});
+  pr.machines.push(lead); Studio.placeBlock(pr,lead.id,0,'A1',2);
+  const eng=Studio.createEngine({project:()=>pr});
+  const peak=(buf)=>{ let m=0; for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c);
+   for(let i=0;i<d.length;i++){ const a=Math.abs(d[i]); if(a>m)m=a; } } return m; };
+  const loud=peak(await eng.render(pr));
+  pr.song.autom=[{mid:lead.id,param:'vol',s:0,v:0.02},{mid:lead.id,param:'cutoff',s:16,v:0.2}];
+  eng.invalidate();
+  const quiet=peak(await eng.render(pr));
+  const kept=pr.machines.find(m=>m.id===lead.id).params.vol;
+  // live: the same events go through scheduleStep, which does move the live project's params
+  eng.init(); if(eng.ac.state!=='running')await eng.ac.resume().catch(()=>{});
+  eng.loop=true; eng.play({mode:'song',fromStep:0});
+  await wait(500);
+  const liveVol=pr.machines.find(m=>m.id===lead.id).params.vol;
+  eng.stop();
+  R.autom={loud:Math.round(loud*1e4)/1e4, quiet:Math.round(quiet*1e4)/1e4, keptVol:kept, liveVol};
+  R.assert7=check(quiet<loud*0.8,'automation did not quieten the bounce: '+loud+' -> '+quiet)
+   &&check(kept===0.7,'the bounce wrote into the project (vol is now '+kept+')')
+   &&check(liveVol===0.02,'live automation did not fire (vol is '+liveVol+')');
+ }catch(e){ R.assert7=false; fails.push('assert7 threw: '+e.message); }
+
+ R.fails=fails;
+ R.ok=fails.length===0&&[1,2,3,4,5,6,7].every(i=>R['assert'+i]===true);
+ const line=JSON.stringify(R);
+ out.textContent=line; out.className=R.ok?'ok':'bad';
+ notes.textContent=fails.length?fails.join('\n'):'all checks passed';
+ window.TIMELINE_TEST=R;
+ window.DONE=true;
+ console.log(line);
+}
+run();
+</script>
+</body>
+</html>

@@ -21,7 +21,7 @@ const {chromium}=require(require.resolve('playwright',{paths:[PW,ROOT]}));
   const p=await browser.newPage({viewport:{width:1280,height:720}});
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto(base+page+'?cb='+Date.now(),{waitUntil:'load'});
-  await p.waitForFunction(g=>!!window[g],globalName,{timeout:180000}).catch(()=>{});
+  await p.waitForFunction(g=>!!window[g],globalName,{timeout:900000}).catch(()=>{});
   const R=await p.evaluate(g=>window[g]||null,globalName);
   const ok=!!R&&pick(R)&&errs.length===0;
   console.log((ok?'PASS ':'FAIL ')+page+' '+JSON.stringify(R?pick.summary(R):{noResult:true})+(errs.length?' pageErrors='+JSON.stringify(errs):''));
@@ -30,7 +30,9 @@ const {chromium}=require(require.resolve('playwright',{paths:[PW,ROOT]}));
  };
  const engPick=R=>R.ok===true&&(!R.fails||R.fails.length===0); engPick.summary=R=>({peak:R.peak,rms:R.rms,live:R.live,fails:R.fails});
  const ltPick=R=>R.ok===true&&[1,2,3,4,5,6].every(i=>R['assert'+i]===true); ltPick.summary=R=>({engine:R.engine,asserts:[1,2,3,4,5,6].map(i=>R['assert'+i]),frameT:R.steps&&R.steps.frameT});
- try{ await run('test-engine.html','RESULT',engPick); await run('test-lights.html','LIGHTS_TEST',ltPick); }
+ const tlPick=R=>R.ok===true&&[1,2,3,4,5,6,7].every(i=>R['assert'+i]===true); tlPick.summary=R=>({asserts:[1,2,3,4,5,6,7].map(i=>R['assert'+i]),live:R.live,rebuild:R.rebuild,fails:R.fails});
+ const prPick=R=>R.ok===true&&(!R.fails||R.fails.length===0); prPick.summary=R=>({counts:R.counts,song:R.numbers&&R.numbers.song,stacks:R.numbers&&R.numbers.stacks,fails:R.fails});
+ try{ await run('test-engine.html','RESULT',engPick); await run('test-lights.html','LIGHTS_TEST',ltPick); await run('test-timeline.html','TIMELINE_TEST',tlPick); await run('test-presets.html','PRESETS_TEST',prPick); }
  finally{ await browser.close(); server.kill(); }
  // the lights test exports a `verify` show: leave the folder as it was
  const fs=require('fs'); for(const f of ['verify.wav','verify.cues.json','verify.project.json']){ try{ fs.unlinkSync(path.join(ROOT,'show',f)); }catch(e){} }

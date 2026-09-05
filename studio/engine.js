@@ -149,6 +149,9 @@ function buildRig(ac,proj,master){
 // notes of a mode, bucketed by step so the scheduler is a lookup rather than a scan
 function bucket(proj,mode){ const flat=Studio.flatten(proj,mode), by=new Map();
  for(const x of flat){ let a=by.get(x.s); if(!a)by.set(x.s,a=[]); a.push(x); } return by; }
+// parameter automation bucketed the same way, so a step is one lookup whether or not it has notes
+function bucketAutom(proj,mode){ const by=new Map();
+ for(const e of Studio.flattenAutom(proj,mode)){ let a=by.get(e.s); if(!a)by.set(e.s,a=[]); a.push(e); } return by; }
 
 // =============================================================================================
 Studio.createEngine=function(opts){
@@ -158,14 +161,18 @@ Studio.createEngine=function(opts){
 
  const eng={ ac:null, playing:false, mode:'pattern', loop:false, master:null, analyser:null };
  let rig=null, timer=null;
- let startStep=0, startAc=0, pausedStep=0, nextStep=0, stepDur=0.12;
- let cache=null, cacheMode=null, cacheLen=0;
+ let originAc=0, pausedStep=0, nextStep=0, stepDur=0.12;
+ let cache=null, cacheAutom=null, cacheMode=null, cacheLen=0, tl=null;
 
  function proj(){ return getProj(); }
  function bpm(){ const p=proj(); return (p&&p.bpm)||120; }
+ function songMode(){ return eng.mode!=='pattern'; }
+ // the timeline is the only place bars, meters and tempo live in song mode; cached because it is
+ // rebuilt from the whole song, and cleared by invalidate() when the model moves
+ function TL(){ if(!tl)tl=Studio.timeline(proj()); return tl; }
  function notes(){ const p=proj();
-  if(!cache||cacheMode!==eng.mode){ cache=bucket(p,eng.mode); cacheMode=eng.mode;
-   cacheLen=eng.mode==='pattern'?Studio.patternLoopSteps(p):Studio.songLengthBars(p)*Studio.STEPS_PER_BAR; }
+  if(!cache||cacheMode!==eng.mode){ cache=bucket(p,eng.mode); cacheAutom=bucketAutom(p,eng.mode); cacheMode=eng.mode;
+   cacheLen=eng.mode==='pattern'?Studio.patternLoopSteps(p):TL().totalSteps; }
   return cache; }
  function loopSteps(){ notes(); return Math.max(1,cacheLen); }
  function isSynth(type){ const T=Studio.MACHINE_TYPES[type]; return T&&T.kind==='synth'; }
@@ -185,6 +192,9 @@ Studio.createEngine=function(opts){
   return ac;
  };
 
+ // a rebuild swaps the whole rig under a running transport (the jam rebuilds its stack on every
+ // tile tap), so the position is held and scheduling starts again at the next step: the notes
+ // already queued went out with the old rig's nodes
  eng.rebuild=function(){
   if(!eng.ac)return;
   if(rig)rig.dispose();
@@ -192,47 +202,83 @@ Studio.createEngine=function(opts){
   if(p&&p.master&&p.master.vol!=null)eng.master.gain.value=p.master.vol;
   rig=buildRig(eng.ac,p,eng.master);
   eng.invalidate();
+  if(eng.playing){ nextStep=Math.ceil(stepAt(eng.ac.currentTime)-1e-6); tick(); }
  };
- eng.invalidate=function(){ cache=null; cacheMode=null; };
+ // the model moved: drop the caches, but keep the playhead where it is. A new timeline changes
+ // step -> seconds, so the origin has to be re-fitted around the current step or play jumps.
+ eng.invalidate=function(){
+  const cur=(eng.playing&&eng.ac)?stepAt(eng.ac.currentTime):null;
+  cache=null; cacheAutom=null; cacheMode=null; tl=null;
+  if(cur!=null)originAc=eng.ac.currentTime-secOf(cur);
+ };
 
  // ---- transport ------------------------------------------------------------------------------
- function stepAt(t){ return startStep+(t-startAc)/stepDur; }
- function idxOf(step){ const L=loopSteps(); const i=Math.floor(step)%L; return i<0?i+L:i; }
+ // The clock is one map, step -> seconds. Pattern mode is a flat loop at proj.bpm (unchanged).
+ // Song mode reads the timeline, and a looped song repeats the timeline exactly rather than
+ // extrapolating the last bar's tempo forever, which keeps step monotonic across the loop.
+ function secOf(step){
+  if(!songMode())return step*stepDur;
+  const T=TL(), L=loopSteps(), lp=T.time(L)||1e-9, pass=Math.floor(step/L);
+  return pass*lp+T.time(step-pass*L);
+ }
+ function stepOfSec(sec){
+  if(!songMode())return sec/stepDur;
+  const T=TL(), L=loopSteps(), lp=T.time(L)||1e-9, pass=Math.floor(sec/lp);
+  return pass*L+T.stepAt(sec-pass*lp);
+ }
+ function timeOf(step){ return originAc+secOf(step); }
+ function stepAt(t){ return stepOfSec(t-originAc); }
+ function stepDurAt(idx){ return songMode()?TL().at(idx).stepSec:stepDur; }
 
  eng.pos=function(){
   const L=loopSteps();
   const step=eng.playing&&eng.ac?Math.max(0,stepAt(eng.ac.currentTime)):pausedStep;
   const idx=eng.mode==='song'&&!eng.loop?Math.min(step,L):(((step%L)+L)%L);
-  return { step, t:step*stepDur, bar:Math.floor(idx/Studio.STEPS_PER_BAR),
-   beat:Math.floor((idx%Studio.STEPS_PER_BAR)/4), stepInBar:Math.floor(idx)%Studio.STEPS_PER_BAR, loopSteps:L };
+  const o={ step, t:secOf(step), loopSteps:L };
+  if(songMode()){ const a=TL().at(Math.min(idx,L-1e-9));
+   o.bar=a.bar; o.beat=a.beatInBar; o.stepInBar=Math.floor(a.stepInBar);
+   o.beatN=a.beatN; o.beatPhase=a.beatPhase; o.barPhase=a.barPhase; o.beatsPerBar=a.beatsPerBar;
+   o.meter=a.meter; o.bpm=a.bpm; o.section=a.section; o.si=a.si; o.spb=a.spb; o.stepSec=a.stepSec;
+  } else { const S=Studio.STEPS_PER_BAR, sib=idx%S;
+   o.bar=Math.floor(idx/S); o.beat=Math.floor(sib/4); o.stepInBar=Math.floor(sib);
+   o.beatN=Math.floor(step/4); o.beatPhase=(step%4)/4; o.barPhase=sib/S; o.beatsPerBar=4;
+   o.meter={beats:4,div:4}; o.bpm=bpm(); o.section=null; o.si=0; o.spb=S; o.stepSec=stepDur; }
+  return o;
  };
 
  function scheduleStep(step,t){
   const by=notes(); const L=loopSteps();
   const idx=((Math.floor(step)%L)+L)%L;
+  const p=proj(), sw=A.clamp((p&&p.swing)||0,0,1), sd=stepDurAt(idx);
+  const when=(idx%2===1)?t+sw*0.5*sd:t;
+  // automation first: a machine reads its params when a note starts, so the value has to land
+  // before the notes sitting on the same step
+  const auto=cacheAutom&&cacheAutom.get(idx);
+  if(auto)for(const e of auto){ const inst=rig&&rig.insts[e.mid];
+   if(inst){ try{ inst.setParam(e.param,e.v); }catch(err){} } }
   const list=by.get(idx); if(!list)return;
-  const p=proj(), sw=A.clamp((p&&p.swing)||0,0,1);
-  const when=(idx%2===1)?t+sw*0.5*stepDur:t;
   for(const x of list){
    const inst=rig&&rig.insts[x.mid];
    if(inst){ inst.noteOn(when,x.n,x.v);
-    if(isSynth(x.type))inst.noteOff(when+Math.max(0.03,x.l*stepDur*0.98),x.n); }
+    // the length is measured on the clock, so a note held over a tempo or meter change ends right
+    if(isSynth(x.type))inst.noteOff(when+Math.max(0.03,(secOf(step+x.l)-secOf(step))*0.98),x.n); }
    try{ onNote(x.mid,x.n,x.v,when,true); }catch(e){}
   }
  }
 
  function tick(){
   if(!eng.playing||!eng.ac)return;
-  const p=proj(), sd=Studio.stepSeconds(bpm());
-  if(Math.abs(sd-stepDur)>1e-9){ const cur=stepAt(eng.ac.currentTime); startStep=cur; startAc=eng.ac.currentTime; stepDur=sd; }
+  const sd=Studio.stepSeconds(bpm());
+  // pattern mode follows the tempo knob live; in song mode the tempo lives in the timeline
+  if(!songMode()&&Math.abs(sd-stepDur)>1e-9){ const cur=stepAt(eng.ac.currentTime); stepDur=sd; originAc=eng.ac.currentTime-secOf(cur); }
   const now=eng.ac.currentTime, until=now+LOOKAHEAD;
   const L=loopSteps(), endless=eng.mode==='pattern'||eng.loop;
+  let guard=0;
   while(true){
-   const t=startAc+(nextStep-startStep)*stepDur;
-   if(t>until)break;
    if(!endless&&nextStep>=L)break;
-   scheduleStep(nextStep,t); nextStep++;
-   if(nextStep-startStep>4096)break;                 // a guard against a runaway loop
+   if(timeOf(nextStep)>until)break;
+   scheduleStep(nextStep,timeOf(nextStep)); nextStep++;
+   if(++guard>4096)break;                            // a guard against a runaway loop
   }
   if(!endless&&stepAt(now)>=L)eng.stop();            // the song ran out, so park back at the top
  }
@@ -243,9 +289,9 @@ Studio.createEngine=function(opts){
   if(eng.ac.state!=='running')eng.ac.resume().catch(()=>{});
   if(o.mode&&o.mode!==eng.mode){ eng.mode=o.mode; eng.invalidate(); }
   stepDur=Studio.stepSeconds(bpm());
-  startStep=(o.fromStep!=null)?o.fromStep:pausedStep;
-  startAc=eng.ac.currentTime+0.02;
-  nextStep=Math.ceil(startStep-1e-6);
+  const from=(o.fromStep!=null)?o.fromStep:pausedStep;
+  originAc=eng.ac.currentTime+0.02-secOf(from);
+  nextStep=Math.ceil(from-1e-6);
   eng.playing=true;
   if(timer)clearInterval(timer);
   timer=setInterval(tick,TICK);
@@ -265,7 +311,7 @@ Studio.createEngine=function(opts){
  };
  eng.seek=function(step){
   pausedStep=Math.max(0,step||0);
-  if(eng.playing&&eng.ac){ allOff(); startStep=pausedStep; startAc=eng.ac.currentTime+0.02; nextStep=Math.ceil(startStep-1e-6); }
+  if(eng.playing&&eng.ac){ allOff(); originAc=eng.ac.currentTime+0.02-secOf(pausedStep); nextStep=Math.ceil(pausedStep-1e-6); }
  };
  function allOff(){ if(!rig||!eng.ac)return; const t=eng.ac.currentTime;
   for(const id in rig.insts){ try{ rig.insts[id].allOff(t); }catch(e){} } }
@@ -299,22 +345,32 @@ Studio.createEngine=function(opts){
 
  // ---- offline render --------------------------------------------------------------------------
  eng.render=function(project){
-  const p=project||proj();
-  const sd=Studio.stepSeconds(p.bpm||120);
-  const steps=Studio.songLengthBars(p)*Studio.STEPS_PER_BAR;
-  const dur=steps*sd;
+  const p0=project||proj();
+  // automation writes into machine.params, so a bounce that has any runs on a copy and the
+  // project the user is editing is left exactly as it was
+  const hasAutom=Studio.flattenAutom(p0,'song').length>0;
+  const p=hasAutom?Studio.clone(p0):p0;
+  const T=Studio.timeline(p);
+  const dur=T.totalSec;
   const oac=new OfflineAudioContext(2,Math.ceil((dur+TAIL)*44100),44100);
   const master=oac.createGain(); master.gain.value=(p.master&&p.master.vol!=null)?p.master.vol:0.9;
   const lim=oac.createDynamicsCompressor();
   lim.threshold.value=-3; lim.knee.value=0; lim.ratio.value=12; lim.attack.value=0.003; lim.release.value=0.1;
   master.connect(lim); lim.connect(oac.destination);
   const r=buildRig(oac,p,master);
-  const flat=Studio.flatten(p,'song'), sw=A.clamp(p.swing||0,0,1);
-  for(const x of flat){
-   const inst=r.insts[x.mid]; if(!inst)continue;
-   const base=x.s*sd, t=(x.s%2===1)?base+sw*0.5*sd:base;
+  const sw=A.clamp(p.swing||0,0,1);
+  // notes and automation walked together in step order: a machine reads its params when the note
+  // starts, so an automation event has to be applied before the notes that come after it
+  const ev=[];
+  for(const x of Studio.flatten(p,'song'))ev.push({s:x.s,note:x});
+  for(const a of Studio.flattenAutom(p,'song'))ev.push({s:a.s,autom:a});
+  ev.sort((a,b)=>a.s-b.s||((a.autom?0:1)-(b.autom?0:1)));
+  for(const e of ev){
+   const inst=r.insts[e.autom?e.autom.mid:e.note.mid]; if(!inst)continue;
+   if(e.autom){ try{ inst.setParam(e.autom.param,e.autom.v); }catch(err){} continue; }
+   const x=e.note, base=T.time(x.s), t=(x.s%2===1)?base+sw*0.5*T.at(x.s).stepSec:base;
    inst.noteOn(t,x.n,x.v);
-   if(isSynth(x.type))inst.noteOff(t+Math.max(0.03,x.l*sd*0.98),x.n);
+   if(isSynth(x.type))inst.noteOff(t+Math.max(0.03,(T.time(x.s+x.l)-base)*0.98),x.n);
   }
   return oac.startRendering().then(buf=>{ r.dispose(); return buf; });
  };

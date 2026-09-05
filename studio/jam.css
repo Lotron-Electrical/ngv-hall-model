@@ -1,0 +1,94 @@
+/* THE JAM'S STYLESHEET (Lloyd, 2026-09-05): loaded after ui.css and only adding what the jam needs.
+   Every token, the transport row, the bottom nav, the sheet and the toast come from ui.css so the
+   jam, the studio and the hall read as one instrument.
+   House rules repeated here because they are easy to break: 44 px minimum for anything a finger
+   hits, near-black text on every accent fill, and nothing may make the page scroll sideways at
+   360 px. A row of tiles is wider than a phone by design, so each row scrolls on its own axis and
+   the page never does. */
+
+/* ------------------------------------------------------------ the transport
+   The studio's transport row is 38 px tall because a desk operator uses a mouse. The jam is a
+   thumb instrument, so every control in the row goes back to the 44 px minimum. */
+#top{height:auto;min-height:calc(var(--tap) + 8px);padding:4px 8px}
+#top button{min-height:var(--tap)}
+#stop{width:var(--tap);padding:0}
+#menubtn{width:var(--tap);min-height:var(--tap)}
+#bpmval{min-width:56px;font-variant-numeric:tabular-nums}
+
+/* ------------------------------------------------------------ the style starter chips */
+#stylerow{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+ -webkit-overflow-scrolling:touch;padding:2px 0}
+#stylerow::-webkit-scrollbar{display:none}
+#stylerow button{min-height:var(--tap);padding:0 12px;font-size:12px;border-radius:18px;flex:none;text-transform:capitalize}
+
+/* ------------------------------------------------------------ a row of preset tiles */
+.jrow{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);margin-bottom:var(--gap);overflow:hidden}
+.jrow.on{border-color:var(--accent)}
+.jrhd{display:flex;align-items:center;gap:8px;padding:5px 8px;background:#1a1d22;border-bottom:1px solid var(--rule);min-height:32px}
+.jrhd .nm{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.06em;
+ text-transform:uppercase;flex:none;min-width:74px}
+.jrhd .slot{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em}
+.jrhd .pick{margin-left:auto;color:var(--accent);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44%}
+.jrhd .pick.off{color:var(--dim)}
+
+/* the strip itself: one scroll axis, snapped, and it is the ONLY thing wider than the screen */
+.jstrip{display:flex;gap:6px;padding:6px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+ scroll-snap-type:x proximity;scrollbar-width:thin}
+.jstrip::-webkit-scrollbar{height:5px}
+.jstrip::-webkit-scrollbar-thumb{background:var(--edge);border-radius:3px}
+.tile{flex:none;width:104px;min-height:var(--tap);padding:5px 8px;border-radius:7px;background:#1c1f25;
+ border:1px solid var(--rule);flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;
+ scroll-snap-align:start;text-align:left;-webkit-tap-highlight-color:transparent}
+.tile .tn{font-size:13px;line-height:1.2;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .ts{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.tile[aria-pressed="true"] .ts{color:var(--on-accent);opacity:.72}
+.tile.locked{opacity:.42}
+.jstrip .empty{color:var(--dim);font-size:12px;padding:10px 4px}
+
+/* ------------------------------------------------------------ the light layer rows */
+.lxctl{display:flex;align-items:center;gap:8px;padding:0 8px 8px;flex-wrap:wrap}
+.lxctl .syncbtn{min-height:var(--tap);font-size:12px;padding:0 10px;border-radius:18px;flex:none}
+.lxctl label{flex:none}
+.lxctl input[type=range]{flex:1;min-width:110px;height:var(--tap)}
+.lxctl .gv{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink);min-width:30px;text-align:right}
+
+/* ------------------------------------------------------------ the section cards */
+.seccard{border:1px solid var(--rule);border-radius:8px;background:var(--sunk);margin-bottom:var(--gap);overflow:hidden}
+.seccard.cur{border-color:var(--accent)}
+.sechd{display:flex;align-items:center;gap:8px;width:100%;background:#1a1d22;border:0;border-radius:0;
+ min-height:52px;padding:0 8px;justify-content:flex-start;text-align:left}
+.sechd:hover{border:0}
+.sechd .no{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:19px;color:var(--accent);flex:none;min-width:26px}
+.sechd .meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dim)}
+.sechd .bar{flex:none;width:56px;height:6px;background:var(--deep);border-radius:3px;overflow:hidden}
+.sechd .bar i{display:block;height:100%;background:var(--accent)}
+.sechd .cv{flex:none;color:var(--dim);width:14px;display:flex;align-items:center;justify-content:center;
+ transition:transform .12s ease}
+.seccard.open .sechd .cv{transform:rotate(180deg);color:var(--accent)}
+.secbody{padding:8px;border-top:1px solid var(--rule);display:none}
+.seccard.open .secbody{display:block}
+.secrow{display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:2px 0;flex-wrap:wrap}
+.secrow>label{flex:none;min-width:70px}
+.secrow>.grow{flex:1;min-width:120px}
+.secrow .seg{flex:1;min-width:150px}
+.secrow .seg button{min-height:var(--tap)}
+.secacts{display:flex;gap:6px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #1e2126;margin-top:6px}
+.secacts button{flex:1;min-width:78px;min-height:var(--tap);font-size:12px}
+.secacts button.danger{color:var(--rec)}
+
+/* ------------------------------------------------------------ the hall */
+#simwrap{flex:1;min-height:0;background:#000;display:flex}
+#sim{flex:1;width:100%;border:0;display:block;min-height:0}
+#simstate{font-size:11px;text-transform:uppercase;letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+
+/* the export sheet's progress line */
+#jbar{height:8px;background:var(--sunk);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:10px 0}
+#jbarfill{height:100%;width:0;background:var(--ok)}
+
+/* ------------------------------------------------------------ desktop: wider tiles, tabs up top */
+@media (min-width:900px){
+ .tile{width:126px}
+ .jrhd .nm{min-width:92px}
+ .vbody{padding:12px 14px}
+ #jambody,#songbody{max-width:1100px;margin:0 auto;width:100%}
+}

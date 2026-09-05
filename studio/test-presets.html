@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio presets check</title>
+<style>
+ body{margin:0;background:#111;color:#eee;font:13px/1.5 ui-monospace,Consolas,monospace}
+ #out{padding:12px;white-space:pre-wrap;word-break:break-word}
+ .ok{color:#5fd4a8} .bad{color:#ff6b6b}
+</style>
+</head>
+<body>
+<!-- THE PRESET CHECK (Lloyd, 2026-09-05): presets.js measured on its own, with real audio. It runs
+     against the four preset fragments when they exist and against small private fixtures when they
+     do not, so the same asserts hold whichever owner has landed. Every audio number comes from an
+     OfflineAudioContext render of a real project through engine.js, not from counting notes.
+
+     Audio budget: every pattern is bounced solo in 4/4, 3/4 and 7/8, two bars each, because the
+     rule being tested is that a pattern sounds at step 0 of bar 1. Every style is stacked at
+     energy 0.3, 0.6 and 1.0 and its mix is bounced; the per instrument balance bounce runs at full
+     energy for every style, where the stack is fullest and the rule is hardest, plus the two lower
+     energies for house as a spot check. That is a few minutes of offline rendering. -->
+<div id="out">running...</div>
+
+<script src="../show/lightshow.js"></script>
+<script src="../show/looks2.js" onerror="window.NO_LOOKS2=1"></script>
+<script src="model.js"></script>
+<script src="machines.js"></script>
+<script src="engine.js"></script>
+<script src="presets.drums.js" onerror="window.NO_DRUMS=1"></script>
+<script src="presets.pitch.js" onerror="window.NO_PITCH=1"></script>
+<script src="presets.lights.js" onerror="window.NO_LIGHTS=1"></script>
+<script>
+'use strict';
+// ---- FIXTURES: the frozen schemas in miniature, used only where a fragment is missing ----------
+window.Studio=window.Studio||{};
+const FIXTURED=[];
+if(!(Studio.PRESETS_DRUMS&&Studio.PRESETS_DRUMS.list)){ FIXTURED.push('drums');
+ Studio.PRESETS_DRUMS={ GROUPS:{'4/4':[4,4,4,4],'3/4':[4,4,4],'5/4':[4,4,4,4,4],'6/8':[6,6],'7/8':[4,4,6],'12/8':[6,6,6,6]},
+  ROLES:{'4/4':['down','back','up','back'],'3/4':['down','up','back'],'5/4':['down','up','back','up','back'],
+   '6/8':['down','back'],'7/8':['down','up','back'],'12/8':['down','back','up','back']},
+  list:[
+  { id:'drums.house', inst:'drums', name:'Four to the floor', style:'house', minEnergy:0.1,
+    roles:{ down:[{at:0,n:0,v:1.0}], up:[{at:0,n:0,v:1.0}], back:[{at:0,n:0,v:1.0},{at:0,n:1,v:0.9},{at:0,n:2,v:0.6}] },
+    every:{ n:3, div:2, v:0.55, offV:0.35 }, open:{ at:2, n:4, v:0.5, minEnergy:0.6 },
+    ghost:[{role:'up',at:2,n:1,v:0.4}],
+    fill:[{fromEnd:4,n:1,v:0.8},{fromEnd:2,n:1,v:0.9},{fromEnd:1,n:5,v:0.9}] },
+  { id:'perc.tick', inst:'perc', name:'Tick', style:'house', minEnergy:0.2,
+    roles:{ down:[{at:0,n:6,v:0.8}], up:[{at:2,n:6,v:0.5}], back:[{at:0,n:5,v:0.7}] },
+    every:{ n:3, div:4, v:0.35, offV:0.25 }, ghost:[{role:'down',at:3,n:6,v:0.4}],
+    fill:[{fromEnd:2,n:5,v:0.8}] },
+ ]};
+}
+if(!(Studio.PRESETS_PITCH&&Studio.PRESETS_PITCH.list)){ FIXTURED.push('pitch');
+ Studio.PRESETS_PITCH={ list:[
+  { id:'bass.rolling', inst:'bass', name:'Rolling', style:'house', minEnergy:0.1, bars:1, cycleBars:1, register:[33,52],
+    notes:[{s:0,l:2,ct:0,oct:0,v:1.0},{s:3,l:1,ct:0,oct:0,v:0.7},{s:6,l:2,ct:2,oct:0,v:0.7},{s:10,l:2,ct:0,oct:0,v:0.7},{s:13,l:2,ct:1,oct:0,v:0.7}] },
+  { id:'sub.hold', inst:'sub', name:'Hold', style:'house', minEnergy:0.1, bars:1, cycleBars:1, register:[24,45],
+    notes:[{s:0,l:16,ct:0,oct:0,v:0.9}] },
+  { id:'pad.warm', inst:'pad', name:'Warm bed', style:'house', minEnergy:0.2, bars:1, cycleBars:1, register:[48,72],
+    notes:[{s:0,l:16,ct:0,oct:0,v:0.9},{s:0,l:16,ct:1,oct:0,v:0.8},{s:0,l:16,ct:2,oct:0,v:0.7}] },
+  { id:'lead.call', inst:'lead', name:'Call', style:'house', minEnergy:0.5, bars:1, cycleBars:1, register:[64,88],
+    notes:[{s:0,l:3,deg:1,oct:0,v:1.0},{s:4,l:2,deg:3,oct:0,v:0.7},{s:8,l:2,deg:5,oct:0,v:0.7},{s:12,l:2,deg:4,oct:0,v:0.7}] },
+ ]};
+}
+if(!(Studio.PRESETS_LIGHTS&&Studio.PRESETS_LIGHTS.list)){ FIXTURED.push('lights');
+ Studio.PRESETS_LIGHTS={ list:[
+  { id:'lx.breathe', name:'Breathe', family:'base', style:['house','ambient'], energy:[0,1], bars:4, gain:1, sync:'grid', fallbackLook:'pulse',
+    cues:[[0,'look','pulse'],[0,'palette','helix'],[32,'palette','ice']],
+    level:(()=>{ const a=new Array(64).fill(null); a[0]=0.6; a[16]=0.9; a[32]=0.7; a[48]=1; return a; })() },
+  { id:'lx.beatwaves', name:'Beat waves', family:'movement', style:['house','techno'], energy:[0.2,1], bars:2, gain:0.9, sync:'grid', fallbackLook:'beatwave',
+    cues:[[0,'look','beatwave'],[16,'look','sweep']] },
+  { id:'lx.kickflash', name:'Kick flash', family:'accent', style:['house','techno'], energy:[0.3,1], bars:1, gain:0.8, sync:'drums', fallbackLook:'strobe',
+    cues:[[0,'hit',true],[8,'hit',true]] },
+ ]};
+}
+</script>
+<script src="presets.js"></script>
+<script>
+'use strict';
+const out=document.getElementById('out');
+const log=[]; const say=t=>{ log.push(t); out.textContent=log.join('\n'); };
+const R={ ok:false, fails:[], counts:{}, numbers:{}, fixtured:FIXTURED };
+const ok=(name,cond,extra)=>{ if(!cond)R.fails.push(name+(extra!=null?' '+JSON.stringify(extra):'')); return !!cond; };
+
+const P=Studio.PRESETS, H=Studio.harmony;
+const KEY={root:57,scale:'minor'};
+const M44={beats:4,div:4}, M34={beats:3,div:4}, M78={beats:7,div:8};
+const METERS=[['4/4',M44],['3/4',M34],['7/8',M78]];
+
+// eng.render appends two seconds of tail so reverbs ring out. Averaging rms over that silence
+// makes a sparse pattern look quieter than it is, so a solo bounce is measured over its musical
+// span plus a short ring-out and nothing else.
+function analyse(buf,sec){
+ const end=sec?Math.min(buf.length,Math.round(sec*buf.sampleRate)):buf.length;
+ let peak=0, sum=0, n=0;
+ for(let c=0;c<buf.numberOfChannels;c++){ const d=buf.getChannelData(c);
+  for(let i=0;i<end;i++){ const a=Math.abs(d[i]); if(a>peak)peak=a; sum+=d[i]*d[i]; n++; } }
+ return { peak:Math.round(peak*1000)/1000, rms:Math.round(Math.sqrt(sum/Math.max(1,n))*10000)/10000 };
+}
+function renderProject(proj,sec){ const eng=Studio.createEngine({project:()=>proj}); return eng.render(proj).then(b=>analyse(b,sec)); }
+const musicalSec=(pat)=>Math.min(2,pat.bars)*pat.spb*Studio.stepSeconds(124)+0.4;
+function section(bar,len,meter,chords){ return { bar, len, meter, bpm:124, feel:'straight', key:KEY,
+ chords:chords||H.CYCLES.neutral, cycleBars:1, transpose:0, energy:1, transition:'none', seed:1 }; }
+// two bars is enough: the rule under test is that a pattern sounds at step 0 of bar 1
+function soloProject(instId,pat,meter){
+ const proj=Studio.newProject('solo'); proj.bpm=124; proj.master.vol=0.8;
+ const I=P.instrument(instId), m=Studio.newMachine(I.type,I.name);
+ Object.assign(m.params,I.params||{}); m.vol=I.vol; m.send={delay:0,reverb:0};
+ m.patterns={A1:pat}; m.curPat='A1'; proj.machines.push(m);
+ const bars=Math.min(2,pat.bars);
+ proj.song.sections=[section(0,bars,meter)];
+ Studio.placeBlock(proj,m.id,0,'A1',bars);
+ proj.song.bars=bars;
+ return proj;
+}
+// the live stack is pattern mode; to bounce it, the same patterns are laid on the song grid once
+function stackToSong(stack,meter,bars){
+ const proj=Studio.clone(stack);
+ proj.song.sections=[section(0,bars,meter)];
+ proj.song.tracks={};
+ for(const m of proj.machines)if(m.curPat&&m.patterns[m.curPat])Studio.placeBlock(proj,m.id,0,m.curPat,bars);
+ proj.song.bars=bars;
+ return proj;
+}
+function onlyMachine(proj,mid){
+ const p=Studio.clone(proj);
+ p.machines=p.machines.filter(m=>m.id===mid);
+ for(const k in p.song.tracks)if(k!==mid)delete p.song.tracks[k];
+ return p;
+}
+
+(async function main(){
+ try{
+  // ---- 1) harmony ------------------------------------------------------------------------------
+  const am=H.chord('Am',KEY), e7=H.chord('E7',KEY), sc=H.scale(KEY);
+  ok('harmony.Am tones',JSON.stringify(am.tones)===JSON.stringify([9,0,4]),am.tones);
+  ok('harmony.E7 tones',JSON.stringify(e7.tones)===JSON.stringify([4,8,11,2]),e7.tones);
+  ok('harmony.scale A minor',JSON.stringify(sc)===JSON.stringify([9,11,0,2,4,5,7]),sc);
+  ok('harmony.chordAt bar 2 of neutral is C',H.chordAt(2,H.CYCLES.neutral,1,KEY).root===0);
+  ok('CYCLES has five moods',Object.keys(H.CYCLES).length===5);
+  say('fragments: '+(FIXTURED.length?('fixtures for '+FIXTURED.join(', ')):'all real')+
+      (window.NO_LOOKS2?'   looks2.js MISSING':''));
+
+  // ---- 2) the registry ---------------------------------------------------------------------------
+  const presets=P.all(), lights=P.lights();
+  const srcN=(Studio.PRESETS_DRUMS.list.length)+(Studio.PRESETS_PITCH.list.length);
+  ok('registry merges every fragment',presets.length===srcN&&lights.length===Studio.PRESETS_LIGHTS.list.length,
+   {merged:presets.length,src:srcN,lights:lights.length});
+  ok('every preset has an id and a style',presets.every(p=>p.id&&p.inst&&p.style));
+  ok('every preset id is unique',new Set(presets.concat(lights).map(p=>p.id)).size===presets.length+lights.length);
+  R.counts={ presets:presets.length, lights:lights.length,
+   byInst:P.INSTRUMENT_IDS.map(i=>i+':'+P.forInst(i).length).join(' '),
+   byFamily:P.LIGHT_FAMILIES.map(f=>f+':'+P.forFamily(f).length).join(' ') };
+  say('registry: '+presets.length+' instrument patterns, '+lights.length+' light patterns');
+  say('  '+R.counts.byInst);
+  say('  '+R.counts.byFamily);
+
+  // ---- 3) every pattern rendered solo, in 4/4, 3/4 and 7/8 ---------------------------------------
+  const solo=[]; let structural=0, swapped=0, lightCues=0;
+  for(const [mname,meter] of METERS){
+   const spb=Studio.barSteps(meter);
+   ok('barSteps '+mname,spb===({'4/4':16,'3/4':12,'7/8':14})[mname],spb);
+   const ctx={ key:KEY, meter, spb, chords:H.CYCLES.neutral, cycleBars:1, transpose:0, energy:1, seed:7, feel:'straight' };
+   for(const pr of presets){
+    const pat=P.render(pr,ctx); structural++;
+    ok('render '+pr.id+' '+mname+' spb',pat.spb===spb,pat.spb);
+    ok('render '+pr.id+' '+mname+' has notes',pat.notes.length>0);
+    ok('render '+pr.id+' '+mname+' sounds in bar 1',pat.notes.some(n=>n.s<spb));
+    ok('render '+pr.id+' '+mname+' bars 1, 2 or 4',[1,2,4,8].indexOf(pat.bars)>=0,pat.bars);
+    ok('render '+pr.id+' '+mname+' stays inside its bars',
+     pat.notes.every(n=>n.s>=0&&n.s<pat.bars*spb&&(n.s%spb)+n.l<=spb),
+     pat.notes.filter(n=>(n.s%spb)+n.l>spb).slice(0,3));
+    if(pr.notes){
+     const bad=[];
+     for(const n of pat.notes){ const pc=((n.n%12)+12)%12; if(sc.indexOf(pc)<0)bad.push({pc,n:n.n}); }
+     ok('scale '+pr.id+' '+mname,bad.length===0,bad.slice(0,4));
+     // chord tones: the same preset with only its ct notes must land entirely inside the live chord
+     const ctNotes=pr.notes.filter(x=>x.ct!=null);
+     if(ctNotes.length){
+      const ctPat=P.render(Object.assign({},pr,{notes:ctNotes}),ctx);
+      const off=[];
+      for(const n of ctPat.notes){ const pc=((n.n%12)+12)%12, ch=H.chordAt(Math.floor(n.s/spb),H.CYCLES.neutral,1,KEY);
+       if(ch.tones.indexOf(pc)<0)off.push({pc,chord:ch.name}); }
+      ok('chord tones '+pr.id+' '+mname,off.length===0,off.slice(0,4));
+     }
+    }
+    const a=await renderProject(soloProject(pr.inst,pat,meter),musicalSec(pat));
+    solo.push({ id:pr.id, meter:mname, peak:a.peak, rms:a.rms });
+    ok('solo audio '+pr.id+' '+mname+' peak',a.peak>0.05,a.peak);
+    ok('solo audio '+pr.id+' '+mname+' rms',a.rms>0.005,a.rms);
+   }
+   // light patterns: cues must encode, and a look that does not exist falls back
+   for(const lp of lights){
+    const pat=P.render(lp,ctx); structural++;
+    swapped+=pat.swapped||0; lightCues+=pat.notes.length;
+    ok('light '+lp.id+' '+mname+' encodes cues',pat.notes.length>0);
+    ok('light '+lp.id+' '+mname+' keys resolve',pat.notes.every(n=>!!Studio.LIGHT_KEYS[n.n]));
+    ok('light '+lp.id+' '+mname+' level lane length',!pat.level||pat.level.length===pat.bars*spb,pat.level&&pat.level.length);
+    ok('light '+lp.id+' has a family',P.LIGHT_FAMILIES.indexOf(lp.family)>=0,lp.family);
+   }
+  }
+  const minPeak=Math.min.apply(null,solo.map(s=>s.peak)), minRms=Math.min.apply(null,solo.map(s=>s.rms));
+  R.numbers.solo={ renders:solo.length, structural, minPeak, minRms,
+   quietest:solo.slice().sort((a,b)=>a.peak-b.peak).slice(0,3) };
+  R.numbers.lights={ cuesEncoded:lightCues, looksSwappedToFallback:swapped };
+  say('solo: '+solo.length+' bounces, '+structural+' pattern renders, min peak '+minPeak+', min rms '+minRms);
+  say('  quietest: '+R.numbers.solo.quietest.map(q=>q.id+' '+q.meter+' peak '+q.peak).join(', '));
+  say('lights: '+lightCues+' cues encoded, '+swapped+' looks swapped to their fallback');
+
+  // ---- 4) the stack at three energies ------------------------------------------------------------
+  const jam=P.newJam({ seed:5, humanise:0.3 });
+  const stacks=[];
+  for(const style of P.STYLES)for(const e of [0.3,0.6,1.0]){
+   const tag=style+' e'+e;
+   const sec=P.starter(style,e); sec.energy=e; sec.meter=M44; sec.bars=4;
+   const plan=P.applyEnergy(sec,jam);
+   const stack=P.buildStack(sec,jam);
+   const instMachines=stack.machines.filter(m=>m.type!=='lights');
+   const slots=instMachines.map(m=>m.slot);
+   ok('stack '+tag+' one instrument per slot',slots.length===new Set(slots).size,slots);
+   ok('stack '+tag+' density cap',instMachines.length<=plan.density,{n:instMachines.length,cap:plan.density});
+   ok('stack '+tag+' every machine has a pattern',stack.machines.every(m=>m.curPat&&m.patterns[m.curPat]));
+   const lm0=stack.machines.filter(m=>m.type==='lights');
+   ok('stack '+tag+' keeps three light layers',lm0.length===3,lm0.map(m=>m.family));
+   // the layer gain is a product now, so neither half of it may carry the whole value
+   ok('stack '+tag+' layer gain is level times gain',lm0.every(m=>{ const L=plan.layers.find(x=>x.family===m.family);
+     return L&&Math.abs(m.params.level*m.gain-L.gain)<0.02; }),lm0.map(m=>m.family+' '+m.params.level+'x'+m.gain));
+   const song=stackToSong(stack,M44,4);
+   const mix=await renderProject(song);
+   ok('stack '+tag+' mix peak in (0.3,1.0)',mix.peak>0.3&&mix.peak<1.0,mix.peak);
+   const row={ style, e, peak:mix.peak, rms:mix.rms, insts:instMachines.map(m=>m.inst).join(' ') };
+   // balance is hardest when the stack is fullest, so it is measured at full energy for every
+   // style, and at the lower energies for house to show the ladder does not skew it
+   if(e===1.0||style==='house'){
+    const per=[];
+    for(const m of instMachines){ const a=await renderProject(onlyMachine(song,m.id)); per.push({ inst:m.inst, rms:a.rms }); }
+    const loud=Math.max.apply(null,per.map(x=>x.rms));
+    const dB=x=>Math.round(20*Math.log10(Math.max(1e-9,x.rms)/loud));
+    ok('stack '+tag+' balance within 20 dB',per.every(x=>dB(x)>=-20),per.filter(x=>dB(x)<-20).map(x=>x.inst+' '+dB(x)+'dB'));
+    row.per=per.map(x=>x.inst+':'+dB(x)+'dB').join(' ');
+    row.worst=Math.min.apply(null,per.map(dB));
+   }
+   stacks.push(row);
+   say('stack '+tag+': peak '+mix.peak+(row.per?('  ['+row.per+']'):('  '+row.insts)));
+  }
+  R.numbers.stacks=stacks;
+  R.numbers.stackWorstDb=Math.min.apply(null,stacks.filter(s=>s.worst!=null).map(s=>s.worst));
+  R.numbers.stackPeakRange=[Math.min.apply(null,stacks.map(s=>s.peak)),Math.max.apply(null,stacks.map(s=>s.peak))];
+  for(const style of P.STYLES){ const r=stacks.filter(s=>s.style===style);
+   ok('density rises with energy for '+style,r[0].insts.split(' ').length<r[2].insts.split(' ').length,
+    r.map(s=>s.insts.split(' ').length)); }
+  say('stacks: peak range '+R.numbers.stackPeakRange.join(' to ')+', worst balance '+R.numbers.stackWorstDb+' dB');
+
+  // ---- 5) buildSong: a valid project, and transitions in the right bars ---------------------------
+  const base=P.starter('house',0.8);
+  const mkSec=(t,e,meter)=>Object.assign(Studio.clone(base),{ bars:8, energy:e==null?0.8:e, transition:t, meter:meter||M44 });
+  const jam2=P.newJam({ name:'audit', seed:11, humanise:0.3, sections:[
+   mkSec('fill',0.8), mkSec('riser',0.6), mkSec('drop',0.9), mkSec('gap',0.7), mkSec('none',0.9,M78) ] });
+  const proj=P.buildSong(jam2);
+  const tl=Studio.timeline(proj);
+  const byInst={}; for(const m of proj.machines)if(m.inst)byInst[m.inst]=m;
+  const lightMs=proj.machines.filter(m=>m.type==='lights');
+
+  const ids=proj.machines.map(m=>m.id);
+  ok('machine ids unique',ids.length===new Set(ids).size);
+  ok('song has sections',proj.song.sections.length===5&&proj.song.sections[4].bar===32,proj.song.sections.map(s=>s.bar+':'+s.len));
+  ok('song bars',proj.song.bars===40,proj.song.bars);
+  ok('song has autom',Array.isArray(proj.song.autom)&&proj.song.autom.length>0,proj.song.autom.length);
+  ok('project shape',proj.bpm===124&&!!proj.master&&!!proj.song.tracks);
+  let patOk=true, blockOk=true, overlap=false;
+  for(const m of proj.machines){
+   for(const k in m.patterns){ const p=m.patterns[k]; if(!(p.bars>=1&&p.spb>=1&&Array.isArray(p.notes)))patOk=false; }
+   const tr=Studio.track(proj,m.id);
+   for(const b of tr)if(!m.patterns[b.pat])blockOk=false;
+   for(let i=1;i<tr.length;i++)if(tr[i].bar<tr[i-1].bar+tr[i-1].len)overlap=true;
+  }
+  ok('every pattern is a normal pattern',patOk);
+  ok('every block points at a pattern',blockOk);
+  ok('no block overlaps another',!overlap);
+  ok('lights machines carry layer, sync, family',lightMs.length>0&&lightMs.every(m=>typeof m.layer==='number'&&m.layer>=0&&m.layer<6&&typeof m.sync==='string'&&P.LIGHT_FAMILIES.indexOf(m.family)>=0),
+   lightMs.map(m=>m.family+'/'+m.layer+'/'+m.sync));
+  ok('lights layers capped at 6',lightMs.length<=6,lightMs.length);
+  ok('song layer gain is a product, not a square',lightMs.every(m=>m.gain>0&&m.gain<=1&&m.params.level>0&&m.params.level<=1),
+   lightMs.map(m=>m.family+' '+m.params.level+'x'+m.gain));
+  ok('song light level automation stays a level',
+   proj.song.autom.filter(a=>a.param==='level'&&lightMs.some(m=>m.id===a.mid)).every(a=>a.v>=0&&a.v<=1));
+  ok('light layer indices are distinct',new Set(lightMs.map(m=>m.layer)).size===lightMs.length,lightMs.map(m=>m.layer));
+  const spb78=Studio.barSteps(M78);
+  ok('7/8 section renders at 14 steps per bar',Object.keys(byInst).every(k=>{ const m=byInst[k];
+   const b=Studio.track(proj,m.id).find(x=>x.bar>=32); return !b||m.patterns[b.pat].spb===spb78; }));
+
+  // fill: the section's tail is its own drum block carrying the fill, crash on the next downbeat
+  const dtr=Studio.track(proj,byInst.drums.id);
+  const b0main=dtr.find(b=>b.bar===0), b0fill=dtr.filter(b=>b.bar>0&&b.bar<8)[0];
+  ok('fill: the main drum block starts the section',!!b0main&&b0main.bar===0,b0main);
+  ok('fill: a separate fill block ends it',!!b0fill&&b0fill.bar+b0fill.len===8,b0fill);
+  const fillPat=b0fill&&byInst.drums.patterns[b0fill.pat];
+  const noFill=b0main&&byInst.drums.patterns[b0main.pat];
+  ok('fill: the fill bar carries hits the plain bar does not',
+   !!fillPat&&!!noFill&&fillPat.notes.length!==noFill.notes.length||
+   (!!fillPat&&!!noFill&&JSON.stringify(fillPat.notes)!==JSON.stringify(noFill.notes)),
+   {fill:fillPat&&fillPat.notes.length,plain:noFill&&noFill.notes.length});
+  const nextBlock=dtr.find(b=>b.bar===8);
+  ok('fill: crash on the next downbeat',!!nextBlock&&byInst.drums.patterns[nextBlock.pat].notes.some(n=>n.s===0&&n.n===7));
+
+  // riser: a 2 bar FX note into bar 16 with an opening ramp, and a lights level ramp with it
+  const fx=byInst.fx;
+  ok('riser: an FX machine exists',!!fx);
+  const ftr=fx?Studio.track(proj,fx.id):[];
+  ok('riser: a 2 bar FX block ends the section',ftr.some(b=>b.bar===14&&b.len===2),ftr);
+  const rs=tl.barStep(14), re=tl.barStep(16);
+  const fxAut=proj.song.autom.filter(a=>fx&&a.mid===fx.id&&a.s>=rs&&a.s<re);
+  ok('riser: 8 ramp events in the last two bars',fxAut.length===8,fxAut.length);
+  ok('riser: the ramp opens',fxAut.length>1&&fxAut[fxAut.length-1].v>fxAut[0].v,fxAut.map(a=>a.v));
+  const lxAut=proj.song.autom.filter(a=>a.param==='level'&&a.s>=rs&&a.s<re&&lightMs.some(m=>m.id===a.mid));
+  ok('riser: the lights ramp 0.4 to 1',lxAut.length>=8&&Math.min.apply(null,lxAut.map(a=>a.v))===0.4&&Math.max.apply(null,lxAut.map(a=>a.v))===1,
+   {n:lxAut.length,min:Math.min.apply(null,lxAut.map(a=>a.v)),max:Math.max.apply(null,lxAut.map(a=>a.v))});
+
+  // drop: the drums and the bass stop 4 bars early, the pad holds
+  const dropD=Studio.track(proj,byInst.drums.id).filter(b=>b.bar>=16&&b.bar<24);
+  const dropDEnd=dropD.length?dropD[dropD.length-1].bar+dropD[dropD.length-1].len:0;
+  ok('drop: drums end 4 bars early',dropDEnd===20,dropDEnd);
+  if(byInst.bass){ const db=Studio.track(proj,byInst.bass.id).filter(b=>b.bar>=16&&b.bar<24);
+   ok('drop: bass ends 4 bars early',db.length&&db[db.length-1].bar+db[db.length-1].len===20,db); }
+  if(byInst.pad){ const dp=Studio.track(proj,byInst.pad.id).filter(b=>b.bar>=16&&b.bar<24);
+   ok('drop: the pad holds',dp.length&&dp[dp.length-1].bar+dp[dp.length-1].len===24,dp); }
+
+  // gap: the closing bar of section 3 loses its last beat, and the lights go with it
+  const gapD=Studio.track(proj,byInst.drums.id).find(b=>b.bar===31);
+  ok('gap: the last bar is its own block',!!gapD&&gapD.len===1,gapD);
+  const gapPat=gapD&&byInst.drums.patterns[gapD.pat];
+  const gspb=gapPat?gapPat.spb:16;
+  ok('gap: nothing sounds in the last beat',!!gapPat&&gapPat.notes.every(n=>n.s<gspb-4),
+   gapPat&&gapPat.notes.filter(n=>n.s>=gspb-4).map(n=>n.s));
+  const gapS=tl.barStep(32)-4;
+  ok('gap: a lights blackout on that beat',proj.song.autom.some(a=>a.s===gapS&&a.param==='level'&&a.v===0),gapS);
+
+  const cut=proj.song.autom.filter(a=>a.param==='cutoff');
+  ok('cutoff automation is written per section',cut.length>0);
+  ok('cutoff follows 0.25 + 0.65e',proj.song.autom.some(a=>a.param==='cutoff'&&Math.abs(a.v-(0.25+0.65*0.8))<0.02),cut.map(a=>a.v));
+
+  const songAudio=await renderProject(proj);
+  R.numbers.song={ peak:songAudio.peak, rms:songAudio.rms, bars:proj.song.bars, machines:proj.machines.length,
+   layers:lightMs.length, autom:proj.song.autom.length, insts:Object.keys(byInst).join(' ') };
+  ok('the song renders',songAudio.peak>0.3&&songAudio.peak<1.0,songAudio.peak);
+  say('song: '+proj.song.bars+' bars, '+proj.machines.length+' machines, '+lightMs.length+' light layers, '+proj.song.autom.length+' autom events, peak '+songAudio.peak);
+
+  // ---- 6) the same seed renders the same notes ---------------------------------------------------
+  const notesOf=(p)=>p.machines.map(m=>({ inst:m.inst||m.family, pats:Object.keys(m.patterns).sort().map(k=>m.patterns[k].notes) }));
+  const a1=JSON.stringify(notesOf(P.buildSong(jam2))), a2=JSON.stringify(notesOf(P.buildSong(jam2)));
+  ok('same seed, same notes',a1===a2,{len:a1.length});
+  const jam3=Studio.clone(jam2); jam3.seed=99;
+  ok('a different seed moves something',JSON.stringify(notesOf(P.buildSong(jam3)))!==a1);
+
+  // ---- 7) the arc and the starter ----------------------------------------------------------------
+  const arc4=P.arc(4), arc7=P.arc(7);
+  ok('arc(7) is the curve',JSON.stringify(arc7)===JSON.stringify(P.ARC),arc7);
+  ok('arc(4) spans the curve',arc4.length===4&&arc4[0]===0.15&&arc4[3]===0.2,arc4);
+  ok('arc(1)',P.arc(1).length===1);
+  R.numbers.arc4=arc4;
+  for(const st of P.STYLES){
+   const s=P.starter(st,0.6);
+   const slots=Object.keys(s.picks).filter(k=>s.picks[k]).map(k=>P.instrument(k).slot);
+   ok('starter '+st+' picks one per slot',slots.length===new Set(slots).size,slots);
+   ok('starter '+st+' fills the rack',slots.length>=4,slots.length);
+   ok('starter '+st+' picks three light layers',s.lights.length===3,s.lights.map(l=>l.id));
+   for(const en of [0.1,1.0]){ const hi=P.starter(st,en);
+    ok('starter '+st+' at e'+en+' still fills three light rows',hi.lights.length===3,hi.lights.map(l=>l.id)); }
+  }
+
+  R.ok=R.fails.length===0;
+  say(R.fails.length?('FAIL '+R.fails.length+':\n  '+R.fails.slice(0,25).join('\n  ')):'ALL ASSERTS PASS');
+ }catch(e){
+  R.fails.push('exception: '+(e&&e.message)); R.ok=false;
+  say('EXCEPTION '+(e&&e.stack||e));
+ }
+ window.PRESETS_TEST=R;
+})();
+</script>
+</body>
+</html>
