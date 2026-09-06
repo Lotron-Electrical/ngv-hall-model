@@ -653,9 +653,3 @@ Lloyd's own music and the light cues for it live on one clock. Three pieces:
 `tools/show_analyse.py sound/<track>.mp3` bakes the same cue file from an external track (beats,
 sections, bands, no cues), for a show cued by hand. `tools/show_pack.py <name>` turns the studio's
 WAV into the mp3 that ships (the WAV is gitignored).
-
-## Walls and canopy glass, 2026-09-06 (Lloyd: "more accurate")
-
-- The `walls` material no longer samples the bake's atlas. `stoneAlbedo()` in `photoMaterial` draws coursed stone in world space: course 0.30 m from the floor datum (`floorY` uniform, set once the GLB's floor is known), block 0.70 m running bond, 9 mm recessed joint, per-block tone, fine grain over a slow mottle. Base albedo (100,88,80) sRGB lands the noon + house render at ~(144,124,107) against the daylight photograph's (133,106,92)/(135,119,111), and the night render darker and warmer like the night photographs. Numbers from `E:/sitecapture-captures/ngv-site/agent-ref-walls/` (29 Aug audit). The atlas stays in the GLB (the bake freeze); set `stone` to 0 on the material to see it again.
-- Open: the cut openings in the walls (the north arcade, the gallery tiers) show the scene background through them; nothing is drawn behind. No tapestries.
-- `glassMaterial` (the canopy panes) no longer goes through the ACES tone map: a pane's colour is held (brightest channel capped at 1, the ratio kept) so daylight makes the glass brighter, not paler. Reference median saturation 0.56-0.80; the pieces file already carries 0.54.
