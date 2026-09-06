@@ -630,7 +630,8 @@ function applyDay(hour){
  const el=document.getElementById('tod'); if(el&&+el.value!==hour)el.value=hour;
  const hh=Math.floor(hour)%24, mm=Math.round((hour%1)*60);
  document.getElementById('todval').textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
- for(const m of photoMats){m.uniforms.day.value=lit.day; m.uniformsNeedUpdate=true;}
+ const sunV=sunVector(hour).v;
+ for(const m of photoMats){m.uniforms.day.value=lit.day; if(m.uniforms.sun)m.uniforms.sun.value.copy(sunV); m.uniformsNeedUpdate=true;}
  scene.background=finaleDark?SKY_BLACK:SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
  if(typeof updateBeams==='function')updateBeams(hour);
  for(const grp of [typeof court!=='undefined'?court:null, typeof eventGroup!=='undefined'?eventGroup:null]) if(grp)grp.traverse(o=>{ if(o.isMesh&&o.material.userData&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
@@ -731,19 +732,20 @@ function lsq3(S,T){ const M=[[...S[0],T[0]],[...S[1],T[1]],[...S[2],T[2]]];
 function fitPlaneUV(pts){ const S=[[0,0,0],[0,0,0],[0,0,0]],T=[0,0,0];
  for(const p of pts){ const r=[1,p.u,p.v]; for(let i=0;i<3;i++){ T[i]+=r[i]*p.y; for(let j=0;j<3;j++)S[i][j]+=r[i]*r[j]; } }
  return lsq3(S,T); }
-function canopyMaterial(rect){
+function canopyMaterial(rect,phase){
  const m=new THREE.ShaderMaterial({
   // same uniform names as photoMaterial, so the applyDay loop and the per-frame house/nLights
   // loop update this material in the same place they update every other photo surface
   uniforms:{house:{value:1},ambient:{value:AMBIENT},day:{value:0},
    dayGain:{value:dayGainOf('ceiling-glass-procedural')},ledGain:{value:LED_GAIN_GLASS},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},
-   rect:{value:new THREE.Vector4(rect[0],rect[1],rect[2],rect[3])}},
+   rect:{value:new THREE.Vector4(rect[0],rect[1],rect[2],rect[3])},
+   lat:{value:new THREE.Vector4(phase[0],phase[1],CANOPY.PU,CANOPY.PV)}},   // vertex phase + module: the joint lines are drawn from it
   vertexShader:`varying vec3 vPos;
    void main(){vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform float house, ambient, ledGain, day, dayGain; uniform int nLights;
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
-   uniform vec4 rect;
+   uniform vec4 rect; uniform vec4 lat;
    varying vec3 vPos;
    void main(){
     vec2 huv=vec2(dot(vPos.xz,vec2(${CANOPY.HU[0]},${CANOPY.HU[1]})), dot(vPos.xz,vec2(${CANOPY.HV[0]},${CANOPY.HV[1]})));
@@ -782,7 +784,25 @@ function canopyMaterial(rect){
     // the plate is matte warm-dark, not pure black (ref-vision 5: it reads black only when
     // silhouetted against the glass); lit from below it keeps a whisper of warmth
     vec3 Efront=vec3(ambient+0.22*house+0.14*day)*facet+ledc*0.20;
-    gl_FragColor=vec4(vec3(0.052,0.047,0.043)*Efront,1.0);
+    // (2026-09-06) THE JOINTS. The 224 panels: each bay is 2x2 sub-squares of ~3.7 m, each cut
+    // by both diagonals, so from below the steel shows as the ridge beam round the bay, the +
+    // cross through the vertex, the main X, and the diamond through the edge midpoints (the
+    // Hyde straight-up photo shows exactly this). Members ~140 mm, the ridge beam ~220 mm; they
+    // read as the same near-black as the concrete but crisper, with a flange edge that catches
+    // the light from below.
+    vec2 qb=(huv-lat.xy)/lat.zw; vec2 fb=qb-floor(qb+0.5); vec2 dm=abs(fb*lat.zw);   // metres from the vertex
+    float dCross=min(dm.x,dm.y);
+    float dDiag=min(abs(fb.x-fb.y),abs(fb.x+fb.y))*lat.z*0.7071;
+    float dDiam=abs(dm.x+dm.y-lat.z*0.5)*0.7071;
+    float dEdge=min(lat.z*0.5-dm.x,lat.w*0.5-dm.y);
+    float dJ=min(min(dCross,dDiag),dDiam);
+    float member=1.0-smoothstep(0.066,0.076,dJ);
+    float ridge=1.0-smoothstep(0.105,0.115,dEdge);
+    float steel=max(member,ridge);
+    float flange=max(smoothstep(0.052,0.062,dJ)*(1.0-smoothstep(0.062,0.072,dJ)), smoothstep(0.090,0.100,dEdge)*(1.0-smoothstep(0.100,0.110,dEdge)));
+    vec3 conc=vec3(0.052,0.047,0.043)*Efront;
+    vec3 stl=vec3(0.036,0.036,0.040)*Efront*(1.0+1.6*flange);
+    gl_FragColor=vec4(mix(conc,stl,steel),1.0);
     }
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -887,7 +907,7 @@ function buildProceduralCanopy(root){
  //     FITTED to the twelve column tops (u +58.3053 +/- 0.003, v +0.4556 +/- 0.086; the v
  //     scatter is the columns' own irregularity, which the ALIGN pass owns).
  const BOARD={du:-58.3053,dv:-0.4556};
- const mat=canopyMaterial([su0,sv0,su1,sv1]);
+ const mat=canopyMaterial([su0,sv0,su1,sv1],[ou,ov]);
  const mesh=new THREE.Mesh(geo,mat); mesh.name='canopy-procedural';
  root.add(mesh); solids.push(mesh);
  // 6. the measured hanging element at every column head: a matte near-black shallow drum
@@ -914,14 +934,20 @@ function buildProceduralCanopy(root){
  buildGlassPieces(root, {ou,ov,PU,PV,su0,sv0,su1,sv1,plane,planeAt,PUx,PUz,PVx,PVz,du:BOARD.du,dv:BOARD.dv});
 }
 
-// ============ THE GLASS, AS GEOMETRY (2026-09-01) ============
+// ============ THE GLASS, AS GEOMETRY (2026-09-01; slab look 2026-09-06) ============
 // Lloyd: "each coloured pane of glass is its own geometry and single colour ... all of the
 // black beams that connect everything together are not fuzzy but instead solid and black."
 // That is how the ceiling is built, so it is how it is modelled here. tools/pieces.bin holds
-// 21,041 panes traced from the board, each a polygon in hall metres with the one colour its
-// own texels voted for. They are lifted onto the coffer surface so a pane sits on whichever
-// facet it belongs to, and set a few millimetres proud of the plate so the plate reads as the
-// solid black between them. No texture is involved anywhere in the canopy now.
+// the traced panes (the count is printed at load), each a polygon in hall metres with the one
+// colour its own texels voted for. They are lifted onto the coffer surface so a pane sits on
+// whichever facet it belongs to, and set a few millimetres proud of the plate so the plate
+// reads as the solid black between them. No texture is involved anywhere in the canopy now.
+// (Lloyd, 2026-09-06: "each of the colours should be stained glass and translucent") A slab
+// is not a painted chip: the light comes THROUGH it. Every polygon is built as a body plus a
+// bevel ring (the hammer-chipped edge French left round every piece, which is what sparkles),
+// and the shader lights it as a dyed 25 mm slab: the sky or the void lights behind it, times
+// its transmission colour, streaked the way cast slab glass is, with the bevel scattering the
+// backlight white and the LED show below catching in the rough face.
 let glassMesh=null;
 function coffRelief(du,dv,PU,PV){
  // height above the funnel vertex at an offset (du,dv) from a coffer centre. The coffer is an
@@ -945,62 +971,155 @@ async function buildGlassPieces(root, F){
   console.warn('canopy: pieces.bin is not a piece file'); return; }
  const n=dv2.getUint32(4,true), u0=dv2.getFloat32(8,true), v0=dv2.getFloat32(12,true), mm=dv2.getUint16(16,true);
  let o=18;                                // 'NGVP' + u32 count + 2*f32 origin + u16 scale
- const pos=[], col=[];
+ const pos=[], col=[], aux=[];
  const PROUD=0.006;                        // the pane sits 6 mm below the plate face, toward the hall
+ const RIM=0.014;                          // the chipped bevel round a slab, ~14 mm wide seen from below
+ const lin=1/255;
+ // board (hall) coords -> this model's huv, then onto the coffer surface
+ const lift=(uu,vv)=>{ const hu=uu+F.du, hv=vv+F.dv;
+  const qu=(hu-F.ou)/F.PU, qv=(hv-F.ov)/F.PV;
+  const du=(qu-Math.round(qu))*F.PU, dvv=(qv-Math.round(qv))*F.PV;
+  const y=F.planeAt(hu,hv)+coffRelief(du,dvv,F.PU,F.PV)-PROUD;
+  return [hu*F.PUx+hv*F.PVx, y, hu*F.PUz+hv*F.PVz]; };
+ const hash=i=>{ let h=Math.imul(i+1,2654435761)>>>0; h^=h>>>15; h=Math.imul(h,2246822519)>>>0; h^=h>>>13; return (h>>>0)/4294967296; };
+ let kept=0, ringed=0;
  for(let i=0;i<n;i++){
   const r=dv2.getUint8(o), g=dv2.getUint8(o+1), b=dv2.getUint8(o+2), k=dv2.getUint8(o+3); o+=4;
-  const vs=[];
-  for(let j=0;j<k;j++){ const uu=u0+dv2.getUint16(o,true)/mm, vv=v0+dv2.getUint16(o+2,true)/mm; o+=4;
-   // board (hall) coords -> this model's huv, then onto the coffer surface
-   const hu=uu+F.du, hv=vv+F.dv;
-   const qu=(hu-F.ou)/F.PU, qv=(hv-F.ov)/F.PV;
-   const du=(qu-Math.round(qu))*F.PU, dvv=(qv-Math.round(qv))*F.PV;
-   const y=F.planeAt(hu,hv)+coffRelief(du,dvv,F.PU,F.PV)-PROUD;
-   vs.push([hu*F.PUx+hv*F.PVx, y, hu*F.PUz+hv*F.PVz]);
-  }
-  // fan-triangulate: approxPolyDP leaves these convex or very nearly, and a fan on a slab
-  // 70 mm across cannot go visibly wrong
-  const lin=(1/255);
-  for(let t=1;t<k-1;t++){
-   for(const q of [vs[0],vs[t],vs[t+1]]) pos.push(q[0],q[1],q[2]);
-   for(let c2=0;c2<3;c2++) col.push(r*lin,g*lin,b*lin);
+  const uv=[];
+  for(let j=0;j<k;j++){ uv.push([u0+dv2.getUint16(o,true)/mm, v0+dv2.getUint16(o+2,true)/mm]); o+=4; }
+  if(k<3)continue;
+  // centroid and signed area (the winding decides which way "inward" is)
+  let A=0,cu=0,cv=0;
+  for(let j=0;j<k;j++){ const p=uv[j],q=uv[(j+1)%k]; const w=p[0]*q[1]-q[0]*p[1]; A+=w; cu+=(p[0]+q[0])*w; cv+=(p[1]+q[1])*w; }
+  if(Math.abs(A)<2e-6)continue; A*=0.5; cu/=6*A; cv/=6*A;
+  // a pane whose centre lies beyond the snapped ridge perimeter would hang over the void band
+  const hcu=cu+F.du, hcv=cv+F.dv;
+  if(hcu<F.su0||hcu>F.su1||hcv<F.sv0||hcv>F.sv1)continue;
+  kept++;
+  const seed=hash(i);
+  // the bevel ring: every vertex slides inward along the bisector of its two edge normals.
+  // Small slabs keep a body: the inset is capped at a third of the slab's rough radius, and a
+  // ring that folds over itself (a sliver) is dropped for a plain body.
+  const ccw=A>0, rad=Math.sqrt(Math.abs(A)/Math.PI), rim=Math.min(RIM, rad*0.33);
+  const inner=[]; let ok=true;
+  for(let j=0;j<k&&ok;j++){ const p=uv[(j-1+k)%k], c=uv[j], q=uv[(j+1)%k];
+   const e1=[c[0]-p[0],c[1]-p[1]], e2=[q[0]-c[0],q[1]-c[1]]; const l1=Math.hypot(e1[0],e1[1]), l2=Math.hypot(e2[0],e2[1]);
+   if(l1<1e-5||l2<1e-5){ok=false;break;}
+   const sg=ccw?1:-1; const n1=[-e1[1]/l1*sg,e1[0]/l1*sg], n2=[-e2[1]/l2*sg,e2[0]/l2*sg];
+   let bx=n1[0]+n2[0], by=n1[1]+n2[1]; const bl=Math.hypot(bx,by); if(bl<1e-4){ok=false;break;}
+   bx/=bl; by/=bl; const ch=Math.max(0.4,bx*n1[0]+by*n1[1]);   // mitre: rim / cos(half angle), capped
+   inner.push([c[0]+bx*rim/ch, c[1]+by*rim/ch]); }
+  if(ok){ let Ai=0; for(let j=0;j<k;j++){ const p=inner[j],q=inner[(j+1)%k]; Ai+=p[0]*q[1]-q[0]*p[1]; } Ai*=0.5;
+   if((Ai>0)!==(A>0)||Math.abs(Ai)<0.2*Math.abs(A))ok=false; }
+  const emit=(P,e)=>{ pos.push(P[0],P[1],P[2]); col.push(r*lin,g*lin,b*lin); aux.push(hcu,hcv,seed,e); };
+  const outerW=uv.map(p=>lift(p[0],p[1]));
+  if(ok){ ringed++;
+   const innerW=inner.map(p=>lift(p[0],p[1]));
+   for(let j=0;j<k;j++){ const j2=(j+1)%k;
+    emit(outerW[j],0); emit(outerW[j2],0); emit(innerW[j2],1);
+    emit(outerW[j],0); emit(innerW[j2],1); emit(innerW[j],1); }
+   for(let t=1;t<k-1;t++){ emit(innerW[0],1); emit(innerW[t],1); emit(innerW[t+1],1); }
+  } else {
+   // fan-triangulate the body alone; its whole face reads as bevel-free glass
+   for(let t=1;t<k-1;t++){ emit(outerW[0],0.6); emit(outerW[t],0.6); emit(outerW[t+1],0.6); }
   }
  }
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
  geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(col),3));
+ geo.setAttribute('aux',new THREE.BufferAttribute(new Float32Array(aux),4));
  geo.computeBoundingBox(); geo.computeBoundingSphere();
  const gm=glassMaterial();
  glassMesh=new THREE.Mesh(geo,gm); glassMesh.name='canopy-glass-pieces';
- root.add(glassMesh); solids.push(glassMesh);
+ // not in solids: the plate 6 mm behind it already stops the eye, and the fly-mode ray would
+ // otherwise test every one of the panes' triangles on each move
+ root.add(glassMesh);
  if(canopy) canopy.glass=glassMesh;
- console.info(`canopy glass: ${n} panes, ${pos.length/9} triangles, lifted onto the coffers`);
+ console.info(`canopy glass: ${n} panes in the file, ${kept} inside the plate (${ringed} with a bevel ring), ${pos.length/9} triangles, lifted onto the coffers`);
  sceneDirty=true;
 }
 function glassMaterial(){
- // Backlit: the panes carry their own colour and the light arrives from ABOVE them, so they
- // are emissive rather than shaded. Day and night move the level, not the hue.
+ // A dyed slab lit from behind. The traced colour is the slab's transmission; what shines
+ // through it is the sky by day (each facet of a coffer sees a different share of the sun,
+ // which is why the four faces of a bay read at different brightness in every daylight photo)
+ // and the warm lamps in the roof void at night, which the house circuit switches. Inside the
+ // slab the light is streaked along the pour and seeded with fine grain, fixed to the piece so
+ // no two match; the chipped bevel scatters the backlight white; the LED show below catches in
+ // the rough face and its bevel. Nothing here is transparent in the depth sense: there is only
+ // the void behind a pane, so the look is made by the light, not by blending.
  const m=new THREE.ShaderMaterial({
-  uniforms:{house:{value:1},ambient:{value:AMBIENT},day:{value:0},
+  uniforms:{house:{value:1},ambient:{value:AMBIENT},day:{value:0},sun:{value:new THREE.Vector3(0,1,0)},
    dayGain:{value:dayGainOf('ceiling-glass-procedural')},ledGain:{value:LED_GAIN_GLASS},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex}},
-  vertexShader:`varying vec3 vCol; varying vec3 vPos;
-   void main(){vCol=color; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz;
+  vertexShader:`attribute vec4 aux; varying vec3 vCol; varying vec3 vPos; varying vec4 vAux;
+   void main(){vCol=color; vAux=aux; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz;
     gl_Position=projectionMatrix*viewMatrix*wp;}`,
-  fragmentShader:`uniform float house, ambient, day, dayGain, ledGain; uniform int nLights;
+  fragmentShader:`uniform float house, ambient, day, dayGain, ledGain; uniform int nLights; uniform vec3 sun;
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
-   varying vec3 vCol; varying vec3 vPos;
+   varying vec3 vCol; varying vec3 vPos; varying vec4 vAux;
+   float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+   float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+    float a=hash21(i), b=hash21(i+vec2(1.0,0.0)), c=hash21(i+vec2(0.0,1.0)), d=hash21(i+vec2(1.0,1.0));
+    return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
    void main(){
-    // the same gentle exposure map the board used: a pane is already a lit colour, so the
-    // house+day term moves it over a modest range instead of multiplying it outright
-    float Ld=house+ambient+day*dayGain;
-    float lit=clamp(0.38+0.30*(Ld-1.0),0.20,1.18);
-    vec3 led=vec3(0.0);
+    vec2 huv=vec2(dot(vPos.xz,vec2(${CANOPY.HU[0]},${CANOPY.HU[1]})), dot(vPos.xz,vec2(${CANOPY.HV[0]},${CANOPY.HV[1]})));
+    // 1. the slab's transmission. The bake that the colours were traced from washes them out;
+    //    slab glass is deeply dyed, so the minor channels are pushed down with the hue kept,
+    //    and a slab with no chroma to speak of is clear glass, not grey.
+    vec3 c=vCol; float mx=max(c.r,max(c.g,c.b)), mn=min(c.r,min(c.g,c.b));
+    float chroma=(mx-mn)/max(mx,1e-3);
+    // the more washed the trace, the harder its minor channels are pushed: a lavender trace is
+    // a violet slab, a peach one is orange; a trace with real chroma is nearly left alone
+    float gam=1.0+2.6*(1.0-chroma);
+    vec3 T=mx>1e-4?mx*pow(c/mx,vec3(gam)):c;
+    float clearish=1.0-smoothstep(0.06,0.20,chroma);
+    T=mix(T,vec3(0.94,0.96,0.985),clearish*0.92);
+    // every slab is luminous when backlit: a dark trace is an underexposed patch of the bake,
+    // not dark glass, so its level is lifted toward the luminous range
+    float lift=clamp(0.72/max(mx,0.05),1.0,3.0);
+    T*=mix(1.0,lift,0.8);
+    // a dyed slab passes less light than a clear one (the photographs blow the clear pieces
+    // to white while the reds and blues stay deep): the more chroma, the lower the transmission
+    T*=mix(1.0,0.62,smoothstep(0.15,0.75,chroma));
+    // 2. what shines through: the sky (this facet's share of the sun), the void lamps, night glow
+    vec3 nUp=normalize(cross(dFdx(vPos),dFdy(vPos))); if(nUp.y<0.0)nUp=-nUp;
+    float sunF=clamp(dot(nUp,sun),0.0,1.0);
+    vec3 sky=vec3(0.93,0.965,1.04)*(day*dayGain*0.72)*(0.50+0.60*sunF);
+    vec3 lamps=vec3(1.0,0.86,0.66)*house*0.95;
+    vec3 back=sky+lamps+vec3(0.030,0.033,0.040)+vec3(ambient);
+    // 3. inside the slab: streaks along the pour, fine seeds, fixed to the piece
+    float seed=vAux.z*37.0, ang=vAux.z*6.2832;
+    vec2 q=huv-vAux.xy; vec2 sq=vec2(cos(ang)*q.x-sin(ang)*q.y, sin(ang)*q.x+cos(ang)*q.y);
+    float streak=vnoise(vec2(sq.x*45.0,sq.y*12.0)+seed);
+    float grain=vnoise(huv*170.0+seed*3.0);
+    float bodyV=0.82+0.22*streak+0.12*grain;
+    // 4. the bevel: a dark hair where glass meets concrete, then the bright scattering chip
+    float e=vAux.w;
+    float lip=smoothstep(0.0,0.12,e);
+    float rim=smoothstep(0.02,0.30,e)*(1.0-smoothstep(0.30,1.0,e));
+    vec3 L=T*back*bodyV*lip;
+    L+=mix(T,vec3(1.0),0.75)*back*rim*0.62;
+    // 5. the LED show below: the closed-form vertical-segment integral the plate uses, on the
+    //    underside; the rough face and the bevel throw some of it back down, in the slab's colour
+    vec3 nd=-nUp; vec3 led=vec3(0.0);
     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
-     vec3 v=lightPos[i].xyz-vPos; float d2=max(dot(v,v),0.05);
-     led+=lightCol[i].rgb*(0.25/d2); }
-    vec3 col=vCol*lit+vCol*led*ledGain*0.35;
-    gl_FragColor=vec4(col,1.0);
+     vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
+     float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float cc=dot(v,v); float ee=v.y;
+     float aN=dot(nd,v); float bN=nd.y;
+     float t0=0.0, t1=h;
+     if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
+     else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
+     else if(aN<=0.0) t1=t0;
+     float kk=(aN-bN*ee)/hd2;
+     float g0=(kk*(t0+ee)-bN)*inversesqrt(max(cc+2.0*ee*t0+t0*t0,1e-6));
+     float g1=(kk*(t1+ee)-bN)*inversesqrt(max(cc+2.0*ee*t1+t1*t1,1e-6));
+     float I=max(g1-g0,0.0)/h;
+     float az=atan(-v.z,-v.x);
+     float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
+     led+=lightCol[i].rgb*(I*blade); }
+    led=led/(1.0+0.35*dot(led,vec3(0.2126,0.7152,0.0722)));
+    L+=(T*0.55+vec3(0.05))*led*ledGain*(1.6+2.0*rim)*lip;
+    gl_FragColor=vec4(L,1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
