@@ -662,6 +662,45 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
 - Bags: any bag (empty, part full `Take rubbish bag (n/8)`, full) can be carried and put down;
   the helper skips a bag the player is carrying. Proof: `tools/game-inventory.mjs`.
 
+### The canopy as slab glass (Lloyd, 2026-09-06: "each of the colours should be stained glass and translucent")
+- WHAT IT WAS: every pane in `tools/pieces.bin` drew as one flat emissive colour, opaque, the
+  same by day and night, 6 mm under a black plate. That reads as a texture. The panes are 6,378
+  triangles/quads covering ~15% of the field (real: ~10,000 slabs, 35-40%).
+- WHAT IT IS NOW (`buildGlassPieces` + `glassMaterial` in index.html): each polygon becomes a
+  body plus a bevel ring (vertices slid inward ~14 mm along the bisectors, capped at a third of
+  the slab's radius; slivers fall back to a plain fan). The `aux` attribute carries the piece's
+  huv centre, a per-piece seed and the bevel coordinate (0 outer edge, 1 body). The fragment
+  shader: (1) purifies the traced colour into a transmission colour (minor channels pushed down
+  harder the more washed the trace, near-grey traces become clear glass, dark traces are lifted:
+  a dark trace is an underexposed patch of the bake, not dark glass; dyed slabs pass less than
+  clear ones), (2) computes what shines through: sky = day x dayGain x (0.5 + 0.6 x facet.sun)
+  so the four faces of a bay differ under the sun, lamps = warm x house, plus a night floor,
+  (3) streaks the body along a per-piece pour direction and adds fine grain (interior mottle
+  about 8-9 %, as measured), (4) darkens the last 10-15 mm softly to about a third (measured on
+  the 4K balcony stills; there is NO continuous bright rim on the real slabs) and throws short
+  white glints on a few per cent of the edge, seeded per piece, (5) adds the LED show below with
+  the plate's closed-form segment integral, stronger where the facets glint. `applyDay` pushes
+  the sun vector into any material with a `sun` uniform. The plate concrete is neutral
+  near-black (29,26,28 sRGB in the photographs), not brown. Numbers:
+  E:/sitecapture-captures/ngv-site/agent-ref-ceiling/reference/reference-stats.json (track C,
+  2026-09-06; the lf02 hue table there is bloom-biased, use the close-up 2 transmission set).
+- THE PLATE draws the 224-panel steel from the lattice phase (`lat` uniform): ridge beam round
+  each bay (~220 mm), the + cross through the vertex, the main X and the diamond through the
+  edge midpoints (~140 mm), each with a lit flange line. Bays are 2x2 sub-squares of ~3.7 m cut
+  by both diagonals (the Hyde 2004 straight-up photo; NGV: 224 triangular elements).
+- The glass mesh is NOT in `solids` (the plate 6 mm behind it stops the eye; 46k triangles per
+  fly-mode ray otherwise). Panes whose centre falls outside the snapped plate rect are dropped
+  at load (they hung over the void band).
+- PROOF: `node tools/ceiling-shots.mjs <out> <tag>` shoots day/dusk/night x up/slant/close from
+  inside install mode (the only camera a script can place); compare against
+  `scratchpad/ref/lf02.jpg` (Hyde) and Lloyd's b0cefe7f daylight shot. `tools/pieces_stats.py`
+  prints the pane file's numbers (count, coverage per bay, sizes, colours).
+- STILL OPEN (the "more accurate model" half): the pane layout itself. Sources on disk: the 4K
+  roof-void stills (E:/sitecapture-captures/ngv-video/void4k-register, posed in the void model:
+  true outlines, no colour), the bake atlas (blurry, ~half the cells traceable), the reference
+  photos (motifs, colour statistics). The tools/trackA_*.py, ceiling_ortho.py, ref_stats_*.py
+  scripts are that work in progress; the NGVP writer must land as `tools/trace_pieces.py`.
+
 ## The lightshow (2026-09-04)
 
 Lloyd's own music and the light cues for it live on one clock. Three pieces:

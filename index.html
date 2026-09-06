@@ -781,8 +781,8 @@ function canopyMaterial(rect,phase){
     vec3 f3=nrm; if(f3.y<0.0)f3=-f3;
     float facet=0.86+0.30*clamp(dot(f3,vec3(0.5511,0.7515,0.3507)),0.0,1.0);
     vec3 ledc=led/(1.0+0.55*dot(led,vec3(0.2126,0.7152,0.0722)));
-    // the plate is matte warm-dark, not pure black (ref-vision 5: it reads black only when
-    // silhouetted against the glass); lit from below it keeps a whisper of warmth
+    // the plate is matte near-black, not pure black (ref-vision 5: it reads black only when
+    // silhouetted against the glass); lit from below it shows its grey
     vec3 Efront=vec3(ambient+0.22*house+0.14*day)*facet+ledc*0.20;
     // (2026-09-06) THE JOINTS. The 224 panels: each bay is 2x2 sub-squares of ~3.7 m, each cut
     // by both diagonals, so from below the steel shows as the ridge beam round the bay, the +
@@ -800,8 +800,10 @@ function canopyMaterial(rect,phase){
     float ridge=1.0-smoothstep(0.105,0.115,dEdge);
     float steel=max(member,ridge);
     float flange=max(smoothstep(0.052,0.062,dJ)*(1.0-smoothstep(0.062,0.072,dJ)), smoothstep(0.090,0.100,dEdge)*(1.0-smoothstep(0.100,0.110,dEdge)));
-    vec3 conc=vec3(0.052,0.047,0.043)*Efront;
-    vec3 stl=vec3(0.036,0.036,0.040)*Efront*(1.0+1.6*flange);
+    // the concrete reads neutral near-black from below in every photograph (29,26,28 to 33,34,37
+    // sRGB under daylight, reference-stats.json), not brown
+    vec3 conc=vec3(0.047,0.046,0.047)*Efront;
+    vec3 stl=vec3(0.034,0.034,0.038)*Efront*(1.0+1.6*flange);
     gl_FragColor=vec4(mix(conc,stl,steel),1.0);
     }
     #include <tonemapping_fragment>
@@ -1084,7 +1086,7 @@ function glassMaterial(){
     // 2. what shines through: the sky (this facet's share of the sun), the void lamps, night glow
     vec3 nUp=normalize(cross(dFdx(vPos),dFdy(vPos))); if(nUp.y<0.0)nUp=-nUp;
     float sunF=clamp(dot(nUp,sun),0.0,1.0);
-    vec3 sky=vec3(0.93,0.965,1.04)*(day*dayGain*0.72)*(0.50+0.60*sunF);
+    vec3 sky=vec3(0.93,0.965,1.04)*(day*dayGain*0.72)*(0.68+0.38*sunF);
     vec3 lamps=vec3(1.0,0.86,0.66)*house*0.95;
     vec3 back=sky+lamps+vec3(0.030,0.033,0.040)+vec3(ambient);
     // 3. inside the slab: streaks along the pour, fine seeds, fixed to the piece
@@ -1093,12 +1095,18 @@ function glassMaterial(){
     float streak=vnoise(vec2(sq.x*45.0,sq.y*12.0)+seed);
     float grain=vnoise(huv*170.0+seed*3.0);
     float bodyV=0.82+0.22*streak+0.12*grain;
-    // 4. the bevel: a dark hair where glass meets concrete, then the bright scattering chip
+    // 4. the edge. Measured on the 4K balcony stills and the Hyde photo (reference-stats.json,
+    //    2026-09-06): the glass darkens softly over the last 10-15 mm to about a third of the body,
+    //    there is NO continuous bright rim, and the chipped facets throw short glints on a few per
+    //    cent of the edge. So: a soft dark band, and blobs of white where a facet happens to face
+    //    the light, seeded per piece
     float e=vAux.w;
-    float lip=smoothstep(0.0,0.12,e);
-    float rim=smoothstep(0.02,0.30,e)*(1.0-smoothstep(0.30,1.0,e));
+    float lip=mix(0.34,1.0,smoothstep(0.0,0.75,e));
+    float band=1.0-smoothstep(0.08,0.55,e);
+    float glint=smoothstep(0.90,0.96,vnoise(huv*42.0+seed*7.0))*band;
     vec3 L=T*back*bodyV*lip;
-    L+=mix(T,vec3(1.0),0.75)*back*rim*0.62;
+    L+=mix(T,vec3(1.0),0.7)*back*glint*1.3;
+    float rim=glint;
     // 5. the LED show below: the closed-form vertical-segment integral the plate uses, on the
     //    underside; the rough face and the bevel throw some of it back down, in the slab's colour
     vec3 nd=-nUp; vec3 led=vec3(0.0);
