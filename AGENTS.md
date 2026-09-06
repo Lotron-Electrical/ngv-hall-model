@@ -618,7 +618,17 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   carried to the work); a bag is only disposed when full. F / the DROP button still drops anything.
 - ABOARD PICK-UP: `pickable()` (lights, boxes, wraps, full bags in reach, chosen by the smallest
   angle to the view direction, `aimed`) is offered before the lift's own prompts when aboard.
-- RETICLE: 26 px +, turns green (`#reticle.can`) when the action on offer can be run.
+- RETICLE DECIDES (Lloyd, 2026-09-06: "the reticle should determine what option we are given"):
+  `nearestAction` casts a ray from the view centre (3.4 m) against lights, boxes, bags, wraps,
+  pallets, the jack, the lift group, the skip and the column colliders; the first owner hit plus
+  what is in your hands decides the prompt (`player.aim` carries the hit). A miss falls back to
+  the nearest small item within about 8 degrees (bars are sampled along their length). Place
+  prompts stay position-based: the lift's controls and door, setting a pallet down, letting go of
+  the controls. Nothing in view = "Point at something". `findFitSlot` / `nextSlotNear` take a
+  column filter so a light fits on the column you point at. 26 px +, green (`#reticle.can`) when
+  the action can run. Proof `tools/game-doors-deck.mjs` (also doors, tags, sign, deck physics,
+  ceiling cap, readouts, ring); `game-drive` / `game-tap` now face the lift before expecting
+  "Get on lift".
 - DECK PHYSICS ("the lights can't clip when they are dropped onto the scissor lift"): `DECK_WIN`
   (1.2 x 0.55 inside the rail posts) and `HALF` per type; a body captured on the deck is clamped
   inside the rails by its half-extents and a bar turns to lie along the chassis; a body sliding on

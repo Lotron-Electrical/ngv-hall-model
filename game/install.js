@@ -132,9 +132,10 @@ export class Install {
   static FLAT = 2.0;
   static RISE = 1.1;
   static HANDS = 1.2;
-  findFitSlot(feet) {
+  findFitSlot(feet, column = null) {
     let best = null, dist = Infinity;
     for (const run of this.runs) {
+      if (column && run.column !== column) continue;
       const slot = this.nextForRun(run);
       if (!slot) continue;
       const flat = Math.hypot(slot.center.x - feet.x, slot.center.z - feet.z), dy = slot.center.y - (feet.y + Install.HANDS);
@@ -144,9 +145,10 @@ export class Install {
   }
   // the nearest run's next bar when none is in reach, with how far up or down it is: the prompt
   // says which way to move the deck instead of offering nothing
-  nextSlotNear(feet) {
+  nextSlotNear(feet, column = null) {
     let best = null, dist = Infinity;
     for (const run of this.runs) {
+      if (column && run.column !== column) continue;
       const slot = this.nextForRun(run);
       if (!slot) continue;
       const flat = Math.hypot(slot.center.x - feet.x, slot.center.z - feet.z);

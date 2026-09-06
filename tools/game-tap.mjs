@@ -20,7 +20,7 @@ await send('Emulation.setTouchEmulationEnabled',{enabled:true});
 await send('Page.enable'); await send('Runtime.enable'); await send('Page.navigate',{url});
 await enter(ev,sleep);
 await ev(`document.querySelector('#start').click()`); await sleep(400);
-await ev(`(()=>{const g=ngv.game,L=g.lift;const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=1.35;})()`); await sleep(300);
+await ev(`(()=>{const g=ngv.game,L=g.lift;const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=Math.atan2(-(L.pos.x-o.x),-(L.pos.z-o.z));g.player.pitch=-0.2;})()`); await sleep(300);
 const box=await ev(`(()=>{const r=document.querySelector('#prompt').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:innerWidth-r.right,text:document.querySelector('#prompt').textContent,action:!!document.querySelector('#action')}})()`);
 console.log('prompt box', JSON.stringify(box));
 if(box.action) console.log('FAIL: #action still in the DOM');

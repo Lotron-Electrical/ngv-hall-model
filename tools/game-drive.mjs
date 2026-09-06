@@ -26,7 +26,7 @@ const act=async()=>{ await ev('ngv.game.player.actionQueued=true'); await sleep(
 const key=async(codes,ms)=>{ await ev(`for(const c of ${JSON.stringify(codes)}) ngv.game.player.keys.add(c)`); await sleep(ms); await ev(`for(const c of ${JSON.stringify(codes)}) ngv.game.player.keys.delete(c)`); };
 const st=()=>ev(`(()=>{const L=ngv.game.lift,P=ngv.game.player;return {aboard:L.aboard,driving:L.driving,deck:[+L.deckLocal.x.toFixed(2),+L.deckLocal.y.toFixed(2)],speed:+L.speed.toFixed(2),steer:+L.steer.toFixed(2),yaw:+L.yaw.toFixed(2),pyaw:+P.yaw.toFixed(2),h:+L.height.toFixed(2),pos:[+L.pos.x.toFixed(2),+L.pos.z.toFixed(2)],ppos:[+P.pos.x.toFixed(2),+P.pos.y.toFixed(2),+P.pos.z.toFixed(2)]}})()`);
 // stand at the back of the lift, looking along it
-await ev(`(()=>{const g=ngv.game,L=g.lift;L.yaw=2.92;L.refresh();const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=1.35;g.player.pitch=0;})()`); await sleep(300);
+await ev(`(()=>{const g=ngv.game,L=g.lift;L.yaw=2.92;L.refresh();const o=L.offboardWorld();g.player.pos.set(o.x,g.world.floorY,o.z);g.player.yaw=Math.atan2(-(L.pos.x-o.x),-(L.pos.z-o.z));g.player.pitch=-0.2;})()`); await sleep(300);
 console.log('1 prompt:', await prompt()); await act(); await sleep(120); console.log('   mid-climb:', await prompt());
 // (2026-09-04) getting on is a climb: wait it out, watching the door open (a right angle) and the eye stay standing (the door is full height)
 // (Lloyd, 2026-09-04: "no clipping please") every 50 ms the camera point is tested against the world box of every lift mesh (rails, gate, plate, ladder, arms): a hit is a fail
