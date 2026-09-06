@@ -648,6 +648,20 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   a ring and `#wprox` dots (green / amber under 0.8 / red under 0.35 m), 5 Hz while driving, plus
   the deck height text `#wht`.
 
+### Inventory + movable bags (Lloyd, 2026-09-06)
+- `player.inv` is four slots; `player.carry` is a getter/setter over the ACTIVE slot (`active`),
+  so every existing `player.carry = x / null` still works: null clears the active slot and moves
+  the hand to the next occupied one, an object replaces what is in hand (the unwrap). Pick-ups go
+  through `player.stow(item)` (first free slot, becomes active). `Player.BULK`: a box is two of
+  the four units, everything else one; `canTake(type)` gates every pick-up ("Hands full"). Only
+  the active item's mesh is visible in the hands (`showHands`). Keys 1-4 and a tap on `#inv`
+  (`data-slot`) select; F / DROP drops the active one. `#inv` sits under the stats block
+  (top 212 px) on every layout; redrawn only when its signature changes (`G.invSig`). Stamina
+  load reads the whole inventory. Action order in `nearestAction`: hands x target combos, then the
+  target as a pick-up when there is room, then hand-only fallbacks.
+- Bags: any bag (empty, part full `Take rubbish bag (n/8)`, full) can be carried and put down;
+  the helper skips a bag the player is carrying. Proof: `tools/game-inventory.mjs`.
+
 ## The lightshow (2026-09-04)
 
 Lloyd's own music and the light cues for it live on one clock. Three pieces:

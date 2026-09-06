@@ -243,7 +243,7 @@ function carry(player, item) {
     item.mesh.visible = true;
   }
   item.carried = true;
-  player.carry = item;
+  player.stow(item);
 }
 
 // two rows of six, N along the near wall and S along the far one, 2.3 m apart, labels to the aisle
@@ -338,44 +338,53 @@ export function nearestAction(player, lift, install, items) {
   const inReach = hit && hit.dist < 2.7;
   const stepsNear = (() => { const o = lift.offboardWorld(); return Math.hypot(o.x - p.x, o.z - p.z) < 1.7; })();
   const held = player.carry;
+  const room = (type) => player.canTake(type);
 
   // holding the controls: nothing else until you let go
   if (lift.aboard && lift.driving) return { label: 'Let go of the controls', run: () => lift.letGo() };
 
-  if (!held) {
-    if (k === 'light' && inReach) return { label: ref.type === 'wrapped' ? 'Pick up wrapped light' : 'Pick up light', run: () => pickUpLight(player, ref, items) };
+  // what is in your hands, against the thing in view
+  if (held) {
+    if (held.type === 'box' && k === 'lift' && !lift.aboard) return lift.height >= 0.3 ? { label: 'Lower the lift to load it', run: null } : lift.box ? { label: 'The deck already has a box', run: null } : { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
+    if ((held.type === 'box' || held.type === 'emptyBox' || (held.type === 'bag' && held.full)) && k === 'skip') return { label: `Dispose ${held.type === 'emptyBox' ? 'empty box' : held.type}`, run: () => disposeCarry(player, items) };
+    if (held.type === 'wrap' && k === 'bag' && inReach) return ref.full ? { label: 'That bag is full', run: null } : { label: 'Bag the wrap', run: () => bagWrap(player, ref, items) };
+    if (held.type === 'light' && k === 'column') {
+      const slot = install.findFitSlot(player.pos, ref.label);
+      if (slot) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
+      const nx = install.nextSlotNear(player.pos, ref.label);
+      if (nx && Math.abs(nx.dy) >= 1.1) { const up = nx.dy > 0; const m = Math.abs(nx.dy).toFixed(1);
+        const advice = !lift.aboard ? (up ? 'Take the lift up to it' : 'Crouch to it') : up ? 'Raise the deck' : lift.height > 0.05 ? 'Lower the deck' : 'Get off: that one goes in from the floor';
+        return { label: `Next light ${nx.slot.column} gap ${nx.slot.gap} is ${m} m ${up ? 'above' : 'below'} your hands<br>${advice}`, run: () => dropCarry(player, items), hint: true }; }
+      if (nx) return { label: `Get closer to ${nx.slot.column} gap ${nx.slot.gap}`, run: null, hint: true };
+      return { label: `Column ${ref.label} is done`, run: null, hint: true };
+    }
+  }
+
+  // the thing in view, when there is room for it in the inventory
+  {
+    if (k === 'light' && inReach) return room(ref.type) ? { label: ref.type === 'wrapped' ? 'Pick up wrapped light' : 'Pick up light', run: () => pickUpLight(player, ref, items) } : { label: 'Hands full', run: null };
+    if (k === 'box' && inReach && !room(ref.lights > 0 ? 'wrapped' : 'emptyBox')) return { label: 'Hands full', run: null };
     if (k === 'box' && inReach) {
       if (ref === lift.box && !lift.aboard) return lift.height < 0.3 ? { label: ref.lights > 0 ? 'Take box off the lift' : 'Take empty box off the lift', run: () => ref.lights > 0 ? takeBoxOffLift(player, lift, items) : takeEmptyLiftBox(player, lift, items) } : { label: 'Lower the lift to reach the box', run: null };
       if (ref === lift.box) return ref.lights > 0 ? { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, ref, items) } : { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
       return ref.lights > 0 ? { label: 'Take wrapped light from box', run: () => takeLightFromBox(player, ref, items) } : { label: 'Take empty box', run: () => carryEmptyBox(player, ref, items) };
     }
-    if (k === 'bag' && inReach) return { label: ref.full ? 'Take rubbish bag' : 'Take empty bag', run: () => carry(player, ref) };
-    if (k === 'wrap' && inReach) return { label: 'Pick up wrap', run: () => carry(player, ref) };
-    if (k === 'pallet' && hit.dist < 3.0) {
+    // (Lloyd, 2026-09-06: "be able to move the rubbish containers that we put the wrap in") any
+    // bag, empty, part full or full, can be carried
+    if (k === 'bag' && inReach) return !room('bag') ? { label: 'Hands full', run: null } : { label: ref.full ? 'Take rubbish bag (full)' : ref.wraps > 0 ? `Take rubbish bag (${ref.wraps}/8)` : 'Take empty bag', run: () => carry(player, ref) };
+    if (k === 'wrap' && inReach) return room('wrap') ? { label: 'Pick up wrap', run: () => carry(player, ref) } : { label: 'Hands full', run: null };
+    if (k === 'pallet' && hit.dist < 3.0 && !held) {
       if (items.jack.held && !items.jack.carrying) return ref.mesh.position.distanceTo(items.jack.mesh.position) < 1.25 ? (player.body && !player.body.canLift(15) ? { label: 'Too puffed to jack a pallet: rest a moment', run: null } : { label: `Lift ${ref.column} pallet`, run: () => items.jack.carrying = ref }) : { label: `Walk the jack under the ${ref.column} pallet`, run: null };
       if (ref.boxes <= 0) return { label: `${ref.column} pallet is empty`, run: null };
       return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a box: rest a moment', run: null } : { label: `Take box from ${ref.column} pallet`, run: () => spawnBox(player, items, ref) };
     }
-    if (k === 'jack' && inReach && !items.jack.by) return { label: 'Take pallet jack', run: () => items.jack.held = true };
-    if (k === 'column') return { label: `Column ${ref.label}`, run: null, hint: true };
-  } else {
-    if (held.type === 'box' && k === 'lift' && !lift.aboard) return lift.height >= 0.3 ? { label: 'Lower the lift to load it', run: null } : lift.box ? { label: 'The deck already has a box', run: null } : { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
-    if ((held.type === 'box' || held.type === 'emptyBox' || (held.type === 'bag' && held.full)) && k === 'skip') return { label: `Dispose ${held.type === 'emptyBox' ? 'empty box' : held.type}`, run: () => disposeCarry(player, items) };
-    if (held.type === 'wrap' && k === 'bag' && inReach) return ref.full ? { label: 'That bag is full', run: null } : { label: 'Bag the wrap', run: () => bagWrap(player, ref, items) };
+    if (k === 'jack' && inReach && !items.jack.by && !held) return { label: 'Take pallet jack', run: () => items.jack.held = true };
+    if (k === 'column' && !held) return { label: `Column ${ref.label}`, run: null, hint: true };
+  }
+  // the hands alone
+  if (held) {
     if (held.type === 'wrapped') return { label: 'Unwrap light', run: () => unwrapLight(player, items) };
-    if (held.type === 'light') {
-      if (k === 'column') {
-        const slot = install.findFitSlot(player.pos, ref.label);
-        if (slot) return { label: `Fit light ${slot.column} gap ${slot.gap}`, run: () => fitLight(slot, player, install, items) };
-        const nx = install.nextSlotNear(player.pos, ref.label);
-        if (nx && Math.abs(nx.dy) >= 1.1) { const up = nx.dy > 0; const m = Math.abs(nx.dy).toFixed(1);
-          const advice = !lift.aboard ? (up ? 'Take the lift up to it' : 'Crouch to it') : up ? 'Raise the deck' : lift.height > 0.05 ? 'Lower the deck' : 'Get off: that one goes in from the floor';
-          return { label: `Next light ${nx.slot.column} gap ${nx.slot.gap} is ${m} m ${up ? 'above' : 'below'} your hands<br>${advice}`, run: () => dropCarry(player, items), hint: true }; }
-        if (nx) return { label: `Get closer to ${nx.slot.column} gap ${nx.slot.gap}`, run: null, hint: true };
-        return { label: `Column ${ref.label} is done`, run: null, hint: true };
-      }
-      return { label: lift.aboard ? 'Put light down on the deck' : 'Put light down', run: () => dropCarry(player, items) };
-    }
+    if (held.type === 'light') return { label: lift.aboard ? 'Put light down on the deck' : 'Put light down', run: () => dropCarry(player, items) };
     if (held.type === 'box') return { label: lift.aboard ? 'Put box down on the deck' : 'Set down box', run: () => dropCarry(player, items) };
     if (held.type === 'emptyBox') return { label: 'Put empty box down', run: () => dropCarry(player, items) };
     if (held.type === 'bag') return { label: held.full ? 'Put rubbish bag down' : 'Put empty bag down', run: () => dropCarry(player, items) };
@@ -412,7 +421,7 @@ function takeLightFromBox(player, box, items) {
   if (box.mesh?.material?.color) box.mesh.material.color.setHex(box.lights > 0 ? 0x9a7b55 : 0x6f6250);
   const mesh = makeCarryLight(true);
   player.camera.add(mesh);
-  player.carry = { type: 'wrapped', mesh };
+  player.stow({ type: 'wrapped', mesh });
   if (box.lights <= 0) box.type = 'emptyBox';
   saveLooseBoxPosition(box, items);
 }
@@ -507,7 +516,7 @@ function pickUpLight(player, loose, items) {
   items.lights.splice(items.lights.indexOf(loose), 1);
   const mesh = makeCarryLight(loose.type === 'wrapped');
   player.camera.add(mesh);
-  player.carry = { type: loose.type, mesh };
+  player.stow({ type: loose.type, mesh });
 }
 
 export function dropCarry(player, items) {

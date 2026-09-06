@@ -152,7 +152,7 @@ export class Crew {
     }
     // 3. wrap on the floor near the column: bag it; a full bag: to the skip
     if (H.carry && H.carry.type === 'bag') { if (walk(this.world.skip, 2.6)) { H.carry.disposed = true; H.carry.mesh.removeFromParent(); H.carry = null; } return; }
-    if (H.carry && H.carry.type === 'wrap') { const bag = I.bags.find((b) => !b.full && !b.disposed); if (!bag) { this.putDown(H, H.pos); return; } if (walk(bag.mesh.position, 1.2)) { bag.wraps++; H.carry.bagged = true; H.carry.mesh.removeFromParent(); H.carry = null; if (bag.wraps >= 8) { bag.full = true; bag.mesh.material.color.setHex(0x41523d); } } return; }
+    if (H.carry && H.carry.type === 'wrap') { const bag = I.bags.find((b) => !b.full && !b.disposed && !b.carried); if (!bag) { this.putDown(H, H.pos); return; } if (walk(bag.mesh.position, 1.2)) { bag.wraps++; H.carry.bagged = true; H.carry.mesh.removeFromParent(); H.carry = null; if (bag.wraps >= 8) { bag.full = true; bag.mesh.material.color.setHex(0x41523d); } } return; }
     const wrap = I.wraps.find((w) => !w.bagged && !w.carried && inHall(w.mesh));
     const fullBag = I.bags.find((b) => b.full && !b.disposed && !b.carried);
     const openAtFoot = I.boxes.filter((b) => !b.carried && !b.onLift && !b.disposed && b.lights > 0 && b.mesh.position.distanceTo(foot) < 3).length;

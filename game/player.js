@@ -17,13 +17,31 @@ export class Player {
     this.liftDown = false;
     this.onLift = false;
     this.airborne = false; this.vy = 0; this.jumpQueued = false; this.jumpsLeft = 2;   // the jump: 3.4 m/s up is a 0.6 m hop under 9.8 m/s2; two per flight
-    this.carry = null;
+    // (Lloyd, 2026-09-06: "we should have an inventory system") four slots; `carry` is the ACTIVE
+    // slot, which is what the hands show and what every put-down / fit / unwrap acts on. A box is
+    // bulky (two units of the four), everything else is one. Number keys or a tap pick the slot
+    this.inv = [null, null, null, null];
+    this.active = 0;
     this.speedScale = 1;
     // (2026-09-04) install mode inside the sim can be switched off again, so every listener bind()
     // adds is remembered here and undone by unbind(): a second toggle otherwise runs the keys and
     // the sticks through two players at once
     this.off = [];
   }
+
+  static BULK = { box: 2, emptyBox: 1, light: 1, wrapped: 1, bag: 1, wrap: 1 };
+  get carry() { return this.inv[this.active] || null; }
+  set carry(v) {
+    if (!v) { this.inv[this.active] = null; const j = this.inv.findIndex(Boolean); if (j >= 0) this.active = j; }
+    else this.inv[this.active] = v;
+    this.showHands();
+  }
+  used() { return this.inv.reduce((n, it) => n + (it ? (Player.BULK[it.type] ?? 1) : 0), 0); }
+  canTake(type) { return this.inv.includes(null) && this.used() + (Player.BULK[type] ?? 1) <= 4; }
+  // put an item in a free slot and make it the one in hand
+  stow(item) { const i = this.inv.indexOf(null); if (i < 0) return false; this.inv[i] = item; this.active = i; this.showHands(); return true; }
+  select(i) { if (this.inv[i]) { this.active = i; this.showHands(); } }
+  showHands() { for (const [i, it] of this.inv.entries()) if (it && it.mesh) it.mesh.visible = i === this.active; }
 
   // add a listener and remember how to take it away again
   on(target, type, fn, opts) { target.addEventListener(type, fn, opts); this.off.push(() => target.removeEventListener(type, fn, opts)); }
@@ -56,6 +74,7 @@ export class Player {
       if (e.target?.matches?.('input, textarea')) return;   // typing a name in the crew panel is not a move (2026-09-05)
       if (e.code === 'KeyE') this.actionQueued = true;
       if (e.code === 'KeyF') this.dropQueued = true;
+      if (/^Digit[1-4]$/.test(e.code)) this.select(+e.code[5] - 1);
       if (e.code === 'KeyQ' && !e.repeat) this.modeQueued = true;   // the lift's fast / slow (2026-09-05)
       // (Lloyd, 2026-09-05: "add spacebar jump") on the floor Space is a jump; aboard the lift it
       // stays the deck's UP. One jump at a time, from the ground only
@@ -101,6 +120,7 @@ export class Player {
     // (Lloyd, 2026-09-04: "the messages that appear are better, can tap on them") the prompt is the button
     if (ui.prompt) this.on(ui.prompt, 'click', () => this.actionQueued = true);
     if (ui.drop) this.on(ui.drop, 'click', () => this.dropQueued = true);
+    if (ui.inv) this.on(ui.inv, 'click', (e) => { const b = e.target.closest('[data-slot]'); if (b) this.select(+b.dataset.slot); });
     if (ui.liftUp) { this.on(ui.liftUp, 'pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
       this.on(ui.liftUp, 'pointerup', () => this.liftUp = false);
       this.on(ui.liftUp, 'pointercancel', () => this.liftUp = false); }

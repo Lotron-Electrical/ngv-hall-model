@@ -238,6 +238,14 @@ body.playing #reticle{display:block}
 #installUi .stick i{position:absolute;left:24px;top:24px;width:32px;height:32px;border-radius:50%;background:#fff}
 #move{left:28px}
 #look{right:28px}
+/* (Lloyd, 2026-09-06: "we should have an inventory system") four slots, the one in hand outlined green; a tap or 1-4 picks */
+#inv{position:absolute;left:12px;top:212px;display:none;gap:6px;pointer-events:auto;z-index:4}   /* under the stats block, clear of the prompt, the sticks and the wheel plan on every layout */
+#inv .slot{width:50px;height:46px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#ddd;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;position:relative;text-align:center;overflow:hidden}
+#inv .slot span{color:#7CFF9A;font-size:10px}
+#inv .slot i{position:absolute;left:4px;top:2px;font-style:normal;font-size:9px;opacity:.5}
+#inv .slot.on{border-color:#7CFF9A;color:#fff;box-shadow:0 0 0 1px #7CFF9A inset}
+#inv .slot.empty{opacity:.45}
+body.playing #inv{display:flex}
 #drop{position:absolute;right:24px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
 body.carrying #drop{display:block}
 #liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
@@ -315,6 +323,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
   <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls. Outside #touch, so a desk sees it too -->
   <div id="deckh">DECK <b class="h">0.0 m</b> &nbsp; CEILING <b class="c">-</b></div>
+  <div id="inv"></div>
   <!-- (Lloyd, 2026-09-06) the plan grew a ring: #wprox holds one dot per probe direction, placed where the collider found something within 1.6 m of the chassis edge, green / amber / red by distance -->
   <div id="wheels"><svg viewBox="0 0 160 200" width="120" height="150" aria-hidden="true">
    <circle cx="80" cy="100" r="78" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.18)"/>
@@ -5245,7 +5254,7 @@ async function buildInstall(){
  const saved=CLKm.loadSave();
  const install=new INSTm.Install(G.group,RUNS,saved);
  const player=new PLm.Player(cam,cv);
- player.bind({prompt:document.getElementById('prompt'), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
+ player.bind({prompt:document.getElementById("prompt"), inv:document.getElementById("inv"), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
   drop:document.getElementById('drop'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
  const items=ITEMm.createItems(G.group,world,cam,W.collideWorld);
  const lift=new LIFTm.Lift(G.group,world.floorY); items.lift=lift;
@@ -5334,7 +5343,11 @@ function installStep(dt,now){
  dt=Math.min(0.05,dt);   // the game's own cap: a long frame must not teleport anyone through a wall
  const {player,lift,items,install,clock,world,fx,body,crew,snd}=G;
  G.dbg.dt=dt; G.dbg.frames++;
- const load=items.jack.held&&items.jack.carrying?3:(player.carry&&player.carry.type!=='wrap')||items.jack.held?2:player.carry?1:(lift.aboard?1:0);
+ const load=items.jack.held&&items.jack.carrying?3:player.inv.some(i=>i&&i.type!=='wrap')||items.jack.held?2:player.inv.some(Boolean)?1:(lift.aboard?1:0);
+ // the inventory strip, redrawn only when it changes
+ { const names={box:'BOX',emptyBox:'EMPTY<br>BOX',light:'LIGHT',wrapped:'WRAPPED<br>LIGHT',bag:'BAG',wrap:'WRAP'};
+   const sig=player.inv.map((it,i)=>(it?it.type+(it.type==='box'?it.lights:it.type==='bag'?it.wraps:''):'-')+(i===player.active?'*':'')).join('|');
+   if(sig!==G.invSig){ G.invSig=sig; document.getElementById('inv').innerHTML=player.inv.map((it,i)=>'<div class="slot'+(i===player.active?' on':'')+(it?'':' empty')+'" data-slot="'+i+'"><i>'+(i+1)+'</i>'+(it?names[it.type]+(it.type==='box'?'<span>&times;'+it.lights+'</span>':it.type==='bag'?'<span>'+it.wraps+'/8</span>':''):'')+'</div>').join(''); } }
  const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown));
  if(!clock.ended&&playing)body.update(dt,clock,load,moving);
  player.speedScale=body.speedScale();
