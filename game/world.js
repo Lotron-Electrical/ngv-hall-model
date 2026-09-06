@@ -98,17 +98,190 @@ export function setFloorY(y) { if (Number.isFinite(y)) HALL.floorY = y; }
 // itself (the scan, its levelling, its lights and its materials) belongs to whoever is hosting
 // the game -- index.html in install mode -- and is filled in by the caller.
 export function makeWorld(floorY = HALL.floorY) {
-  return {
+  const world = {
     floorY,
     columns: [],
     solids: [],
-    // (Lloyd, 2026-09-04: make the storage space larger) 17 m x 9 m: two rows of six pallets
-    // along the walls, a 4 m aisle between them for the lifts, the skip out through the end
+    // (Lloyd, 2026-09-04: make the storage space larger) 22 m x 9 m: two rows of six pallets
+    // along the walls, a 4 m aisle between them for the lifts, the skip out through the end, and
+    // (2026-09-06) a BACK BAY past the pallet rows for the pallets of floor protection. The ply
+    // could not go in the aisle: a 2.4 x 1.2 m stack there stands exactly where a person has to
+    // stand to reach a light pallet, and a strip behind a pallet row is walled off by the row
     storage: hallToWorld(57.5, 7.5, floorY),
-    skip: hallToWorld(68.6, 7.5, floorY),
-    corridor: { u0: 48.9, u1: 66.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
-    obstacles: []
+    skip: hallToWorld(73.6, 7.5, floorY),
+    corridor: { u0: 48.9, u1: 71.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
+    obstacles: [],
+    // (Lloyd, 2026-09-06: "we also need to put down floor protection before we can drive the
+    // scissor lift on the carpet") the ply sheets that are down, laid on the grid below
+    sheets: []
   };
+  world.protectedAt = (u, d) => protectedAt(world, u, d);
+  world.liftWheels = (lift, pos, yaw) => liftWheels(lift, pos, yaw);
+  world.liftOnBoards = (lift, pos, yaw) => liftOnBoards(world, lift, pos, yaw);
+  world.boardBlock = (lift, pos, yaw, fromPos, fromYaw) => boardBlock(world, lift, pos, yaw, fromPos, fromYaw);
+  return world;
+}
+
+// ---- FLOOR PROTECTION (Lloyd, 2026-09-06: "we also need to put down floor protection before we
+// can drive the scissor lift on the carpet") -------------------------------------------------
+// The hall floor is the gallery's carpet. A scissor lift runs on 2400 x 1200 x 18 mm plywood
+// sheets laid from the doors and out to each column; the wheels never leave the boards. The
+// sheets stay down for the whole job (the hall is closed for the works), so they are not part of
+// the nightly clean-up. People and the pallet jack walk on the carpet freely.
+export const SHEET = { long: 2.4, short: 1.2, thick: 0.018, grid: 1.2, tol: 0.05 };
+
+// THE GRID, so a path tiles without gaps: lines at u = 48.9 - 1.2k (k >= 0, the first line is the
+// door line) and d = 0.3 + 1.2k. A sheet laid 'along u' has its 2.4 m side along the hall and
+// covers two cells along u by one across; 'along d' is the same board turned. The centre is what
+// is stored. Given a point, this is the cell pair that holds it, or the nearest one
+export function snapSheet(u, d, along) {
+  const G = SHEET.grid, U0 = HALL.doorU;
+  if (along === 'u') {
+    const j = Math.max(1, Math.min(39, Math.round((U0 - u) / G)));       // the shared line between the two cells
+    const m = Math.max(0, Math.min(11, Math.floor((d - 0.3) / G)));
+    return { u: U0 - G * j, d: 0.3 + G * (m + 0.5), along: 'u' };
+  }
+  const k = Math.max(0, Math.min(39, Math.floor((U0 - u) / G)));
+  const n = Math.max(1, Math.min(11, Math.round((d - 0.3) / G)));
+  return { u: U0 - G * (k + 0.5), d: 0.3 + G * n, along: 'd' };
+}
+
+// the grid cells whose sheet would land UNDER a point. A board's 2.4 m side reaches a point from
+// either of the two grid lines beside it, its 1.2 m side from one cell only, so this is one or two
+// spots and the caller picks. (Claude, 2026-09-07) the crew needs the choice: the cell nearest a
+// blocked wheel is not always the cell that covers it once a board is already down beside it, and
+// the feeder used to snap to the wheel's own nearest line, lay the board next to the wheel it was
+// meant to save, and leave the machine standing there for the rest of the night
+export function sheetCells(u, d, along) {
+  const G = SHEET.grid, U0 = HALL.doorU, out = [];
+  const push = (s) => { if (!out.some((o) => Math.abs(o.u - s.u) < 1e-6 && Math.abs(o.d - s.d) < 1e-6)) out.push(s); };
+  if (along === 'u') {
+    const m = Math.max(0, Math.min(11, Math.floor((d - 0.3) / G)));
+    const j = (U0 - u) / G;
+    for (const q of [Math.floor(j), Math.ceil(j)]) push({ u: U0 - G * Math.max(1, Math.min(39, q)), d: 0.3 + G * (m + 0.5), along: 'u' });
+  } else {
+    const k = Math.max(0, Math.min(39, Math.floor((U0 - u) / G)));
+    const n = (d - 0.3) / G;
+    for (const q of [Math.floor(n), Math.ceil(n)]) push({ u: U0 - G * (k + 0.5), d: 0.3 + G * Math.max(1, Math.min(11, q)), along: 'd' });
+  }
+  return out;
+}
+
+// a sheet's footprint on the plan, in hall coordinates
+export function sheetRect(s) {
+  const hu = (s.along === 'u' ? SHEET.long : SHEET.short) * 0.5;
+  const hd = (s.along === 'u' ? SHEET.short : SHEET.long) * 0.5;
+  return { u0: s.u - hu, u1: s.u + hu, d0: s.d - hd, d1: s.d + hd, hu, hd };
+}
+
+// is this hall point on something a wheel may stand on? The corridor is concrete, the hall is
+// carpet unless a board covers it. The 5 cm tolerance is the gap between butted sheets
+export function protectedAt(world, u, d) {
+  if (u >= HALL.doorU - 0.02) return true;
+  for (const s of world.sheets) {
+    const hu = (s.along === 'u' ? SHEET.long : SHEET.short) * 0.5 + SHEET.tol;
+    const hd = (s.along === 'u' ? SHEET.short : SHEET.long) * 0.5 + SHEET.tol;
+    if (Math.abs(u - s.u) <= hu && Math.abs(d - s.d) <= hd) return true;
+  }
+  return false;
+}
+
+const WHEEL_LOCAL = [{ x: -0.85, z: -0.62 }, { x: -0.85, z: 0.62 }, { x: 0.85, z: -0.62 }, { x: 0.85, z: 0.62 }];
+// the four wheel contact points in hall coordinates, for a machine standing at `pos` on `yaw`
+export function liftWheels(lift, pos = lift.pos, yaw = lift.yaw) {
+  const hubs = lift && lift.wheels && lift.wheels.length === 4 ? lift.wheels.map((w) => w.hub.position) : WHEEL_LOCAL;
+  const v = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  return hubs.map((h) => worldToHall(v.set(h.x, 0, h.z).applyAxisAngle(Y, yaw).add(pos)));
+}
+// null when every wheel is on boards (or concrete), else the hall point of the first that is not
+export function liftOnBoards(world, lift, pos = lift.pos, yaw = lift.yaw) {
+  for (const w of liftWheels(lift, pos, yaw)) if (!protectedAt(world, w.u, w.d)) return w;
+  return null;
+}
+// the wheel that would LEAVE the boards by taking this step. A machine that somehow stands on
+// bare carpet is never wedged for good: only a wheel that WAS protected and would not be stops
+// the move, so it can always drive back the way it came
+export function boardBlock(world, lift, pos, yaw, fromPos, fromYaw) {
+  const now = liftWheels(lift, pos, yaw), was = liftWheels(lift, fromPos, fromYaw);
+  for (let i = 0; i < now.length; i++) if (!protectedAt(world, now[i].u, now[i].d) && protectedAt(world, was[i].u, was[i].d)) return now[i];
+  return null;
+}
+
+// the hall's own rotation as a quaternion, so a box built on the world axes stands square to the
+// room (the same basis makeHallBox uses: local x along u, local z along -inRoom)
+export function hallQuat() {
+  const Y = new THREE.Vector3(0, 1, 0);
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(HALL.u, Y, new THREE.Vector3().crossVectors(HALL.u, Y)));
+}
+
+function sheetMaterial(world) {
+  if (!world.sheetMat) world.sheetMat = new THREE.MeshStandardMaterial({ color: 0xc9a76a, roughness: 0.8 });
+  return world.sheetMat;
+}
+
+// lay one sheet. 18 mm of ply is nothing to walk over and nothing to trip on, so a laid sheet is
+// NOT a collider and NOT a step: loose bodies rest at floor level on top of it
+export function laySheet(world, u, d, along) {
+  const rec = { u, d, along, mesh: null };
+  const geo = new THREE.BoxGeometry(along === 'u' ? SHEET.long : SHEET.short, SHEET.thick, along === 'u' ? SHEET.short : SHEET.long);
+  const mesh = new THREE.Mesh(geo, sheetMaterial(world));
+  mesh.quaternion.copy(hallQuat());
+  mesh.position.copy(hallToWorld(u, d, world.floorY + SHEET.thick * 0.5));
+  mesh.userData.sheet = rec;
+  rec.mesh = mesh;
+  if (world.sheetGroup) world.sheetGroup.add(mesh);
+  world.sheets.push(rec);
+  return rec;
+}
+
+export function liftSheetUp(world, rec) {
+  const i = world.sheets.indexOf(rec);
+  if (i < 0) return false;
+  world.sheets.splice(i, 1);
+  if (rec.mesh) { rec.mesh.removeFromParent(); rec.mesh.geometry.dispose(); }
+  return true;
+}
+
+// what goes in the save file, and what comes back out of it
+export function sheetsShape(world) { return world.sheets.map((s) => [+s.u.toFixed(3), +s.d.toFixed(3), s.along]); }
+export function restoreSheets(world, saved) {
+  for (const s of (saved && saved.sheets) || []) if (Array.isArray(s) && s.length >= 3) laySheet(world, s[0], s[1], s[2] === 'u' ? 'u' : 'd');
+  return world.sheets.length;
+}
+
+function rectCircle(r, cu, cd, rad) {
+  const qu = Math.max(r.u0, Math.min(cu, r.u1)), qd = Math.max(r.d0, Math.min(cd, r.d1));
+  return Math.hypot(cu - qu, cd - qd) < rad;
+}
+// the leaf sampled from just off its hinge: the hinge itself stands ON the jamb, which is the
+// edge of the opening, so a sheet is allowed to butt against it
+function rectSeg(r, seg, tol) {
+  for (let i = 1; i <= 12; i++) {
+    const t = i / 12, u = seg.u0 + (seg.u1 - seg.u0) * t, d = seg.d0 + (seg.d1 - seg.d0) * t;
+    if (u > r.u0 - tol && u < r.u1 + tol && d > r.d0 - tol && d < r.d1 + tol) return true;
+  }
+  return false;
+}
+
+// may a sheet go here? null when it may, else the reason. The LIFTS are left out of the obstacle
+// sweep on purpose (Claude, 2026-09-06): the boards are for the machine, and the next board
+// always goes down in front of wheels that are standing at the end of the path -- inside the
+// lift's own plan circles. Everything else on the floor is a body that must be moved first
+export function sheetSpotWhy(world, u, d, along) {
+  const r = sheetRect({ u, d, along });
+  if (r.u0 < -0.001 || r.u1 > HALL.doorU + 0.001 || r.d0 < -0.001 || r.d1 > HALL.depth + 0.001) return 'outside';
+  for (const s of world.sheets) {
+    const q = sheetRect(s);
+    if (Math.abs(u - s.u) < r.hu + q.hu - 0.02 && Math.abs(d - s.d) < r.hd + q.hd - 0.02) return 'sheet';
+  }
+  for (const col of world.columns) { const h = worldToHall(col.pos); if (rectCircle(r, h.u, h.d, 0.6)) return 'column'; }
+  for (const o of world.obstacles) {
+    if (o.ref && o.ref.isLift) continue;
+    const h = worldToHall(new THREE.Vector3(o.x, world.floorY, o.z));
+    if (rectCircle(r, h.u, h.d, o.r)) return 'blocked';
+  }
+  if (world.doors) for (const dr of world.doors) if (dr.seg && rectSeg(r, dr.seg, 0.02)) return 'door';
+  return null;
 }
 
 function leafMatFor() { return new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.7, metalness: 0.15 }); }
@@ -128,6 +301,11 @@ function textTexture(text, w, h, fg, bg) {
 // space behind the hall, its lights, the double doors and the skip. All of it goes into whatever
 // `scene` is passed, so a host can hand in one group and drop the lot in a single remove().
 export function buildProps(scene, world) {
+  // the laid floor protection lives in its own group so a night's path can be added to and taken
+  // from without touching anything else; it goes in the host's group, so teardown takes it too
+  world.sheetGroup = new THREE.Group();
+  world.sheetGroup.name = 'sheets';
+  scene.add(world.sheetGroup);
   const columnMat = new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: 0.8 });
   for (const [i, foot] of COLUMN_FEET.entries()) {
     const pos = hallToWorld(foot[0], foot[1], world.floorY + HALL.ceiling * 0.5);
@@ -151,7 +329,7 @@ export function buildProps(scene, world) {
   makeHallBox(scene, c.u1 + 0.12, (c.d0 + c.skipD0) * 0.5, world.floorY + 1.55, 0.24, c.skipD0 - c.d0, 3.1, wallMat);
   makeHallBox(scene, c.u1 + 0.12, (c.skipD1 + c.d1) * 0.5, world.floorY + 1.55, 0.24, c.d1 - c.skipD1, 3.1, wallMat);
   makeHallBox(scene, c.u1 + 0.12, midD, world.floorY + 3.05, 0.24, c.d1 - c.d0, 0.25, wallMat);
-  for (const [u, d] of [[51.5, 5.5], [51.5, 9.5], [56, 5.5], [56, 9.5], [60.5, 5.5], [60.5, 9.5], [65, 7.5]]) {
+  for (const [u, d] of [[51.5, 5.5], [51.5, 9.5], [56, 5.5], [56, 9.5], [60.5, 5.5], [60.5, 9.5], [65, 7.5], [68, 5.0], [68, 10.0]]) {
     const l = new THREE.PointLight(0xffddb0, 2.2, 8, 1.7);
     l.position.copy(hallToWorld(u, d, world.floorY + 2.65));
     scene.add(l);

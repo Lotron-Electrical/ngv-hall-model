@@ -1,8 +1,11 @@
 import * as THREE from 'three';
-import { hallToWorld } from './world.js';
+import { hallToWorld, worldToHall, hallQuat, snapSheet, sheetSpotWhy, laySheet, liftSheetUp, SHEET, HALL } from './world.js';
 
 const COLUMNS = ['N1','N2','N3','N4','N5','N6','S1','S2','S3','S4','S5','S6'];
 const BOX = { x: 0.5, y: 0.34, z: 0.42 };
+const STACK_FULL = 30;                 // sheets on a full pallet of ply: 30 x 18 mm = 0.54 m
+const SHEET_REACH = 3.8;               // how far from your feet a sheet may be laid
+const SHEET_TAKE = 3.4;                // how far a laid sheet can be picked up from
 
 function mat(color, roughness = 0.75, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness, ...extra });
@@ -55,6 +58,45 @@ function makePallet(column) {
   }
   group.add(makeLabel(column));
   return { group, boxes };
+}
+
+// (Lloyd, 2026-09-06: "we also need to put down floor protection before we can drive the scissor
+// lift on the carpet") a pallet of plywood floor protection: bearers under a stack of 2400 x 1200
+// sheets, standing square to the hall, its long side along u or across it. One box mesh is scaled
+// to the count, and hidden when the last sheet has gone
+function makeStack(along) {
+  const group = new THREE.Group();
+  const wood = mat(0x6b4d2e);
+  for (const z of [-0.45, 0, 0.45]) {
+    const bearer = new THREE.Mesh(new THREE.BoxGeometry(SHEET.long, 0.09, 0.16), wood);
+    bearer.position.set(0, 0.045, z);
+    group.add(bearer);
+  }
+  const pile = new THREE.Mesh(new THREE.BoxGeometry(SHEET.long, STACK_FULL * SHEET.thick, SHEET.short), mat(0xc9a76a, 0.8));
+  group.add(pile);
+  const label = makeLabel('PLY');
+  label.position.set(0, 0.95, -0.62);
+  group.add(label);
+  group.quaternion.copy(sheetQuat(along));   // square to the hall, turned when its long side runs across the corridor
+  return { group, pile, quat: group.quaternion.clone() };
+}
+function updateStackPile(stack) {
+  const n = Math.max(0, stack.sheets);
+  stack.pile.visible = n > 0;
+  stack.pile.scale.y = Math.max(0.001, n / STACK_FULL);
+  stack.pile.position.y = 0.09 + n * SHEET.thick * 0.5;
+}
+
+// a sheet in the hands: 20 kg of ply takes both, so it is carried low and nearly on edge, leaning
+// back against the chest. You see its top edge along the bottom of the picture and nothing else
+// (Lloyd's standing rule: nothing a hand holds may fill the view)
+function makeCarrySheet() {
+  const group = new THREE.Group();
+  const board = new THREE.Mesh(new THREE.BoxGeometry(SHEET.long, SHEET.thick, SHEET.short), mat(0xc9a76a, 0.8));
+  group.add(board);
+  group.position.set(0.0, -1.16, -1.05);
+  group.rotation.set(-1.45, 0, 0.05);
+  return group;
 }
 
 function makeJack() {
@@ -252,7 +294,16 @@ function palletHome(i, world) { const row = i < 6 ? 0 : 1; return hallToWorld(51
 // the plan's obstacles for collideWorld, rebuilt every frame from what stands on the floor
 export function refreshObstacles(items, lifts) {
   const O = items.world.obstacles; O.length = 0;
+  items.lifts = lifts;   // every machine on the floor this frame: the sheet rules ask who is standing where
   for (const p of items.pallets) { if (isCarriedPallet(p, items)) continue; O.push({ x: p.mesh.position.x, z: p.mesh.position.z, r: 0.95, ref: p }); }
+  // a stack of ply is 2.4 x 1.2: two circles trace it, where one of 1.3 would close the lane the
+  // machines drive down the corridor to the doors
+  for (const s of items.stacks) {
+    if (isCarriedPallet(s, items)) continue;
+    const ax = new THREE.Vector3(0.62, 0, 0).applyQuaternion(s.mesh.quaternion);
+    O.push({ x: s.mesh.position.x + ax.x, z: s.mesh.position.z + ax.z, r: 0.72, ref: s },
+           { x: s.mesh.position.x - ax.x, z: s.mesh.position.z - ax.z, r: 0.72, ref: s });
+  }
   for (const b of items.boxes) { if (b.carried || b.onLift || b.disposed || b.deck) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.4, ref: b }); }
   for (const b of items.bags) { if (b.carried || b.disposed || b.deck) continue; O.push({ x: b.mesh.position.x, z: b.mesh.position.z, r: 0.45, ref: b }); }
   for (const L of lifts) { const ax = new THREE.Vector3(0.75, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), L.yaw); O.push({ x: L.pos.x + ax.x, z: L.pos.z + ax.z, r: 0.85, ref: L }, { x: L.pos.x - ax.x, z: L.pos.z - ax.z, r: 0.85, ref: L }); }
@@ -260,8 +311,64 @@ export function refreshObstacles(items, lifts) {
 }
 function isCarriedPallet(p, items) { if (items.jack.carrying === p) return true; for (const j of items.jacks || []) if (j.carrying === p) return true; return false; }
 
+// the sheet's own rotation: the hall's square, turned a right angle when the 2.4 m side runs
+// across the room instead of along it
+function sheetQuat(along) {
+  const q = hallQuat();
+  if (along !== 'u') q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2));
+  return q;
+}
+
+// where the sheet in your hands would go: the reticle ray dropped onto the floor, snapped to the
+// grid, with the reason it cannot go there. Run every frame while a sheet is held, so the ghost
+// and the prompt always agree
+function sheetAim(player, items, hit) {
+  const world = items.world, p = player.camera.position;
+  const fwd = player.camera.getWorldDirection(new THREE.Vector3());
+  if (fwd.y > -0.02) return null;                                   // looking level or up: no floor in front
+  const t = (world.floorY - p.y) / fwd.y;
+  if (!(t > 0) || t > 40) return null;
+  const at = p.clone().addScaledVector(fwd, t);
+  // pointing at a THING, not the floor: only a laid sheet is looked through (you lay next to one)
+  if (hit && hit.kind !== 'sheet' && hit.dist < t - 0.05) return null;
+  if (Math.hypot(at.x - player.pos.x, at.z - player.pos.z) > SHEET_REACH) return { far: true };
+  const h = worldToHall(at);
+  if (h.u >= HALL.doorU - 0.02) return { concrete: true };
+  const spot = snapSheet(h.u, h.d, items.sheetAlong);
+  spot.why = sheetSpotWhy(world, spot.u, spot.d, spot.along);
+  spot.ok = !spot.why;
+  return spot;
+}
+
+// the ghost follows the aim every frame a sheet is held, and is hidden the rest of the time
+function updateGhost(player, items, spot) {
+  const g = items.ghost;
+  if (!g) return;
+  const held = player.carry && player.carry.type === 'sheet';
+  if (!held || !spot || !spot.along) { g.visible = false; items.ghostSpot = null; return; }
+  items.ghostSpot = spot;
+  g.visible = true;
+  g.quaternion.copy(sheetQuat(spot.along));
+  g.position.copy(hallToWorld(spot.u, spot.d, items.world.floorY + 0.012));
+  g.material.color.setHex(spot.ok ? 0x35d06a : 0xd94a3a);
+}
+
+// is a machine standing on this sheet? Then it does not come up
+function liftOnSheet(items, rec) {
+  const W = items.world;
+  const hu = (rec.along === 'u' ? SHEET.long : SHEET.short) * 0.5 + 0.05;
+  const hd = (rec.along === 'u' ? SHEET.short : SHEET.long) * 0.5 + 0.05;
+  for (const L of (items.lifts && items.lifts.length ? items.lifts : [items.lift]).filter(Boolean)) {
+    for (const w of W.liftWheels(L)) if (Math.abs(w.u - rec.u) <= hu && Math.abs(w.d - rec.d) <= hd) return true;
+  }
+  return false;
+}
+
 export function createItems(scene, world, camera, collide) {
-  const items = { pallets: [], boxes: [], wraps: [], bags: [], lights: [], jack: null, scene, world, camera };
+  const items = { pallets: [], boxes: [], wraps: [], bags: [], lights: [], stacks: [], jack: null, scene, world, camera,
+    // which way the next sheet lies. The default is 'd' (the 2.4 m side ACROSS the hall) so a
+    // spine laid from the doors up the hall goes down crosswise, like a plank road
+    sheetAlong: 'd', ghost: null, ghostSpot: null, lifts: [] };
   if (collide) collideWorldRef = collide;
   for (const [i, column] of COLUMNS.entries()) {
     const home = palletHome(i, world);
@@ -273,10 +380,36 @@ export function createItems(scene, world, camera, collide) {
   }
   for (let i = 0; i < 4; i++) {
     const mesh = makeBag();
-    mesh.position.copy(hallToWorld(65.3, 9.5 + i * 0.7, world.floorY + 0.41));
+    // (2026-09-06) by the END wall, which moved east with the back bay. Four bags in a line make
+    // a wall of their own on the plan, so they stand in the corner where nothing has to walk past
+    mesh.position.copy(hallToWorld(70.0, 9.6 + i * 0.7, world.floorY + 0.41));
     scene.add(mesh);
     items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
   }
+  // five pallets of floor protection in the back bay, past the two pallet rows: three on the
+  // north side, two on the south, their long side ACROSS the corridor so the lane to the skip
+  // (d 6 to 9) stays open. NOT in the aisle -- a stack there stands exactly where a person has
+  // to stand to reach a light pallet, and on top of the crew's jacks (Claude, 2026-09-06, after
+  // the inventory proof caught it) -- and not behind a pallet row, which is a wall to a walker
+  for (const [u, d] of [[66.6, 4.6], [68.2, 4.6], [69.8, 4.6], [66.6, 10.4], [68.2, 10.4]]) {
+    const home = hallToWorld(u, d, world.floorY);
+    const made = makeStack('d');
+    made.group.position.copy(home);
+    scene.add(made.group);
+    const stack = { type: 'stack', sheets: STACK_FULL, boxes: 0, mesh: made.group, pile: made.pile, home, quat: made.quat };
+    updateStackPile(stack);
+    items.stacks.push(stack);
+  }
+  items.updateStackPile = updateStackPile;
+  // the crew put a board back the same way the player does: nearest stack that is not full
+  items.returnSheet = (near) => returnSheet(items, null, near);
+  // the ghost: where the sheet in your hands would land, green when it may, red when it may not
+  const ghost = new THREE.Mesh(new THREE.BoxGeometry(SHEET.long, SHEET.thick, SHEET.short),
+    new THREE.MeshBasicMaterial({ color: 0x35d06a, transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false }));
+  ghost.visible = false;
+  ghost.renderOrder = 4;
+  scene.add(ghost);
+  items.ghost = ghost;
   const jackMesh = makeJack();
   jackMesh.position.copy(hallToWorld(65.0, 4.4, world.floorY));
   scene.add(jackMesh);
@@ -287,12 +420,21 @@ export function createItems(scene, world, camera, collide) {
   items.spawnBoxFor = (pallet) => { pallet.boxes--; updatePalletStack(pallet); const box = makeBoxObject(8); items.boxes.push(box); scene.add(box.mesh); return box; };
   items.updatePalletStack = updatePalletStack;
   items.makeWrap = () => meshBox(0xf4f4ee, 0.42, 0.08, 0.34, { transparent: true, opacity: 0.42 });
+  items.makeSheetMesh = () => meshBox(0xc9a76a, SHEET.long, SHEET.thick, SHEET.short);   // the crew's carried board (crew.js settle)
   return items;
+}
+
+// what is left on each pallet of ply, from the save file (the laid sheets are world.js's job)
+export function restoreStacks(items, saved) {
+  const arr = saved && saved.stackSheets;
+  if (!Array.isArray(arr)) return 0;
+  for (const [i, s] of items.stacks.entries()) if (Number.isFinite(arr[i])) { s.sheets = Math.max(0, Math.min(STACK_FULL, arr[i])); updateStackPile(s); }
+  return items.stacks.length;
 }
 
 export function nearestAction(player, lift, install, items) {
   // (2026-09-04) mid-climb nothing is on offer: the prompt says what is happening and a tap does nothing
-  if (lift.anim) return { label: lift.anim.dir > 0 ? 'Climbing aboard' : 'Climbing down', run: null };
+  if (lift.anim) { if (items.ghost) items.ghost.visible = false; return { label: lift.anim.dir > 0 ? 'Climbing aboard' : 'Climbing down', run: null }; }
   const p = player.camera.position;
   // reach is measured on the floor plan: the eye is 1.7 m up, so a straight distance to a bag on
   // the floor was never inside 1.4 m (2026-09-04: nothing at a pallet was reachable)
@@ -307,6 +449,9 @@ export function nearestAction(player, lift, install, items) {
   // and door, letting go of a pallet) do not need a target
   const fwd = player.camera.getWorldDirection(new THREE.Vector3());
   const ray = new THREE.Raycaster(p.clone(), fwd, 0, 3.4);
+  // (Claude, 2026-09-07) the crew are raycast targets now and every one wears a name tag, which is
+  // a Sprite: three's Sprite.raycast reads raycaster.camera and throws on null without it
+  ray.camera = player.camera;
   const targets = [], owner = new Map();
   const add = (mesh, kind, ref) => { if (mesh) { targets.push(mesh); owner.set(mesh, { kind, ref }); } };
   for (const l of items.lights) if (!l.carried) add(l.mesh, 'light', l);
@@ -314,7 +459,12 @@ export function nearestAction(player, lift, install, items) {
   for (const b of items.bags) if (!b.carried && !b.disposed) add(b.mesh, 'bag', b);
   for (const w of items.wraps) if (!w.carried && !w.bagged) add(w.mesh, 'wrap', w);
   for (const pl of items.pallets) add(pl.mesh, 'pallet', pl);
+  for (const st of items.stacks || []) add(st.mesh, 'stack', st);
+  for (const sh of items.world.sheets || []) add(sh.mesh, 'sheet', sh);
   if (!items.jack.held) add(items.jack.mesh, 'jack', items.jack);
+  // (Lloyd, 2026-09-06: "The player should be able to allocate tasks to the crew members") the
+  // crew are things you can point at: look at one and ACTION opens its task sheet
+  if (items.crew) for (const m of items.crew.members || []) add(m.mesh, 'crew', m);
   add(lift.group, 'lift', lift);
   add(items.world.skipMesh, 'skip', null);
   for (const c of items.world.columns) add(c.mesh, 'column', c);
@@ -339,12 +489,34 @@ export function nearestAction(player, lift, install, items) {
   const stepsNear = (() => { const o = lift.offboardWorld(); return Math.hypot(o.x - p.x, o.z - p.z) < 1.7; })();
   const held = player.carry;
   const room = (type) => player.canTake(type);
+  // the floor protection in your hands: where it would land, shown as a ghost every frame
+  const spot = held && held.type === 'sheet' ? sheetAim(player, items, hit) : null;
+  updateGhost(player, items, spot);
 
   // holding the controls: nothing else until you let go
   if (lift.aboard && lift.driving) return { label: 'Let go of the controls', run: () => lift.letGo() };
 
+  // (Lloyd, 2026-09-06) TALKING TO THE CREW comes before everything the hands could be doing: you
+  // can give a job to whoever you are looking at with a board or a box in your arms. The host hangs
+  // the task sheet off items.talkTo; a host without one (main.js, the old standalone entry) offers
+  // nothing rather than a prompt that does nothing when you press it (Claude, 2026-09-07)
+  if (k === 'crew' && hit.dist < 3.5 && items.talkTo) return { label: `Talk to ${ref.name}<small>${ref.status || 'standing by'}</small>`, run: () => items.talkTo(ref) };
+
   // what is in your hands, against the thing in view
   if (held) {
+    // a sheet takes both hands: it goes down on the floor, or back on a stack, and nothing else
+    if (held.type === 'sheet') {
+      if (k === 'stack' && inReach) return ref.sheets >= STACK_FULL ? { label: 'That stack is full', run: null, hint: true }
+                                                                    : { label: 'Put the sheet back', run: () => putSheetBack(player, ref, items) };
+      if (!spot) return { label: 'Point at the floor to lay the sheet', run: null, hint: true };
+      if (spot.concrete) return { label: 'No boards needed: that floor is concrete', run: null, hint: true };
+      if (spot.far) return { label: 'Too far: stand closer to lay the sheet', run: null, hint: true };
+      return spot.ok ? { label: 'Lay the sheet here', run: () => layHeldSheet(player, items) }
+                     : { label: 'No room for a sheet there', run: null, hint: true };
+    }
+    // (Claude, 2026-09-07) pointing at the ply with something else in the hands: the prompt answers
+    // what the reticle is on, so it says why a sheet is not on offer instead of "Set down box"
+    if (k === 'stack' && inReach && !items.jack.held) return { label: 'Hands full: a sheet takes both hands', run: null, hint: true };
     if (held.type === 'box' && k === 'lift' && !lift.aboard) return lift.height >= 0.3 ? { label: 'Lower the lift to load it', run: null } : lift.box ? { label: 'The deck already has a box', run: null } : { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
     if ((held.type === 'box' || held.type === 'emptyBox' || (held.type === 'bag' && held.full)) && k === 'skip') return { label: `Dispose ${held.type === 'emptyBox' ? 'empty box' : held.type}`, run: () => disposeCarry(player, items) };
     if (held.type === 'wrap' && k === 'bag' && inReach) return ref.full ? { label: 'That bag is full', run: null } : { label: 'Bag the wrap', run: () => bagWrap(player, ref, items) };
@@ -378,6 +550,21 @@ export function nearestAction(player, lift, install, items) {
       if (ref.boxes <= 0) return { label: `${ref.column} pallet is empty`, run: null };
       return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a box: rest a moment', run: null } : { label: `Take box from ${ref.column} pallet`, run: () => spawnBox(player, items, ref) };
     }
+    // (Lloyd, 2026-09-06) the board stacks: a sheet off the top, or the whole pallet on the jack
+    if (k === 'stack' && hit.dist < 3.0 && !held) {
+      if (items.jack.held && !items.jack.carrying) return ref.mesh.position.distanceTo(items.jack.mesh.position) < 1.25 ? (player.body && !player.body.canLift(15) ? { label: 'Too puffed to jack a pallet: rest a moment', run: null } : { label: 'Lift the board stack', run: () => items.jack.carrying = ref }) : { label: 'Walk the jack under the board stack', run: null };
+      if (ref.sheets <= 0) return { label: 'That board stack is empty', run: null, hint: true };
+      if (!inReach) return { label: `Step up to the board stack (${ref.sheets} left)`, run: null, hint: true };
+      if (!room('sheet')) return { label: 'Hands full: a sheet takes both hands', run: null, hint: true };
+      return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a sheet: rest a moment', run: null } : { label: `Take a sheet (${ref.sheets} left)`, run: () => takeSheet(player, ref, items) };
+    }
+    // a sheet already on the floor: it comes up again, unless a machine is parked on it
+    if (k === 'sheet' && hit.dist < SHEET_TAKE && !held) {
+      if (liftOnSheet(items, ref)) return { label: 'A lift is standing on it', run: null, hint: true };
+      if (!room('sheet')) return { label: 'Hands full', run: null };
+      return { label: 'Pick up the sheet', run: () => pickUpSheet(player, ref, items) };
+    }
+    if (k === 'sheet' && hit.dist < SHEET_TAKE && held && held.type !== 'sheet') return { label: 'Hands full', run: null };
     if (k === 'jack' && inReach && !items.jack.by && !held) return { label: 'Take pallet jack', run: () => items.jack.held = true };
     if (k === 'column' && !held) return { label: `Column ${ref.label}`, run: null, hint: true };
   }
@@ -405,6 +592,64 @@ export function nearestAction(player, lift, install, items) {
 
 function updatePalletStack(pallet) {
   pallet.boxMeshes.forEach((m, i) => m.visible = i < pallet.boxes);
+}
+
+// ---- floor protection in the hands (Lloyd, 2026-09-06) ----
+function takeSheet(player, stack, items) {
+  if (stack.sheets <= 0) return;
+  stack.sheets--;
+  updateStackPile(stack);
+  const mesh = makeCarrySheet();
+  player.camera.add(mesh);
+  player.stow({ type: 'sheet', mesh });
+}
+// (Claude, 2026-09-07) a sheet goes back on a pallet of ply that HAS ROOM, the given one first and
+// otherwise the nearest that is not full. The 150 sheets in the game came off five stacks of 30, so
+// somewhere always has room; a full stack used to swallow the board in your hands and the count
+// went 150 -> 149. Returns the stack it went on, or null when every one of them is full
+export function returnSheet(items, stack, near) {
+  if (stack && stack.sheets < STACK_FULL) { stack.sheets++; updateStackPile(stack); return stack; }
+  let best = null, bd = Infinity;
+  for (const s of items.stacks) {
+    if (s.sheets >= STACK_FULL) continue;
+    const d = near ? s.mesh.position.distanceTo(near) : 0;
+    if (d < bd) { bd = d; best = s; }
+  }
+  if (best) { best.sheets++; updateStackPile(best); }
+  return best;
+}
+function putSheetBack(player, stack, items) {
+  const it = player.carry;
+  if (!it || it.type !== 'sheet') return;
+  if (stack.sheets >= STACK_FULL) return;         // the prompt says so: a full stack takes nothing
+  it.mesh.removeFromParent();
+  items.scene.remove(it.mesh);
+  returnSheet(items, stack);
+  player.carry = null;
+}
+// F / DROP with a sheet in hand lays it where the ghost is; a 20 kg board is never tossed, so a
+// bad spot does nothing and the prompt says why
+export function layHeldSheet(player, items) {
+  const it = player.carry, spot = items.ghostSpot;
+  if (!it || it.type !== 'sheet' || !spot || !spot.ok) return false;
+  laySheet(items.world, spot.u, spot.d, spot.along);
+  it.mesh.removeFromParent();
+  items.scene.remove(it.mesh);
+  player.carry = null;
+  if (items.ghost) items.ghost.visible = false;
+  items.ghostSpot = null;
+  return true;
+}
+function pickUpSheet(player, rec, items) {
+  if (!liftSheetUp(items.world, rec)) return;
+  const mesh = makeCarrySheet();
+  player.camera.add(mesh);
+  player.stow({ type: 'sheet', mesh });
+}
+// R on the desk, TURN on the phone: the same board, laid the other way
+export function turnSheet(items) {
+  items.sheetAlong = items.sheetAlong === 'u' ? 'd' : 'u';
+  return items.sheetAlong;
 }
 
 function spawnBox(player, items, pallet) {
@@ -519,9 +764,13 @@ function pickUpLight(player, loose, items) {
   player.stow({ type: loose.type, mesh });
 }
 
+// true when something actually left the hands, so the caller only makes a noise when it did
 export function dropCarry(player, items) {
-  if (!player.carry) return;
+  if (!player.carry) return false;
   const item = player.carry;
+  // (Lloyd, 2026-09-06) a sheet is laid, never dropped: DROP puts it on the ghost's spot when the
+  // spot is good and does nothing at all when it is not
+  if (item.type === 'sheet') return layHeldSheet(player, items);
   if (item.type === 'light' || item.type === 'wrapped') {
     item.mesh.removeFromParent();
     const bar = makeBarMesh(item.type === 'wrapped');
@@ -530,7 +779,7 @@ export function dropCarry(player, items) {
     toss(light, player, 0.8, items); if (!(items.lift && items.lift.aboard)) bar.rotation.y += Math.PI / 2;   // the bar lies across the way you face
     items.lights.push(light);
     player.carry = null;
-    return;
+    return true;
   }
   if (item.mesh) {
     item.mesh.removeFromParent();
@@ -539,6 +788,7 @@ export function dropCarry(player, items) {
     toss(item, player, 0.9, items);
   }
   player.carry = null;
+  return true;
 }
 
 export function updateItems(player, lift, items, dt = 0) {
@@ -550,9 +800,12 @@ export function updateItems(player, lift, items, dt = 0) {
     items.jack.mesh.position.y = items.world.floorY;
     items.jack.mesh.rotation.y = player.yaw;
     if (items.jack.carrying) {
-      const off = new THREE.Vector3(0, 0.2, -0.55).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
+      // a board stack is twice a pallet's length: it rides ALONG the tines, further out, so it
+      // does not sit in the player's shins (Lloyd, 2026-09-06)
+      const stack = items.jack.carrying.type === 'stack';
+      const off = new THREE.Vector3(0, 0.2, stack ? -0.95 : -0.55).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
       items.jack.carrying.mesh.position.copy(items.jack.mesh.position).add(off);
-      items.jack.carrying.mesh.rotation.y = player.yaw;
+      items.jack.carrying.mesh.rotation.set(0, player.yaw + (stack ? Math.PI / 2 : 0), 0);
     }
   }
   if (lift.box) lift.refresh();
@@ -560,6 +813,9 @@ export function updateItems(player, lift, items, dt = 0) {
 
 export function resetForNight(player, lift, items) {
   for (const pallet of items.pallets) { pallet.mesh.position.copy(pallet.home); pallet.mesh.rotation.y = 0; }
+  // (Lloyd, 2026-09-06) the stacks go back to storage with the pallets; the LAID sheets stay
+  // exactly where they are, because the protection is down for the whole job
+  for (const stack of items.stacks) { stack.mesh.position.copy(stack.home); stack.mesh.quaternion.copy(stack.quat); }
   for (const [i, box] of items.boxes.entries()) {
     if (box.disposed) continue;
     box.carried = false;
@@ -578,11 +834,15 @@ export function resetForNight(player, lift, items) {
   items.jack.deck = null; items.jack.vel = null;
   items.jack.held = false;
   items.jack.carrying = null;
+  if (items.ghost) items.ghost.visible = false;
+  items.ghostSpot = null;
   items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));
   lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; lift.anim = null; lift.gate.rotation.y = 0; player.onLift = false; player.eye = 1.68;
   lift.height = 0;
   lift.box = null;
   lift.refresh();
+  // a sheet still in the hands at 05:00 goes back on the nearest stack WITH ROOM, not into thin air
+  for (const it of player.inv) if (it && it.type === 'sheet') returnSheet(items, null, player.pos);
   if (player.carry?.mesh) {
     player.carry.mesh.removeFromParent();
     items.scene.remove(player.carry.mesh);
@@ -593,12 +853,14 @@ export function resetForNight(player, lift, items) {
 
 export function cleanupClear(items, lift) {
   const left = [];
-  const outside = (m) => {
-    const dStorage = m.position.distanceTo(items.world.storage);
-    const dSkip = m.position.distanceTo(items.world.skip);
-    return dStorage < 12 || dSkip < 5;
-  };
+  // (2026-09-06) "out of the hall" is the door line, not a radius round the storage spot: the
+  // corridor grew a back bay for the ply and a 12 m ball round the middle of it no longer reaches
+  // the end wall, so bags stacked by it counted as left in the hall
+  const outside = (m) => worldToHall(m.position).u > HALL.doorU - 0.5;
   if (!items.pallets.every((p) => outside(p.mesh))) left.push('pallets');
+  // (Lloyd, 2026-09-06) the STACKS go back to storage like the pallets. The LAID sheets do not
+  // count: the floor protection stays down for the whole job, the hall is closed for the works
+  if (!items.stacks.every((s) => outside(s.mesh))) left.push('board stacks');
   if (!items.boxes.every((b) => b.disposed || (!b.carried && outside(b.mesh)))) left.push('boxes');
   if (!items.wraps.every((w) => w.bagged || outside(w.mesh))) left.push('wrap');
   if (!items.lights.every((l) => outside(l.mesh))) left.push('loose lights');

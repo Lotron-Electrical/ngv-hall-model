@@ -29,7 +29,9 @@ export class Player {
     this.off = [];
   }
 
-  static BULK = { box: 2, emptyBox: 1, light: 1, wrapped: 1, bag: 1, wrap: 1 };
+  // (Lloyd, 2026-09-06: floor protection) a 2400 x 1200 ply sheet is 20 kg and a two-handed
+  // carry: it takes the WHOLE inventory, so nothing else can be in your hands with it
+  static BULK = { box: 2, emptyBox: 1, light: 1, wrapped: 1, bag: 1, wrap: 1, sheet: 4 };
   get carry() { return this.inv[this.active] || null; }
   set carry(v) {
     if (!v) { this.inv[this.active] = null; const j = this.inv.findIndex(Boolean); if (j >= 0) this.active = j; }
@@ -62,7 +64,9 @@ export class Player {
   // the pause: while the pointer is free on a mouse-and-keyboard machine the game holds, the keys
   // are dropped, and #paused ("click to resume") stands over the hall
   setPaused(on) {
-    on = !!on && !this.coarse && this.hadLock && document.body.classList.contains('playing');
+    // (Lloyd, 2026-09-06: the task sheet) the sheet lets the pointer go on purpose and the shift
+    // keeps running behind it, so a lock lost to the sheet is not a pause
+    on = !!on && !this.coarse && this.hadLock && document.body.classList.contains('playing') && !document.body.classList.contains('sheetOpen');
     if (on === this.paused) return;
     this.paused = on;
     if (on && this.dropKeys) this.dropKeys();
@@ -76,6 +80,7 @@ export class Player {
       if (e.code === 'KeyF') this.dropQueued = true;
       if (/^Digit[1-4]$/.test(e.code)) this.select(+e.code[5] - 1);
       if (e.code === 'KeyQ' && !e.repeat) this.modeQueued = true;   // the lift's fast / slow (2026-09-05)
+      if (e.code === 'KeyR' && !e.repeat) this.turnQueued = true;   // turn the ply sheet in your hands (2026-09-06)
       // (Lloyd, 2026-09-05: "add spacebar jump") on the floor Space is a jump; aboard the lift it
       // stays the deck's UP. One jump at a time, from the ground only
       // (Lloyd, 2026-09-05: "add a double jump") a second press in the air jumps again, once
@@ -99,7 +104,11 @@ export class Player {
     this.paused = false;
     this.on(document, 'click', (e) => {
       if (this.coarse || !document.body.classList.contains('playing')) return;
-      if (e.target.closest?.('button, a, input, select, label, #prompt, #overlay, #summary, #crewPanel')) return;
+      // (Claude, 2026-09-07) the task sheet was missing from this list: a click on the card that
+      // was not on a button grabbed the pointer back, the cursor vanished, and the buttons could
+      // not be clicked until Esc -- which also shut the card. A card over the hall keeps the mouse
+      if (e.target.closest?.('button, a, input, select, label, #prompt, #overlay, #summary, #crewPanel, #taskSheet')) return;
+      if (document.body.classList.contains('sheetOpen')) return;
       if (document.pointerLockElement !== this.canvas) this.lock();
     });
     // the pause is for a lock LOST (Esc, alt-tab): before the first lock has been held the shift
@@ -120,6 +129,7 @@ export class Player {
     // (Lloyd, 2026-09-04: "the messages that appear are better, can tap on them") the prompt is the button
     if (ui.prompt) this.on(ui.prompt, 'click', () => this.actionQueued = true);
     if (ui.drop) this.on(ui.drop, 'click', () => this.dropQueued = true);
+    if (ui.turn) this.on(ui.turn, 'click', () => this.turnQueued = true);
     if (ui.inv) this.on(ui.inv, 'click', (e) => { const b = e.target.closest('[data-slot]'); if (b) this.select(+b.dataset.slot); });
     if (ui.liftUp) { this.on(ui.liftUp, 'pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
       this.on(ui.liftUp, 'pointerup', () => this.liftUp = false);
@@ -230,6 +240,7 @@ export class Player {
   }
 
   takeMode() { const q = !!this.modeQueued; this.modeQueued = false; return q; }
+  takeTurn() { const q = !!this.turnQueued; this.turnQueued = false; return q; }
   takeDrop() {
     const v = this.dropQueued;
     this.dropQueued = false;

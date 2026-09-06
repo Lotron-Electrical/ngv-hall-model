@@ -51,6 +51,12 @@ export function loadSave() {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; }
 }
 
-export function saveGame(clock, install) {
-  localStorage.setItem(KEY, JSON.stringify({ night: clock.night, ...install.saveShape() }));
+// (Lloyd, 2026-09-06: floor protection) the path of ply sheets is part of the job, so it is part
+// of the save: `sheets` is [[u, d, along], ...] in hall coordinates and `stackSheets` is what is
+// left on each pallet of ply. `world` is optional so an older caller still saves the lights
+export function saveGame(clock, install, world, items) {
+  const extra = {};
+  if (world && world.sheets) extra.sheets = world.sheets.map((s) => [+s.u.toFixed(3), +s.d.toFixed(3), s.along]);
+  if (items && items.stacks) extra.stackSheets = items.stacks.map((s) => s.sheets);
+  localStorage.setItem(KEY, JSON.stringify({ night: clock.night, ...install.saveShape(), ...extra }));
 }

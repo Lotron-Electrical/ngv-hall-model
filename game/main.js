@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { loadWorld, collideWorld, updateDoors, hallToWorld } from './world.js';
+import { loadWorld, collideWorld, updateDoors, hallToWorld, restoreSheets } from './world.js';
 import { Fx } from './fx.js';
 import { Body } from './body.js';
 import { Crew } from './crew.js';
@@ -7,7 +7,7 @@ import { setupRenderer, updateRunLights } from './hallmat.js';
 import { Sound } from './sound.js';
 import { Player } from './player.js';
 import { Lift } from './lift.js';
-import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight, refreshObstacles } from './items.js';
+import { createItems, nearestAction, updateItems, dropCarry, cleanupClear, resetForNight, refreshObstacles, turnSheet, restoreStacks } from './items.js';
 import { Install } from './install.js';
 import { GameClock, loadSave, saveGame } from './clock.js';
 import { updateHud, showSummary } from './hud.js';
@@ -25,6 +25,7 @@ player.bind({
   moveStick: document.querySelector('#move'),
   lookStick: document.querySelector('#look'),
   drop: document.querySelector('#drop'),
+  turn: document.querySelector('#turn'),
   liftUp: document.querySelector('#liftUp'),
   liftDown: document.querySelector('#liftDown')
 });
@@ -34,6 +35,9 @@ let world, lift, items, install, clock, currentAction, fx, body, crew;
 let last = performance.now();
 let runLightTick = 0;
 let doorsWereOpen = false;
+// the ply that is down, as one string: the loop saves whenever it changes (see the loop)
+let sheetSaved = null;
+function sheetSig() { return (world && world.sheets ? world.sheets.length : 0) + ':' + ((items && items.stacks ? items.stacks : []).reduce((n, s) => n + s.sheets, 0)); }
 
 function resize() {
   const w = canvas.clientWidth;
@@ -51,6 +55,8 @@ async function init() {
   const runsData = await fetch(new URL('../runs.json', import.meta.url).href).then((r) => r.json());
   install = new Install(scene, runsData, saved);
   items = createItems(scene, world, camera);
+  restoreSheets(world, saved); restoreStacks(items, saved);   // the ply already down, and what is left on the stacks
+  sheetSaved = sheetSig();
   lift = new Lift(scene, world.floorY);
   items.lift = lift;   // dropCarry needs it to know a light went down on the deck
   clock = new GameClock(saved);
@@ -58,6 +64,7 @@ async function init() {
   player.body = body;
   fx = new Fx(scene, camera, world.hallSway, lift, install);
   crew = new Crew(scene, world, items, install, collideWorld, lift);
+  items.crew = crew;   // the reticle can point at a crew member (items.js 'crew'). No `items.talkTo` here: this entry has no task sheet, so no Talk prompt is offered at all
   clock.fittedAtStart = install.counts().fitted;
   player.pos.copy(hallToWorld(52.0, 7.5, world.floorY));
   player.yaw = 1.35;
@@ -98,10 +105,11 @@ function interact() {
   if (after > before) { snd.fit(); if (install.lastFit) fx.onFit(install.lastFit, player); }
   else if (/^Unwrap/.test(label)) snd.crinkle();
   else if (/pallet jack|pallet$|Set pallet/.test(label)) snd.jack();
-  else if (/box|Put light|Pick up|Take|Dispose|Bag/.test(label)) snd.thud();
+  else if (/box|Put light|Pick up|Take|Dispose|Bag|Lay|sheet|Sheet/.test(label)) snd.thud();
   snd.clock(clock.minute);
   updateRunLights(install);
-  saveGame(clock, install);
+  saveGame(clock, install, world, items);
+  sheetSaved = sheetSig();   // this save covers the boards too: no second write next frame
 }
 
 function loop(now) {
@@ -114,7 +122,7 @@ function loop(now) {
   const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.driving && (player.liftUp || player.liftDown));
   if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving);
   player.speedScale = body.speedScale();
-  refreshObstacles(items, [lift].concat(crew.teams.map((t) => t.lift)));
+  refreshObstacles(items, [lift].concat(crew.lifts));
   player.ignore = lift.aboard ? [lift, lift.box] : [player.carry];
   player.update(dt, world, collideWorld);
   const oldLift = lift.height;
@@ -123,6 +131,9 @@ function loop(now) {
   document.body.classList.toggle('aboard', lift.aboard);
   document.body.classList.toggle('driving', lift.driving);   // UP/DOWN only show at the controls
   document.body.classList.toggle('carrying', !!player.carry);
+  document.body.classList.toggle('sheet', !!(player.carry && player.carry.type === 'sheet'));
+  // (Lloyd, 2026-09-06: floor protection) R, or the TURN button, lays the sheet the other way
+  if (player.takeTurn() && player.carry && player.carry.type === 'sheet') turnSheet(items);
   snd.motor(Math.abs(lift.height - oldLift) > 0.002 || Math.abs(lift.speed) > 0.02, fx.level);
   snd.clock(clock.minute);
   if (!doorsWereOpen && !world.doorsShut) snd.door(); doorsWereOpen = !world.doorsShut;
@@ -136,9 +147,14 @@ function loop(now) {
   paintGuideBtn();
   fx.update(dt, clock, player, body);
   updateItems(player, lift, items);
-  if (player.takeDrop() && !lift.anim) { dropCarry(player, items); snd.thud(); }
+  // the thud is the sound of something landing: DROP with a sheet in hand over a bad spot lays
+  // nothing and makes no noise (Claude, 2026-09-07)
+  if (player.takeDrop() && !lift.anim) { if (dropCarry(player, items)) snd.thud(); }
   currentAction = nearestAction(player, lift, install, items);
   if (player.takeAction()) interact();
+  // (Claude, 2026-09-07) boards go down without an ACTION -- DROP lays the one in your hands, the
+  // crew's feeder lays its own -- so the count is watched and the save written when it moves
+  { const sig = sheetSig(); if (sheetSaved !== sig) { sheetSaved = sig; saveGame(clock, install, world, items); } }
   clock.update(dt);
   updateHud(document.querySelector('#stats'), document.querySelector('#prompt'), clock, install, currentAction, player.carry, body);
   if (clock.ended && !document.querySelector('#summary').classList.contains('up')) {
@@ -146,7 +162,7 @@ function loop(now) {
     clock.running = false;
     const clean = cleanupClear(items, lift); clean.left.push(...crew.leftInHall()); clean.ok = clean.left.length === 0;
     showSummary(document.querySelector('#summary'), document.querySelector('#summaryText'), clock, fittedTonight, clean);
-    saveGame(clock, install);
+    saveGame(clock, install, world, items);
   }
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
@@ -162,7 +178,7 @@ document.querySelector('#nextNight').addEventListener('click', () => {
   snd.nextNight();
   document.querySelector('#overlay').classList.remove('gone');
   document.body.classList.remove('playing');
-  saveGame(clock, install);
+  saveGame(clock, install, world, items);
 });
 
 init().catch((err) => {

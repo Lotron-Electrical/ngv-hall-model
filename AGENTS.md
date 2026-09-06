@@ -427,7 +427,8 @@ one had the clock at an hour per second and the spawn inside a solid box). Check
 `node tools/game-check.mjs` (serve on :8877, chrome via headless-chrome.sh on 9333; it prints the
 HUD text and console errors and saves %TMP%/game-1.jpg, the phone view after Start Shift).
 Phase 1 = world, controls, lift, pallets/boxes/wrap, fitting, clock, clean-up rule, save.
-Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
+Phases owed at the time: 2 fatigue + hallucinations, 3 the crew's AI, 4 sound. All four are in
+(the crew as five people you allocate, 2026-09-06, not the helper-and-team AI first sketched).
 - 2026-09-04 (Claude, no Codex from here): DOUBLE DOORS at the storage doorway (`world.js`: two
   leaves hung 0.3 m on the hall side of the wall line, swinging 100 degrees into the corridor for
   anyone within 3.2 m; a parked lift does not hold them; shut = a wall in `collideWorld`). The
@@ -465,14 +466,13 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   spent; it lowers the stamina ceiling (to 40 at 100) and speed (to 55%), and drives the small
   hours (`fx.levelFor`: from 70 fatigue). Two bars under the HUD. Reach is measured on the floor
   plan (`items.js near`): the old straight-line reach from the eye never got a bag on the floor.
-  Boarding the lift is by ACTION only; the lift parks at (53.6, 9.6), the jack at (55.8, 9.6).
-- Crew (2026-09-04): `crew.js`. After column 1 a HELPER (orange) works the column nearest your
-  lift: jacks its pallet to the column foot, keeps two open boxes there, loads your deck when it
-  is down and empty, bags wrap, runs full bags to the skip. After column 2 a TEAM (yellow, two
-  figures, their own Genie lift and jack) claims the nearest unclaimed column and does it run by
-  run (~7 s a light, slower as the clock tires them); one more team per further column, max 3.
-  At 04:30 everyone packs up (lifts home, pallets back). Toasts announce joins and finished
-  columns. `tools/game-crew.mjs` scripts the unlocks and watches them work.
+  Boarding the lift is by ACTION only; your lift parks at (63.6, 6.6), your jack at (65.0, 4.4)
+  (`resetForNight` in items.js is the authority; the crew's two of each park in front of them).
+- Crew (2026-09-04, REPLACED 2026-09-07): `crew.js`. It used to unlock by columns done -- a
+  helper after one, then a team of two per column after that. That progression is gone: five crew
+  are on the floor from 17:00 and you tell each of them what to do. See "The crew you allocate"
+  below. `tools/game-crew.mjs` (the old unlock script) is deleted; `tools/game-crewtasks.mjs`
+  replaces it.
 - Hall rendering (2026-09-04, Lloyd: same MODEL as the viewer, not necessarily the same look):
   the game loads the identical model.glb and runs.json. `hallmat.js` is a trimmed port of the
   viewer's photoMaterial (albedo x house light, unlit by scene lights) with the viewer's renderer
@@ -483,17 +483,20 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   fx level in the small hours), thuds for boxes/lights/bags, wrap crinkle, fit click, jack scrape,
   door swing, 04:30 pack-up chime, 05:00 bell. Cues are read off the prompt label that was pressed.
 - Pacing (estimate, not field-run): one box = one run (8 lights); the lift comes down for every
-  box (12 m at 0.5 m/s each way), so a solo column is ~12-13 min = about one night, the helper
-  night ~1.5 columns, then a column per team per night. The lift already rises 2-3x faster than
-  a real GS-4046.
-- Storage + collisions (Lloyd, 2026-09-04: larger storage, nothing clips): the corridor is 17 x 9 m
-  (u 48.9-66, d 3-12), pallets in two rows of six (`palletHome`: N row d 4.5, S row d 10.5, 2.3 m
-  apart) with a 4 m aisle, lifts and jacks at the aisle's end, bags by the end wall, the skip
-  outside a person-sized opening (a lift stops at the wall). `refreshObstacles` (items.js) rebuilds
-  a plan of circles every frame (pallets 0.95, boxes 0.4, bags 0.45, lifts two of 0.85, skip 1.9)
-  and `collideWorld(pos, r, world, ignore)` pushes every mover out of them; a mover ignores what
-  it carries and the lift it rides. Reaches must sit OUTSIDE the collision radii (pallet 1.5,
-  skip 2.6/2.9) or the crew walk forever.
+  box (12 m at 0.5 m/s each way), so a solo column is ~12-13 min = about one night. What the crew
+  add to that is now yours to decide: two fitters on two crew lifts with a feeder each is roughly
+  three columns a night, one fitter working alone about one and a half (2026-09-07: the helper /
+  team unlocks that used to set this are gone, see "The crew you allocate"). The lift already
+  rises 2-3x faster than a real GS-4046.
+- Storage + collisions (Lloyd, 2026-09-04: larger storage, nothing clips; the east end and the
+  stacks 2026-09-06): the corridor is 22 x 9 m (u 48.9-71, d 3-12), pallets in two rows of six
+  (`palletHome`: N row d 4.5, S row d 10.5, 2.3 m apart) with a 4 m aisle, lifts and jacks at the
+  aisle's end, the five ply stacks in the back bay past both rows, bags by the end wall, the skip
+  at u 73.6 outside a person-sized opening (a lift stops at the wall). `refreshObstacles`
+  (items.js) rebuilds a plan of circles every frame (pallets 0.95, boxes 0.4, bags 0.45, lifts two
+  of 0.85, ply stacks two of 0.72, skip 1.9) and `collideWorld(pos, r, world, ignore)` pushes every
+  mover out of them; a mover ignores what it carries and the lift it rides. Reaches must sit
+  OUTSIDE the collision radii (pallet 1.5, skip 2.6/2.9) or the crew walk forever.
 - Lift driving + deck (Lloyd, 2026-09-04: "drive more like a real scissor lift", "walk up to the
   control panel and then choose to drive or not", "get on from 1 end"): `lift.js` keeps ABOARD and
   DRIVING apart. You board from the BACK end only (`Get on lift` needs you within 1.7 m of the
@@ -655,12 +658,262 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   through `player.stow(item)` (first free slot, becomes active). `Player.BULK`: a box is two of
   the four units, everything else one; `canTake(type)` gates every pick-up ("Hands full"). Only
   the active item's mesh is visible in the hands (`showHands`). Keys 1-4 and a tap on `#inv`
-  (`data-slot`) select; F / DROP drops the active one. `#inv` sits under the stats block
-  (top 212 px) on every layout; redrawn only when its signature changes (`G.invSig`). Stamina
+  (`data-slot`) select; F / DROP drops the active one. `#inv` sits under the stats block and the
+  stamina bars, at a `top` hud.js measures (`stackHud`); on a phone it is a 2 x 2 block 106 px wide
+  and it is HIDDEN while you drive. Redrawn only when its signature changes (`G.invSig`). Stamina
   load reads the whole inventory. Action order in `nearestAction`: hands x target combos, then the
   target as a pick-up when there is room, then hand-only fallbacks.
-- Bags: any bag (empty, part full `Take rubbish bag (n/8)`, full) can be carried and put down;
-  the helper skips a bag the player is carrying. Proof: `tools/game-inventory.mjs`.
+- Bags: any bag (empty, part full `Take rubbish bag (n/8)`, full) can be carried and put down; the
+  crew skip a bag anyone is already carrying (`b.carried`, set on every stow). Proof:
+  `tools/game-inventory.mjs`.
+
+### Floor protection + the crew's tasks (Lloyd, 2026-09-06)
+The two changes of 2026-09-06 arrived together and they only make sense together: read this first,
+then the two sections under it for the detail.
+- WHAT. A scissor lift may no longer touch the gallery carpet: it drives on ply floor-protection
+  sheets, which somebody has to carry out of storage and lay. And there is somebody to do it -- the
+  crew is five people from 17:00 and every one of them does the job YOU give them, instead of
+  unlocking themselves by columns done and picking their own work.
+- WHY TOGETHER. Boards are the job that has to happen before any other job in the hall, so the
+  moment they existed the game needed a way to tell a person to go and lay them. That is the task
+  sheet. It is also why a fitter can be stopped for a reason that is nobody's fault: his machine is
+  out of floor and the boards worker has not reached him yet (`waiting for boards near N3`).
+- WHERE IN THE CODE. `world.js` owns the sheets (the 1.2 m grid, `protectedAt`, `boardBlock`,
+  `laySheet`, `restoreSheets`); `lift.js` owns the wheel rule for both the driven machine
+  (`drive`) and every machine nobody is driving (`roll`); `items.js` owns the stacks, the ghost and
+  the hands; `crew.js` owns the five, their `assign` / `status`, the seven tasks and the board
+  plans; `index.html` owns the task sheet (`openTaskSheet` / `taskSheetPaint` / `crewWire`) and the
+  panel's Tasks tab. `game/main.js` (the old standalone entry) is kept importing, not run.
+- WHAT IT COST. The corridor grew 5 m east to hold five pallets of ply, the pallets moved off the
+  middle of the hall, and both jobs found the same class of bug: a walker or a machine that stops
+  half a metre short of the doorway and never moves again. `travelGoal`, `crossGoal` and the
+  `CROSS` reaches are the answer and they are load-bearing -- change one and re-run the crew proof.
+- PROOFS. `node tools/game-boards.mjs <outdir>` (21 steps) and `node tools/game-crewtasks.mjs
+  <outdir>` (11 steps). Both drive real frames in headless Chrome and both assert, every frame,
+  that no crew machine has a wheel on unprotected carpet. `tools/game-crew.mjs` (the old
+  unlock-by-columns script) is deleted.
+- WHAT THREE REVIEWS CHANGED THE DAY AFTER (Claude, 2026-09-07). Nine defects, all in how the two
+  features MEET the screen rather than in either feature itself:
+  - A REASON IS FOR WHILE YOU ARE PUSHING AT IT (`lift.drive`). `blocked` was written on the way
+    past the collider and never reached again once the machine stood still, so the first stop at
+    the end of the ply pinned "lay floor protection ahead" over the prompt for the rest of the
+    night. It is cleared whenever the machine is parked. Guarded by game-boards step 13.
+  - AND A STOP WITHOUT A REASON IS A BROKEN CONTROL (`Lift.BUMPED`). A crew machine on the road
+    held the player dead with the stick forward and nothing on screen; a crew lift cannot be aimed
+    at, either. Frame by frame a held machine looks like it is moving (it creeps in, is shoved
+    back, ramps again), so the test is over a 0.6 s window: metres asked for against metres got.
+    game-boards step 21.
+  - A BOARD IS NOT A BOX (`crew.putDown` -> `dropSheet`). Every "put down what you are holding"
+    path dropped a 2.4 m sheet on the floor like a carton: in neither `world.sheets` nor a stack,
+    and 150 sheets quietly became 149. It is laid where he stands, or goes back on a stack.
+  - NOBODY IS SNAPPED ONTO A DECK HE IS NOT ON (`doFit`). Two `rideDeck` paths could be reached by
+    a fitter who was away fetching a box: 6 m along the hall and 1.3 m up in one frame.
+  - THE COLUMN PICKER (`#tsCols[hidden]`). `hidden` loses to `#tsCols{display:grid}`, so the last
+    member's twelve column buttons stayed painted and live under the next member's "Stand by".
+  - THE POINTER (`player.js`, `closeTaskSheet`). A click on the open task sheet grabbed the mouse
+    back; Esc out of it left a desk with a free cursor, no pause screen and the keys still live.
+  - THE LEFT-HAND STACK (`hud.js stackHud`). The four clock chips wrap to three rows on a phone
+    and everything under them had a fixed `top` written for one row: the stamina bars printed
+    through "0 / 768 lights", the slots sat inside the UP button. The bars, the slots and the deck
+    read are stacked under the measured block now. Nothing on the driving HUD touches anything at
+    412 or 360 (repro harness + game-boards step 17).
+  - A CARD OVER THE HALL OWNS THE SCREEN. The prompt pill was drawn over the crew panel and took
+    the taps meant for a name; the toast was drawn UNDER the panel. Pill hidden while either card
+    is up (`body.panelOpen` / `body.sheetOpen`), toast to z 7, panel opaque.
+  - One crew line at a time: two toasts queued in the same frame used to show the first for a
+    single frame.
+
+### Floor protection: the lift drives on ply (Lloyd, 2026-09-06: "for the install sim, we also need to put down floor protection before we can drive the scissor lift on the carpet")
+- THE RULE. The hall floor is the gallery's CARPET. A wheel may only roll on the concrete corridor
+  (u >= 48.9) or on a laid ply sheet. `Lift.drive()` and `Lift.roll()` both take the step back
+  whole (position AND yaw) when `world.boardBlock` names a wheel that WAS protected and would not
+  be; a machine already standing on carpet is never wedged, so it can always drive back out.
+  `lift.blocked` = `Lift.NO_BOARDS` puts the words in the prompt and turns `#wchassis` red.
+- THE SHEETS. 2400 x 1200 x 18 mm, `world.sheets` = `{u, d, along, mesh}` on a 1.2 m GRID: lines
+  at u = 48.9 - 1.2k (the first is the door line) and d = 0.3 + 1.2k. `along:'u'` runs the 2.4 m
+  side along the hall; the default is 'd', so a spine from the doors is laid crosswise like a
+  plank road. `snapSheet` / `sheetRect` / `protectedAt` / `sheetSpotWhy` / `laySheet` /
+  `liftSheetUp` / `restoreSheets` are all in world.js. A sheet is NOT a collider and NOT a step.
+- THE STACKS. `items.stacks`: five pallets of 30 sheets in the corridor's BACK BAY, past both
+  pallet rows, long side across the corridor so the lane to the skip stays open. They could not go
+  in the aisle: a 2.4 x 1.2 m stack there stands exactly where a person must stand to reach a
+  light pallet (the inventory proof caught it) and on top of the crew's jacks; and a strip behind
+  a pallet row is walled off, because a straight-line walker cannot pass between two pallets
+  (0.4 m of gap). So the corridor grew east: `corridor.u1` 66 -> 71, the skip 68.6 -> 73.6, the
+  bags to the new end wall, the install seal box 8 m longer. Two circles of r 0.72 trace a stack
+  on the plan, not one of 1.3: one fat circle closes the lane the machines drive to the doors.
+- IN THE HANDS. `Player.BULK.sheet = 4`: a sheet is the whole inventory. `items.ghost` shows where
+  it would land every frame (green 0x35d06a valid, red 0xd94a3a not), snapped to the grid within
+  3.8 m of your feet; R or the phone's TURN button flips `items.sheetAlong`. Invalid = off the
+  grid, over another sheet, over a column, over anything on the plan EXCEPT a lift (the boards are
+  FOR the machine: the next board always goes down inside its own plan circles), or across a door
+  leaf. F / DROP lays it or does nothing; a 20 kg board is never tossed. A laid sheet comes back
+  up unless a wheel stands on it.
+- THE CREW. Every lift a crew moves goes through `Lift.roll()`, so the wheel rule cannot be
+  forgotten in one of them. While the machine still has ground to cover the FEEDER's job is the
+  boards, not the stock: it fetches one sheet a trip and lays it where `nextBoardSpot` says (see
+  WHICH CELL THE CREW LAYS below: the cell that carries the most wheels, not simply the first
+  uncovered one on the line). Two waypoint helpers keep them off the walls:
+  `travelGoal` (a machine lines up on the 2.5 m opening before driving through it) and `crossGoal`
+  / `walkVia` (a person does the same). A team ignores its OWN machine on the plan: the lift's two
+  circles are a fat bound of a 2.4 x 1.15 chassis, and the feeder has to get past it in a doorway.
+- SAVE. `saveGame(clock, install, world, items)` writes `sheets: [[u,d,along]...]` and
+  `stackSheets`; `restoreSheets` + `restoreStacks` rebuild them on load. `resetForNight` puts the
+  stacks home and LEAVES the sheets down (the protection stays for the whole job); `cleanupClear`
+  counts a stack on the hall side of the door line as `board stacks` and never counts a laid
+  sheet. net.js does NOT sync sheets: a crew room sees only its own boards.
+- WHICH CELL THE CREW LAYS (Claude, 2026-09-07, after the first version left every team standing
+  in the doorway all night). The board goes UNDER the wheel that ran out of floor, and which of the
+  cells that reach that wheel matters: two wheels on an axle are 1.24 m apart, so one 2.4 m sheet
+  holds the pair only when it is laid BETWEEN them. `world.sheetCells(u, d, along)` names the one
+  or two grid cells that would land under a point; `nextBoardSpot` scores them by how many wheels
+  each would put on ply (bare ones counting double), tries both orientations (near the doors the
+  swinging leaves rule one of them out) and only walks up the travel line when none of them can be
+  laid. It returns null rather than stacking ply on ply. Snapping to the wheel's own nearest grid
+  line instead laid the board BESIDE the wheel it was meant to save, two boards wasted per row.
+- CLEAR THE DOORWAY BEFORE TURNING OFF (`travelGoal`). A machine that starts across the room the
+  moment its nose is inside drags its back corner over the door line, where the leaves sweep and
+  no board may be laid: it now drives up the middle to 3.4 m in first, which is what a driver does.
+  The feeder boards toward the same goal the machine is steering for (`T.goal`), not the column.
+- THE WAYPOINT DEADLOCK (`CROSS` in crew.js). A walker crossing the doorway aims at a waypoint on
+  the centre line first. Its arrival reach (0.55 m) MUST stay under the "lined up" test (0.85 m,
+  itself under half the 2.5 m opening less the walker's 0.3 m): with reach 0.7 against a 0.5 m
+  line-up, a feeder that stopped 0.6 m short of the middle was arrived AND not lined up, and never
+  moved again -- with its whole team waiting behind it.
+- A FULL STACK TAKES NOTHING. `returnSheet(items, stack, near)` is the one way a board goes back:
+  the named stack if it has room, else the nearest that has. The prompt at a full one says `That
+  stack is full`. 150 sheets came off five stacks of 30 and the count is conserved: the old
+  `Math.min(30, ...)` swallowed the board in your hands, and the crew's `s.sheets++` made a 31st.
+- THE SAVE WATCHES THE COUNT. Boards go down without an ACTION (DROP lays the one in your hands,
+  the crew's feeder lays its own), and neither runs through `installInteract`, so index.html's
+  `installStep` (and main.js's loop) compare `sheetSig` every frame and write the save when it
+  moves. DROP also only thuds when something actually left the hands.
+- PROOF: `node tools/game-boards.mjs <outdir>` (21 steps: the stacks on the plan, taking a sheet,
+  the first board on the door line, the ghost's red and the concrete hint, TURN and the grid, a
+  six-board run, the machine stopping at the end of the boards and moving on when two more go
+  down, picking one up under a wheel, the save across a reload, a crew team boarding its own way
+  into the hall, the night reset, two phone shots, and then one check per defect the skeptical
+  tester found: DROP is saved, a full stack refuses a board, the prompt answers the reticle with
+  full hands, the wheel plan clears every HUD element at 412 and 360, `sheetCells` really covers
+  its point, a team boards its own way in from a BARE hall and keeps moving, and the feeder walks
+  back out through the doorway from the spot it used to freeze on; and from 2026-09-07 the two
+  stop messages: the boards line clears when the stick is let go, and a machine held by another
+  machine says so).
+
+### The crew you allocate (Lloyd, 2026-09-06: "Can we also add crew from the start. The player should be able to allocate tasks to the crew members")
+- WHO. FIVE from the start, waiting in the corridor at 17:00, one vest colour and one name tag
+  each: Dave (orange), Priya (yellow), Marco (green), Jules (blue), Tom (pink). `crew.members`,
+  `crew.lifts` (two crew scissor lifts), `crew.jacks` (two crew jacks). Nobody unlocks and nobody
+  picks their own job. `crew.points()`, `crew.resetForNight()`, `crew.leftInHall()` and
+  `crew.toasts` are unchanged for their callers; `crew.teams` and `crew.helper` are gone, so
+  `refreshObstacles` takes `crew.lifts` (index.html `installStep`, main.js's loop).
+- THE SEVEN JOBS (`CREWm.TASKS`, id + label): `standby` Stand by, `fit` Fit column, `feed` Feed
+  column, `boards` Lay boards to (a column or `WHOLE_HALL`), `pallets` Bring pallets in,
+  `rubbish` Rubbish, `help` Help me (the old helper, on whichever column your lift is nearest).
+  `crew.assignTask(nameOrWorker, task, target)` is the ONE way a job is given out: it puts down
+  whatever was in hand first (`dropWork`), clears the run claim and toasts `Dave: fit N3`.
+  Assignments persist across nights; `resetForNight` only moves everyone back to the corridor.
+- A LIFT IS A SHARED TOOL. The first fitter who needs one takes a free one (`crew.lifts`, `L.by`);
+  a third fitter gets status `waiting for a lift` and the line `No free lift for Jules`, said once.
+  The PLAYER's lift is never taken. Reassigned mid-column, a fitter brings the deck down, climbs
+  off and leaves the machine where it stands, free for the next one (`parkLift`). Jacks are
+  claimed the same way (`reserveJack` / `unclaimJacks`): a claim must be returned to its owner on
+  the next frame or a worker claims all three and then finds none free (that bug stood two of them
+  still for a whole night). `reserveJack` takes the NEAREST free jack, the crew's own before the
+  player's, and `fetchJack` gives a claim back after 12 s of getting nowhere with that jack off
+  that member's list (a member who claimed the player's jack in the far corner of the store and
+  could not thread the pallet rows to it stood there all night with two free jacks beside him).
+- NOBODY TELEPORTS (Claude, 2026-09-07, the skeptic's D1 and D5). Getting on or off a machine is a
+  second on the ladder (`climbOn` / `climbOff` / `stepClimb`, `CLIMB`): the man slides along the
+  machine and up, and `update` runs nothing else of his while it lasts. And `parkLift` only brings
+  a man off a deck he is actually STANDING on -- a fitter reassigned while he was 11 m down the
+  hall on a box run used to be snapped back to the ladder foot in one 50 ms frame. He is already
+  on the floor: the deck comes down, the machine goes back on the free list (`releaseLift`), and
+  he stays where he stands. The same rule at pack-up. No crew member moves more than a walking
+  pace in a frame, and the proof asserts it over every stepped run.
+- PAIRING. A fitter and a feeder on the same column work together: the feeder loads THAT fitter's
+  deck, and when that machine has run out of floor protection the feeder drops everything and lays
+  ply in front of the blocked wheel (the brief-A behaviour, `layAhead`). Two fitters on one column
+  claim different runs (`W.run`).
+- THE BOARDS JOB (`boardPlan`): (a) the SPINE, 2.4 x 1.2 boards laid across the way you drive, up
+  the middle of the hall on d 7.5 from the door line to the column; (b) the column's PATCH, every
+  1.2 m grid cell whose centre is within 2.6 m of the foot that the shaft does not stand in,
+  covered nearest-the-middle first so it butts on to the spine. `Whole hall` is the full spine plus
+  every column's patch, nearest the doors first. Status counts down: `laying boards to N3 (14 to
+  go)`. A spot nothing can be laid on for 20 s (a pallet parked on it) comes off the plan.
+- STATUS TEXT, shown in the panel row and under `Talk to`. This is the WHOLE vocabulary and the
+  proof fails on anything outside it (step 9): `standing by`, `waiting for a lift`, `walking to
+  the lift`, `rolling to N3`, `waiting for boards near N3`, `fitting N3 (23/64)`, `fetching
+  boxes`, `waiting for boxes`, `feeding N3`, `bringing the N3 pallet in`, `laying boards to N3 (14
+  to go)` (the BOARDS job, counting its plan down), `laying boards to N3` (a FEEDER laying ply in
+  front of his fitter's blocked wheel: there is no plan to count), `bagging wrap`, `running
+  rubbish`, `helping you`, `stepping off the lift`, `putting the jack back`, `packing up`, `taking
+  the N3 pallet back` / `taking the ply back` (the pack-up run).
+- ASSIGNING, two ways. THE RETICLE: crew avatars are raycast targets (`items.crew`, kind `crew`);
+  within 3.5 m the prompt is `Talk to Dave` with his status under it and ACTION opens his sheet
+  (`items.talkTo`, hung by index.html). Gotcha: a name tag is a THREE.Sprite and `Sprite.raycast`
+  throws unless `raycaster.camera` is set -- `nearestAction` sets it. THE PANEL: `#crewBtn` opens
+  `#crewPanel`, which now has two tabs, `Tasks` (five rows: vest dot, name, job, status) and
+  `Room` (the multiplayer contents, unchanged). THE SHEET `#taskSheet`: name + status, a grid of
+  the seven jobs, then a picker of twelve columns (done ones disabled and marked `done`, ones
+  another member is on marked with that member's initial) plus `Whole hall` for the boards job.
+  Closes on Close, Esc, or on assigning. While it is open `body.sheetOpen` is set: `installStep`
+  clears the keys and both sticks every frame BEFORE anything reads them, the pointer lock is
+  released, and `Player.setPaused` refuses to pause (the shift keeps running behind the card).
+- 04:30 PACK-UP is per member: deck down, machine home along the boards (`force` after 2 s stuck),
+  the pallet in the air back, jack back -- and a sweep for a jack somebody left at a column,
+  because a feeder sets its jack down at the foot when the pallet is in and nothing of the crew's
+  may be in the hall at 05:00 (`leftInHall`). EVERY PALLET AND EVERY PLY STACK LEFT STANDING IN
+  THE HALL GOES OUT TOO (`strayLoad`, Claude 2026-09-07, the skeptic's D2): the sweep used to walk
+  home only a pallet that was already in the air, so twelve pallets stood at twelve column feet
+  all night and the night's clean-up read `pallets` every time. Whoever is free claims the nearest
+  one by name, takes a jack to it and runs it back to its storage spot (`setDown` keeps a stack's
+  own turn); a member with no jack free lets the claim go instead of standing on it. Twelve
+  pallets take about six minutes of shift with three jacks between five people.
+- A FITTER THAT CANNOT GET THE LAST METRE PARKS AND WORKS (`PARK_R`, Claude 2026-09-07, the
+  skeptic's D3). The ring round a shaft cannot be boarded at all -- a sheet has to clear the
+  column by 0.6 m and every grid cell that touches the ring is refused for that reason -- so no
+  machine ever reaches a run's own spot. The test used to be "within 3.6 m of the run's spot" and
+  a lone fitter standing on the spine 3.64 m off it said `waiting for boards near N6` for the rest
+  of the night with nobody assigned to boards. It is measured to the SHAFT now (4.6 m): a machine
+  that near has arrived, whichever face the next run is on. `L.stuckCol` shortens the try on the
+  next face of a column that has already beaten it, so a column is not eight separate waits.
+- A CARTON IN THE HANDS GOES UP BEFORE THE STOCK IS COUNTED (`getBox`, Claude 2026-09-07). Taking
+  the last carton off a pallet empties it, and the stock test then told the fitter walking back
+  with that carton that there was nothing to fetch: he climbed on holding it and sat there for the
+  night. A column stopped dead at 56 of 64 with the eighth box in his arms.
+- THE CORRIDOR HAS ONE LANE (Claude, 2026-09-07). The two pallet rows leave 4.1 m of clear floor
+  and a lift's plan circles take 2.0 m of it, so the crew's machines park down the MIDDLE of that
+  band ((56.5, 7.35) and (60.0, 7.65)), which leaves about a metre of lane either side and keeps
+  both pallet rows reachable. Parked against one row instead, a lift leaves a 14 cm slot and a
+  straight-line walker aimed through it is stuck there for the night (the sidestep cannot back out
+  of a dead end). The jacks park at (57.0, 8.9) / (60.5, 8.9) and the five wait in the SOUTH lane
+  (`corridorSpot`: d 8.5 / 9.2, between the door line at d 7.5 and the S pallet row at d 10.5) at
+  u 53-55.6, 4 to 7 m back from the doorway so they do not hold the doors open all shift.
+- A COLUMN'S PALLET STANDS BESIDE IT ALONG THE HALL (`footSpot`, `hd.u + 2.4`), not 2.4 m out
+  toward the middle as it did: the floor protection runs up the middle, and a 1.9 m pallet circle
+  at d 6.2 covers most of that road and wedges every machine driving past.
+- TRAVEL (`travelGoal`) in four steps: back on to the middle line at your own u if you are leaving
+  a column, line up on the 2.5 m doorway, clear the door line by 3.4 m, then follow the spine up
+  the middle until you are level with the column and only then turn off across the patch. A
+  machine nose to nose with another parked one in the corridor eases ACROSS and goes round (a
+  head-on push is exactly cancelled by the drive, so it would never move otherwise). Climbing off
+  a machine leaves you inside its own plan circles, so the machine you just left is ignored by the
+  collider until you are 3 m clear (`W.offLift`).
+- PROOF: `node tools/game-crewtasks.mjs <outdir>`. The long working run is STEPPED, not watched:
+  `crew.update(0.05)` in a tight loop with `refreshObstacles` and `updateDoors` alongside it, the
+  same order index.html's frame runs them, so 420 s of shift takes seconds and every step is
+  sampled. It checks the five on standby (nobody moves for 5 s), the reticle prompt and the sheet
+  (W does nothing while it is open, and the game is not paused), the panel's five rows, a whole
+  shift's work (no crew wheel ever on bare carpet, boards laid, Dave rolling -> waiting for boards
+  -> fitting N1 (n/64), 25 lights in, pallets jacked in, the feeder feeding), reassigning a fitter
+  mid-column AND reassigning one who is away on a box run (nobody moves more than a pace in a
+  frame, over every stepped run), a third fitter with no machine free, a LONE fitter with nobody
+  feeding him and nobody on boards (he parks and works instead of stalling), the pack-up down to
+  the last pallet and ply stack (`cleanupClear` clean of both), the status vocabulary, and three
+  phone shots. The 41 m spine to N1 is pre-laid by script in step 4: one worker carrying one board
+  at a time cannot lay 41 m of road AND fit the column inside one night, and the protection stays
+  down for the job.
 
 ### The canopy as slab glass (Lloyd, 2026-09-06: "each of the colours should be stained glass and translucent")
 - WHAT IT WAS: every pane in `tools/pieces.bin` drew as one flat emissive colour, opaque, the

@@ -179,13 +179,20 @@ body.paused #paused{display:flex}
 #installUi h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:42px;line-height:1;margin:0 0 12px}
 #installUi p{margin:0 0 14px;color:var(--dim)}
 #vignette{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(0,0,0,.85) 100%);transition:opacity .6s}
-#bars{position:absolute;left:12px;top:52px;z-index:3;width:min(240px,55vw);display:flex;flex-direction:column;gap:5px;pointer-events:none}
+/* the top of the left-hand stack. `top` is written by hud.js (stackHud): the clock chips wrap to
+   three rows on a phone and everything under them follows the block down. The width stays clear of
+   the deck read on the right at 360 px (Claude, 2026-09-07) */
+#bars{position:absolute;left:12px;top:52px;z-index:3;width:min(240px,40vw);display:flex;flex-direction:column;gap:5px;pointer-events:none}
 #bars .bar{position:relative;left:auto;bottom:auto;padding:0;background:rgba(0,0,0,.55);height:16px;border:1px solid rgba(255,255,255,.22);border-radius:3px;overflow:hidden}
 #bars .bar i{position:absolute;left:0;top:0;bottom:0;background:#5fbf7a;transition:width .2s}
 #bars .bar.fat i{background:#d98a3a}
 #bars .bar b{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.7)}
 #bars .bar span{position:absolute;left:6px;top:0;line-height:16px;font:11px/16px ui-monospace,Consolas,monospace;color:#fff;text-shadow:0 1px 2px #000}
-#toast{position:absolute;left:50%;top:110px;transform:translateX(-50%);z-index:4;max-width:calc(100% - 24px);background:rgba(185,168,135,.92);color:#111;border-radius:4px;padding:8px 14px;font-weight:500;opacity:0;transition:opacity .4s;pointer-events:none}
+/* (Claude, 2026-09-07) the toast used to be z 4, under the crew panel at z 6: on both phone widths
+   the panel covers the middle of the screen and "Dave's lift is waiting for boards near N1" was a
+   grey smear behind Dave's own row. A line that is worth saying is worth being read: it goes over
+   the panel. It is pointer-events:none, so it never takes a tap meant for a name */
+#toast{position:absolute;left:50%;top:110px;transform:translateX(-50%);z-index:7;max-width:calc(100% - 24px);background:rgba(185,168,135,.92);color:#111;border-radius:4px;padding:8px 14px;font-weight:500;opacity:0;transition:opacity .4s;pointer-events:none}
 #toast.up{opacity:1}
 #ghud{position:absolute;left:12px;top:10px;right:12px;z-index:3;display:flex;align-items:flex-start;gap:10px;pointer-events:none}
 #stats{display:flex;gap:8px;flex-wrap:wrap;color:#fff;text-shadow:0 1px 2px #000;font:13px/1.3 ui-monospace,Consolas,monospace}
@@ -205,7 +212,9 @@ body.playing #reticle{display:block}
 /* the crew room (net.js): a button beside the guide, a small panel under it. Lines, not paragraphs */
 #installUi #crewBtn{flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
 #installUi #crewBtn.on{border-color:#5fbf7a;color:#9fe7b4}
-#crewPanel{position:absolute;right:12px;top:64px;z-index:6;width:min(300px,calc(100% - 24px));background:rgba(0,0,0,.84);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:12px 14px;color:#fff;pointer-events:auto;font-size:15px;line-height:1.5}
+/* OPAQUE, not .84: the clock chips, the bars and the deck read all sit at z 3 and printed through
+   the panel's ground -- "0 columns done" read straight across Dave's row (Claude, 2026-09-07) */
+#crewPanel{position:absolute;right:12px;top:64px;z-index:6;width:min(300px,calc(100% - 24px));background:#0c0f13;border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:12px 14px;color:#fff;pointer-events:auto;font-size:15px;line-height:1.5}
 #crewPanel .cpl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin:8px 0 2px}
 #crewPanel .cpl:first-child{margin-top:0}
 #crewPanel input{font:inherit;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:6px 8px;width:100%;box-sizing:border-box;text-transform:none}
@@ -217,13 +226,71 @@ body.playing #reticle{display:block}
 #crewPanel ul{list-style:none;margin:2px 0 0;padding:0}
 #crewPanel li{padding:2px 0;border-top:1px solid rgba(255,255,255,.1)}
 #crewPanel li i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px}
+/* (Lloyd, 2026-09-06: "The player should be able to allocate tasks to the crew members") the panel
+   carries two tabs now: TASKS, the five who are in the hall tonight and what each is doing, and
+   ROOM, the multiplayer contents exactly as they were */
+#crewPanel .cptabs{display:flex;gap:6px;margin-bottom:10px}
+#crewPanel .cptabs button{flex:1 1 0;min-height:40px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.24);border-radius:5px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;color:#fff}
+#crewPanel .cptabs button.on{border-color:#7CFF9A;color:#9fe7b4;background:rgba(124,255,154,.12)}
+#crewTaskList{list-style:none;margin:0;padding:0}
+#crewTaskList li{border-top:1px solid rgba(255,255,255,.12);padding:0}
+#crewTaskList button{width:100%;min-height:52px;display:grid;grid-template-columns:14px 1fr;gap:0 9px;text-align:left;background:none;border:0;padding:7px 2px;color:#fff;font:inherit;line-height:1.3}
+#crewTaskList button:active{background:rgba(255,255,255,.08)}
+#crewTaskList i{width:12px;height:12px;border-radius:3px;margin-top:4px}
+#crewTaskList b{font-weight:600;font-size:15px}
+#crewTaskList em{grid-column:2;font-style:normal;color:var(--accent);font-size:13px}
+#crewTaskList small{grid-column:2;color:var(--dim);font-size:12px}
+/* THE TASK SHEET: one card over the hall, phone first. 44 px targets, the body scrolls on its own,
+   and Close sits outside that scroll so it can never be pushed off a 915 px screen */
+#taskSheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;width:min(360px,calc(100% - 20px));max-height:calc(100% - 24px);display:none;flex-direction:column;background:rgba(14,16,20,.96);border:1px solid var(--rule);border-radius:8px;padding:14px;color:#fff;pointer-events:auto}
+#taskSheet.up{display:flex}
+#taskSheet h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:26px;font-weight:500;margin:0;color:var(--accent);display:flex;align-items:center;gap:8px}
+#taskSheet h3 i{width:14px;height:14px;border-radius:3px;flex:0 0 auto}
+#taskSheet .tsst{color:var(--dim);font-size:13px;margin:2px 0 4px}
+#taskSheet .tsl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin:12px 0 5px}
+#taskSheet .tsbody{overflow-y:auto;min-height:0;flex:1 1 auto}
+#tsTasks{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#tsTasks button{min-height:44px;border-radius:5px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.26);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.03em;padding:0 6px}
+#tsTasks button.on{border-color:#7CFF9A;color:#9fe7b4;background:rgba(124,255,154,.14)}
+#tsCols{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+/* (Claude, 2026-09-07) `hidden` on its own loses to `#tsCols{display:grid}`: the picker for the
+   LAST member you opened stayed painted under "Stand by" on the next one, twelve live buttons that
+   assigned a column nobody had asked for. An id beats an id */
+#taskSheet #tsCols[hidden],#taskSheet .tsl[hidden]{display:none}
+#tsCols button{min-height:44px;border-radius:5px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.26);color:#fff;font-family:ui-monospace,Consolas,monospace;font-size:14px;padding:2px 0;line-height:1.1}
+#tsCols button.wide{grid-column:1 / -1;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px}
+#tsCols button.on{border-color:#7CFF9A;color:#9fe7b4}
+#tsCols button[disabled]{opacity:.4}
+#tsCols button b{display:block;font-size:9px;color:#7CFF9A;font-weight:600;letter-spacing:.06em;min-height:11px}
+#taskSheet #tsClose{margin-top:12px;min-height:44px;width:100%;color:#fff}
 #prompt{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:6;max-width:min(520px,calc(100% - 24px));background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:8px 12px;text-align:center;color:#fff;pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #prompt.can{border-color:rgba(185,168,135,.85);background:rgba(20,16,8,.8)}   /* (Lloyd, 2026-09-04: "I don't like the action button") the message is the button: tap it to do it */
 #prompt:active{background:rgba(185,168,135,.35)}
 #prompt small{display:block;color:var(--dim);font-size:12px}
+/* (Claude, 2026-09-07) A CARD OVER THE HALL OWNS THE SCREEN. The pill is z 6 and comes after the
+   crew panel in the DOM, so aboard the lift "Take the controls" was printed across Marco's row and
+   a tap on the right of that row took the controls instead of opening his sheet; on a desk it also
+   peeked out under the task sheet's Close button. While either card is up the pill stands down */
+body.panelOpen #prompt,body.sheetOpen #prompt{display:none}
 #overlay{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.76);padding:20px}
 #overlay.gone{display:none}
-#card{width:min(520px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:22px}
+/* the card scrolls its own body, so a long control list can never push Start Shift off the
+   screen (Lloyd's rule: a control that is present must be reachable) */
+#card{width:min(520px,100%);max-height:calc(100% - 24px);display:flex;flex-direction:column;background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:22px}
+#card #cardbody{overflow-y:auto;min-height:0;flex:1 1 auto;padding-bottom:4px;
+ -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent)}   /* a line cut by the scroll fades out instead of looking broken */
+/* (Lloyd, standing rule: never a paragraph of instructions) the start card is a title, one line
+   of subtitle, then key : action grids under small uppercase labels. The desk grid and the phone
+   grid are the same shape; only one of them is ever on screen */
+#card .lead{margin:0 0 14px;color:var(--dim)}
+#card .keys{display:none;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline;line-height:1.5}
+#card .keys .kl{grid-column:1 / -1;margin-top:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+#card .keys .kl:first-child{margin-top:0}
+#card .keys b{color:var(--accent);font-weight:600;font-family:ui-monospace,Consolas,monospace;font-size:13px;white-space:nowrap}
+#card .keys i{font-style:normal;color:#e6e6e6;font-size:14px}
+#card .keys.desk{display:grid}
+#card #start{margin-top:18px}
+@media (pointer:coarse){#card .keys.desk{display:none} #card .keys.phone{display:grid}}
 #summary{position:absolute;inset:0;z-index:7;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:20px}
 #summary.up{display:flex}
 #summary .box{width:min(420px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:18px}
@@ -239,20 +306,30 @@ body.playing #reticle{display:block}
 #move{left:28px}
 #look{right:28px}
 /* (Lloyd, 2026-09-06: "we should have an inventory system") four slots, the one in hand outlined green; a tap or 1-4 picks */
-#inv{position:absolute;left:12px;top:212px;display:none;gap:6px;pointer-events:auto;z-index:4}   /* under the stats block, clear of the prompt, the sticks and the wheel plan on every layout */
+#inv{position:absolute;left:12px;top:212px;display:none;gap:6px;pointer-events:auto;z-index:4}   /* `top` is written by hud.js (stackHud): the strip follows the clock chips and the bars down */
 #inv .slot{width:50px;height:46px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#ddd;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;position:relative;text-align:center;overflow:hidden}
 #inv .slot span{color:#7CFF9A;font-size:10px}
 #inv .slot i{position:absolute;left:4px;top:2px;font-style:normal;font-size:9px;opacity:.5}
 #inv .slot.on{border-color:#7CFF9A;color:#fff;box-shadow:0 0 0 1px #7CFF9A inset}
 #inv .slot.empty{opacity:.45}
 body.playing #inv{display:flex}
+/* (Claude, 2026-09-07) AT THE CONTROLS YOUR HANDS ARE ON THE STICK. Nothing in the four slots can
+   be picked, dropped or used while you are driving -- the only thing the game offers is "let go" --
+   and the strip was printed straight through the UP and DOWN buttons on a phone. It comes back the
+   moment you let go of the controls */
+body.playing.driving #inv{display:none}
 #drop{position:absolute;right:24px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
 body.carrying #drop{display:block}
+/* (Lloyd, 2026-09-06: floor protection) TURN flips the ply sheet in your hands between along the
+   hall and across it. Only up while a sheet is held, beside DROP, clear of the prompt above */
+#turn{position:absolute;right:98px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(201,167,106,.75);color:#e6cfa0;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
+body.sheet #turn{display:block}
 #liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
 body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
 #wheels{position:absolute;left:24px;bottom:246px;display:none;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
 body.driving #wheels{display:block}
 /* (Lloyd, 2026-09-06: "it should also show how high we are") deck height and ceiling clearance, whenever you are aboard */
+/* `top` is written by hud.js (stackHud): it sits level with the bars, under the header (2026-09-07) */
 #deckh{position:absolute;right:12px;top:152px;z-index:3;display:none;pointer-events:none;background:rgba(0,0,0,.55);color:#e8e8e8;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.06em;padding:4px 10px;border-radius:4px;white-space:nowrap}
 #deckh b{color:#7CFF9A;font-weight:600}
 #deckh.low b.c{color:#ffb454}
@@ -260,9 +337,23 @@ body.driving #wheels{display:block}
 body.aboard #deckh{display:block}
 #liftMode{font-size:18px!important;height:44px!important}
 @media (pointer:fine){#wheels{left:24px;bottom:24px}}   /* on a desk the keys do the work (Q flips fast / slow); the plan sits in the corner */
+/* (Claude, 2026-09-07) on the phone the plan at left 24 / bottom 246 was printed straight over the
+   UP button and the inventory strip: "UP" and the deck height read through each other. The left
+   edge is full (stats, inventory, UP / DOWN / FAST, the move stick), so the plan moves off it, to
+   the empty band beside the move stick and under the prompt. Every candidate was measured at 412
+   and at 360 with the sticks, both buttons, a two-line prompt and a toast up: this one and the
+   sizes under it are the only ones that touch nothing (tools/game-boards.mjs step 17 holds it) */
+@media (pointer:coarse){#wheels{left:126px;bottom:26px} #wheels svg{display:block;width:84px;height:105px}}
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
-@media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:46vw;text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}}
+/* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the
+   prompt is a pill on the right edge above the look stick, right-aligned, narrow.
+   (Claude, 2026-09-07) the width is capped at half the screen less the reticle: at 360 px a 46vw
+   pill printed its left edge through the + in the middle of the screen. And the four slots go two
+   by two in the top-left corner, 106 px wide instead of 218: at 360 the one-row strip ran under the
+   reticle and under the pill, so "Put the sheet back" was printed over the slot holding the sheet */
+@media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:min(46vw,calc(50vw - 40px));text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}
+ body.playing #inv{display:grid;grid-template-columns:repeat(2,50px);gap:6px;width:106px} body.playing.driving #inv{display:none}}
 /* (Lloyd, 2026-09-04: "all the same menu stuff as the free roam, no full screen automatically") the
    shift runs inside the ordinary viewer: the Menu / Tour / Full screen bar and the panel stay, the
    stage keeps its place on the page; only the fly camera's sticks, pad and buttons stand down */
@@ -299,6 +390,13 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="reticle" aria-hidden="true"></div>
   <!-- (Lloyd, 2026-09-05: multiplayer) the crew room: start one, or join with a code; the link carries the key and the code -->
   <div id="crewPanel" hidden>
+   <div class="cptabs"><button type="button" id="crewTabTasks" class="on">Tasks</button><button type="button" id="crewTabRoom">Room</button></div>
+   <!-- TASKS: the five in the hall tonight. A row is a button: it opens that member's task sheet -->
+   <div id="crewTasksTab">
+    <span class="cpl">Tap a name to give them a job</span>
+    <ul id="crewTaskList"></ul>
+   </div>
+   <div id="crewRoomTab" hidden>
    <span class="cpl">Your name</span>
    <input type="text" id="crewName" maxlength="16" autocomplete="off" placeholder="Crew">
    <div id="crewOff">
@@ -315,12 +413,26 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
     <span class="cpl">In the hall</span>
     <ul id="crewList"></ul>
    </div>
+   </div>
+  </div>
+  <!-- (Lloyd, 2026-09-06) THE TASK SHEET: name, what they are doing, the seven jobs, then the
+       column picker. Reached from a panel row or from the reticle on a crew member -->
+  <div id="taskSheet">
+   <h3><i id="tsDot"></i><span id="tsName">Crew</span></h3>
+   <div class="tsst" id="tsStatus">standing by</div>
+   <div class="tsbody">
+    <span class="tsl">The job</span>
+    <div id="tsTasks"></div>
+    <span class="tsl" id="tsColLabel">Which column</span>
+    <div id="tsCols"></div>
+   </div>
+   <button type="button" id="tsClose">Close</button>
   </div>
   <div id="bars"></div>
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
-  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
+  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><button type="button" id="turn">TURN</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
   <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls. Outside #touch, so a desk sees it too -->
   <div id="deckh">DECK <b class="h">0.0 m</b> &nbsp; CEILING <b class="c">-</b></div>
   <div id="inv"></div>
@@ -328,7 +440,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="wheels"><svg viewBox="0 0 160 200" width="120" height="150" aria-hidden="true">
    <circle cx="80" cy="100" r="78" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.18)"/>
    <g id="wprox"></g>
-   <rect x="57" y="58" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
+   <rect id="wchassis" x="57" y="58" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
    <g id="wfl" transform="translate(55,70)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
    <g id="wfr" transform="translate(105,70)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
    <rect x="50" y="119" width="10" height="22" rx="3" fill="#fff" opacity=".6"/><rect x="100" y="119" width="10" height="22" rx="3" fill="#fff" opacity=".6"/>
@@ -339,10 +451,56 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
     <h1>The Install</h1>
-    <p>Fit 768 lights across the 12 Gandel Hall columns before the morning clean-up.</p>
-    <p>Desktop: WASD to move, mouse to look, E to act, F to drop, Space jumps (twice in the air), Shift sprints; on the lift, Space and Shift move the deck, Q flips fast / slow.</p>
-    <p>Phone: left stick moves, right stick looks (hold it over to keep turning), tap the message on the right to do what it says.</p>
-    <p>On the lift, walk to the control box and ACTION to drive: forward and back drives, left and right steers the front wheels. ACTION again lets go so you can walk the deck and handle lights.</p>
+    <p class="lead">768 lights, 12 columns, one night at a time.</p>
+    <div id="cardbody">
+    <!-- (Lloyd, standing rule) never a paragraph of instructions: one idea per line, key on the
+         left, what it does on the right, and the phone never reads about a mouse -->
+    <div class="keys desk">
+     <span class="kl">Move</span>
+     <b>WASD</b><i>Walk</i>
+     <b>Mouse</b><i>Look</i>
+     <b>Shift</b><i>Sprint</i>
+     <b>Space</b><i>Jump, twice in the air</i>
+     <span class="kl">Hands</span>
+     <b>E</b><i>Do what the message says</i>
+     <b>F</b><i>Put down what you hold</i>
+     <b>1-4</b><i>Pick an inventory slot</i>
+     <span class="kl">On the lift</span>
+     <b>E</b><i>Take the controls, or let go</i>
+     <b>W S</b><i>Drive forward and back</i>
+     <b>A D</b><i>Steer the front wheels</i>
+     <b>Space</b><i>Deck up</i>
+     <b>Shift</b><i>Deck down</i>
+     <b>Q</b><i>Fast or slow</i>
+     <span class="kl">Floor protection</span>
+     <b>Boards</b><i>The lift drives on ply sheets only</i>
+     <b>Sheets</b><i>The board stacks in storage</i>
+     <b>R</b><i>Turn the sheet</i>
+     <span class="kl">Crew</span>
+     <b>Crew</b><i>Open the crew panel</i>
+     <b>Look + E</b><i>Give someone a task</i>
+    </div>
+    <div class="keys phone">
+     <span class="kl">Move</span>
+     <b>Left stick</b><i>Walk</i>
+     <b>Right stick</b><i>Look, hold it over to keep turning</i>
+     <span class="kl">Hands</span>
+     <b>Message</b><i>Tap it to do what it says</i>
+     <b>DROP</b><i>Put down what you hold</i>
+     <b>Slots</b><i>Tap one to pick it up</i>
+     <span class="kl">On the lift</span>
+     <b>Message</b><i>Take the controls, or let go</i>
+     <b>Left stick</b><i>Drive and steer</i>
+     <b>UP DOWN</b><i>Move the deck</i>
+     <span class="kl">Floor protection</span>
+     <b>Boards</b><i>The lift drives on ply sheets only</i>
+     <b>Sheets</b><i>The board stacks in storage</i>
+     <b>TURN</b><i>Turn the sheet</i>
+     <span class="kl">Crew</span>
+     <b>Crew</b><i>Open the crew panel</i>
+     <b>Look at one</b><i>Tap the message: give them a task</i>
+    </div>
+    </div>
     <button type="button" id="start">Start Shift</button>
   </div></div>
  </div>
@@ -5346,7 +5504,7 @@ async function buildInstall(){
   import('./game/sound.js'), import('./game/player.js'), import('./game/lift.js'), import('./game/items.js'),
   import('./game/install.js'), import('./game/clock.js'), import('./game/hud.js')]);
  const NETm=await import('./game/net.js');
- const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm,NETm}};
+ const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm,NETm,LIFTm,PLm,INSTm,CREWm,SNDm,BODYm}};
  // what the sim looked like on the way in, so the way out is exact
  G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
   bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
@@ -5386,19 +5544,25 @@ async function buildInstall(){
  // inside out round the hall and the corridor, so nothing looks out on anything. Measured by
  // tools/game-sealed.mjs (a cube map from a grid of standing points with the sky painted magenta)
  { const top=Math.max(CEIL_Y,FLOOR_Y+12)+6, bot=FLOOR_Y-1.5;
-   const seal=W.makeHallBox(G.group,34,7.7,(top+bot)/2,74,20,top-bot,new THREE.MeshBasicMaterial({color:0x07080a,side:THREE.BackSide})); seal.name='seal'; }
+   const seal=W.makeHallBox(G.group,38,7.7,(top+bot)/2,82,20,top-bot,new THREE.MeshBasicMaterial({color:0x07080a,side:THREE.BackSide})); seal.name='seal'; }   // (2026-09-06) 8 m longer: the storage corridor grew a back bay for the ply and the skip went east with it
  const saved=CLKm.loadSave();
  const install=new INSTm.Install(G.group,RUNS,saved);
  const player=new PLm.Player(cam,cv);
  player.bind({prompt:document.getElementById("prompt"), inv:document.getElementById("inv"), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
-  drop:document.getElementById('drop'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
+  drop:document.getElementById('drop'), turn:document.getElementById('turn'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
  const items=ITEMm.createItems(G.group,world,cam,W.collideWorld);
+ // (Lloyd, 2026-09-06: floor protection) the path of ply that is already down, and what is left
+ // on the stacks, come back with the fitted lights
+ W.restoreSheets(world,saved); ITEMm.restoreStacks(items,saved);
  const lift=new LIFTm.Lift(G.group,world.floorY); items.lift=lift;
  const clock=new CLKm.GameClock(saved), body=new BODYm.Body();
  player.body=body;
  cam.fov=68; cam.updateProjectionMatrix();
  const fx=new FXm.Fx(scene,cam,hallSway,lift,install);
  const crew=new CREWm.Crew(G.group,world,items,install,W.collideWorld,lift);
+ // (Lloyd, 2026-09-06) the crew are things the reticle can point at, and pointing at one and
+ // pressing ACTION opens its task sheet (items.js kind 'crew')
+ items.crew=crew; items.talkTo=(m)=>{ if(IG)openTaskSheet(IG,m); };
  clock.fittedAtStart=install.counts().fitted;
  // where Free roam puts the eye: the far wall, the hall's centre line, looking straight down the
  // axis (ROAM_EYE); the yaw is read off the hall frame so it holds whatever the scan's rotation is
@@ -5406,7 +5570,8 @@ async function buildInstall(){
    player.pos.copy(a); player.yaw=Math.atan2(-(b.x-a.x),-(b.z-a.z)); player.pitch=0; }
  scene.add(cam);   // items.js hangs what you carry off the camera, so the camera has to be in the scene
  Object.assign(G,{player,lift,items,install,clock,world,fx,body,crew,snd:new SNDm.Sound(),
-  hallToWorld:W.hallToWorld, dbg:{dt:0,frames:0}, last:performance.now(), runLightTick:0, doorsWereOpen:false, guideShown:null, toastTimer:null, action:null});
+  hallToWorld:W.hallToWorld, dbg:{dt:0,frames:0}, last:performance.now(), runLightTick:0, doorsWereOpen:false, guideShown:null, toastTimer:null, action:null,
+  sheetSig:sheetSig(world,items)});
  // the three buttons the overlay owns; remembered so teardown can take them off again
  G.ui=[];
  const wire=(id,fn)=>{const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn));};
@@ -5447,11 +5612,17 @@ function installNextNight(G){
  if(G.net)G.net.sendNight(G.clock.night);
  document.getElementById('overlay').classList.remove('gone');
  document.body.classList.remove('playing'); G.player.setPaused(false);
- G.mods.CLKm.saveGame(G.clock,G.install);
+ G.mods.CLKm.saveGame(G.clock,G.install,G.world,G.items);
  installMask();
 }
 
-function installToast(G,msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('up');
+// (Claude, 2026-09-07) the ply that is down, as one string. Boards go down and come up WITHOUT an
+// ACTION -- DROP lays the one in your hands, the crew's feeder lays its own -- and neither runs
+// through installInteract, so a path laid that way used to be gone after a reload. installStep
+// watches this and writes the save the moment it changes
+function sheetSig(world,items){ return (world.sheets?world.sheets.length:0)+':'+((items.stacks||[]).reduce((n,s)=>n+s.sheets,0)); }
+
+function installToast(G,msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('up'); G.toastAt=performance.now();
  clearTimeout(G.toastTimer); G.toastTimer=setTimeout(()=>el.classList.remove('up'),6000); }
 
 function installInteract(G){
@@ -5466,10 +5637,11 @@ function installInteract(G){
  if(after>before){ G.snd.fit(); if(G.install.lastFit)G.fx.onFit(G.install.lastFit,G.player); }
  else if(/^Unwrap/.test(label))G.snd.crinkle();
  else if(/pallet jack|pallet$|Set pallet/.test(label))G.snd.jack();
- else if(/box|Put light|Pick up|Take|Dispose|Bag/.test(label))G.snd.thud();
+ else if(/box|Put light|Pick up|Take|Dispose|Bag|Lay|sheet|Sheet/.test(label))G.snd.thud();
  G.snd.clock(G.clock.minute);
  installMask();
- G.mods.CLKm.saveGame(G.clock,G.install);
+ G.mods.CLKm.saveGame(G.clock,G.install,G.world,G.items);
+ G.sheetSig=sheetSig(G.world,G.items);   // this save covers the boards too: no second write next frame
 }
 
 // one frame of the shift, in the order game.html ran it: body, movement, lift, camera, doors,
@@ -5478,16 +5650,21 @@ function installStep(dt,now){
  const G=IG, {W}=G.mods, ITEMm=G.mods.ITEMm, playing=document.body.classList.contains('playing');
  dt=Math.min(0.05,dt);   // the game's own cap: a long frame must not teleport anyone through a wall
  const {player,lift,items,install,clock,world,fx,body,crew,snd}=G;
+ // (Lloyd, 2026-09-06: the task sheet) THE SHEET IS OPEN: the hall keeps running behind it, the
+ // crew keep working, but the keys and the sticks are dropped every frame so a key pressed over
+ // the card never walks you off. Cleared here, BEFORE anything reads them
+ if(document.body.classList.contains('sheetOpen')){ player.keys.clear(); player.move.set(0,0); player.look.set(0,0);
+  player.actionQueued=false; player.dropQueued=false; player.liftUp=false; player.liftDown=false; }
  G.dbg.dt=dt; G.dbg.frames++;
  const load=items.jack.held&&items.jack.carrying?3:player.inv.some(i=>i&&i.type!=='wrap')||items.jack.held?2:player.inv.some(Boolean)?1:(lift.aboard?1:0);
  // the inventory strip, redrawn only when it changes
- { const names={box:'BOX',emptyBox:'EMPTY<br>BOX',light:'LIGHT',wrapped:'WRAPPED<br>LIGHT',bag:'BAG',wrap:'WRAP'};
+ { const names={box:'BOX',emptyBox:'EMPTY<br>BOX',light:'LIGHT',wrapped:'WRAPPED<br>LIGHT',bag:'BAG',wrap:'WRAP',sheet:'PLY<br>SHEET'};
    const sig=player.inv.map((it,i)=>(it?it.type+(it.type==='box'?it.lights:it.type==='bag'?it.wraps:''):'-')+(i===player.active?'*':'')).join('|');
    if(sig!==G.invSig){ G.invSig=sig; document.getElementById('inv').innerHTML=player.inv.map((it,i)=>'<div class="slot'+(i===player.active?' on':'')+(it?'':' empty')+'" data-slot="'+i+'"><i>'+(i+1)+'</i>'+(it?names[it.type]+(it.type==='box'?'<span>&times;'+it.lights+'</span>':it.type==='bag'?'<span>'+it.wraps+'/8</span>':''):'')+'</div>').join(''); } }
  const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown));
  if(!clock.ended&&playing)body.update(dt,clock,load,moving);
  player.speedScale=body.speedScale();
- ITEMm.refreshObstacles(items,[lift].concat(crew.teams.map(t=>t.lift), G.net?G.net.lifts():[]));
+ ITEMm.refreshObstacles(items,[lift].concat(crew.lifts, G.net?G.net.lifts():[]));
  if(G.net)G.net.addObstacles(world);
  player.ignore=lift.aboard?[lift,lift.box]:[player.carry];
  player.update(dt,world,W.collideWorld);
@@ -5503,6 +5680,8 @@ function installStep(dt,now){
  document.body.classList.toggle('driving',lift.driving);
  // the fast / slow toggle (Q, or the button) and the wheel indicator while driving
  if(player.takeMode()&&lift.aboard){ const m=lift.toggleMode(); document.getElementById('liftMode').textContent=m.toUpperCase(); document.getElementById('wmode').textContent=m.toUpperCase(); snd.tone(m==='fast'?520:330,0.06,'sine',0.04); }
+ // (Lloyd, 2026-09-06: floor protection) R, or the TURN button, lays the sheet the other way
+ if(player.takeTurn()&&player.carry&&player.carry.type==='sheet'){ ITEMm.turnSheet(items); snd.tone(300,0.05,'sine',0.035); }
  if(lift.driving){ const deg=(-lift.steer*180/Math.PI).toFixed(1), tr='rotate('+deg+')'; const fl=document.getElementById('wfl'), fr=document.getElementById('wfr');
   fl.setAttribute('transform','translate(55,70) '+tr); fr.setAttribute('transform','translate(105,70) '+tr);
   document.getElementById('wht').textContent=(lift.deckY+lift.height).toFixed(1)+' m';
@@ -5510,8 +5689,12 @@ function installStep(dt,now){
   if(!G.proxAt||now-G.proxAt>200){ G.proxAt=now; const g=document.getElementById('wprox'); let h='';
    for(const pr of W.proximity(world,lift,24,1.6)){ if(pr.dist==null)continue; const edge=Math.min(42/Math.max(Math.abs(Math.cos(pr.a)),1e-6),20/Math.max(Math.abs(Math.sin(pr.a)),1e-6)); const R=edge+pr.dist*35; const x=80+Math.sin(pr.a)*R, y=100-Math.cos(pr.a)*R; const c=pr.dist<0.35?'#ff5c5c':pr.dist<0.8?'#ffb454':'#7CFF9A'; h+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(pr.dist<0.35?5:4)+'" fill="'+c+'" opacity="'+(pr.dist<0.35?1:0.85).toFixed(2)+'"/>'; }
    g.innerHTML=h; }
-  const k=lift.vmax?Math.min(1,Math.abs(lift.speed)/lift.vmax):0; document.getElementById('wfwd').setAttribute('opacity',lift.speed>0.01?(0.35+0.65*k).toFixed(2):'0'); document.getElementById('wrev').setAttribute('opacity',lift.speed<-0.01?(0.35+0.65*k).toFixed(2):'0'); }
+  const k=lift.vmax?Math.min(1,Math.abs(lift.speed)/lift.vmax):0; document.getElementById('wfwd').setAttribute('opacity',lift.speed>0.01?(0.35+0.65*k).toFixed(2):'0'); document.getElementById('wrev').setAttribute('opacity',lift.speed<-0.01?(0.35+0.65*k).toFixed(2):'0');
+  // (Lloyd, 2026-09-06) out of boards: the chassis outline goes red so the reason for the stop
+  // reads at a glance, and the prompt carries the words
+  const onBoards=lift.blocked===G.mods.LIFTm.Lift.NO_BOARDS; document.getElementById('wchassis').setAttribute('stroke',onBoards?'#ff5c5c':'rgba(255,255,255,.6)'); }
  document.body.classList.toggle('carrying',!!player.carry);
+ document.body.classList.toggle('sheet',!!(player.carry&&player.carry.type==='sheet'));   // the TURN button is up only with a board in your hands
  snd.motor(Math.abs(lift.height-oldLift)>0.002||Math.abs(lift.speed)>0.02,fx.level);
  snd.clock(clock.minute);
  if(!G.doorsWereOpen&&!world.doorsShut)snd.door(); G.doorsWereOpen=!world.doorsShut;
@@ -5521,7 +5704,12 @@ function installStep(dt,now){
  // in a crew room the people are the crew: the NPCs stand down (net.js)
  if(playing&&!clock.ended&&!G.net)crew.update(dt,clock,player,install.counts().columnsDone);
  if(G.net)G.net.update(dt);
- if(crew.toasts.length)installToast(G,crew.toasts.shift());
+ // (Claude, 2026-09-07) one line at a time, and each one up long enough to read: a completion and a
+ // stall queued in the same frame used to put the first on screen for a single frame
+ if(crew.toasts.length&&(now-(G.toastAt||0)>1200||!document.getElementById('toast').classList.contains('up')))installToast(G,crew.toasts.shift());
+ // the panel's rows and the sheet's status line follow the crew, a few times a second
+ if(!document.getElementById('crewPanel').hidden&&(!G.panelAt||now-G.panelAt>400)){ G.panelAt=now; crewTasksSync(G); }
+ if(G.sheetFor&&(!G.sheetAt||now-G.sheetAt>400)){ G.sheetAt=now; document.getElementById('tsStatus').textContent=G.sheetFor.status; }
  if((G.runLightTick+=dt)>1){ G.runLightTick=0; installMask(); }   // the crew's fits light the room too
  install.update(now/1000);
  if(G.guideShown!==install.guide){ G.guideShown=install.guide; const b=document.getElementById('guide');
@@ -5530,10 +5718,14 @@ function installStep(dt,now){
  ITEMm.updateItems(player,lift,items,dt);
  // (Lloyd, 2026-09-05: "black until turned on") the column's last bar in: the crew's test-fire
  if(install.justPowered){ const c=install.justPowered; install.justPowered=null; installToast(G,'Column '+c+' powered up'); snd.tone(440,0.12,'sine',0.06); setTimeout(()=>snd.tone(660,0.14,'sine',0.06),120); setTimeout(()=>snd.tone(880,0.2,'sine',0.06),240); }
- if(player.takeDrop()&&!lift.anim){ ITEMm.dropCarry(player,items); snd.thud(); }
+ // (Claude, 2026-09-07) the thud is the sound of something landing: DROP on a bad spot with a sheet
+ // in your hands lays nothing, so it makes no noise either
+ if(player.takeDrop()&&!lift.anim){ if(ITEMm.dropCarry(player,items))snd.thud(); }
  G.action=ITEMm.nearestAction(player,lift,install,items);
  document.getElementById('reticle').classList.toggle('can',!!(G.action&&G.action.run&&!G.action.hint));
  if(player.takeAction())installInteract(G);
+ // the floor protection is part of the night's work, and a board can go down without an ACTION
+ { const sig=sheetSig(world,items); if(G.sheetSig!==sig){ G.sheetSig=sig; G.mods.CLKm.saveGame(clock,install,world,items); } }
  clock.update(dt);
  G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,lift.blocked?{label:lift.blocked,run:null,hint:true}:G.action,player.carry,body);
  if(clock.ended&&!document.getElementById('summary').classList.contains('up')){
@@ -5541,7 +5733,7 @@ function installStep(dt,now){
   clock.running=false;
   const clean=ITEMm.cleanupClear(items,lift); clean.left.push(...crew.leftInHall()); clean.ok=clean.left.length===0;
   G.mods.HUDm.showSummary(document.getElementById('summary'),document.getElementById('summaryText'),clock,fittedTonight,clean);
-  G.mods.CLKm.saveGame(clock,install);
+  G.mods.CLKm.saveGame(clock,install,world,items);
  }
  sceneDirty=true;   // a hall with people and a lift moving in it is never a static frame
 }
@@ -5560,8 +5752,8 @@ function crewJoin(G,code){
  q.set('room',code); history.replaceState(null,'',location.pathname+'?'+q.toString()+location.hash);
  G.net=new G.mods.NETm.Net(G,{room:code,name,relay,hooks:{
   toast:(m)=>installToast(G,m),
-  onFit:(slot,by,silent)=>{ if(!silent){ G.snd.fit(); } installMask(); G.mods.CLKm.saveGame(G.clock,G.install); },
-  onNight:(n,by)=>{ if(n>G.clock.night){ G.clock.night=n; installToast(G,(by?by+' started':'The room is on')+' night '+n); G.mods.CLKm.saveGame(G.clock,G.install); } },
+  onFit:(slot,by,silent)=>{ if(!silent){ G.snd.fit(); } installMask(); G.mods.CLKm.saveGame(G.clock,G.install,G.world,G.items); },
+  onNight:(n,by)=>{ if(n>G.clock.night){ G.clock.night=n; installToast(G,(by?by+' started':'The room is on')+' night '+n); G.mods.CLKm.saveGame(G.clock,G.install,G.world,G.items); } },
   onPeers:()=>crewPanelSync(G),
  }});
  crewPanelSync(G);
@@ -5583,17 +5775,95 @@ function crewPanelSync(G){
  for(const p of G.net.peers.values()){ const li=document.createElement('li'); li.innerHTML='<i style="background:#'+p.av.vest.color.getHexString()+'"></i>'+escapeHtml(p.name); ul.appendChild(li); }
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ---- THE TASK SHEET (Lloyd, 2026-09-06: "The player should be able to allocate tasks to the crew
+// members") ------------------------------------------------------------------------------------
+// Two ways in, one card: a row in the panel's Tasks tab, or the reticle on a crew member and
+// ACTION. The card is the only place a job is given out; crew.assignTask does the rest.
+const CREW_ORDER=['N1','N2','N3','N4','N5','N6','S1','S2','S3','S4','S5','S6'];
+function colStats(G){ const m=new Map(); for(const s of G.install.slots){ let e=m.get(s.column); if(!e){e={n:0,total:0};m.set(s.column,e);} e.total++; if(G.install.fitted.has(s.id))e.n++; } return m; }
+function dotFor(m){ return '#'+m.colour.toString(16).padStart(6,'0'); }
+// the five rows: vest colour, name, the job you gave them, what they are doing about it
+function crewTasksSync(G){
+ const ul=document.getElementById('crewTaskList'); if(!ul||!G.crew)return;
+ const C=G.crew;
+ const sig=C.members.map(m=>m.name+'|'+C.taskText(m.assign)+'|'+m.status).join(';');
+ if(sig===G.taskSig)return; G.taskSig=sig;
+ ul.innerHTML=C.members.map((m,i)=>'<li><button type="button" data-crew="'+i+'"><i style="background:'+dotFor(m)+'"></i><b>'+escapeHtml(m.name)+'</b><em>'+escapeHtml(C.taskText(m.assign))+'</em><small>'+escapeHtml(m.status)+'</small></button></li>').join('');
+}
+function openTaskSheet(G,m){
+ if(!m)return;
+ G.sheetFor=m; G.sheetTask=m.assign.task;
+ document.getElementById('crewPanel').hidden=true; document.body.classList.remove('panelOpen');
+ document.getElementById('taskSheet').classList.add('up');
+ document.body.classList.add('sheetOpen');
+ // the pointer goes free while the card is up, and comes back on a desk when it closes
+ if(document.pointerLockElement)document.exitPointerLock();
+ taskSheetPaint(G);
+}
+function closeTaskSheet(G,relock){
+ G.sheetFor=null;
+ document.getElementById('taskSheet').classList.remove('up');
+ document.body.classList.remove('sheetOpen');
+ if(!G.player||G.player.coarse||!document.body.classList.contains('playing'))return;
+ // the card let the pointer go on purpose. Close asks for it back; Esc does not -- and a desk left
+ // with a free cursor, no "click to resume" and the keys still live is the game half running
+ // behind an invisible pause (Claude, 2026-09-07). So Esc parks it in the ordinary pause instead
+ if(relock)G.player.lock(); else G.player.setPaused(true);
+}
+function taskSheetPaint(G){
+ const m=G.sheetFor; if(!m)return;
+ const C=G.crew, TASKS=G.mods.CREWm.TASKS, HALLT=G.mods.CREWm.WHOLE_HALL;
+ document.getElementById('tsDot').style.background=dotFor(m);
+ document.getElementById('tsName').textContent=m.name;
+ document.getElementById('tsStatus').textContent=m.status;
+ document.getElementById('tsTasks').innerHTML=TASKS.map(t=>'<button type="button" data-task="'+t.id+'"'+(t.id===G.sheetTask?' class="on"':'')+'>'+t.label+'</button>').join('');
+ const T=TASKS.find(t=>t.id===G.sheetTask)||TASKS[0];
+ const cols=document.getElementById('tsCols'), lab=document.getElementById('tsColLabel');
+ cols.hidden=!T.column; lab.hidden=!T.column;
+ if(!T.column)return;
+ lab.textContent='Which column';
+ const st=colStats(G), on=new Map();
+ for(const w of C.members){ if(w===m||!w.assign.target||w.assign.target===HALLT)continue; on.set(w.assign.target,(on.get(w.assign.target)||'')+w.name[0]); }
+ let h='';
+ for(const l of CREW_ORDER){ const e=st.get(l)||{n:0,total:64}, done=e.n>=e.total;
+  h+='<button type="button" data-col="'+l+'"'+(done?' disabled':'')+(l===m.assign.target?' class="on"':'')+'>'+l+'<b>'+(done?'done':escapeHtml(on.get(l)||''))+'</b></button>'; }
+ if(T.hall)h+='<button type="button" class="wide" data-col="'+HALLT+'">Whole hall</button>';
+ cols.innerHTML=h;
+}
 function crewWire(G){
  const wire=(id,fn)=>{const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn));};
  const panel=document.getElementById('crewPanel');
  try{ document.getElementById('crewName').value=localStorage.getItem(CREW_NAME_KEY)||''; }catch(e){}
- wire('crewBtn',()=>{ panel.hidden=!panel.hidden; if(!panel.hidden)crewPanelSync(G); });
+ wire('crewBtn',()=>{ panel.hidden=!panel.hidden; document.body.classList.toggle('panelOpen',!panel.hidden); if(!panel.hidden){ crewTasksSync(G); crewPanelSync(G); } });
  wire('crewStart',()=>crewJoin(G,G.mods.NETm.makeRoomCode()));
  wire('crewJoin',()=>crewJoin(G,document.getElementById('crewCode').value));
  wire('crewLeave',()=>crewLeave(G));
  wire('crewShare',async()=>{ if(!G.net)return; const url=location.origin+location.pathname+'?install='+INSTALL_KEY+'&room='+G.net.room;
   try{ if(navigator.share){ await navigator.share({title:'NGV Gandel Hall: the night shift',text:'Join my crew room '+G.net.room,url}); return; } }catch(e){ if(e&&e.name==='AbortError')return; }
   try{ await navigator.clipboard.writeText(url); installToast(G,'Link copied: send it to the crew'); }catch(e){ installToast(G,url); } });
+ // (Lloyd, 2026-09-06) the two tabs, the five rows, and the task sheet they open
+ const tab=(tasks)=>{ document.getElementById('crewTasksTab').hidden=!tasks; document.getElementById('crewRoomTab').hidden=tasks;
+  document.getElementById('crewTabTasks').classList.toggle('on',tasks); document.getElementById('crewTabRoom').classList.toggle('on',!tasks); };
+ wire('crewTabTasks',()=>{ tab(true); crewTasksSync(G); });
+ wire('crewTabRoom',()=>{ tab(false); crewPanelSync(G); });
+ const list=document.getElementById('crewTaskList');
+ const onList=(e)=>{ const b=e.target.closest('[data-crew]'); if(!b)return; openTaskSheet(G,G.crew.members[+b.dataset.crew]); };
+ list.addEventListener('click',onList); G.ui.push(()=>list.removeEventListener('click',onList));
+ const tasksEl=document.getElementById('tsTasks');
+ const onTask=(e)=>{ const b=e.target.closest('[data-task]'); if(!b||!G.sheetFor)return;
+  const T=G.mods.CREWm.TASKS.find(t=>t.id===b.dataset.task); if(!T)return;
+  if(T.column){ G.sheetTask=T.id; taskSheetPaint(G); return; }          // the picker lights up; the column tap assigns
+  G.crew.assignTask(G.sheetFor,T.id,null); closeTaskSheet(G,true); };
+ tasksEl.addEventListener('click',onTask); G.ui.push(()=>tasksEl.removeEventListener('click',onTask));
+ const colsEl=document.getElementById('tsCols');
+ const onCol=(e)=>{ const b=e.target.closest('[data-col]'); if(!b||b.disabled||!G.sheetFor)return;
+  G.crew.assignTask(G.sheetFor,G.sheetTask,b.dataset.col); closeTaskSheet(G,true); };
+ colsEl.addEventListener('click',onCol); G.ui.push(()=>colsEl.removeEventListener('click',onCol));
+ wire('tsClose',()=>closeTaskSheet(G,true));
+ const onEsc=(e)=>{ if(e.code==='Escape'&&document.body.classList.contains('sheetOpen'))closeTaskSheet(G,false); };
+ window.addEventListener('keydown',onEsc); G.ui.push(()=>window.removeEventListener('keydown',onEsc));
+ crewTasksSync(G);
  // a room in the address joins on the way in
  const q=new URLSearchParams(location.search); if(q.get('room'))crewJoin(G,q.get('room'));
 }
@@ -5604,6 +5874,7 @@ function teardownInstall(){
  for(const off of G.ui)off();
  if(G.net){ G.net.close(); G.net=null; }
  document.getElementById('crewPanel').hidden=true;
+ document.getElementById('taskSheet').classList.remove('up'); document.body.classList.remove('sheetOpen','panelOpen'); G.sheetFor=null;
  G.player.unbind();
  G.fx.reset();
  G.snd.close();

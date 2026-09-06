@@ -34,6 +34,8 @@ export class Lift {
     this.mode = 'fast';
     this.vmax = 0;                                // the drive limit this frame, for the wheel indicator
     this.atDoorway = false;                       // within the doorway's reach (the crouch, the deck guard)
+    this.isLift = true;                           // what world.js's sheet rule looks for in an obstacle
+    this.needBoards = null;                       // the hall point of the wheel that has run out of floor protection
     this.box = null;
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
@@ -46,6 +48,8 @@ export class Lift {
   static DOOR = new THREE.Vector2(-0.8, 0);       // where you step on and off (the back end)
   static DECK_Y = 1.25;                           // the deck plate's centre above the floor, stowed
   static LADDER = { x: -1.27, rungs: [0.28, 0.55, 0.82, 1.09] };   // the vertical ladder flush on the back of the chassis (Genie / JLG photos)
+  static NO_BOARDS = 'The wheels stay on the boards: lay floor protection ahead';
+  static BUMPED = 'Something is in the way: back up and go round';
   static EYE = 1.68;                              // standing eye height
   static GATE_OPEN = Math.PI / 2;                 // the door fully open, lying along the deck
 
@@ -257,6 +261,28 @@ export class Lift {
     player.pos.set(p.x, this.floorY + this.deckY + this.height, p.z);
   }
 
+  // (Lloyd, 2026-09-06) the ONE way a machine nobody is driving moves: the crew's travel to a
+  // column and their pack-up drive home both come through here, so the wheel rule cannot be
+  // forgotten in one of them. Steps `maxStep` toward the target, collides, and takes the step
+  // back if a wheel would leave the boards; `needBoards` then carries the offending wheel's hall
+  // point for the feeder to lay to. `force` is the pack-up's last resort: a machine is never left
+  // wedged in the hall at 05:00. Returns true when it actually moved
+  roll(target, maxStep, world, collide, force = false) {
+    const before = this.pos.clone();
+    const d = target.clone().sub(this.pos); d.y = 0;
+    const dist = d.length();
+    if (dist < 0.001 || maxStep <= 0) { this.needBoards = null; return false; }
+    this.pos.addScaledVector(d.normalize(), Math.min(dist, maxStep));
+    collide(this.pos, 0.9, world, [this, this.box]);
+    if (!force && world.boardBlock) {
+      const off = world.boardBlock(this, this.pos, this.yaw, before, this.yaw);
+      if (off) { this.pos.copy(before); this.needBoards = off; this.refresh(); return false; }
+    }
+    this.needBoards = null;
+    this.refresh();
+    return this.pos.distanceToSquared(before) > 1e-8;
+  }
+
   // stick + keys as (forward, strafe) in the player's look frame
   input(player) {
     const forward = (player.keys.has('KeyW') ? 1 : 0) - (player.keys.has('KeyS') ? 1 : 0) - player.move.y;
@@ -270,6 +296,10 @@ export class Lift {
     else if (this.aboard && this.driving) this.drive(dt, player, world, collide);
     else if (this.aboard) this.walkDeck(dt, player);
     else if (this.speed) this.speed = 0;
+    // (Claude, 2026-09-07) nobody at the controls, nothing to complain about: the stop message and
+    // the "it is not moving" window are cleared, so a machine left blocked does not greet the next
+    // driver with the last driver's reason before it has rolled a centimetre
+    if (!(this.aboard && this.driving) && (this.blocked || this.held)) { this.blocked = null; this.held = false; this.mark = null; this.markT = 0; }
     // (Lloyd, 2026-09-05: "when we are on the scissor and going out the doors, we should duck")
     // the header bar sits 3 m up and a standing eye on the stowed deck is 2.93: within 2.2 m of
     // the doorway anyone aboard crouches to an eye of 0.95 above the deck, and stands again past it
@@ -316,8 +346,16 @@ export class Lift {
     player.yaw += dyaw;                            // the deck turns under you, and you with it
 
     const heading = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const before = this.pos.clone();
-    if (this.speed === 0) { this.place(player); return; }   // parked is parked: no push, no slide
+    const before = this.pos.clone(), yawBefore = this.yaw - dyaw;
+    // (Claude, 2026-09-07) A REASON IS FOR WHILE YOU ARE PUSHING AT IT. `blocked` used to be
+    // written on the way past the collide and never reached again once the stick was let go, so
+    // the first stop at the end of the ply pinned "lay floor protection ahead" over the prompt for
+    // the rest of the night: getting off, walking to a stack and pointing at it all still read the
+    // old line. A machine standing still has nothing to complain about
+    // parked is parked: no push, no slide. A machine with the stick OVER is not parked even on the
+    // frames where the drive has damped back to nothing against something in its way -- it falls
+    // through, so the window below keeps counting and the reason on screen does not flicker
+    if (this.speed === 0 && target === 0) { this.blocked = null; this.held = false; this.mark = null; this.markT = 0; this.place(player); return; }
     this.pos.addScaledVector(heading, this.speed * dt);
     const wanted = this.pos.clone();
     collide(this.pos, 0.9, world, [this, this.box]);
@@ -332,6 +370,31 @@ export class Lift {
     { const d0 = worldToHall(before).u - HALL.doorU, d1 = this.doorDist();
       if (this.height > 0.45 && Math.abs(d1) < 1.3 && Math.abs(d1) < Math.abs(d0)) { this.pos.copy(before); this.speed = 0; this.blocked = 'Lower the deck to pass the doorway'; }
       else this.blocked = null; }
+    // (Lloyd, 2026-09-06: "we also need to put down floor protection before we can drive the
+    // scissor lift on the carpet") the hall floor is carpet: a wheel may only roll onto ply. The
+    // step is taken back whole, yaw and all, so the machine sits exactly where it was
+    if (!this.blocked && world.boardBlock) {
+      const off = world.boardBlock(this, this.pos, this.yaw, before, yawBefore);
+      if (off) { this.pos.copy(before); this.yaw = yawBefore; player.yaw -= dyaw; this.speed = 0; this.blocked = Lift.NO_BOARDS; this.needBoards = off; }
+      else this.needBoards = null;
+    }
+    // (Claude, 2026-09-07) A CREW MACHINE PARKED IN THE DOORWAY stopped the player dead with the
+    // stick still forward and not a word on screen: a crew lift is not something the reticle can be
+    // aimed at either, so the proximity ring was the only hint. Frame by frame a held machine looks
+    // like it is moving -- it creeps in, the collider shoves it back out, ramps again, and slides a
+    // few millimetres along whatever it is on -- so the test runs over eight tenths of a second:
+    // how far the STICK asked for against how far the machine actually got up its own heading. A
+    // fifth of the asked-for distance is the bar, which the slowest creep (deck up, slow mode)
+    // still clears with room. Comparing the two frame by frame does not work: a held machine's own
+    // asked-for step collapses to a millimetre, and a millimetre of slide then reads as progress
+    if (!this.mark) this.mark = this.pos.clone();
+    this.markT = (this.markT || 0) + dt;
+    if (this.markT > 0.8) {
+      const got = this.pos.clone().sub(this.mark).dot(heading) * Math.sign(target || 1);
+      this.held = target !== 0 && got < this.markT * this.vmax * 0.2;
+      this.mark = this.pos.clone(); this.markT = 0;
+    }
+    if (!this.blocked && this.held) this.blocked = Lift.BUMPED;
     this.travelled = (this.travelled || 0) + this.pos.distanceTo(before);
     for (const W of this.wheels) W.w.rotation.z -= (this.speed * dt) / 0.22;
     this.place(player);
