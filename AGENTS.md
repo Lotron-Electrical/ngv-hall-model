@@ -599,6 +599,45 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   -> 108). That is the sim's own behaviour, older than install mode; `tools/install-mode.mjs`
   therefore counts colliders around the install toggle alone.
 
+### Doors, tags, sign, deck physics, ceiling, proximity, reticle (Lloyd, 2026-09-06)
+- DOORS (Lloyd: "we shouldn't be able to clip through the doors"): each leaf is a segment collider
+  on the plan (`world.doors[i].seg`, hinge to tip, recomputed in `updateDoors`), pushed against by
+  `pushSeg` for every mover; the door line stays a wall until BOTH leaves are past 0.75 open
+  (`world.doorsClear`, about 85 degrees), and a mover may not change sides of the line in one step
+  before then (`lastSide` WeakMap keyed on the mover's own Vector3; a jump over 2 m is a teleport
+  and is let through). The jambs are solid (a mover in the wall's thickness outside the opening is
+  put back on its own side). Proof: the door block of `$SCRATCH/t1.mjs` (sprint at the doors, walk
+  into the jamb).
+- STORAGE sign over the header (`textTexture` canvas on a PlaneGeometry facing -u, `world.sign`).
+- COLUMN TAGS ("we need to know which column is which"): every column wears its label twice
+  (`world.tags`, 24 Sprites, room side and wall side, 3.0 m up, yellow on black).
+- PICK UP / PUT DOWN ("anything we can pick up, we need to be able to put down and pick back up"):
+  the prompt never says "carry it somewhere" with nothing to tap: `Put empty box down`, `Put wrap
+  down`, `Put rubbish bag down` / `Put empty bag down`; `Take box off the lift` (full box, aboard or
+  from the floor beside a lowered lift, `takeBoxOffLift`); `Take empty bag` (an empty bag can be
+  carried to the work); a bag is only disposed when full. F / the DROP button still drops anything.
+- ABOARD PICK-UP: `pickable()` (lights, boxes, wraps, full bags in reach, chosen by the smallest
+  angle to the view direction, `aimed`) is offered before the lift's own prompts when aboard.
+- RETICLE: 26 px +, turns green (`#reticle.can`) when the action on offer can be run.
+- DECK PHYSICS ("the lights can't clip when they are dropped onto the scissor lift"): `DECK_WIN`
+  (1.2 x 0.55 inside the rail posts) and `HALF` per type; a body captured on the deck is clamped
+  inside the rails by its half-extents and a bar turns to lie along the chassis; a body sliding on
+  the deck is held by the rails; under a raised deck or inside the chassis footprint it lands on
+  the tray (`CHASSIS.top` 0.76); a body is collided against the plan in the air too (it used to
+  fall through the chassis), with the lift's circles ignored above the deck line; loose bodies
+  keep out of each other on the plan. `toss` while ABOARD = a short drop onto the plate inside the
+  rails (never a lob over the side), `items` passed in for the lift.
+- CEILING ("scissor lift shouldn't be allowed to go through the ceiling"): index.html rays up from
+  the deck against `hallLevel` + `canopy.mesh` five times a second while aboard -> `lift.ceilingY`;
+  `Lift.maxHeight()` = ceiling - floor - deckY - HEADROOM (EYE + 0.15) clamps the drive;
+  `lift.clearance()` feeds `#deckh` (DECK x m, CEILING y m; amber under 1.5, red under 0.3),
+  shown whenever aboard, top right under the Crew/Guide buttons.
+- PROXIMITY ("show a proximity to nearby objects in the scissor lift icon"): `W.proximity(world,
+  lift, n, reach)` walks a probe out from the chassis edge in n directions until the collider
+  pushes it (walls, columns, doors, pallets, other lifts); `#wheels` grew to a 160x200 viewBox with
+  a ring and `#wprox` dots (green / amber under 0.8 / red under 0.35 m), 5 Hz while driving, plus
+  the deck height text `#wht`.
+
 ## The lightshow (2026-09-04)
 
 Lloyd's own music and the light cues for it live on one clock. Three pieces:

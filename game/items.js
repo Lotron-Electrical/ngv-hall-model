@@ -110,6 +110,14 @@ function makeCarryLight(wrapped) {
 const REST = { box: 0.17, emptyBox: 0.17, bag: 0.41, wrap: 0.04, light: 0.012, wrapped: 0.02, jack: 0 };
 const RADIUS = { box: 0.4, emptyBox: 0.4, bag: 0.45, wrap: 0.3, light: 0.3, wrapped: 0.3, jack: 0.5 };
 const TOPS = { box: 0.34, emptyBox: 0.34, bag: 0.82 };   // what can be stood on, and how tall it is
+// (Lloyd, 2026-09-06: "all the objects need to have collision ... the lights can't clip when they
+// are dropped onto the scissor lift") the deck is a fenced tray: a body that lands on it is kept
+// inside the rails by its own half-extents (x along the chassis, z across, after the bar is turned
+// to lie along the deck), and a body that misses the deck lands on the chassis tray or is pushed
+// clear of the machine, never through it
+const DECK_WIN = { x: 1.2, z: 0.55 };                                  // inside the rail posts
+const HALF = { box: { x: 0.3, z: 0.25 }, emptyBox: { x: 0.3, z: 0.25 }, bag: { x: 0.3, z: 0.3 }, wrap: { x: 0.21, z: 0.17 }, light: { x: 0.76, z: 0.03 }, wrapped: { x: 0.76, z: 0.03 }, jack: { x: 0.6, z: 0.3 } };
+const CHASSIS = { x: 1.2, z: 0.58, top: 0.76 };                        // the blue slab + tray, from lift.js build()
 function restOf(o) { return REST[o.type] ?? 0.05; }
 
 // the bodies that are loose right now: not carried, not in a bag, not the lift's own box
@@ -143,7 +151,10 @@ function stepBody(o, dt, items, lift, others) {
   let support = floorY, onDeck = false, under = null;   // `under`: the thing it stands on, which must not shove it sideways
   const deckTop = lift.floorY + lift.deckY + lift.height + 0.07;
   const d = lift.toDeck(m.position);
-  if (Math.abs(d.x) < 1.25 && Math.abs(d.y) < 0.6 && y0 >= deckTop - 0.05) { support = deckTop; onDeck = true; under = lift; }
+  const half = HALF[o.type] || { x: 0.3, z: 0.3 };
+  if (Math.abs(d.x) < DECK_WIN.x && Math.abs(d.y) < DECK_WIN.z && y0 >= deckTop - 0.05) { support = deckTop; onDeck = true; under = lift; }
+  // under a raised deck, or beside it inside the chassis footprint: it lands on the chassis tray
+  else if (Math.abs(d.x) < CHASSIS.x && Math.abs(d.y) < CHASSIS.z && y0 >= lift.floorY + CHASSIS.top - 0.05 && m.position.y - rest < deckTop - 0.2) { support = lift.floorY + CHASSIS.top; under = lift; }
   for (const b of others) {
     if (b === o || !TOPS[b.type]) continue;
     const top = b.mesh.position.y - restOf(b) + TOPS[b.type];
@@ -155,24 +166,71 @@ function stepBody(o, dt, items, lift, others) {
     if (v.y < 0) { v.y = Math.abs(v.y) > 1.2 ? -v.y * 0.18 : 0; }
     // friction on whatever it landed on
     const k = Math.exp(-6 * dt); v.x *= k; v.z *= k;
-    if (v.lengthSq() < 0.0004) { v.set(0, 0, 0); if (onDeck) { o.deck = d.clone(); o.deckYaw = m.rotation.y - lift.yaw; } }
+    if (v.lengthSq() < 0.0004) {
+      v.set(0, 0, 0);
+      if (onDeck) {
+        // captured on the deck: a bar turns to lie along the chassis (it is longer than the deck
+        // is wide) and everything is kept inside the rail line by its own half-extents
+        const bar = o.type === 'light' || o.type === 'wrapped';
+        o.deckYaw = bar ? 0 : m.rotation.y - lift.yaw;
+        o.deck = new THREE.Vector2(THREE.MathUtils.clamp(d.x, -DECK_WIN.x + half.x, DECK_WIN.x - half.x), THREE.MathUtils.clamp(d.y, -DECK_WIN.z + half.z, DECK_WIN.z - half.z));
+        if (lift.box === o) { o.deck.x = THREE.MathUtils.clamp(o.deck.x, -1.0, 0.5); }
+      }
+    }
   } else { const k = Math.exp(-0.3 * dt); v.x *= k; v.z *= k; }
-  // walls, columns and the other things on the floor stop it sliding through them
+  // on the deck and still sliding: the rails hold it in; a bar that hits a rail turns to lie along it
+  if (onDeck) {
+    const q = lift.toDeck(m.position);
+    const cx = THREE.MathUtils.clamp(q.x, -DECK_WIN.x + Math.min(half.x, 0.3), DECK_WIN.x - Math.min(half.x, 0.3));
+    const cz = THREE.MathUtils.clamp(q.y, -DECK_WIN.z + Math.min(half.z, 0.3), DECK_WIN.z - Math.min(half.z, 0.3));
+    if (cx !== q.x || cz !== q.y) { const w = lift.deckPoint(cx, cz); m.position.x = w.x; m.position.z = w.z; v.x *= 0.3; v.z *= 0.3; }
+  }
+  // walls, columns and the other things on the floor stop it sliding through them, in the air as
+  // well as on the ground (a light dropped beside the lift used to fall through the chassis)
   // (2026-09-05) the lift's own plan circles used to push a box straight off its deck: whatever
   // the body stands on is left out of the push
-  if (v.x !== 0 || v.z !== 0) { const ig = [o]; if (under) ig.push(under); collideWorldRef(m.position, RADIUS[o.type] ?? 0.3, items.world, ig); }
+  const airborne = m.position.y - rest > support + 0.01;
+  if (v.x !== 0 || v.z !== 0 || airborne) {
+    const ig = [o]; if (under) ig.push(under);
+    // a body above the deck line is over the machine, not in it: the lift's plan circles only
+    // apply below the deck (and never to what stands on it)
+    if (!under && m.position.y - rest >= deckTop - 0.05) ig.push(lift);
+    collideWorldRef(m.position, RADIUS[o.type] ?? 0.3, items.world, ig);
+    // the loose things on the floor keep out of each other on the plan: bars, wraps and bags as
+    // much as boxes. What it stands on, and what stands on it, is left alone
+    for (const b of others) {
+      if (b === o || b === under || (b.deck && !onDeck)) continue;
+      if (Math.abs((b.mesh.position.y - restOf(b)) - (m.position.y - rest)) > 0.25) continue;
+      const rr = (RADIUS[o.type] ?? 0.3) * 0.6 + (RADIUS[b.type] ?? 0.3) * 0.6;
+      const dx = m.position.x - b.mesh.position.x, dz = m.position.z - b.mesh.position.z;
+      const len = Math.hypot(dx, dz);
+      if (len > 0.001 && len < rr) { const k = (rr - len) / len; m.position.x += dx * k * 0.5; m.position.z += dz * k * 0.5; }
+    }
+  }
 }
 let collideWorldRef = null;   // set by createItems: world.js's collider, so this module does not import it twice
 export function setCollider(fn) { collideWorldRef = fn; }
 
 // let go of something: a small toss from the hands, out and a little up, with the walk's speed
-function toss(o, player, dist = 0.9) {
+function toss(o, player, dist = 0.9, items = null) {
   const m = o.mesh;
   const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.yaw);
   m.position.copy(player.camera.position).addScaledVector(fwd, dist); m.position.y -= 0.45;
   m.rotation.set(0, player.yaw, 0);
   o.vel = fwd.multiplyScalar(1.4); o.vel.y = 0.6;
   o.deck = null; o.onDeck = null;
+  // (Lloyd, 2026-09-06: nothing clips when dropped on the scissor lift) let go on the deck and it
+  // goes down on the deck: the rails are there, so the throw is a short drop onto the plate,
+  // inside the rail line, never a lob over the side
+  const L = items && items.lift;
+  if (L && L.aboard) {
+    const half = HALF[o.type] || { x: 0.3, z: 0.3 };
+    const d = L.toDeck(m.position);
+    const w = L.deckPoint(THREE.MathUtils.clamp(d.x, -DECK_WIN.x + half.x, DECK_WIN.x - half.x), THREE.MathUtils.clamp(d.y, -DECK_WIN.z + half.z, DECK_WIN.z - half.z));
+    m.position.set(w.x, L.floorY + L.deckY + L.height + 0.07 + restOf(o) + 0.25, w.z);
+    if (o.type === 'light' || o.type === 'wrapped') m.rotation.y = L.yaw;   // a bar lies along the chassis
+    o.vel.set(0, 0, 0);
+  }
 }
 
 function carry(player, item) {
@@ -243,13 +301,33 @@ export function nearestAction(player, lift, install, items) {
   // the lift on the floor plan: the deck is a metre up, so a straight distance to it kept "Get on"
   // from showing until you stood inside the machine (2026-09-04)
   const liftNear = (r) => Math.hypot(lift.pos.x - p.x, lift.pos.z - p.z) < r;
+  // (Lloyd, 2026-09-06: "a reticle ... so we know what we are pointing at") among the things in
+  // reach, the one nearest the centre of the view is the one on offer
+  const fwd = player.camera.getWorldDirection(new THREE.Vector3());
+  const aimed = (arr, r, ok) => { let best = null, bs = -2; for (const o of arr) { if (!ok(o) || !near(o, r)) continue; const sc = o.mesh.position.clone().sub(p).normalize().dot(fwd); if (sc > bs) { bs = sc; best = o; } } return best; };
+  // the loose things around you, on the floor or on the deck: a light first, then a box, a wrap, a bag
+  const pickable = () => {
+    const loose = aimed(items.lights, 1.4, (l) => !l.carried);
+    if (loose) return { label: loose.type === 'wrapped' ? 'Pick up wrapped light' : 'Pick up light', run: () => pickUpLight(player, loose, items) };
+    const box = aimed(items.boxes, 1.25, (b) => !b.carried && !b.onLift && !b.disposed);
+    if (box) return { label: box.lights > 0 ? 'Take wrapped light from box' : 'Take empty box', run: () => box.lights > 0 ? takeLightFromBox(player, box, items) : carryEmptyBox(player, box, items) };
+    const wrap = aimed(items.wraps, 1.15, (w) => !w.carried && !w.bagged);
+    if (wrap) return { label: 'Pick up wrap', run: () => carry(player, wrap) };
+    const fullBag = aimed(items.bags, 1.25, (b) => b.full && !b.carried && !b.disposed);
+    if (fullBag) return { label: 'Take rubbish bag', run: () => carry(player, fullBag) };
+    return null;
+  };
 
   if (player.carry?.type === 'box' && liftNear(2.4) && lift.height < 0.3 && !lift.box) return { label: 'Put box on lift deck', run: () => putBoxOnLift(player, lift, items) };
   // (2026-09-05) anything in hand can be set down where you stand, on the floor or on the deck
   if (player.carry && ['bag', 'wrap', 'emptyBox'].includes(player.carry.type) && lift.aboard) return { label: `Put ${player.carry.type === 'emptyBox' ? 'box' : player.carry.type} down on the deck`, run: () => dropCarry(player, items) };
-  if ((player.carry?.type === 'box' || player.carry?.type === 'emptyBox' || player.carry?.type === 'bag') && skipNear) return { label: `Dispose ${player.carry.type}`, run: () => disposeCarry(player, items) };
+  if ((player.carry?.type === 'box' || player.carry?.type === 'emptyBox' || (player.carry?.type === 'bag' && player.carry.full)) && skipNear) return { label: `Dispose ${player.carry.type === 'emptyBox' ? 'empty box' : player.carry.type}`, run: () => disposeCarry(player, items) };
   if (player.carry?.type === 'box') return { label: 'Set down box', run: () => dropCarry(player, items) };
-  if (player.carry?.type === 'emptyBox') return { label: 'Carry empty box to skip', run: null };
+  // (Lloyd, 2026-09-06: "anything we can pick up, we need to be able to put down and pick back
+  // up again") an empty box, a bag or a wrap in hand goes down where you stand; the skip and the
+  // rubbish bag are offered first when they are in reach
+  if (player.carry?.type === 'emptyBox') return { label: 'Put empty box down', run: () => dropCarry(player, items) };
+  if (player.carry?.type === 'bag') return { label: player.carry.full ? 'Put rubbish bag down' : 'Put empty bag down', run: () => dropCarry(player, items) };
   if (player.carry?.type === 'wrapped') return { label: 'Unwrap light', run: () => unwrapLight(player, items) };
   if (player.carry?.type === 'light') {
     // (2026-09-05) reach is from where you stand, deck or floor (install.js findFitSlot)
@@ -264,9 +342,9 @@ export function nearestAction(player, lift, install, items) {
     return { label: lift.aboard ? 'Put light down on the deck' : 'Put light down', run: () => dropCarry(player, items) };
   }
   if (player.carry?.type === 'wrap') {
-    const bag = items.bags.find((b) => near(b, 1.4) && !b.full);
+    const bag = items.bags.find((b) => near(b, 1.4) && !b.full && !b.carried && !b.disposed);
     if (bag) return { label: 'Bag the wrap', run: () => bagWrap(player, bag, items) };
-    return { label: 'Find a rubbish bag', run: null };
+    return { label: 'Put wrap down', run: () => dropCarry(player, items) };
   }
 
   // (Lloyd, 2026-09-04) on the deck you WALK: the controls are a place at the +x end you go to,
@@ -274,10 +352,16 @@ export function nearestAction(player, lift, install, items) {
   if (lift.aboard && lift.driving) return { label: 'Let go of the controls', run: () => lift.letGo() };
   if (lift.aboard && lift.box && lift.box.lights > 0 && lift.deckLocal.length() < 1.0) return { label: 'Take wrapped light from deck box', run: () => takeLightFromBox(player, lift.box, items) };
   if (lift.aboard && lift.box && lift.box.lights <= 0 && lift.deckLocal.length() < 1.0) return { label: 'Take empty box from lift', run: () => takeEmptyLiftBox(player, lift, items) };
+  // (Lloyd, 2026-09-06) a box put on the deck comes back off it, full or not: from the deck when
+  // you are aboard and not at the deck box's own prompt, or from the floor beside a lowered lift
+  if (lift.box && lift.box.lights > 0 && ((lift.aboard && lift.deckLocal.length() < 1.6) || (!lift.aboard && liftNear(2.4) && lift.height < 0.3))) return { label: 'Take box off the lift', run: () => takeBoxOffLift(player, lift, items) };
   // (Lloyd, 2026-09-04) you get on from ONE end, the back, where the steps are
   const stepsNear = (() => { const o = lift.offboardWorld(); return Math.hypot(o.x - p.x, o.z - p.z) < 1.7; })();
   if (stepsNear && !lift.aboard && lift.height < 0.3) return { label: 'Get on lift', run: () => lift.board(player) };
   if (liftNear(2.3) && !lift.aboard && lift.height < 0.3) return { label: 'Get on from the back of the lift', run: null };
+  // (Lloyd, 2026-09-06: "we need to be able to pick things up when we're on the scissor lift")
+  // what lies on the deck, or within reach of it, is offered before the lift's own prompts
+  if (lift.aboard) { const a = pickable(); if (a) return a; }
   if (lift.aboard && lift.atPanel()) return { label: 'Take the controls', run: () => lift.takeControls(player) };
   // off the lift only from the ground and from the back end, where the steps are: at height
   // the deck is the only floor there is
@@ -287,14 +371,7 @@ export function nearestAction(player, lift, install, items) {
   }
 
   // a light you put down comes first: it is the likelier thing to want back than the box beside it
-  const loose = items.lights.find((l) => !l.carried && near(l, 1.4));
-  if (loose) return { label: loose.type === 'wrapped' ? 'Pick up wrapped light' : 'Pick up light', run: () => pickUpLight(player, loose, items) };
-  const box = items.boxes.find((b) => !b.carried && !b.onLift && !b.disposed && near(b, 1.25));
-  if (box) return { label: box.lights > 0 ? 'Take wrapped light from box' : 'Take empty box', run: () => box.lights > 0 ? takeLightFromBox(player, box, items) : carryEmptyBox(player, box, items) };
-  const wrap = items.wraps.find((w) => !w.carried && !w.bagged && near(w, 1.15));
-  if (wrap) return { label: 'Pick up wrap', run: () => carry(player, wrap) };
-  const fullBag = items.bags.find((b) => b.full && !b.carried && !b.disposed && near(b, 1.25));
-  if (fullBag) return { label: 'Take rubbish bag', run: () => carry(player, fullBag) };
+  { const a = pickable(); if (a) return a; }
 
   if (items.jack.held) {
     if (items.jack.carrying) return { label: 'Set pallet down', run: () => items.jack.carrying = null };
@@ -305,6 +382,8 @@ export function nearestAction(player, lift, install, items) {
 
   const pallet = items.pallets.find((b) => b.boxes > 0 && near(b, 1.55));
   if (pallet) return player.body && !player.body.canLift(10) ? { label: 'Too puffed to lift a box: rest a moment', run: null } : { label: `Take box from ${pallet.column} pallet`, run: () => spawnBox(player, items, pallet) };
+  const emptyBag = items.bags.find((b) => !b.full && !b.carried && !b.disposed && near(b, 1.25));
+  if (emptyBag) return { label: 'Take empty bag', run: () => carry(player, emptyBag) };
   return { label: 'No action nearby', run: null };
 }
 
@@ -386,6 +465,13 @@ function carryEmptyBox(player, box) {
   carry(player, box);
 }
 
+function takeBoxOffLift(player, lift) {
+  const box = lift.box;
+  lift.box = null;
+  box.onLift = false; box.deck = null;
+  carry(player, box);
+}
+
 function takeEmptyLiftBox(player, lift) {
   const box = lift.box;
   lift.box = null;
@@ -425,7 +511,7 @@ export function dropCarry(player, items) {
     const bar = makeBarMesh(item.type === 'wrapped');
     items.scene.add(bar);
     const light = { type: item.type, mesh: bar, carried: false };
-    toss(light, player, 0.8); bar.rotation.y += Math.PI / 2;   // the bar lies across the way you face
+    toss(light, player, 0.8, items); if (!(items.lift && items.lift.aboard)) bar.rotation.y += Math.PI / 2;   // the bar lies across the way you face
     items.lights.push(light);
     player.carry = null;
     return;
@@ -434,7 +520,7 @@ export function dropCarry(player, items) {
     item.mesh.removeFromParent();
     items.scene.add(item.mesh);
     item.carried = false;
-    toss(item, player, 0.9);
+    toss(item, player, 0.9, items);
   }
   player.carry = null;
 }

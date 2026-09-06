@@ -194,8 +194,11 @@ body.paused #paused{display:flex}
 #installUi #guide{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
 #installUi #guide.off{color:var(--dim)}
 /* (Lloyd, 2026-09-05: "a + in the centre of the screen for the players reticle") two thin bars, a dark edge so it reads on the lit bars as well as the black */
-#reticle{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);z-index:5;display:none;pointer-events:none;opacity:.8;filter:drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1px #000)}
+#reticle{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);z-index:5;display:none;pointer-events:none;opacity:1;filter:drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1px #000)}
 #reticle::before,#reticle::after{content:"";position:absolute;background:#fff}
+/* (Lloyd, 2026-09-06) the + goes green when what you point at can be acted on, and a dot marks the centre */
+#reticle.can::before,#reticle.can::after{background:#7CFF9A}
+#reticle.can{transform:translate(-50%,-50%) scale(1.15)}
 #reticle::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
 #reticle::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
 body.playing #reticle{display:block}
@@ -241,6 +244,12 @@ body.carrying #drop{display:block}
 body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
 #wheels{position:absolute;left:24px;bottom:246px;display:none;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
 body.driving #wheels{display:block}
+/* (Lloyd, 2026-09-06: "it should also show how high we are") deck height and ceiling clearance, whenever you are aboard */
+#deckh{position:absolute;right:12px;top:152px;z-index:3;display:none;pointer-events:none;background:rgba(0,0,0,.55);color:#e8e8e8;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.06em;padding:4px 10px;border-radius:4px;white-space:nowrap}
+#deckh b{color:#7CFF9A;font-weight:600}
+#deckh.low b.c{color:#ffb454}
+#deckh.top b.c{color:#ff5c5c}
+body.aboard #deckh{display:block}
 #liftMode{font-size:18px!important;height:44px!important}
 @media (pointer:fine){#wheels{left:24px;bottom:24px}}   /* on a desk the keys do the work (Q flips fast / slow); the plan sits in the corner */
 #liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
@@ -305,13 +314,18 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <div id="prompt">Loading hall&hellip;</div>
   <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
   <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls. Outside #touch, so a desk sees it too -->
-  <div id="wheels"><svg viewBox="0 0 90 120" width="90" height="120" aria-hidden="true">
-   <rect x="22" y="18" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
-   <g id="wfl" transform="translate(20,30)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
-   <g id="wfr" transform="translate(70,30)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
-   <rect x="15" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/><rect x="65" y="79" width="10" height="22" rx="3" fill="#fff" opacity=".6"/>
-   <path id="wfwd" d="M45 8 l-10 12 h20 z" fill="#b9a887" opacity="0"/><path id="wrev" d="M45 112 l-10 -12 h20 z" fill="#b9a887" opacity="0"/>
-   <text id="wmode" x="45" y="64" text-anchor="middle" fill="#fff" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="14" letter-spacing="1">FAST</text>
+  <div id="deckh">DECK <b class="h">0.0 m</b> &nbsp; CEILING <b class="c">-</b></div>
+  <!-- (Lloyd, 2026-09-06) the plan grew a ring: #wprox holds one dot per probe direction, placed where the collider found something within 1.6 m of the chassis edge, green / amber / red by distance -->
+  <div id="wheels"><svg viewBox="0 0 160 200" width="120" height="150" aria-hidden="true">
+   <circle cx="80" cy="100" r="78" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.18)"/>
+   <g id="wprox"></g>
+   <rect x="57" y="58" width="46" height="84" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.6)"/>
+   <g id="wfl" transform="translate(55,70)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
+   <g id="wfr" transform="translate(105,70)"><rect x="-5" y="-11" width="10" height="22" rx="3" fill="#fff"/></g>
+   <rect x="50" y="119" width="10" height="22" rx="3" fill="#fff" opacity=".6"/><rect x="100" y="119" width="10" height="22" rx="3" fill="#fff" opacity=".6"/>
+   <path id="wfwd" d="M80 48 l-10 12 h20 z" fill="#b9a887" opacity="0"/><path id="wrev" d="M80 152 l-10 -12 h20 z" fill="#b9a887" opacity="0"/>
+   <text id="wht" x="80" y="92" text-anchor="middle" fill="#7CFF9A" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="15" letter-spacing="1">0.0 m</text>
+   <text id="wmode" x="80" y="112" text-anchor="middle" fill="#fff" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="14" letter-spacing="1">FAST</text>
   </svg></div>
   <div id="summary"><div class="box"><h2>Night Summary</h2><p id="summaryText"></p><button type="button" id="nextNight">Next night</button></div></div>
   <div id="overlay"><div id="card">
@@ -5332,11 +5346,21 @@ function installStep(dt,now){
  lift.update(dt,player,world,W.collideWorld);
  if(!lift.aboard&&!player.airborne)player.pos.y=world.floorY;   // off the deck you are on the floor, unless mid-jump (2026-09-05)
  document.body.classList.toggle('aboard',lift.aboard);
+ // (Lloyd, 2026-09-06) the ceiling over the machine: a ray up from the deck against the scan and
+ // the canopy, five times a second while anyone is aboard; the lift clamps its own height to it
+ if(lift.aboard&&(!G.ceilAt||now-G.ceilAt>200)){ G.ceilAt=now; const ray=new THREE.Raycaster(new THREE.Vector3(lift.pos.x,world.floorY+lift.deckY+lift.height+0.3,lift.pos.z),new THREE.Vector3(0,1,0),0,30);
+  const hits=ray.intersectObjects([hallLevel,canopy&&canopy.mesh].filter(Boolean),true); lift.ceilingY=hits.length?hits[0].point.y:world.floorY+W.HALL.ceiling; }
+ if(lift.aboard){ const el=document.getElementById('deckh'); const c=lift.clearance(); el.querySelector('b.h').textContent=(lift.deckY+lift.height).toFixed(1)+' m'; el.querySelector('b.c').textContent=isFinite(c)?Math.max(0,c).toFixed(1)+' m':'-'; el.classList.toggle('top',c<0.3); el.classList.toggle('low',c>=0.3&&c<1.5); }
  document.body.classList.toggle('driving',lift.driving);
  // the fast / slow toggle (Q, or the button) and the wheel indicator while driving
  if(player.takeMode()&&lift.aboard){ const m=lift.toggleMode(); document.getElementById('liftMode').textContent=m.toUpperCase(); document.getElementById('wmode').textContent=m.toUpperCase(); snd.tone(m==='fast'?520:330,0.06,'sine',0.04); }
  if(lift.driving){ const deg=(-lift.steer*180/Math.PI).toFixed(1), tr='rotate('+deg+')'; const fl=document.getElementById('wfl'), fr=document.getElementById('wfr');
-  fl.setAttribute('transform','translate(20,30) '+tr); fr.setAttribute('transform','translate(70,30) '+tr);
+  fl.setAttribute('transform','translate(55,70) '+tr); fr.setAttribute('transform','translate(105,70) '+tr);
+  document.getElementById('wht').textContent=(lift.deckY+lift.height).toFixed(1)+' m';
+  // the proximity ring, five times a second
+  if(!G.proxAt||now-G.proxAt>200){ G.proxAt=now; const g=document.getElementById('wprox'); let h='';
+   for(const pr of W.proximity(world,lift,24,1.6)){ if(pr.dist==null)continue; const edge=Math.min(42/Math.max(Math.abs(Math.cos(pr.a)),1e-6),20/Math.max(Math.abs(Math.sin(pr.a)),1e-6)); const R=edge+pr.dist*35; const x=80+Math.sin(pr.a)*R, y=100-Math.cos(pr.a)*R; const c=pr.dist<0.35?'#ff5c5c':pr.dist<0.8?'#ffb454':'#7CFF9A'; h+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(pr.dist<0.35?5:4)+'" fill="'+c+'" opacity="'+(pr.dist<0.35?1:0.85).toFixed(2)+'"/>'; }
+   g.innerHTML=h; }
   const k=lift.vmax?Math.min(1,Math.abs(lift.speed)/lift.vmax):0; document.getElementById('wfwd').setAttribute('opacity',lift.speed>0.01?(0.35+0.65*k).toFixed(2):'0'); document.getElementById('wrev').setAttribute('opacity',lift.speed<-0.01?(0.35+0.65*k).toFixed(2):'0'); }
  document.body.classList.toggle('carrying',!!player.carry);
  snd.motor(Math.abs(lift.height-oldLift)>0.002||Math.abs(lift.speed)>0.02,fx.level);
@@ -5359,6 +5383,7 @@ function installStep(dt,now){
  if(install.justPowered){ const c=install.justPowered; install.justPowered=null; installToast(G,'Column '+c+' powered up'); snd.tone(440,0.12,'sine',0.06); setTimeout(()=>snd.tone(660,0.14,'sine',0.06),120); setTimeout(()=>snd.tone(880,0.2,'sine',0.06),240); }
  if(player.takeDrop()&&!lift.anim){ ITEMm.dropCarry(player,items); snd.thud(); }
  G.action=ITEMm.nearestAction(player,lift,install,items);
+ document.getElementById('reticle').classList.toggle('can',!!(G.action&&G.action.run&&!G.action.hint));
  if(player.takeAction())installInteract(G);
  clock.update(dt);
  G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,lift.blocked?{label:lift.blocked,run:null,hint:true}:G.action,player.carry,body);

@@ -18,6 +18,10 @@ export class Lift {
     // (2026-09-04) the stowed deck sits 1.25 m up, like a real 26-footer: the folded scissor
     // stack needs the room under it, and the two step treads at the back need the rise
     this.deckY = Lift.DECK_Y;
+    // (Lloyd, 2026-09-06: "scissor lift shouldn't be allowed to go through the ceiling") the host
+    // measures the ceiling over the machine (a ray up from the deck) and writes ceilingY; the
+    // deck stops where a standing head would touch it
+    this.ceilingY = Infinity;
     this.anim = null;                             // the boarding / climbing-down timeline while it runs
     this.height = 0;
     this.aboard = false;
@@ -147,6 +151,11 @@ export class Lift {
   deckPoint(x, z) {
     return this.group.localToWorld(new THREE.Vector3(x, this.deckY + this.height, z));
   }
+
+  static HEADROOM = Lift.EYE + 0.15;             // a standing head plus a hand's width under the ceiling
+  maxHeight() { return Math.max(0, Math.min(11.6, this.ceilingY - this.floorY - this.deckY - Lift.HEADROOM)); }
+  // metres of ceiling left above a standing head on the deck
+  clearance() { return this.ceilingY - (this.floorY + this.deckY + this.height + Lift.HEADROOM); }
 
   // a world point -> deck coordinates (x along the chassis, z across), or null when it is not on
   // the deck
@@ -284,7 +293,7 @@ export class Lift {
     const scale = player.speedScale, slow = this.mode === 'slow';
     if (player.liftUp) this.height += dt * 0.5 * scale * (slow ? 0.5 : 1);
     if (player.liftDown) this.height -= dt * 0.5 * scale * (slow ? 0.5 : 1);
-    this.height = THREE.MathUtils.clamp(this.height, 0, 11.6);
+    this.height = THREE.MathUtils.clamp(this.height, 0, this.maxHeight());
 
     const { forward, strafe } = this.input(player);
     // the deck up = creep speed: the limit eases in over the first half metre of lift
