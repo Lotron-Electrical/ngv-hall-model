@@ -702,7 +702,8 @@ function photoMaterial(src){
 // ============ PROCEDURAL MEASURED-LATTICE CANOPY (2026-08-31) ============
 // The baked v25 ceiling stays in the GLB untouched (Lloyd's freeze applies to the bake); the
 // viewer hides that mesh and builds the canopy the dense cloud measured instead (the
-// 2026-08-31 ceiling recon): a square module of 7.4285 x 7.3855 m, one INVERTED square
+// 2026-08-31 ceiling recon; module re-measured 2026-09-06, see CANOPY): a module of
+// 7.36 x 7.50 m, one INVERTED square
 // pyramid per cell cut by BOTH diagonals into four planar facets. The 3.7 m grid the photos
 // show is the mullion HALF-period (drawn by the shader, not built); the 5.2 m "node family"
 // is the half-diagonal of the same module. Relief is 860 mm vertex-to-crest (13.9 deg facets;
@@ -713,13 +714,19 @@ function photoMaterial(src){
 // GLB's own twelve column shaft tops (the cloud puts all 12 columns on funnel bottoms, median
 // 136 mm); the funnel-vertex plane is fitted through those same tops less the 50 mm the bake
 // sinks each cap into the glass, preserving column-head contact and the CEIL_Y readout.
-// APPEARANCE is dalle-de-verre, not leadlight: irregular 100-250 mm slab cells, each one flat
-// colour sampled from the baked ceiling atlas (the huv->uv affine is fitted from the baked
-// mesh's own vertices), quantised and chroma-lifted, set in matte warm-dark webbing (border
-// ribs, both diagonals, the 3.7 m mullion cross, an 8-armed star at the valley hubs, thin
-// slab edges; ~16% coverage). Slabs glow with the house+day backlight; webbing is lit only
-// from below. Bay-by-bay hue zoning is inherited from the atlas, not painted.
-const CANOPY={PU:7.4285, PV:7.3855,             // measured module, along x across the hall
+// APPEARANCE is dalle-de-verre, not leadlight: every slab is its own polygon in
+// tools/pieces.bin (2026-09-07, tools/merge_panes.py): 6,979 pieces, 26 % of the plate. A third
+// of the plate is traced from the bake atlas where it resolves slabs (colour from the atlas,
+// chroma-lifted); the rest is laid to the traced cells' own size, cover and palette, with the
+// measured motifs (the square-ring-with-X emblems round the crest nodes, the clear fans round
+// the column heads, rows of rectangles along the ribs) placed by the photographed rule. The
+// steel (ridge, cross, X, diamond) is painted by the plate shader; no slab sits on it.
+// (2026-09-06, the pane-data pass) The 7.4285 x 7.3855 m module of the 08-31 recon was ~1 %
+// large: the GLB's own twelve column heads (the funnel vertices) space at 7.347 / 7.380 m
+// along the two rows and 7.50 m across, the bake's joint lines at 7.35 m, and NGV's 51.5 x
+// 15 m glass is 7 x 7.36 by 2 x 7.50. The heads are geometry in the frame the sim draws, so
+// they win; the phase below is still fitted to them. The pane file is on this lattice.
+const CANOPY={PU:7.36, PV:7.50,                 // measured module, along x across the hall
  RELIEF:0.860, DIP:0.030, RIBH:0.225,           // vertex->crest, rib centre dip, rib half-width
  HU:[0.975681,0.219196], HV:[-0.219196,0.975681], // hall-frame axes (hall-surfaces.json)
  CAP_INSET:0.05};                                // the bake sinks the column cap 50 mm into the glass
@@ -793,7 +800,9 @@ function canopyMaterial(rect,phase){
     vec2 qb=(huv-lat.xy)/lat.zw; vec2 fb=qb-floor(qb+0.5); vec2 dm=abs(fb*lat.zw);   // metres from the vertex
     float dCross=min(dm.x,dm.y);
     float dDiag=min(abs(fb.x-fb.y),abs(fb.x+fb.y))*lat.z*0.7071;
-    float dDiam=abs(dm.x+dm.y-lat.z*0.5)*0.7071;
+    // the true edge-midpoint diamond (perpendicular metres); the old PU-on-both-axes form
+    // met the ridges 70 mm short on a 7.36 x 7.50 module (2026-09-07)
+    float dDiam=abs(dm.x/lat.z+dm.y/lat.w-0.5)/sqrt(1.0/(lat.z*lat.z)+1.0/(lat.w*lat.w));
     float dEdge=min(lat.z*0.5-dm.x,lat.w*0.5-dm.y);
     float dJ=min(min(dCross,dDiag),dDiam);
     float member=1.0-smoothstep(0.066,0.076,dJ);
@@ -863,7 +872,7 @@ function buildProceduralCanopy(root){
  let sv0=ridge(gV0,PV,ov); if(sv0<wV0-0.02)sv0+=PV;
  let sv1=ridge(gV1,PV,ov); if(sv1>wV1+0.02)sv1-=PV;
  // The count that falls out is 7x2 here, not the cloud's 8x2, and that is the extent rule
- // working, not a hand-forced 7: eight bays at the measured 7.4285 m pitch need 59.4 m and
+ // working, not a hand-forced 7: eight bays at the measured 7.36 m pitch need 58.9 m and
  // the GLB's glass spans 53.1 m (54.3 m wall to wall). The cloud itself shows the 8th bay
  // crossing the model's ASSUMED east closure — the GLB hall is ~3.4 m short of the real one,
  // a model.glb fault this viewer-side pass must not paper over by squeezing the pitch or

@@ -15,7 +15,7 @@ import sys
 from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PU, PV = 7.4285, 7.3855            # lattice module (index.html CANOPY.PU / PV)
+PU, PV = 7.36, 7.50                # lattice module (index.html CANOPY.PU / PV, 2026-09-07)
 REAL_AREA = 795.0                  # m2, the real Great Hall ceiling
 REAL_PANELS = 224                  # triangular panels in the real ceiling
 

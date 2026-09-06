@@ -695,11 +695,26 @@ Phases owed: 2 fatigue + hallucinations, 3 helper and team AI, 4 sound.
   inside install mode (the only camera a script can place); compare against
   `scratchpad/ref/lf02.jpg` (Hyde) and Lloyd's b0cefe7f daylight shot. `tools/pieces_stats.py`
   prints the pane file's numbers (count, coverage per bay, sizes, colours).
-- STILL OPEN (the "more accurate model" half): the pane layout itself. Sources on disk: the 4K
-  roof-void stills (E:/sitecapture-captures/ngv-video/void4k-register, posed in the void model:
-  true outlines, no colour), the bake atlas (blurry, ~half the cells traceable), the reference
-  photos (motifs, colour statistics). The tools/trackA_*.py, ceiling_ortho.py, ref_stats_*.py
-  scripts are that work in progress; the NGVP writer must land as `tools/trace_pieces.py`.
+- THE PANE FILE (2026-09-07, the "more accurate model" half): `tools/pieces.bin` = 6,979 slabs,
+  26 % of the plate, written by `tools/merge_panes.py` (idempotent, 25 s) from three data tracks
+  under E:/sitecapture-captures/ngv-site/agent-ref-ceiling/: trackB/ (the bake atlas unwrapped
+  to a 5 mm/px bottom ortho by `tools/ceiling_ortho.py`, traced by `tools/trace_pieces.py`:
+  2,687 real slabs with atlas colour over the third of the plate the bake resolves), reference/
+  reference-stats.json (the photographs' numbers: sizes, shapes, rib alignment, the emblem and
+  fan geometry, the close-up transmission table) and trackA/ (the 4K roof-void stills, NOT used:
+  one shooting spot, 5 % coverage, a 0.5 m hub error). Cells the trace does not resolve are laid
+  to the traced cells' own size, cover and palette (flagged `synthetic` / `bay-palette` in
+  merge/pieces-merged.json) with the motifs placed by the photographed rule (the square ring
+  with X, 16 round a crest node, 71 placed; the clear fans at the column heads). Old files kept
+  as `tools/pieces-*.bin.bak`. Honest gaps: cover 26 % against the real 35-40 % (the blurry bake
+  sets it), the synthetic cells are crisper than the traced blobs at 1:1, emblems only where no
+  trace was, west-heavy. Better data means a sharper underside capture, not more code.
+- THE LATTICE (2026-09-06): module 7.36 x 7.50 m (`CANOPY.PU/PV`), measured on the GLB's own
+  twelve column heads (7.347 / 7.380 m along the rows, 7.50 m across; the bake's joints say
+  7.35 m, NGV's 51.5 x 15 m glass says 7.36 x 7.50). The 08-31 value 7.4285 x 7.3855 was ~1 %
+  large. The plate shader's diamond is the true edge-midpoint diamond; every pane keeps 89 mm
+  off the painted members and 125 mm off the ridges, so the fitted phase may drift 13 mm before
+  glass meets steel.
 
 ## The lightshow (2026-09-04)
 
