@@ -1194,7 +1194,59 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   desk GPU.
 - The install proofs (`game-guide`, `install-mode`, `game-liftlook`) still pass on the port.
 
-## The walls (2026-09-07)
+## The walls, measured (2026-09-08)
+
+Lloyd: "get the walls 100% accurate just like how you did with the ceiling". Method as the ceiling:
+real imagery on the wall's own grid, everything measured off it, nothing filled in. State and log:
+`E:/sitecapture-captures/ngv-site/agent-ref-walls/PLAN-20260908-walls.md`; every number with its
+pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glazing}.json` and
+`measure/REPORT.md`.
+
+- ORTHOPHOTOS. `tools/wall_ortho.py` renders a wall (north, south, west, east) onto a 4 mm grid in
+  the hall frame from all 1,026 posed frames (walk, night, day4k): the sharpest camera per 32 px
+  cell, the columns, the house truss and the wall's own proud courses as occluders, the GLB faces as
+  the sampling surface. `tools/wall_depth_check.py` (two-camera NCC over a depth sweep) found the
+  GLB long-wall faces 60 mm (north) / 223 mm (south) BEHIND the certified cloud; the renders and
+  the page correct for it. Outputs `agent-ref-walls/ortho/<wall>/all/`. Frames are 1080p video,
+  gsd median 15-16 mm on the walls: courses resolve, joints do not.
+- THE FACES. `WALLF.dNorth -0.090, dSouth 15.364`; the scan mesh is moved to them in the walls
+  vertex shader (`WALL_SHIFT`, each side as one, GLB material only) and the declared glazing moves
+  with the south face so its photographed relation to the stone holds.
+- THE COURSING. Courses 0.306 +- 0.006 m (the 0.285 read off b0cefe7f was 7 % low), continuous
+  along each wall: north joints at h = 0.0798 + 0.3044 k (+- 0.03), south 0.1192 + 0.3088 k
+  (+- 0.08, weak); `STONE.north/south`, an end wall takes the north's. Block joints: NONE traced
+  anywhere (a 14 mm joint is one sample at 15 mm gsd; the comb peak the mosaic gives is an
+  artefact, proven on the tapestries), the only block number is 0.67 +- 0.10 m typical from the
+  1968 photograph BUIL004259, so the block joints are still procedural and the stats line says so.
+- NORTH WALL (`WALLF`, lists not pitches). 12 windows into the gallery corridor (Lloyd: a corridor
+  with art behind), sill 8.99, head 11.35, 1.256 m wide, at IRREGULAR spacing 3.09-4.37 m: eleven
+  as holes in the scan relief, the twelfth at u 22.96 hidden behind the event's LED screen in every
+  frame but plain in 7aad8857 (evenly spaced, no 7.4 m gap). Ten of the eleven read darker than the
+  stone, so the corridor is built unlit (a Lambert back at the 0.6 m reveal, depth unmeasured); no
+  art resolved. 6 grilles (about 0.9 x 0.33 m at h 2.6-3.0; u 10-30 is a stage in every frame,
+  unmeasured there), a dark door at u 45.97-47.79 head 2.97, the foyer door at u 20 (b0cefe7f only,
+  +- 3 m, the scan cannot see there), the inscription (7aad8857 only, not resolved by the scan),
+  proud bands from the scan (plinth +150 mm to h 0.74, band +205 mm at h 7.28-8.99, already in the
+  mesh). Tapestries measured at u 8.13-14.03 and 37.51-42.64 (+- 0.4): tools/tapestries.json agrees.
+- SOUTH WALL. NO high openings (the scan relief has none, 7aad8857 and the 2014 photograph agree).
+  Stone u 0.344-18.30 and 34.05-51.906; the pleated glazing between (5 fins at u 18.48, 22.34,
+  26.20, 30.06, 33.93 +- 0.25, pitch 3.86 +- 0.12, the GLB's 3.90 agrees; fold depth, glass angle,
+  transoms and the door's size do NOT resolve from any source, so the declared sawtooth stays).
+  3 grilles, a lit door at u 37.96-39.66 head 2.91 (a gallery beyond: pale floor, ceiling lights;
+  the 2014 photograph's lit doorway), a dark aperture at u 45.70-48.22 head 2.52 (+- 0.3).
+  Tapestries measured at u 8.37-12.49 (4.1 m wide: narrower than the 5.46 m work tools/
+  tapestries.json puts there by elimination) and 37.95-42.71.
+- END GALLERIES (`ENDW`). Both ends share two face-plane edges: the recess head at h 9.96 / 10.04
+  and an edge at 3.80 / 3.91; the west resolves elements in depth at h 3.99 (5.8 m back, the
+  gallery floor), 6.33 (2.65 m), 8.34 (6.6 m), 10.97 (1.0 m). So the recess runs h 3.92-10.0, 6.2 m
+  deep, tiers at 6.33 and 8.34 (three balustrades with the floor, as b0cefe7f shows). Unmeasured:
+  the recess width (d 3.9-11.5 kept), the balustrade heights, the east's tiers (its frames all
+  stand 13 m out on the south side): the east is the west's, said so.
+- PROOF. `tools/wall-check.mjs <out> [page] [tag]` (CDP_PORT 9334): nine views by day and night
+  in install mode; before/after in `agent-ref-walls/shots/`. `game/hallmat.js` paints the same
+  lists flat for the sim.
+
+## The walls (2026-09-07, superseded above where they differ)
 
 - WHAT THE PHOTOGRAPHS SHOW. Ashlar in running bond, half-block stagger, fine pale joints. Measured
   in `E:/sitecapture-captures/ngv-site/reference-photos/b0cefe7f` (daylight, balcony): the Abstract

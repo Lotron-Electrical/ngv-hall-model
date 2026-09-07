@@ -1003,7 +1003,16 @@ const WALL_TINT=[3.3,4.7,4.7];
 // and the door shadows. The block is compiled into the walls material only, no uniform spent
 // (the fragment stage sits at 192 of 224 vectors after the lighting terms). The joint mask is box-filtered over the pixel footprint (fwidth), so a far wall
 // averages to the same joint share as a near one instead of going mortar-grey.
-const STONE={course:0.285, block:0.710, joint:0.014};
+// MEASURED 2026-09-08 (agent-ref-walls/measure/courses.json, the orthophotos of both walls from the
+// 1,026 posed frames): course height 0.306 +- 0.006 m (north fit 0.3044, south 0.3088; the 0.285
+// read off b0cefe7f was 7 % low), the course joints continuous along each wall at north
+// h = 0.0798 + 0.3044 k (+- 0.03, 12 of 13 strips within a third of a course) and south
+// h = 0.1192 + 0.3088 k (+- 0.08, weak). BLOCK JOINTS: none traced anywhere; a 14 mm joint is one
+// sample at the frames' 15-16 mm gsd. The one block number is external: 0.67 +- 0.10 m typical
+// from the 1968 photograph BUIL004259 (blocks vary from half to double that; phase unmeasured).
+// So the block joints below are still procedural (0.67 m, half-block stagger, phase from u = 0)
+// and the stats line says so; the courses are the measured ones.
+const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase:0.0798}, south:{course:0.3088, phase:0.1192}};
 // THE WALL'S FEATURES (Lloyd, 2026-09-07: "the walls have details that are missing"), measured off
 // the head-on 7aad8857 (tapestry inner edges 14.08 and 37.92 m as the ruler, 21.3 px/m) and the
 // balcony b0cefe7f (courses as the vertical ruler, 285 mm each):
@@ -1020,10 +1029,37 @@ const STONE={course:0.285, block:0.710, joint:0.014};
 //  - A 100 mm shadow gap at the carpet.
 // The wall shader cuts the openings and the door out of the bake mesh (discard); buildWallDetails
 // puts the reveals, the vestibule, the grilles and the lettering behind and on the wall.
-const WALLF={openU0:7.71, openPitch:3.685, openW:1.3, openY:[9.0,11.0], openDepth:0.6,
- grilleU0:12.5, grillePitch:4.2, grilleW:1.0, grilleH:0.16, grilleY:2.8,
- doorU:20.0, doorW:2.3, doorH:2.5, doorDepth:1.0, textU:26.0, textY:4.2, skirt:0.10,
- dNorth:-0.05, dSouth:15.38, uMin:1.0, uMax:51.5};
+// MEASURED 2026-09-08 (agent-ref-walls/measure/walls.json off the 4 mm orthophotos, +- 0.02-0.06 m
+// unless said; the pitch formulas above are refuted and replaced by the lists):
+//  - OPENINGS: on the NORTH wall only (the south wall has none in the scan relief); eleven read off
+//    the scan as 1.256 x 2.36 m holes, sill h 8.99, head 11.35, at irregular spacing (3.09-4.37 m),
+//    plus one more at u 22.96 hidden behind the event's LED screen in every scan frame but plain
+//    in the head-on photograph 7aad8857 (evenly spaced openings between the tapestries, no gap).
+//    Windows into the gallery corridor (Lloyd, 2026-09-08); nothing behind them resolved: ten of
+//    the eleven read darker than the stone, so the corridor is built unlit and the reveal depth
+//    (unmeasured) stays 0.6.
+//  - GRILLES: six found north, three south, about 0.9 x 0.33 m at h 2.6-3.3, boxes below; the
+//    stretch u 10-30 of the north wall is a stage and a crowd in every frame, so grilles there are
+//    unmeasured, not absent.
+//  - DOORS: north u 45.97-47.79 head 2.97 (a dark aperture); south u 37.96-39.66 head 2.91 (a lit
+//    gallery beyond: pale floor, ceiling lights); south u 45.70-48.22 head 2.52 (dark, +- 0.3 on
+//    the head). The foyer door read off b0cefe7f (lit vestibule under the third opening from the
+//    near tapestry, u 20 +- 3) is neither confirmed nor refuted: the scan cannot see u 17-24 low.
+//  - THE INSCRIPTION: not resolved by any frame (the same screen), kept from 7aad8857.
+//  - The wall faces: the scan mesh sits 60 mm (north) / 223 mm (south) behind the certified cloud
+//    (two methods, ortho/REPORT.md), so the faces are d = -0.090 and 15.364 and the mesh is moved
+//    to them in the vertex shader (WALL_SHIFT).
+const WALLF={openings:[[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.388],[18.628,19.876],[22.336,23.592],[26.044,27.300],[29.948,31.196],[33.588,34.836],[37.348,38.596],[40.884,42.140],[44.508,45.756]],
+ openY:[8.99,11.35], openDepth:0.6,
+ grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
+  south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
+ doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
+  {north:false, u0:37.962, u1:39.662, h:2.906, lit:true, depth:1.0},
+  {north:false, u0:45.698, u1:48.218, h:2.522, lit:false, depth:1.0},
+  {north:true, u0:18.85, u1:21.15, h:2.5, lit:true, depth:1.0, photoOnly:true}],
+ textU:26.0, textY:4.2, skirt:0.10,
+ dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
+const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
 // smeared images"): tools/stone.jpg, a tileable limestone tile built to the photograph's stone
 // (mean linear 0.207/0.171/0.146, mottle pink to cream over 25-100 cm, grain at 5-25 mm, pits and
@@ -1052,7 +1088,10 @@ function photoMaterial(src){
    // shadow with, and how many of them a fragment tests (1 on a phone, 2 on a desk, 0 = off)
    bounceAlb:{value:new THREE.Vector3(0,0,0)},bounceY:{value:0},colR:{value:0.25},nOcc:{value:('ontouchstart' in window)?1:2}},   // hole: x,z,radius,on. The void's bowl cuts through the carpet
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
-   void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
+   void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0);
+    ${(src.name||'')==='walls'&&src.isMaterial?`// the scan's long-wall faces sit behind the certified cloud (WALL_SHIFT): each side moves as one
+    { vec3 hn=vec3(0.219186,0.0,-0.975639); float sdv=dot(wp.xyz-vec3(-54.907447,-1.43545,3.040286),hn); wp.xyz+=hn*(sdv<7.0?${WALL_SHIFT.north.toFixed(3)}:${(-WALL_SHIFT.south).toFixed(3)}); }`:''}
+    vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform sampler2D map, stoneMap, canopyMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
@@ -1098,13 +1137,16 @@ function photoMaterial(src){
      // the scan's two closures stand in the wrong places (ENDW): cut them out, the real end walls are built
      if(!longWall&&((su>-5.3&&su<-4.0)||(su>48.5&&su<49.6)))discard;
      // the openings and the foyer door are holes in the bake mesh (WALLF); the reveals sit behind
-     if(longWall&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&abs(fract((su-${(WALLF.openU0).toFixed(3)})/${(WALLF.openPitch).toFixed(3)}+0.5)-0.5)*${(WALLF.openPitch).toFixed(3)}<${(WALLF.openW*0.5).toFixed(3)})discard;
-     if(longWall&&sd<1.0&&sy<${(WALLF.doorH).toFixed(3)}&&abs(su-${(WALLF.doorU).toFixed(3)})<${(WALLF.doorW*0.5).toFixed(3)})discard;
+     if(longWall&&sd<7.0&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`).join('||')}))discard;
+     ${WALLF.doors.map(D=>`if(longWall&&${D.north?'sd<7.0':'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})discard;`).join('\n     ')}
      if(abs(N.y)<0.5){
-      float ci=floor(sy/${STONE.course}); float dy=abs(sy-(ci+0.5)*${STONE.course});
+      // the measured courses of the wall this face belongs to (an end wall takes the north's)
+      bool northSide=!longWall||sd<7.0;
+      float cH=northSide?${STONE.north.course.toFixed(4)}:${STONE.south.course.toFixed(4)}, cP=northSide?${STONE.north.phase.toFixed(4)}:${STONE.south.phase.toFixed(4)};
+      float ci=floor((sy-cP)/cH); float dy=abs(sy-cP-(ci+0.5)*cH);
       float ax=along+${STONE.block*0.5}*mod(ci,2.0); float bi=floor(ax/${STONE.block}); float dx=abs(ax-(bi+0.5)*${STONE.block});
       // distance to the nearest joint, box-filtered over the pixel footprint
-      float ey=${STONE.course*0.5}-dy, ex=${STONE.block*0.5}-dx;
+      float ey=cH*0.5-dy, ex=${STONE.block*0.5}-dx;
       float ay=max(fwidth(sy),1e-4), ax2=max(fwidth(along),1e-4);
       float jy=clamp((${STONE.joint*0.5}-ey+ay*0.5)/ay,0.0,1.0), jx=clamp((${STONE.joint*0.5}-ex+ax2*0.5)/ax2,0.0,1.0);
       float joint=max(jx,jy);
@@ -2056,6 +2098,8 @@ new GLTFLoader().load('model.glb',g=>{
   // where the tour walks out; buildDoor sets it to the door leaf's footprint once the panes
   // are known, and it exists only through the finale (door.x), so the glass is whole for
   // every other shot and nothing outside shows through it
+  // the declared glazing keeps its photographed relation to the stone: it moves with the south face (WALL_SHIFT)
+  if(/glazing-south/i.test([o.name,...ms.map(m=>m.name||'')].join(' ')))o.position.addScaledVector(EVENT.N.inRoom,-WALL_SHIFT.south);
   if(/glazing-south/i.test([o.name,...ms.map(m=>m.name||'')].join(' ')))for(const m of out){ if(!m.uniforms||!m.uniforms.door)continue;
    m.uniforms.door.value.set(0,1.3,3.2,2.0); m.uniforms.doorC.value.copy(COURT.origin).addScaledVector(COURT.u,COURT.uMid).addScaledVector(COURT.n,-COURT.glassOut);
    m.uniforms.doorU.value.copy(COURT.u); m.uniforms.doorN.value.copy(COURT.n); glazingMats.push(m); }
@@ -2136,27 +2180,30 @@ function buildWallDetails(root){
  const voidMat=new THREE.MeshBasicMaterial({color:0x07070a, side:THREE.DoubleSide, name:'wall-opening'});
  const grilleMat=new THREE.MeshBasicMaterial({color:0x0b0b0c, side:THREE.DoubleSide, name:'wall-grille'});
  const walls=[{d:F.dNorth, s:-1, north:true},{d:F.dSouth, s:1, north:false}];   /* s: into the wall */
+ const corridorMat=new THREE.MeshLambertMaterial({color:0x2a2724, side:THREE.DoubleSide, name:'corridor-back'});
+ const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
+ const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
+ const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
+ const darkBack=new THREE.MeshLambertMaterial({color:0x171512, side:THREE.DoubleSide, name:'door-back'});
  for(const w of walls){
-  // the recessed openings: four reveals and a dark back, 0.6 m into the wall
-  for(let k=-3;k<20;k++){ const uc=F.openU0+F.openPitch*k; if(uc<F.uMin||uc>F.uMax)continue;
-   const u0=uc-F.openW/2, u1=uc+F.openW/2, y0=F.openY[0], y1=F.openY[1], d0=w.d, d1=w.d+w.s*F.openDepth;
+  // the windows into the gallery corridor (north wall only): four stone reveals and, at the
+  // reveal depth, the corridor's near face as it read in every frame, unlit
+  if(w.north)for(const [u0,u1] of F.openings){ const y0=F.openY[0], y1=F.openY[1], d0=w.d, d1=w.d+w.s*F.openDepth;
    quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],stoneMat,'opening-reveal');
    quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],stoneMat,'opening-reveal');
    quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],stoneMat,'opening-sill');
    quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],stoneMat,'opening-head');
-   quad([[u0,d1,y0],[u1,d1,y0],[u1,d1,y1],[u0,d1,y1]],voidMat,'opening-back'); }
-  // the vent grilles, 5 mm proud of the stone
-  for(let k=-3;k<15;k++){ const uc=F.grilleU0+F.grillePitch*k; if(uc<F.uMin||uc>F.uMax)continue;
-   const d=w.d-w.s*0.005, u0=uc-F.grilleW/2, u1=uc+F.grilleW/2, y0=F.grilleY-F.grilleH/2, y1=F.grilleY+F.grilleH/2;
+   quad([[u0,d1,y0],[u1,d1,y0],[u1,d1,y1],[u0,d1,y1]],corridorMat,'opening-back'); }
+  // the vent grilles, 5 mm proud of the stone, each at its measured box
+  for(const [u0,u1,y0,y1] of (w.north?F.grilles.north:F.grilles.south)){ const d=w.d-w.s*0.005;
    quad([[u0,d,y0],[u1,d,y0],[u1,d,y1],[u0,d,y1]],grilleMat,'wall-grille'); }
+  // the doors: a lit vestibule behind the lit ones, stone reveals and a dark back behind the rest
+  for(const D of F.doors){ if(D.north!==w.north)continue; const u0=D.u0, u1=D.u1, d0=w.d, d1=w.d+w.s*D.depth, h=D.h;
+   const side=D.lit?lit:stoneMat, back=D.lit?litBack:darkBack, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
+   quad([[u0,d0,0],[u0,d1,0],[u0,d1,h],[u0,d0,h]],side,'door-reveal'); quad([[u1,d0,0],[u1,d1,0],[u1,d1,h],[u1,d0,h]],side,'door-reveal');
+   quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],top,'door-head'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],floor,'door-floor');
+   quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],back,'door-back'); }
   if(!w.north)continue;
-  // the foyer door: a lit white vestibule 3 m deep behind the hole in the wall
-  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
-  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
-  const u0=F.doorU-F.doorW/2, u1=F.doorU+F.doorW/2, d0=w.d, d1=w.d+w.s*F.doorDepth, h=F.doorH;
-  quad([[u0,d0,0],[u0,d1,0],[u0,d1,h],[u0,d0,h]],lit,'vestibule-wall'); quad([[u1,d0,0],[u1,d1,0],[u1,d1,h],[u1,d0,h]],lit,'vestibule-wall');
-  quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],lit,'vestibule-ceiling'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],litFloor,'vestibule-floor');
-  quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'}),'vestibule-back');
   // the inscription: dark bronze capitals on a transparent canvas, 4 mm proud of the stone
   const cv=document.createElement('canvas'); cv.width=1400; cv.height=400; const cx=cv.getContext('2d');
   cx.fillStyle='#3a2f24'; cx.textAlign='center'; cx.textBaseline='middle';
@@ -2183,7 +2230,15 @@ function buildWallDetails(root){
 // above to the canopy and a stone base below): recess d 3.9 to 11.5, y 1.8 to 10.0, 6 m deep,
 // tiers at 3.6, 6.4 and 9.2 m. The east end is built like the west (the balcony photographs
 // are taken from it, so a gallery is there; its tier heights are the west's, unmeasured).
-const ENDW={west:0.344, east:51.906, top:13.5, recess:{d0:3.9, d1:11.5, y0:1.8, y1:10.0, depth:6.0, tiers:[3.6,6.4,9.2], slab:0.35}, scanEast:49.06, dSouth:15.38};
+// MEASURED 2026-09-08 (agent-ref-walls/measure/endwalls.json, parallax of the posed frames rectified
+// onto each end plane): the recess head is a face-plane edge at h 9.96 +- 0.08 (west) / 10.04 +- 0.23
+// (east); a second face-plane edge at 3.80 +- 0.13 / 3.91 +- 0.07 with a horizontal element 5.8 m
+// back at h 3.99 +- 0.34 is the gallery floor (the recess starts there, not at 1.8); the tiers
+// above it at h 6.33 +- 0.34 (2.65 m back) and 8.34 +- 0.36 (6.6 m back); the recess reaches at
+// least 5.8-6.6 m back. Unmeasured: the recess width (d0, d1 kept), the balustrade heights (slab
+// kept), and the east gallery's tiers entirely (its frames all stand 13 m out on the south side),
+// so the east is the west's again, now on the two edges the ends share.
+const ENDW={west:0.344, east:51.906, top:13.5, recess:{d0:3.9, d1:11.5, y0:3.92, y1:10.0, depth:6.2, tiers:[6.33,8.34], slab:0.35}, scanEast:49.06, dSouth:15.364};
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
  const hp=(u,d,y)=>new THREE.Vector3().copy(O).addScaledVector(HU,u).addScaledVector(HN,d).setY(O.y+y);
@@ -7084,7 +7139,7 @@ requestAnimationFrame(frame);
 <tr><td>Columns</td><td>12, gloss black steel, tapering shaft with 8 fins (10 mm wide, 50 mm proud at the foot to 150 mm at the ceiling)</td></tr>
 <tr><td>Strips</td><td>ENTTEC 8PXA60-RGBW-12V-B pixel strip (60 RGBW LED/m, 4,000 K white die, black PCB, 10 mm) in a 20 &times; 20 mm aluminium extrusion with a black acrylic diffuser (options: opal cover passing ~65%, or open channel), one per fin gap, floor to glass</td></tr>
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
-<tr><td>Walls</td><td>Flat, photo-textured</td></tr>
+<tr><td>Walls</td><td>Bluestone ashlar drawn to the measured coursing (courses 0.306 m: north joints at h = 0.080 + 0.304 k, south 0.119 + 0.309 k, from the 4 mm orthophotos of 1,026 posed frames; block joints unmeasured at 15 mm gsd, drawn procedurally at 0.67 m). North wall: 12 windows into the gallery corridor (11 from the scan, one behind the event screen from the photograph), 6 grilles, a door at u 46-47.8, the foyer door (photograph only). South wall: the pleated glazing u 18.35-34.05 (5 fins, 3.86 m pitch), 3 grilles, a lit door at u 38-39.7, an aperture at u 45.7-48.2. Faces at d -0.09 / 15.364 (the scan mesh corrected 60 / 223 mm). Both end galleries: floor 3.9 m, tiers 6.3 and 8.3 m, head 10.0 m, 6.2 m deep (the west measured, the east copied)</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
 <tr><td>Ceiling</td><td>Faceted glass canopy over the measured lattice (7.43 &times; 7.39 m inverted-pyramid coffers, 860 mm deep, 13.9&deg; facets, 0.45 m ridge ribs, phase-locked to the twelve column heads), its appearance a plan-view board stitched from the dense point cloud and the reference photographs flattened onto that lattice, backlit by the house lights above it; each funnel bottoms out on a column head, ridges midway between the columns; the eight-armed steel node on every column head; the permanent lighting truss along the wall side (300 mm triangular truss 9 m up, 2.2 m off the wall, on chain hoists at the ridge lines, profiles and PARs facing the room)</td></tr>
 <tr><td>Removed</td><td>People, couches, stage lights</td></tr>

@@ -62,7 +62,17 @@ export const FLOOR_ALB = [0.228, 0.059, 0.070];
 export const WALL_TINT = [3.3, 4.7, 4.7];
 // the ashlar the viewer draws on the walls (index.html STONE): running bond, half-block stagger,
 // courses and blocks measured off the daylight photographs, pale joints; same numbers here
-export const STONE = { course: 0.285, block: 0.710, joint: 0.014 };
+// 2026-09-08: courses measured off the wall orthophotos (agent-ref-walls/measure/courses.json):
+// 0.3044 m at phase 0.0798 north, 0.3088 at 0.1192 south; block joints untraced, 0.67 m typical
+export const STONE = { course: 0.306, block: 0.670, joint: 0.014, north: { course: 0.3044, phase: 0.0798 }, south: { course: 0.3088, phase: 0.1192 } };
+// the measured features the sim paints flat (index.html WALLF): the 12 north windows, the grilles, the doors
+export const WALLF = { openings: [[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.388],[18.628,19.876],[22.336,23.592],[26.044,27.300],[29.948,31.196],[33.588,34.836],[37.348,38.596],[40.884,42.140],[44.508,45.756]],
+  openY: [8.99, 11.35],
+  grilles: { north: [[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
+    south: [[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]] },
+  doors: [{ north: true, u0: 45.970, u1: 47.786, h: 2.970, lit: false }, { north: false, u0: 37.962, u1: 39.662, h: 2.906, lit: true },
+    { north: false, u0: 45.698, u1: 48.218, h: 2.522, lit: false }, { north: true, u0: 18.85, u1: 21.15, h: 2.5, lit: true }] };
+const glslOr = (list, f) => list.map(f).join('||') || 'false';
 // the limestone tile the viewer paints the stones with (tools/stone.jpg, 1 m per repeat)
 const STONE_TEX = (() => { const t = new THREE.TextureLoader().load('tools/stone.jpg'); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; })();
 
@@ -127,13 +137,16 @@ export function photoMaterial(src, hall) {
          float along=longWall?su:sd;
          // the viewer cuts the openings and the foyer door out and builds them; the sim paints
          // them (dark recesses, a lit doorway), same numbers as index.html WALLF
-         bool opening=longWall&&sy>9.0&&sy<11.0&&abs(fract((su-7.71)/3.685+0.5)-0.5)*3.685<0.65;
-         bool doorway=longWall&&sd<1.0&&sy<2.5&&abs(su-20.0)<1.15;
-         bool grille=longWall&&abs(sy-2.8)<0.08&&abs(fract((su-12.5)/4.2+0.5)-0.5)*4.2<0.5;
+         bool northSide=!longWall||sd<7.0;
+         bool opening=longWall&&northSide&&sy>${WALLF.openY[0].toFixed(3)}&&sy<${WALLF.openY[1].toFixed(3)}&&(${glslOr(WALLF.openings, ([a, b]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`)});
+         bool doorway=longWall&&(${glslOr(WALLF.doors.filter(D => D.lit), D => `(${D.north ? 'sd<7.0' : 'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})`)});
+         bool darkDoor=longWall&&(${glslOr(WALLF.doors.filter(D => !D.lit), D => `(${D.north ? 'sd<7.0' : 'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})`)});
+         bool grille=longWall&&((sd<7.0&&(${glslOr(WALLF.grilles.north, ([a, b, c, d]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)}&&sy>${c.toFixed(3)}&&sy<${d.toFixed(3)})`)}))||(sd>7.0&&(${glslOr(WALLF.grilles.south, ([a, b, c, d]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)}&&sy>${c.toFixed(3)}&&sy<${d.toFixed(3)})`)})));
          if(abs(Nn.y)<0.5){
-          float ci=floor(sy/${STONE.course}); float dy=abs(sy-(ci+0.5)*${STONE.course});
+          float cH=northSide?${STONE.north.course.toFixed(4)}:${STONE.south.course.toFixed(4)}, cP=northSide?${STONE.north.phase.toFixed(4)}:${STONE.south.phase.toFixed(4)};
+          float ci=floor((sy-cP)/cH); float dy=abs(sy-cP-(ci+0.5)*cH);
           float ax=along+${STONE.block * 0.5}*mod(ci,2.0); float bi=floor(ax/${STONE.block}); float dx=abs(ax-(bi+0.5)*${STONE.block});
-          float ey=${STONE.course * 0.5}-dy, ex=${STONE.block * 0.5}-dx;
+          float ey=cH*0.5-dy, ex=${STONE.block * 0.5}-dx;
           float ay=max(fwidth(sy),1e-4), ax2=max(fwidth(along),1e-4);
           float jy=clamp((${STONE.joint * 0.5}-ey+ay*0.5)/ay,0.0,1.0), jx=clamp((${STONE.joint * 0.5}-ex+ax2*0.5)/ax2,0.0,1.0);
           float joint=max(jx,jy);
@@ -144,7 +157,7 @@ export function photoMaterial(src, hall) {
           vec3 stoneCol=texture2D(stoneMap,suv).rgb*(0.86+0.28*hb)*(0.97+0.06*hg)*vec3(1.0+0.05*(hb-0.5),1.0,1.0-0.05*(hb-0.5));
           vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
           albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark)*(sy<0.10?0.35:1.0);
-          if(opening||grille)albedo=vec3(0.03); if(doorway)albedo=vec3(0.9,0.87,0.82);
+          if(opening||grille||darkDoor)albedo=vec3(0.03); if(doorway)albedo=vec3(0.9,0.87,0.82);
          } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
         }` : ''}
         float hy=clamp((vPos.y-(${o.y}))/12.2,0.0,1.0);
