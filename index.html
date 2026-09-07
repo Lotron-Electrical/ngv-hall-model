@@ -960,6 +960,13 @@ const WALL_TINT=[3.3,4.7,4.7];
 // (the fragment stage sits at 192 of 224 vectors after the lighting terms). The joint mask is box-filtered over the pixel footprint (fwidth), so a far wall
 // averages to the same joint share as a near one instead of going mortar-grey.
 const STONE={course:0.285, block:0.710, joint:0.014};
+// THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
+// smeared images"): tools/stone.jpg, a tileable limestone tile built to the photograph's stone
+// (mean linear 0.207/0.171/0.146, mottle pink to cream over 25-100 cm, grain at 5-25 mm, pits and
+// calcite flecks, a faint bedding), 1 m of stone per repeat, every block reading the tile at its
+// own hashed offset so no two stones repeat. The bake is no longer the wall's colour: only its
+// luminance, sampled 150 mm soft, still darkens the recesses and the door shadows.
+const STONE_TEX=(()=>{ const t=new THREE.TextureLoader().load('tools/stone.jpg'); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; })();
 function photoMaterial(src){
  // the wall atlas ships with a plain linear sampler; the ashlar shader samples it two mips soft,
  // which needs the mip chain (trilinear, 8x anisotropic; the flats sharing the atlas only gain)
@@ -968,7 +975,7 @@ function photoMaterial(src){
   // the bake's glTF carries alpha on the material factor (declared glass ships BLEND at 0.35);
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
-  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
+  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},stoneMap:{value:STONE_TEX},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()},
    // the render terms added 2026-09-07 (see "the lighting render" in AGENTS.md): the carpet's own
    // colour for the first bounce, the floor plane it bounces off, the shaft radius the columns
@@ -976,7 +983,7 @@ function photoMaterial(src){
    bounceAlb:{value:new THREE.Vector3(0,0,0)},bounceY:{value:0},colR:{value:0.25},nOcc:{value:('ontouchstart' in window)?1:2}},   // hole: x,z,radius,on. The void's bowl cuts through the carpet
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
    void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
-  fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
+  fragmentShader:`uniform sampler2D map, stoneMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
@@ -1010,7 +1017,10 @@ function photoMaterial(src){
     ${(src.name||'')==='walls'?`{
      // the ashlar, drawn in the hall frame (see STONE): courses up from the carpet, blocks along
      // the wall the face belongs to (an end wall or a recess reveal runs across the hall)
-     albedo=texture2D(map,vUv,4.5).rgb*tint;
+     vec3 bake=texture2D(map,vUv,2.5).rgb*tint;
+     // the bake's luminance keeps the recesses (near black in the scan, under 0.02 linear after
+     // the tint); its colour, its shadow ghosts and its smears go (they sit at 0.03-0.1)
+     float dark=smoothstep(0.010,0.022,dot(bake,vec3(0.3333)));
      vec3 q=vPos-vec3(-54.907447,-1.43545,3.040286);
      float su=dot(q,vec3(0.975681,0.0,0.219196)), sd=dot(q,vec3(0.219186,0.0,-0.975639)), sy=q.y;
      float along=abs(dot(N,vec3(0.975681,0.0,0.219196)))<0.7?su:sd;
@@ -1025,10 +1035,14 @@ function photoMaterial(src){
       // per-block tone: each stone a shade of its own, and a fine grain within it
       float hb=fract(sin(dot(vec2(bi,ci),vec2(12.9898,78.233)))*43758.5453);
       float hg=fract(sin(dot(floor(vec2(ax,sy)*160.0),vec2(39.3467,11.135)))*23421.631);
-      vec3 stoneCol=albedo*(0.80+0.40*hb)*(0.95+0.10*hg)*vec3(1.0+0.07*(hb-0.5),1.0,1.0-0.07*(hb-0.5));
-      vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*0.78;
-      albedo=mix(stoneCol,mortar,joint);
-     }
+      float hb2=fract(sin(dot(vec2(bi,ci),vec2(26.651,44.317)))*19341.973);
+      // the stone tile at this block's own offset (1 m of stone per repeat), mips from the
+      // screen-space footprint of the wall coordinates so the far wall filters cleanly
+      vec2 suv=vec2(ax,sy)+vec2(hb*7.31,hb2*5.17);
+      vec3 stoneCol=texture2D(stoneMap,suv).rgb*(0.86+0.28*hb)*(0.97+0.06*hg)*vec3(1.0+0.05*(hb-0.5),1.0,1.0-0.05*(hb-0.5));
+      vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
+      albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark);
+     } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
     }`:''}
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface

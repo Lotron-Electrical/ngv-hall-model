@@ -1200,6 +1200,15 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   stone) and each stone's tone comes from the per-block hash, a fifth either way (the wall atlas gets a mip chain
   and 8x anisotropy for that; it shipped with a plain linear sampler). Origin of the block phase
   along the wall is u = 0; no photograph fixes it.
+- THE STONE ITSELF (Lloyd: "give them proper texture so we don't have to see the gross smeared
+  images"). The bake is no longer the wall's colour at all. `tools/stone.jpg` is a tileable
+  limestone tile built in numpy to the photograph's stone (mean linear 0.207/0.171/0.146, mottle
+  pink to cream over 25-100 cm, grain at 5-25 mm, pits and calcite flecks, faint bedding; 59 KB),
+  1 m of stone per repeat, every block reading it at its own hashed offset; the ledges (course
+  returns and soffits, no courses to draw) read it in (u, d). The bake survives only as a mask:
+  its luminance sampled 2.5 mips soft, under 0.02 linear after the tint = a recess, which keeps
+  the niches; its shadow ghosts and smears sit at 0.03-0.1 and are cut. Regenerate the tile with
+  the numpy block in commit e2e8b29's successor (seeded, deterministic).
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
   (-20, 1.6, 6.3) facing the north wall with the house up. Not done: the bake's own courses are

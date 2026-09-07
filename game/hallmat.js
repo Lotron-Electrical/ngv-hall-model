@@ -36,6 +36,8 @@ export const WALL_TINT = [3.3, 4.7, 4.7];
 // the ashlar the viewer draws on the walls (index.html STONE): running bond, half-block stagger,
 // courses and blocks measured off the daylight photographs, pale joints; same numbers here
 export const STONE = { course: 0.285, block: 0.710, joint: 0.014 };
+// the limestone tile the viewer paints the stones with (tools/stone.jpg, 1 m per repeat)
+const STONE_TEX = (() => { const t = new THREE.TextureLoader().load('tools/stone.jpg'); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; })();
 
 export const lightPos = new Float32Array(MAX_LIGHTS * 4);
 export const lightCol = new Float32Array(MAX_LIGHTS * 4);
@@ -57,7 +59,7 @@ export function photoMaterial(src, hall) {
   if (walls && src.map) { src.map.minFilter = THREE.LinearMipmapLinearFilter; src.map.generateMipmaps = true; src.map.anisotropy = 8; src.map.needsUpdate = true; }
   const m = new THREE.ShaderMaterial({
     uniforms: {
-      map: { value: src.map || null }, tint: { value: (src.name || '') === 'walls' ? new THREE.Color().setRGB(...WALL_TINT) : new THREE.Color(src.map ? 0xffffff : src.color) },
+      map: { value: src.map || null }, stoneMap: { value: STONE_TEX }, tint: { value: (src.name || '') === 'walls' ? new THREE.Color().setRGB(...WALL_TINT) : new THREE.Color(src.map ? 0xffffff : src.color) },
       alpha: { value: src.transparent ? src.opacity : 1.0 },
       house: { value: 1 }, ambient: { value: AMBIENT },
       nLights: { value: 0 }, lightPos: { value: lightPos }, lightCol: { value: lightCol },
@@ -67,7 +69,7 @@ export function photoMaterial(src, hall) {
     },
     vertexShader: `varying vec2 vUv; varying vec3 vPos;
       void main(){ vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
-    fragmentShader: `uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, alpha; uniform int nLights;
+    fragmentShader: `uniform sampler2D map, stoneMap; uniform vec3 tint; uniform float house, ambient, alpha; uniform int nLights;
       uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}];
       uniform float doorU, doorD, doorHalfW, doorTop;
       uniform vec3 bounceAlb; uniform float bounceY, colR; uniform int nOcc;
@@ -90,7 +92,8 @@ export function photoMaterial(src, hall) {
          // THE ASHLAR, the viewer's block line for line (index.html, "THE STONE COURSING"): the
          // bake three mips soft for its colour, courses up from the carpet, blocks along the wall
          // the face belongs to, joints box-filtered over the pixel footprint
-         albedo=texture2D(map,vUv,4.5).rgb*tint;
+         vec3 bake=texture2D(map,vUv,2.5).rgb*tint;
+         float dark=smoothstep(0.010,0.022,dot(bake,vec3(0.3333)));
          vec3 q=vPos-vec3(${o.x},${o.y},${o.z});
          float su=dot(q,vec3(${U.x},${U.y},${U.z})), sd=dot(q,vec3(${N.x},${N.y},${N.z})), sy=q.y;
          float along=abs(dot(Nn,vec3(${U.x},${U.y},${U.z})))<0.7?su:sd;
@@ -103,10 +106,12 @@ export function photoMaterial(src, hall) {
           float joint=max(jx,jy);
           float hb=fract(sin(dot(vec2(bi,ci),vec2(12.9898,78.233)))*43758.5453);
           float hg=fract(sin(dot(floor(vec2(ax,sy)*160.0),vec2(39.3467,11.135)))*23421.631);
-          vec3 stoneCol=albedo*(0.80+0.40*hb)*(0.95+0.10*hg)*vec3(1.0+0.07*(hb-0.5),1.0,1.0-0.07*(hb-0.5));
-          vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*0.78;
-          albedo=mix(stoneCol,mortar,joint);
-         }
+          float hb2=fract(sin(dot(vec2(bi,ci),vec2(26.651,44.317)))*19341.973);
+          vec2 suv=vec2(ax,sy)+vec2(hb*7.31,hb2*5.17);
+          vec3 stoneCol=texture2D(stoneMap,suv).rgb*(0.86+0.28*hb)*(0.97+0.06*hg)*vec3(1.0+0.05*(hb-0.5),1.0,1.0-0.05*(hb-0.5));
+          vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
+          albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark);
+         } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
         }` : ''}
         vec3 E=vec3(house+ambient);
         // the two column axes nearest this fragment, read out of the light list itself: a run
