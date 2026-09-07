@@ -936,12 +936,18 @@ function applyDay(hour){
  for(const grp of [typeof court!=='undefined'?court:null, typeof eventGroup!=='undefined'?eventGroup:null]) if(grp)grp.traverse(o=>{ if(o.isMesh&&o.material.userData&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
  sceneDirty=true;
 }
+// THE STONE'S TONE (Lloyd, 2026-09-07, pick D of four). The wall bake comes off a night scan and
+// reads dark brown; the daylight balcony photograph (reference-photos/b0cefe7f) measures the
+// stone at linear 0.207/0.171/0.146 where the bake has 0.062/0.037/0.031, so the walls carry a
+// per-channel multiplier that lands them on the photograph: warm grey, about three times lighter.
+// The carpet stays as baked (pick B). tools/retone shots: house up, show off, three views.
+const WALL_TINT=[3.3,4.7,4.7];
 function photoMaterial(src){
  const m=new THREE.ShaderMaterial({
   // the bake's glTF carries alpha on the material factor (declared glass ships BLEND at 0.35);
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
-  uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
+  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()},
    // the render terms added 2026-09-07 (see "the lighting render" in AGENTS.md): the carpet's own
    // colour for the first bounce, the floor plane it bounces off, the shaft radius the columns

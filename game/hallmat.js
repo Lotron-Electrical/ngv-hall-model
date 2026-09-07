@@ -30,6 +30,9 @@ export const COL_R = 0.26;
 // (the viewer samples that texture at load; this is that measurement, so the game and the viewer
 // bounce the same red). Deep red wool: 23% in the red channel, 6% green, 7% blue.
 export const FLOOR_ALB = [0.228, 0.059, 0.070];
+// the stone walls' tone, the viewer's WALL_TINT (Lloyd's 2026-09-07 pick: the bake landed on the
+// daylight photograph's stone, warm grey, about three times lighter than the night scan)
+export const WALL_TINT = [3.3, 4.7, 4.7];
 
 export const lightPos = new Float32Array(MAX_LIGHTS * 4);
 export const lightCol = new Float32Array(MAX_LIGHTS * 4);
@@ -48,7 +51,7 @@ export function photoMaterial(src, hall) {
   const o = hall.origin, U = hall.u, N = hall.inRoom;
   const m = new THREE.ShaderMaterial({
     uniforms: {
-      map: { value: src.map || null }, tint: { value: new THREE.Color(src.map ? 0xffffff : src.color) },
+      map: { value: src.map || null }, tint: { value: (src.name || '') === 'walls' ? new THREE.Color().setRGB(...WALL_TINT) : new THREE.Color(src.map ? 0xffffff : src.color) },
       alpha: { value: src.transparent ? src.opacity : 1.0 },
       house: { value: 1 }, ambient: { value: AMBIENT },
       nLights: { value: 0 }, lightPos: { value: lightPos }, lightCol: { value: lightCol },
