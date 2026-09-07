@@ -1263,7 +1263,16 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   (led - dark) / (house - dark) ratio by the mirror's house E at the probe, since the house pixel
   is no longer albedo x 1.0. Before/after: `git show <parent>:index.html > .light-before2.html`
   and the four views in tools/house-audit.mjs.
-- NOT DONE. The canopy's coloured daylight pattern on the walls (nothing measured to project);
+- THE CANOPY'S COLOUR ON THE WALLS (2026-09-08). tools/canopy_map.py rasterises every traced pane
+  of tools/pieces.bin (the ceiling session's panorama trace, the photograph's own colours) into a
+  2 m grid over the hall, area-weighted mean per cell, divided by the plate mean, blurred over
+  4 m (a wall point takes light from a wide patch of canopy) and clamped 0.7..1.3: the RELATIVE
+  tint of the daylight bay by bay, tools/canopy-colour.png (26 x 8, sRGB 0..1 = 0..2). The
+  absolute cast of daylight through the glass is already in the stone albedo (matched to a
+  daylight photograph), so the map is mean white. photoMaterial samples it at the fragment's
+  (u, d) one mip soft and multiplies the day term (`dayCol`). Re-run the script after every
+  pieces.bin refresh. Plate mean transmission chroma 0.391/0.361/0.248.
+- NOT DONE. The sun's beam through the glass (no per-pane pattern, only the bay-by-bay tint);
   the fixtures' real focus and gel state on any given night; the rig's own fixtures do not glare
   (they are dark Lambert bodies, not emitters).
 
