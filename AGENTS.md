@@ -1353,6 +1353,14 @@ the hall and the ridge phase across it, 8 x 2, seven pitches; no piece centroid 
 band; no page exceptions; shots of the west wall, the east wall, straight up and along.
 `tools/ceiling-check.mjs` still passes (hubs, hoists on the ridge lines, the lift clamp).
 
+**Colour, checked against our own videos.** Every piece's panorama colour was compared with the
+same polygon in the posed hall renders (`underside/`: the day-walk, the night scans, the 4K
+balcony frames, 12 to 20 mm/px). Those renders are too blurred at slab scale to calibrate
+anything (per-channel fit gain 0.4, residual ~50 of 255: the blur mixes each slab with its
+neighbours and the steel), but for the saturated slabs the hue agrees to 16 to 18 degrees
+median against the walk and the combined sheet, so the panorama's colours are not corrected:
+a correction fitted to blur would be fabrication. Scratch: `colour_check.json`.
+
 **Still open, honestly.** The panorama is one photograph: exposure and white balance are its
 own, and pieces under 30 mm or narrower than 18 mm are not traced (in the test window 9 % of the
 glass area is untraced: edge halos, slivers and the band clips, not whole slabs). The roof-void topside
