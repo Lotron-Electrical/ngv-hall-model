@@ -1214,12 +1214,13 @@ function photoMaterial(src){
 // 136 mm); the funnel-vertex plane is fitted through those same tops less the 50 mm the bake
 // sinks each cap into the glass, preserving column-head contact and the CEIL_Y readout.
 // APPEARANCE is dalle-de-verre, not leadlight: every slab is its own polygon in
-// tools/pieces.bin (2026-09-07, tools/merge_panes.py): 6,979 pieces, 26 % of the plate. A third
-// of the plate is traced from the bake atlas where it resolves slabs (colour from the atlas,
-// chroma-lifted); the rest is laid to the traced cells' own size, cover and palette, with the
-// measured motifs (the square-ring-with-X emblems round the crest nodes, the clear fans round
-// the column heads, rows of rectangles along the ribs) placed by the photographed rule. The
-// steel (ridge, cross, X, diamond) is painted by the plate shader; no slab sits on it.
+// tools/pieces.bin. (2026-09-08, tools/pano_register.py + ceiling_trace2.py + ceiling_assemble.py)
+// every one of its 6,765 pieces is TRACED from the NGV's rectified panorama of the whole ceiling
+// (BUIL000804, 1.8 mm/px, registered to the lattice through its member lines) and coloured
+// from the same pixels; nothing is laid by rule or statistics any more (Lloyd, 2026-09-07:
+// "every stained glass tile must be shaped and recorded and registered. Do not fabricate
+// anything"). tools/pieces-provenance.json records each piece's source, size, shape and
+// signal. The steel (ridge, cross, X, diamond) is painted by the plate shader; no slab sits on it.
 // (2026-09-06, the pane-data pass) The 7.4285 x 7.3855 m module of the 08-31 recon was ~1 %
 // large: the GLB's own twelve column heads (the funnel vertices) space at 7.347 / 7.380 m
 // along the two rows and 7.50 m across, the bake's joint lines at 7.35 m, and NGV's 51.5 x
@@ -1364,22 +1365,31 @@ function buildProceduralCanopy(root){
   wU0=1e9; wU1=-1e9; wV0=1e9; wV1=-1e9;
   for(let i=0;i<pw.count;i++){ const [u,v]=huvOf(pw.getX(i),pw.getZ(i));
    wU0=Math.min(wU0,u); wU1=Math.max(wU1,u); wV0=Math.min(wV0,v); wV1=Math.max(wV1,v); } }
- // 3. snap the perimeter to the nearest ridge line (never past the wall); count falls out
+ // 3. the perimeter. Across the hall (v) the plate ends on a ridge line, snapped from the
+ //    glass footprint (never past the wall). Along the hall (u) it does NOT (2026-09-08): the
+ //    NGV panorama of the whole ceiling (BUIL000804, every member line read off it and matched
+ //    to the bake at ncc 0.63 against <= 0.38 for every other phase and symmetry), the roof-void
+ //    walk's coverage (glass seen from hu -52.7 to -1.2 and nothing beyond either) and the bake
+ //    itself (dark for the half bay west of -52.7) all put the end walls ON THE VERTEX PHASE, one
+ //    bay past the outer columns: six full coffers and a HALF coffer at each wall, whose hips
+ //    meet on the wall line. Seven pitches, 51.5 m, NGV's own figure. So the u extent comes from
+ //    the column heads, not from the GLB glass footprint (which runs 5 m past the real west wall)
+ //    nor from the GLB east wall (2.8 m short of the real one: the "8th bay" the 08-31 cloud saw
+ //    crossing it is this east half coffer). The canopy therefore passes through the GLB's east
+ //    wall; that wall is the model.glb fault, flagged to the walls pass, not a reason to cut the
+ //    ceiling short.
  const ridge=(x,P,o)=>o+P*(Math.round((x-o)/P-0.5)+0.5);
- let su0=ridge(gU0,PU,ou); if(su0<wU0-0.02)su0+=PU;
- let su1=ridge(gU1,PU,ou); if(su1>wU1+0.02)su1-=PU;
  let sv0=ridge(gV0,PV,ov); if(sv0<wV0-0.02)sv0+=PV;
  let sv1=ridge(gV1,PV,ov); if(sv1>wV1+0.02)sv1-=PV;
- // The count that falls out is 7x2 here, not the cloud's 8x2, and that is the extent rule
- // working, not a hand-forced 7: eight bays at the measured 7.36 m pitch need 58.9 m and
- // the GLB's glass spans 53.1 m (54.3 m wall to wall). The cloud itself shows the 8th bay
- // crossing the model's ASSUMED east closure — the GLB hall is ~3.4 m short of the real one,
- // a model.glb fault this viewer-side pass must not paper over by squeezing the pitch or
- // clipping through the east wall (adjudicated 2026-08-31: measured pitch inside the model's
- // own footprint; the count follows the footprint when a bake moves the closure). The west
- // snap likewise leaves 1.07 m of old glass footprint as void strip (step 5) because the
- // only ridge further west lies beyond the wall.
- const nI=Math.max(1,Math.round((su1-su0)/PU)), nJ=Math.max(1,Math.round((sv1-sv0)/PV));
+ let su0,su1;
+ if(heads.length>=6){ const ks=heads.map(h=>Math.round((h.u-ou)/PU));
+  su0=ou+PU*(Math.min(...ks)-1); su1=ou+PU*(Math.max(...ks)+1); }
+ else { su0=ridge(gU0,PU,ou); if(su0<wU0-0.02)su0+=PU; su1=ridge(gU1,PU,ou); if(su1>wU1+0.02)su1-=PU; }
+ // coffers are centred on the vertex lines from su0 to su1 inclusive and clipped to the plate:
+ // with vertex-phase ends that is 8 across (two halves), with ridge-phase ends 7 whole
+ const kU0=Math.round((su0-ou)/PU), kU1=Math.round((su1-ou)/PU);
+ const halfU=Math.abs((su0-ou)/PU-kU0)<0.01;
+ const nI=halfU?kU1-kU0+1:Math.round((su1-su0)/PU), nJ=Math.max(1,Math.round((sv1-sv0)/PV));
  // 4. the lattice mesh: per cell, 4 planar facet triangles to the crest square plus 4 planar
  //    rib trapezoids falling DIP to the border, all exact (the facets are planar to 89 mm rms
  //    in the cloud, so more triangles would add nothing but vertices)
@@ -1387,9 +1397,19 @@ function buildProceduralCanopy(root){
  const crest=CANOPY.RELIEF, edge=CANOPY.RELIEF-CANOPY.DIP;
  const pos=[];
  const push=(u,v,rel)=>{ pos.push(u*PUx+v*PVx, planeAt(u,v)+rel, u*PUz+v*PVz); };
+ // a polygon in absolute (u,v,rel), clipped to the plate's u range (the half coffers at the
+ // walls: a facet or rib cut on the wall line stays planar, so the clipped polygon is exact)
+ const clipU=(poly,lo,hi)=>{ for(const [sgn,lim] of [[1,lo],[-1,hi]]){ const out=[];
+   for(let k=0;k<poly.length;k++){ const A=poly[k], B=poly[(k+1)%poly.length];
+    const da=sgn*(A[0]-lim), db=sgn*(B[0]-lim);
+    if(da>=0)out.push(A);
+    if((da<0)!==(db<0)){ const t=da/(da-db); out.push([A[0]+(B[0]-A[0])*t, A[1]+(B[1]-A[1])*t, A[2]+(B[2]-A[2])*t]); } }
+   poly=out; if(poly.length<3)return []; } return poly; };
+ const cellU0=k=>halfU?Math.max(su0,ou+PU*(k-0.5)):su0+PU*k, cellU1=k=>halfU?Math.min(su1,ou+PU*(k+0.5)):su0+PU*(k+1);
  for(let i=0;i<nI;i++)for(let j=0;j<nJ;j++){
-  const cu=su0+PU*(i+0.5), cv=sv0+PV*(j+0.5);
-  const tri=(p1,p2,p3)=>{ push(cu+p1[0],cv+p1[1],p1[2]); push(cu+p2[0],cv+p2[1],p2[2]); push(cu+p3[0],cv+p3[1],p3[2]); };
+  const cu=halfU?ou+PU*(kU0+i):su0+PU*(i+0.5), cv=sv0+PV*(j+0.5);
+  const tri=(p1,p2,p3)=>{ const poly=clipU([p1,p2,p3].map(p=>[cu+p[0],cv+p[1],p[2]]),cellU0(kU0+i)-1e-6,cellU1(kU0+i)+1e-6);
+   for(let k=1;k+1<poly.length;k++){ push(...poly[0]); push(...poly[k]); push(...poly[k+1]); } };
   const C=[0,0,0];
   tri(C,[a,-b,crest],[a,b,crest]);   tri(C,[-a,b,crest],[-a,-b,crest]);   // +u / -u facets
   tri(C,[a,b,crest],[-a,b,crest]);   tri(C,[-a,-b,crest],[a,-b,crest]);   // +v / -v facets
@@ -1405,7 +1425,7 @@ function buildProceduralCanopy(root){
   push(u0,v0,edge); push(u1,v0,edge); push(u1,v1,edge);
   push(u0,v0,edge); push(u1,v1,edge); push(u0,v1,edge); };
  const oU0=Math.min(gU0,su0), oU1=Math.max(gU1,su1), oV0=Math.min(gV0,sv0), oV1=Math.max(gV1,sv1);
- strip(oU0,su0,oV0,oV1); strip(su1,oU1,oV0,oV1); strip(su0,su1,oV0,sv0); strip(su0,su1,sv1,oV1);
+ strip(oU0,su0,oV0,oV1); strip(su1,oU1,oV0,oV1); strip(oU0,oU1,oV0,sv0); strip(oU0,oU1,sv1,oV1);
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
  geo.computeBoundingBox(); geo.computeBoundingSphere();
@@ -1525,7 +1545,9 @@ function buildLightingRig(root,F){
  // the ceiling surface where the ridge beam crosses the cross member
  const chainGeo=new THREE.CylinderGeometry(0.007,0.007,1,6), hoistGeo=new THREE.BoxGeometry(0.22,0.32,0.16), bagGeo=new THREE.BoxGeometry(0.16,0.24,0.10);
  const hoists=[];
- for(let hu=su0;hu<=su1+1e-6;hu+=PU){ const u=hu-O[0]; if(u<RIG.u0+0.5||u>RIG.u1-0.5)continue;
+ // the ridge lines: half a module off the vertex phase (su0 is a vertex line since 2026-09-08)
+ const ridge0=F.ou+PU*(Math.ceil((su0-F.ou)/PU-0.5)+0.5);
+ for(let hu=ridge0;hu<=su1+1e-6;hu+=PU){ const u=hu-O[0]; if(u<RIG.u0+0.5||u>RIG.u1-0.5)continue;
   const top=planeAt(hu,hv)+CANOPY.RELIEF-CANOPY.DIP-0.02;   // a ridge line: the rib's edge relief, whatever dv
   const yb=yc+hApex+0.16;
   const h=new THREE.Mesh(hoistGeo,black); h.position.copy(at(u,RIG.d,yb)); g.add(h);
