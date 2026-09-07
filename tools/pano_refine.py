@@ -46,6 +46,8 @@ def plus_tpl(wv, wh):
 
 
 THIN = '--thin' in sys.argv      # one 40 px + for every node instead of the members' own widths
+EDGES = '--edges' in sys.argv    # also the member offsets at the sub-square edge midpoints (tried 2026-09-08: 62 of
+                                 # 130 measurable, and the hips did not improve, 34 vs 32 mm median; off by default)
 
 
 def node_widths(a, b):
@@ -64,6 +66,53 @@ def templates():
     for s in (1, -1):
         cv2.line(ex, (0, W // 2 - s * int(W / 2 * PV / PU)), (W, W // 2 + s * int(W / 2 * PV / PU)), 1.0, 40)
     return plus - plus.mean(), ex - ex.mean()
+
+
+def band_offset(steel, x, y, nx, ny, width_px):
+    """perpendicular offset (px) of the dark member centre at (x, y); (nx, ny) is the unit normal.
+    Profile +-100 px across the member. The member is a dark run; where the glass stops on one
+    side (the black wedges beside the members) only its far edge is seen, and the centre is that
+    edge plus half the member's width. A run open at both ends says nothing."""
+    R = 100
+    ks = np.arange(-R, R + 1, dtype=np.float32)
+    xs = (x + nx * ks).astype(np.float32); ys = (y + ny * ks).astype(np.float32)
+    if xs.min() < 0 or ys.min() < 0 or xs.max() >= steel.shape[1] - 1 or ys.max() >= steel.shape[0] - 1:
+        return None
+    prof = cv2.remap(steel, xs[None, :], ys[None, :], cv2.INTER_LINEAR)[0]
+    dark = prof > 0.5
+    runs = []; k = 0
+    while k < len(dark):
+        if dark[k]:
+            j = k
+            while j < len(dark) and dark[j]:
+                j += 1
+            runs.append((k - R, j - R)); k = j
+        else:
+            k += 1
+    cands = []
+    for r0, r1 in runs:
+        open0, open1 = r0 <= -R, r1 >= R + 1
+        if open0 and open1:
+            continue
+        if not open0 and not open1:
+            w = r1 - r0
+            if 0.5 * width_px <= w <= 1.8 * width_px:
+                cands.append((r0 + r1) / 2)
+        elif open0:
+            cands.append(r1 - width_px / 2)          # only the far (positive) edge is seen
+        else:
+            cands.append(r0 + width_px / 2)
+    if not cands:
+        return None
+    c = min(cands, key=abs)
+    return c if abs(c) <= 60 else None
+
+
+def edge_width(a, b, along_u):
+    # an edge along u lies on a v-line index b; an edge along v lies on a u-line index a
+    if along_u:
+        return 40 if b % 2 == 1 else 110
+    return 40 if a % 2 == 0 else 110
 
 
 def measure(steel, nodes, centres, plus, ex):
@@ -96,6 +145,21 @@ def main():
             centres[(a, b)] = dict(hu=hu, hv=hv, x=x, y=y, m=None)
     measure(steel, nodes, centres, plus, ex)
     NT, CT = 0.25, 0.3
+    # edge midpoints: 14 x 5 edges along u and 15 x 4 along v; the member's offset across itself
+    edges = {}
+    for a in range(14):
+        for b in range(5):
+            hu = hu_w + (a + 0.5) * PU / 2; hv = hv_s + b * PV / 2
+            x, y = px_of(hu, hv, px0, py0)
+            off = band_offset(steel, x, y, 0.0, 1.0, edge_width(a, b, True)) if EDGES else None
+            edges[('u', a, b)] = dict(hu=hu, hv=hv, x=x, y=y, dx=0.0, dy=off if off is not None else 0.0, ok=off is not None)
+    for a in range(15):
+        for b in range(4):
+            hu = hu_w + a * PU / 2; hv = hv_s + (b + 0.5) * PV / 2
+            x, y = px_of(hu, hv, px0, py0)
+            off = band_offset(steel, x, y, 1.0, 0.0, edge_width(a, b, False)) if EDGES else None
+            edges[('v', a, b)] = dict(hu=hu, hv=hv, x=x, y=y, dx=off if off is not None else 0.0, dy=0.0, ok=off is not None)
+    print('edge midpoints measured', sum(e['ok'] for e in edges.values()), 'of', len(edges))
 
     def take(p, thr):
         if p['m'] is None or p['m'][2] < thr:
@@ -106,6 +170,8 @@ def main():
         sx, sy, ok = take(p, NT); src.append((sx, sy)); dst.append((p['x'], p['y'])); used += ok
     for p in centres.values():
         sx, sy, ok = take(p, CT); src.append((sx, sy)); dst.append((p['x'], p['y'])); used += ok
+    for e in edges.values():
+        src.append((e['x'] + e['dx'], e['y'] + e['dy'])); dst.append((e['x'], e['y'])); used += e['ok']
     src = np.array(src, np.float32); dst = np.array(dst, np.float32)
     print(f'control points {len(src)}, measured {used}')
     off = src - dst; r = np.hypot(off[:, 0], off[:, 1]) * GRID['mm']; r = r[r > 0]
@@ -115,12 +181,15 @@ def main():
     mapx = np.full((H, W), -1, np.float32); mapy = np.full((H, W), -1, np.float32)
     idx_node = lambda a, b: a * 5 + b
     idx_c = lambda a, b: 75 + a * 4 + b
+    idx_eu = lambda a, b: 131 + a * 5 + b            # edge along u at (a + 0.5, b)
+    idx_ev = lambda a, b: 131 + 70 + a * 4 + b       # edge along v at (a, b + 0.5)
     for a in range(14):
         for b in range(4):
             c = idx_c(a, b)
-            corners = [idx_node(a, b), idx_node(a + 1, b), idx_node(a + 1, b + 1), idx_node(a, b + 1)]
-            for t in range(4):
-                tri = [corners[t], corners[(t + 1) % 4], c]
+            ring = [idx_node(a, b), idx_eu(a, b), idx_node(a + 1, b), idx_ev(a + 1, b), idx_node(a + 1, b + 1),
+                    idx_eu(a, b + 1), idx_node(a, b + 1), idx_ev(a, b)]
+            for t in range(8):
+                tri = [ring[t], ring[(t + 1) % 8], c]
                 D = dst[tri]; S = src[tri]
                 A = cv2.getAffineTransform(D, S)
                 x0, y0 = np.floor(D.min(0)).astype(int); x1, y1 = np.ceil(D.max(0)).astype(int)
@@ -152,7 +221,8 @@ def main():
     meta2 = dict(meta, name='pano-refined', source_tile=SRC,
                  refinement=dict(control_points=int(len(src)), measured=int(used), before_p50_mm=float(np.median(r)), before_p90_mm=float(np.percentile(r, 90)),
                                  after_p50_mm=float(np.median(r2)), after_p90_mm=float(np.percentile(r2, 90)),
-                                 method='piecewise affine, 4 triangles per sub-square; nodes by a + template and centres by an X template on the black steel'),
+                                 edges_measured=int(sum(e['ok'] for e in edges.values())),
+                                 method='piecewise affine, 8 triangles per sub-square; nodes by a + template, edge midpoints by the member profile across itself, centres by an X template on the black steel'),
                  registration=meta['registration'] + '; then piecewise-affine on 75 nodes + 56 X centres measured on the steel (tools/pano_refine.py)')
     json.dump(meta2, open(OUT + '/meta.json', 'w'), indent=1)
     json.dump(dict(nodes=[dict(a=k[0], b=k[1], hu=p['hu'], hv=p['hv'], m=p['m']) for k, p in nodes.items()],
