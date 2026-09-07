@@ -13,12 +13,14 @@ gsd, meta with the control points and the before / after residuals).
 import json, os, sys
 import numpy as np, cv2
 
-SRC = 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/pano'
-OUT = 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/pano-refined' + ('-thin' if '--thin' in sys.argv else '')
+def _arg(name, default):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+SRC = _arg('--src', 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/pano')
+OUT = _arg('--out', 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/pano-refined' + ('-thin' if '--thin' in sys.argv else ''))
 GRID = dict(hu0=-56.635125, hv0=0.15882, mm=4.0)
 NEW = dict(PU=7.36, PV=7.50, HU0=-45.321133, HV0=11.294317)
-STEEL = 12          # max channel at or under this is steel (the panorama's steel is clipped black)
-SEARCH = 100        # px each way (400 mm)
+SEARCH = int(_arg('--search', 100))   # px each way (400 mm by default)
+STEEL = float(_arg('--steel', 12))   # max channel at or under this is steel (the panorama's steel is clipped black)
 
 
 def px_of(hu, hv, px0, py0):
