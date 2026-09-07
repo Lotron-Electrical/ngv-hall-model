@@ -1269,7 +1269,7 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
 
 ## The ceiling, tile by tile (Lloyd, 2026-09-07: "make the ceiling look exactly like the real Gandel hall ceiling ... Every stained glass tile must be shaped and recorded and registered. Do not fabricate anything")
 
-**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,765 pieces, every one traced from a
+**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,897 pieces, every one traced from a
 photograph and coloured from the same pixels; the synthetic infill of the 09-07 file (pieces laid
 to statistics and motif rules) is gone. `tools/pieces-provenance.json` is index-aligned with the
 pane file: source, source resolution, area, equivalent diameter, shape class and signal per piece.
@@ -1305,13 +1305,13 @@ east wall (hu -4.0) is 2.84 m short of the real one and its west wall about 5 m 
 one; the canopy passes through the GLB east wall rather than being cut short (flagged to the
 walls pass; the real walls are at hu -52.68 and -1.16).
 
-**The trace.** `tools/ceiling_trace2.py --side under --lattice new --absolute 12`: because the
+**The trace.** `tools/ceiling_trace2.py --side under --lattice new --absolute 12 --min-eqd 30 --min-inscribed 18`: because the
 panorama's steel is exactly black, a slab is any pixel whose brightest channel clears 12 (the
 relative envelope the topside needs missed the dark purples and blues). Watershed at the necks,
-union-find merge, 9 mm polygon simplification, 45 mm minimum equivalent diameter, 28 mm minimum
-inscribed diameter, pieces more than half on a steel band dropped and the rest clipped clear
+union-find merge, 9 mm polygon simplification, 30 mm minimum equivalent diameter, 18 mm minimum
+inscribed diameter (what a 1.8 mm source resolves), pieces more than half on a steel band dropped and the rest clipped clear
 (`tools/ceiling_assemble.py`, same band metric as `merge_panes.py`: ridge 0.125 m, cross / hip /
-both diamonds 0.09 m). 6,840 traced, 6,765 kept (72 too small after clipping, 3 on the steel).
+both diamonds 0.09 m). 6,993 traced, 6,897 kept (29 too small after clipping, 67 on the steel).
 Per bay 436 to 598 pieces in the whole coffers, 202 to 231 in the halves; glass covers 17 to 21 %
 of each bay's plan, the same everywhere, which is what a plate of one design should show.
 
@@ -1323,7 +1323,8 @@ band; no page exceptions; shots of the west wall, the east wall, straight up and
 `tools/ceiling-check.mjs` still passes (hubs, hoists on the ridge lines, the lift clamp).
 
 **Still open, honestly.** The panorama is one photograph: exposure and white balance are its
-own, and pieces under 45 mm or narrower than 28 mm are not traced. The roof-void topside
+own, and pieces under 30 mm or narrower than 18 mm are not traced (in the test window 9 % of the
+glass area is untraced: edge halos, slivers and the band clips, not whole slabs). The roof-void topside
 (`topside2/`, 2 to 4 mm, self-registered per bay to 48 mm median) and the posed underside
 renders (`underside/`) exist as independent checks and could refine shapes bay by bay; the
 assembler takes several traces in priority order with per-piece provenance for exactly that.

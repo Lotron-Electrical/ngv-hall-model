@@ -191,6 +191,7 @@ def main():
     ap.add_argument('--name', default='pieces')
     ap.add_argument('--colour-from', nargs='*', default=[])
     ap.add_argument('--resolved-masks', nargs='*', default=[], help='tile dirs whose masks count as "resolved" for the coverage table')
+    ap.add_argument('--min-area', type=float, default=0.0007, help='smallest piece kept after clipping, m2 (0.0007 = 30 mm equivalent diameter, what a 1.8 mm source resolves)')
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
     cands = load_traces(args.traces)
@@ -202,7 +203,7 @@ def main():
         poly = clip_to_bands(pc['poly'], inband)
         if poly is None:
             drops['band'] += 1; continue
-        if poly.area < 0.0016:
+        if poly.area < args.min_area:
             drops['small'] += 1; continue
         if polys:
             tree = STRtree(polys)

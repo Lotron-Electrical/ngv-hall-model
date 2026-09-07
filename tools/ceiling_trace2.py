@@ -258,6 +258,7 @@ def trace(img, mask, gsd, meta, px0, py0, side, name, thr=THR, absolute=None):
 
 
 def main():
+    global LAT, MIN_EQD_MM, MIN_INSCRIBED_MM
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--tile', required=True)
     ap.add_argument('--side', required=True, choices=['top', 'under'])
@@ -266,11 +267,13 @@ def main():
     ap.add_argument('--preview', default='')
     ap.add_argument('--thr', type=float, default=THR)
     ap.add_argument('--absolute', type=float, default=None, help='slab = max(R,G,B) > this (sources whose steel is black)')
+    ap.add_argument('--min-eqd', type=float, default=MIN_EQD_MM, help='smallest piece kept, equivalent diameter mm')
+    ap.add_argument('--min-inscribed', type=float, default=MIN_INSCRIBED_MM, help='smallest inscribed diameter mm')
     ap.add_argument('--window', default='', help='x,y,w,h in tile px')
     ap.add_argument('--lattice', default='new', choices=['new', 'old'])
     args = ap.parse_args()
-    global LAT
     LAT = LATTICES[args.lattice]
+    MIN_EQD_MM, MIN_INSCRIBED_MM = args.min_eqd, args.min_inscribed
     window = [int(v) for v in args.window.split(',')] if args.window else None
     img, mask, gsd, meta, px0, py0 = load_tile(args.tile, window)
     pieces, lab = trace(img, mask, gsd, meta, px0, py0, args.side, args.name, args.thr, args.absolute)
