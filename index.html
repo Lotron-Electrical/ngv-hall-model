@@ -1933,11 +1933,11 @@ function bloomPass(){
 // by day nothing changes, at all, from what the proposal has always shown.
 const EXPO={now:1, want:1, mean:HOUSE_LUX, area:0, mode:'auto'};
 try{ const s=localStorage.getItem('ngv.cam.exposure'); if(s==='auto'||s==='fixed')EXPO.mode=s; }catch(e){}
-// The key is HALF the daylight reference, not all of it: a photograph of a light show is
-// deliberately a stop under, or the hall stops reading as night and starts reading as a room with
-// the lights on. Two stops is the ceiling, past which the ambient floor and the 8-bit carpet
-// texture band.
-const EXPO_KEY=HOUSE_LUX*0.5, EXPO_HI=4.0;
+// The key is a QUARTER of the daylight reference and the lens opens a THIRD of a stop at most (Lloyd,
+// 2026-09-08: at x4 the hall after Enter was "way too bright"; a light show is a picture of
+// lit things in a dark room, not a room with the lights on). A third of a stop (1.25) keeps the
+// picture Lloyd approved at 1.0 while the strips, bounce and glare terms still open a dark hall a touch.
+const EXPO_KEY=HOUSE_LUX*0.25, EXPO_HI=1.25;
 function exposureStep(dt){
  const houseKey=lit.house+lit.day;
  // the light the strips actually put into the room this frame, from the same figure the stats line
@@ -1984,6 +1984,12 @@ function columnLit(m){
      float gloss=exp2(10.0*(1.0-roughnessFactor)+1.0);
      for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
       vec3 v=lightPos[i].xyz-vWPos; float h=max(lightCol[i].w,0.01);
+      // a column's OWN runs do not light its shaft: the LED face points away from it and the
+      // fin behind the run is in the run's own shadow, so a run on this axis is skipped. With it
+      // in, the shaft sat a hand's width from eight strips and rendered as a glowing tube
+      // (Lloyd, 2026-09-08: "the column lights look weird"); what a gloss shaft shows is its
+      // NEIGHBOURS' colour, the smear below, on black steel.
+      if(v.x*v.x+v.z*v.z<colR*colR*2.25) continue;
       float hd2=max(v.x*v.x+v.z*v.z,colR*colR*0.25); float rho=sqrt(hd2); float e=v.y;
       float aN=dot(Nc,v); float bN=Nc.y;
       float t0=0.0, t1=h;

@@ -1168,7 +1168,14 @@ same constants). Every one is anchored to a measured number, none is a look cons
 | Glass mirror | the canopy's underside reflects the strips: a normalised Phong lobe (n = 60, about 10 degrees, the hammer-chipped slab) about the mirror direction, weighted by Schlick Fresnel (F0 0.04), inside the loop the plate already runs | `glassMaterial` |
 | Emitter face | the lit face is not a flat panel: view-angle term S(theta)/cos(theta) from the cover's own blade profile, and a centre-bright section normalised to mean 1 so `EMIT_EXPOSURE` keeps its meaning | `emitterFace`, `FACE_S` |
 | Glare | veiling glare at 6% of the source (CIE/Vos), computed on the HDR emitters alone (layer 2, `BLOOM_LAYER`, drawn against the hall's depth), threshold 1/exposure so a dimmed strip blooms less; half resolution, quarter on a phone. Not an UnrealBloomPass over the carpet | `bloomPass`, `GLARE_GAIN` |
-| Auto-exposure | Menu > Camera > Exposure: Auto opens the lens as the house comes down, from the strips' lumens over the hall's measured surface area (`measureHallArea`, 4,813 m2), key HOUSE_LUX/2, cap x4, held at 1.0 while the house is over half up so every quote picture is unchanged. Fixed pins 1.0. Stored in `ngv.cam.exposure` | `exposureStep`, `EXPO` |
+| Auto-exposure | Menu > Camera > Exposure: Auto opens the lens as the house comes down, from the strips' lumens over the hall's measured surface area (`measureHallArea`, 4,813 m2), key HOUSE_LUX/4, cap x1.25 (2026-09-08: the x4 cap made the hall after Enter "way too bright"; a light show is lit things in a dark room), held at 1.0 while the house is over half up so every quote picture is unchanged. Fixed pins 1.0. Stored in `ngv.cam.exposure` | `exposureStep`, `EXPO` |
+
+The columns' own runs do NOT light their shaft (2026-09-08). The `columnLit` diffuse term took every
+run in the list, so a shaft a hand's width from its own eight strips rendered as a glowing tube
+(Lloyd: "the column lights look weird"). A run whose axis is within 1.5 shaft radii of the fragment
+is skipped: the LED face points away from its own shaft and the fin behind the run is in the run's
+own shadow. The shaft shows its neighbours' colour and the house pools, on black steel, as the
+photographs do.
 
 The game's fitted bars (`game/fixture.js`) put their face and halo on layer 2 too, so a shift under
 lit bars glares the way the proposal does.
