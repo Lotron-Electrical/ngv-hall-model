@@ -1361,6 +1361,15 @@ neighbours and the steel), but for the saturated slabs the hue agrees to 16 to 1
 median against the walk and the combined sheet, so the panorama's colours are not corrected:
 a correction fitted to blur would be fabrication. Scratch: `colour_check.json`.
 
+**Every other source, weighed.** The harvest (124 files, `online/catalogue.json`) holds one other
+straight-up photograph, Rennie Ellis's c.1980s slide (SLV IE7153100, 4790 x 7000): its member
+lines run 670 to 1000 px apart for a 3.7 m sub-square, so it is about 4 mm/px with strong
+perspective across the frame, film-soft, and cannot check or improve a 1.8 mm source; the rest
+are oblique hall views, 1968 record shots, plans and a construction photo. Our own imagery: the
+roof-void walk resolves 5 to 8 mm in patches (`topside2/`, self-registered to 48 mm median), the
+posed hall renders 12 to 20 mm. The NGV panorama is the sharpest view of the glass that exists
+in any source found, so the pane file rests on it alone, with the others as checks.
+
 **Still open, honestly.** The panorama is one photograph: exposure and white balance are its
 own, and pieces under 30 mm or narrower than 18 mm are not traced (in the test window 9 % of the
 glass area is untraced: edge halos, slivers and the band clips, not whole slabs). The roof-void topside
