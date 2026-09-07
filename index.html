@@ -948,8 +948,13 @@ const WALL_TINT=[3.3,4.7,4.7];
 // stagger, courses measured beside the Abstract sequence tapestry in reference-photos/b0cefe7f
 // (4.993 m of tapestry = 1117 px; course autocorrelation 60-63 px = 285 mm), block length from
 // the head-on 7aad8857 (block over course 2.25-2.75, taken as 2.5 = 710 mm), fine joints of
-// about 10 mm reading a shade paler than the stone. The bake is sampled two mips soft so its own
-// smeared joints do not ghost against the drawn ones (three mips, 55 mm: the seams the bake
+// about 10-15 mm reading a mid grey DARKER than the stone (row minima 5% under the stone at the
+// photo's blur, so darker still at the joint itself), and the stones themselves varying a good
+// fifth in tone, pink to cream to grey, block by block (Lloyd, 2026-09-07: "those bricks don't
+// line up right": the first cut kept the bake's own tone blotches, which crossed the drawn
+// blocks; the bake is now sampled 4.5 mips soft, 150 mm, so only its lighting gradient survives
+// and every stone's tone comes from the per-block hash). The bake is sampled two mips soft so its own
+// smeared joints do not ghost against the drawn ones (4.5 mips, 150 mm: the seams the bake
 // carries at roughly 1.5 courses go, its tone blotches stay); it keeps the colour, the recesses
 // and the door shadows. The block is compiled into the walls material only, no uniform spent
 // (the fragment stage sits at 192 of 224 vectors after the lighting terms). The joint mask is box-filtered over the pixel footprint (fwidth), so a far wall
@@ -1005,7 +1010,7 @@ function photoMaterial(src){
     ${(src.name||'')==='walls'?`{
      // the ashlar, drawn in the hall frame (see STONE): courses up from the carpet, blocks along
      // the wall the face belongs to (an end wall or a recess reveal runs across the hall)
-     albedo=texture2D(map,vUv,3.0).rgb*tint;
+     albedo=texture2D(map,vUv,4.5).rgb*tint;
      vec3 q=vPos-vec3(-54.907447,-1.43545,3.040286);
      float su=dot(q,vec3(0.975681,0.0,0.219196)), sd=dot(q,vec3(0.219186,0.0,-0.975639)), sy=q.y;
      float along=abs(dot(N,vec3(0.975681,0.0,0.219196)))<0.7?su:sd;
@@ -1020,8 +1025,8 @@ function photoMaterial(src){
       // per-block tone: each stone a shade of its own, and a fine grain within it
       float hb=fract(sin(dot(vec2(bi,ci),vec2(12.9898,78.233)))*43758.5453);
       float hg=fract(sin(dot(floor(vec2(ax,sy)*160.0),vec2(39.3467,11.135)))*23421.631);
-      vec3 stoneCol=albedo*(0.88+0.24*hb)*(0.95+0.10*hg)*vec3(1.0+0.04*(hb-0.5),1.0,1.0-0.04*(hb-0.5));
-      vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*vec3(1.36,1.31,1.21);
+      vec3 stoneCol=albedo*(0.80+0.40*hb)*(0.95+0.10*hg)*vec3(1.0+0.07*(hb-0.5),1.0,1.0-0.07*(hb-0.5));
+      vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*0.78;
       albedo=mix(stoneCol,mortar,joint);
      }
     }`:''}

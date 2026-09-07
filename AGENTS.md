@@ -1193,8 +1193,11 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   courses up from the carpet, blocks along the wall the face belongs to (an end wall or a recess
   reveal runs across the hall, picked by the face normal), the joint mask box-filtered over the
   pixel footprint so a far wall keeps the same joint share instead of going mortar-grey, a tone per
-  block and a fine grain within it. The bake is sampled three mips soft (55 mm) for its colour,
-  recesses and door shadows, which is what kills its own seams (the wall atlas gets a mip chain
+  block and a fine grain within it. The bake is sampled 4.5 mips soft (150 mm) for its lighting
+  gradient, recesses and door shadows, which is what kills its own seams and tone blotches
+  (Lloyd on the 55 mm cut: "those bricks don't line up right", the bake's blotches crossed the
+  drawn blocks); joints are a mid grey darker than the stone (photo row minima 5% under the
+  stone) and each stone's tone comes from the per-block hash, a fifth either way (the wall atlas gets a mip chain
   and 8x anisotropy for that; it shipped with a plain linear sampler). Origin of the block phase
   along the wall is u = 0; no photograph fixes it.
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and

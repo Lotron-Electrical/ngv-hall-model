@@ -90,7 +90,7 @@ export function photoMaterial(src, hall) {
          // THE ASHLAR, the viewer's block line for line (index.html, "THE STONE COURSING"): the
          // bake three mips soft for its colour, courses up from the carpet, blocks along the wall
          // the face belongs to, joints box-filtered over the pixel footprint
-         albedo=texture2D(map,vUv,3.0).rgb*tint;
+         albedo=texture2D(map,vUv,4.5).rgb*tint;
          vec3 q=vPos-vec3(${o.x},${o.y},${o.z});
          float su=dot(q,vec3(${U.x},${U.y},${U.z})), sd=dot(q,vec3(${N.x},${N.y},${N.z})), sy=q.y;
          float along=abs(dot(Nn,vec3(${U.x},${U.y},${U.z})))<0.7?su:sd;
@@ -103,8 +103,8 @@ export function photoMaterial(src, hall) {
           float joint=max(jx,jy);
           float hb=fract(sin(dot(vec2(bi,ci),vec2(12.9898,78.233)))*43758.5453);
           float hg=fract(sin(dot(floor(vec2(ax,sy)*160.0),vec2(39.3467,11.135)))*23421.631);
-          vec3 stoneCol=albedo*(0.88+0.24*hb)*(0.95+0.10*hg)*vec3(1.0+0.04*(hb-0.5),1.0,1.0-0.04*(hb-0.5));
-          vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*vec3(1.36,1.31,1.21);
+          vec3 stoneCol=albedo*(0.80+0.40*hb)*(0.95+0.10*hg)*vec3(1.0+0.07*(hb-0.5),1.0,1.0-0.07*(hb-0.5));
+          vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*0.78;
           albedo=mix(stoneCol,mortar,joint);
          }
         }` : ''}
