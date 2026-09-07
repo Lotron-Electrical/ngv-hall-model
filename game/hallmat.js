@@ -96,7 +96,13 @@ export function photoMaterial(src, hall) {
          float dark=smoothstep(0.010,0.022,dot(bake,vec3(0.3333)));
          vec3 q=vPos-vec3(${o.x},${o.y},${o.z});
          float su=dot(q,vec3(${U.x},${U.y},${U.z})), sd=dot(q,vec3(${N.x},${N.y},${N.z})), sy=q.y;
-         float along=abs(dot(Nn,vec3(${U.x},${U.y},${U.z})))<0.7?su:sd;
+         bool longWall=abs(dot(Nn,vec3(${U.x},${U.y},${U.z})))<0.7;
+         float along=longWall?su:sd;
+         // the viewer cuts the openings and the foyer door out and builds them; the sim paints
+         // them (dark recesses, a lit doorway), same numbers as index.html WALLF
+         bool opening=longWall&&sy>9.0&&sy<11.0&&abs(fract((su-7.71)/3.685+0.5)-0.5)*3.685<0.65;
+         bool doorway=longWall&&sd<1.0&&sy<2.5&&abs(su-20.0)<1.15;
+         bool grille=longWall&&abs(sy-2.8)<0.08&&abs(fract((su-12.5)/4.2+0.5)-0.5)*4.2<0.5;
          if(abs(Nn.y)<0.5){
           float ci=floor(sy/${STONE.course}); float dy=abs(sy-(ci+0.5)*${STONE.course});
           float ax=along+${STONE.block * 0.5}*mod(ci,2.0); float bi=floor(ax/${STONE.block}); float dx=abs(ax-(bi+0.5)*${STONE.block});
@@ -110,7 +116,8 @@ export function photoMaterial(src, hall) {
           vec2 suv=vec2(ax,sy)+vec2(hb*7.31,hb2*5.17);
           vec3 stoneCol=texture2D(stoneMap,suv).rgb*(0.86+0.28*hb)*(0.97+0.06*hg)*vec3(1.0+0.05*(hb-0.5),1.0,1.0-0.05*(hb-0.5));
           vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
-          albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark);
+          albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark)*(sy<0.10?0.35:1.0);
+          if(opening||grille)albedo=vec3(0.03); if(doorway)albedo=vec3(0.9,0.87,0.82);
          } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
         }` : ''}
         vec3 E=vec3(house+ambient);

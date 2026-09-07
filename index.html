@@ -960,6 +960,26 @@ const WALL_TINT=[3.3,4.7,4.7];
 // (the fragment stage sits at 192 of 224 vectors after the lighting terms). The joint mask is box-filtered over the pixel footprint (fwidth), so a far wall
 // averages to the same joint share as a near one instead of going mortar-grey.
 const STONE={course:0.285, block:0.710, joint:0.014};
+// THE WALL'S FEATURES (Lloyd, 2026-09-07: "the walls have details that are missing"), measured off
+// the head-on 7aad8857 (tapestry inner edges 14.08 and 37.92 m as the ruler, 21.3 px/m) and the
+// balcony b0cefe7f (courses as the vertical ruler, 285 mm each):
+//  - OPENINGS: deep recessed windows high in both long walls, one per half bay on the column
+//    lines and midway (8 equal intervals of 3.55-3.68 m in the photograph; taken as the bay's
+//    half, 3.685 m, on the N-row column line u = 7.71), about 1.3 m wide, seven courses tall
+//    (2.0 m), four courses under the wall top: 9.0 to 11.0 m, reveals about 0.6 m deep.
+//  - GRILLES: dark vent slots low on the wall, 1.0 x 0.16 m, at 4.2 m pitch (7 intervals in the
+//    photograph, a different pitch from the openings), centres u = 12.5 + 4.2 k, 2.8 m up.
+//  - THE FOYER DOOR in the north wall (b0cefe7f: a lit white vestibule under the third opening
+//    from the near tapestry), 2.3 m wide, 2.5 m tall, put at u = 20.0 (+-3 m, no ruler crosses it).
+//  - THE FELTON INSCRIPTION, centred between the tapestries (u = 26.0) at 4.2 m: "BENEFACTOR /
+//    ALFRED FELTON / WHOSE BEQUEST HAS TRANSFORMED OUR COLLECTIONS", 2.5 m of capitals.
+//  - A 100 mm shadow gap at the carpet.
+// The wall shader cuts the openings and the door out of the bake mesh (discard); buildWallDetails
+// puts the reveals, the vestibule, the grilles and the lettering behind and on the wall.
+const WALLF={openU0:7.71, openPitch:3.685, openW:1.3, openY:[9.0,11.0], openDepth:0.6,
+ grilleU0:12.5, grillePitch:4.2, grilleW:1.0, grilleH:0.16, grilleY:2.8,
+ doorU:20.0, doorW:2.3, doorH:2.5, doorDepth:1.0, textU:26.0, textY:4.2, skirt:0.10,
+ dNorth:-0.05, dSouth:15.38, uMin:1.0, uMax:47.9};
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
 // smeared images"): tools/stone.jpg, a tileable limestone tile built to the photograph's stone
 // (mean linear 0.207/0.171/0.146, mottle pink to cream over 25-100 cm, grain at 5-25 mm, pits and
@@ -1023,7 +1043,11 @@ function photoMaterial(src){
      float dark=smoothstep(0.010,0.022,dot(bake,vec3(0.3333)));
      vec3 q=vPos-vec3(-54.907447,-1.43545,3.040286);
      float su=dot(q,vec3(0.975681,0.0,0.219196)), sd=dot(q,vec3(0.219186,0.0,-0.975639)), sy=q.y;
-     float along=abs(dot(N,vec3(0.975681,0.0,0.219196)))<0.7?su:sd;
+     bool longWall=abs(dot(N,vec3(0.975681,0.0,0.219196)))<0.7;
+     float along=longWall?su:sd;
+     // the openings and the foyer door are holes in the bake mesh (WALLF); the reveals sit behind
+     if(longWall&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&abs(fract((su-${(WALLF.openU0).toFixed(3)})/${(WALLF.openPitch).toFixed(3)}+0.5)-0.5)*${(WALLF.openPitch).toFixed(3)}<${(WALLF.openW*0.5).toFixed(3)})discard;
+     if(longWall&&sd<1.0&&sy<${(WALLF.doorH).toFixed(3)}&&abs(su-${(WALLF.doorU).toFixed(3)})<${(WALLF.doorW*0.5).toFixed(3)})discard;
      if(abs(N.y)<0.5){
       float ci=floor(sy/${STONE.course}); float dy=abs(sy-(ci+0.5)*${STONE.course});
       float ax=along+${STONE.block*0.5}*mod(ci,2.0); float bi=floor(ax/${STONE.block}); float dx=abs(ax-(bi+0.5)*${STONE.block});
@@ -1041,7 +1065,7 @@ function photoMaterial(src){
       vec2 suv=vec2(ax,sy)+vec2(hb*7.31,hb2*5.17);
       vec3 stoneCol=texture2D(stoneMap,suv).rgb*(0.86+0.28*hb)*(0.97+0.06*hg)*vec3(1.0+0.05*(hb-0.5),1.0,1.0-0.05*(hb-0.5));
       vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
-      albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark);
+      albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark)*(sy<${(WALLF.skirt).toFixed(3)}?0.35:1.0);
      } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
     }`:''}
     // flat normal from the position derivatives; it always faces the viewer, which is the
@@ -2000,11 +2024,59 @@ new GLTFLoader().load('model.glb',g=>{
    const m=photoMaterial({map:tex, name:'tapestry-'+t.position}); m.side=THREE.DoubleSide;   /* the wall behind hides the back */
    const mesh=new THREE.Mesh(geo,m); mesh.name='tapestry-'+t.position; mesh.userData.tapestry=t; g.scene.add(mesh); }
   if(typeof dirty==='function')dirty(); }).catch(e=>console.warn('tapestries',e));
+ buildWallDetails(g.scene);
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; hallLevel=new THREE.Group(); hallLevel.name='hall-level'; hallSway=new THREE.Group(); hallSway.name='hall-sway';
  hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); measureHallArea(); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.'; document.getElementById('loader').classList.add('gone');});
+
+// ============ the wall's features (WALLF): reveals, vestibule, grilles, lettering ============
+function buildWallDetails(root){
+ const F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
+ const hp=(u,d,y)=>new THREE.Vector3().copy(O).addScaledVector(HU,u).addScaledVector(HN,d).setY(O.y+y);
+ // a quad from four hall-frame corners (u,d,y); double-sided, so the winding does not matter
+ const quad=(pts,mat,name,mirror)=>{ const pos=new Float32Array(12); pts.forEach((p,i)=>{ const v=hp(...p); pos.set([v.x,v.y,v.z],3*i); });
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  // seen from inside the hall, u runs right to left on the north wall: mirror the image there
+  geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(mirror?[1,0,0,0,0,1,1,1]:[0,0,1,0,1,1,0,1]),2)); geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,mat); m.name=name; root.add(m); return m; };
+ const stoneMat=new THREE.MeshLambertMaterial({color:0x8a7f74, side:THREE.DoubleSide, name:'wall-reveal'});
+ const voidMat=new THREE.MeshBasicMaterial({color:0x07070a, side:THREE.DoubleSide, name:'wall-opening'});
+ const grilleMat=new THREE.MeshBasicMaterial({color:0x0b0b0c, side:THREE.DoubleSide, name:'wall-grille'});
+ const walls=[{d:F.dNorth, s:-1, north:true},{d:F.dSouth, s:1, north:false}];   /* s: into the wall */
+ for(const w of walls){
+  // the recessed openings: four reveals and a dark back, 0.6 m into the wall
+  for(let k=-3;k<20;k++){ const uc=F.openU0+F.openPitch*k; if(uc<F.uMin||uc>F.uMax)continue;
+   const u0=uc-F.openW/2, u1=uc+F.openW/2, y0=F.openY[0], y1=F.openY[1], d0=w.d, d1=w.d+w.s*F.openDepth;
+   quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],stoneMat,'opening-reveal');
+   quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],stoneMat,'opening-reveal');
+   quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],stoneMat,'opening-sill');
+   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],stoneMat,'opening-head');
+   quad([[u0,d1,y0],[u1,d1,y0],[u1,d1,y1],[u0,d1,y1]],voidMat,'opening-back'); }
+  // the vent grilles, 5 mm proud of the stone
+  for(let k=-3;k<15;k++){ const uc=F.grilleU0+F.grillePitch*k; if(uc<F.uMin||uc>F.uMax)continue;
+   const d=w.d-w.s*0.005, u0=uc-F.grilleW/2, u1=uc+F.grilleW/2, y0=F.grilleY-F.grilleH/2, y1=F.grilleY+F.grilleH/2;
+   quad([[u0,d,y0],[u1,d,y0],[u1,d,y1],[u0,d,y1]],grilleMat,'wall-grille'); }
+  if(!w.north)continue;
+  // the foyer door: a lit white vestibule 3 m deep behind the hole in the wall
+  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
+  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
+  const u0=F.doorU-F.doorW/2, u1=F.doorU+F.doorW/2, d0=w.d, d1=w.d+w.s*F.doorDepth, h=F.doorH;
+  quad([[u0,d0,0],[u0,d1,0],[u0,d1,h],[u0,d0,h]],lit,'vestibule-wall'); quad([[u1,d0,0],[u1,d1,0],[u1,d1,h],[u1,d0,h]],lit,'vestibule-wall');
+  quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],lit,'vestibule-ceiling'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],litFloor,'vestibule-floor');
+  quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'}),'vestibule-back');
+  // the inscription: dark bronze capitals on a transparent canvas, 4 mm proud of the stone
+  const cv=document.createElement('canvas'); cv.width=1400; cv.height=400; const cx=cv.getContext('2d');
+  cx.fillStyle='#3a2f24'; cx.textAlign='center'; cx.textBaseline='middle';
+  cx.font='600 34px Arial'; cx.fillText('B E N E F A C T O R',700,70);
+  cx.font='700 120px Arial'; cx.fillText('ALFRED FELTON',700,190);
+  cx.font='600 34px Arial'; cx.fillText('W H O S E   B E Q U E S T   H A S   T R A N S F O R M E D   O U R   C O L L E C T I O N S',700,320);
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+  const W=3.4, H=W*400/1400, d=w.d-w.s*0.004;
+  quad([[F.textU-W/2,d,F.textY-H/2],[F.textU+W/2,d,F.textY-H/2],[F.textU+W/2,d,F.textY+H/2],[F.textU-W/2,d,F.textY+H/2]],
+   new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, name:'inscription'}),'inscription',true); }
+}
 
 // ============ LED strips, built live from runs.json ============
 // Each run is a polyline up the shaft in one fin gap (already at its standoff). The strip is a

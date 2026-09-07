@@ -1209,6 +1209,17 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   its luminance sampled 2.5 mips soft, under 0.02 linear after the tint = a recess, which keeps
   the niches; its shadow ghosts and smears sit at 0.03-0.1 and are cut. Regenerate the tile with
   the numpy block in commit e2e8b29's successor (seeded, deterministic).
+- THE FEATURES (Lloyd: "the walls have details that are missing"; `WALLF` in index.html, the same
+  numbers painted flat in game/hallmat.js). Measured off the head-on 7aad8857 (tapestry inner edges
+  14.08 and 37.92 m as the ruler) and the balcony b0cefe7f (courses as the vertical ruler):
+  deep recessed openings high in both long walls, one per half bay on the N-row column line and
+  midway (u = 7.71 + 3.685 k), 1.3 m wide, 9.0 to 11.0 m up, 0.6 m reveals (cut out of the bake
+  mesh by discard, four Lambert reveals and a black back built behind); vent grilles 1.0 x 0.16 m
+  at 4.2 m pitch (u = 12.5 + 4.2 k), 2.8 m up, black quads 5 mm proud; the foyer door in the north
+  wall at u = 20.0 (+-3 m, no ruler crosses it), 2.3 x 2.5 m, a lit white vestibule 1 m deep;
+  the Felton inscription centred between the tapestries (u 26.0, 4.2 m up, a canvas, mirrored in
+  u on the north wall because u runs right to left seen from inside); a 100 mm shadow gap at the
+  carpet. Not done: the openings' exact u phase (+-0.5 m) and the grille phase (+-1 m).
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
   (-20, 1.6, 6.3) facing the north wall with the house up. Not done: the bake's own courses are
