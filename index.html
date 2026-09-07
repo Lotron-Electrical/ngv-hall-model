@@ -5158,9 +5158,9 @@ function finaleLayout(){ const {H,W,T}=logo.userData; const pt=Math.max(...partn
 function creditsBuild(L){ if(!logo||logo.userData.cred)return; const cv=document.createElement('canvas'); cv.width=2048; cv.height=Math.round(2048*L.credH/L.W);
  const g=cv.getContext('2d'), F='"IBM Plex Sans",system-ui,Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
  const line=(txt,x,y,px,wt,col,sp)=>{ g.font=wt+' '+px+'px '+F; g.fillStyle=col; try{ g.letterSpacing=(sp||0)+'px'; }catch(e){} g.fillText(txt,x,y); };
- line('SPECIAL THANKS',1024,110,66,'500','#c9c9c9',14);
- line('Patrick Connell',560,300,88,'600','#f2f2f2',0); line('Photogrammetry & 3D',560,404,66,'400','#bdbdbd',0);
- line('Gabriel Fischer',1488,300,88,'600','#f2f2f2',0); line('Sound design & music',1488,404,66,'400','#bdbdbd',0);
+ line('SPECIAL THANKS',1024,110,66,'500','#ffffff',14);   /* (Lloyd, 2026-09-08: higher contrast) heading and names white, the roles a light grey */
+ line('Patrick Connell',560,300,88,'600','#ffffff',0); line('Photogrammetry & 3D',560,404,66,'400','#e4e4e4',0);
+ line('Gabriel Fischer',1488,300,88,'600','#ffffff',0); line('Sound design & music',1488,404,66,'400','#e4e4e4',0);
  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
  const m=new THREE.Mesh(new THREE.PlaneGeometry(L.W,L.credH),new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
  m.position.set(0,L.credY-L.yTop,0.01); m.frustumCulled=false; m.visible=false; m.userData.img=true; logo.add(m); logo.userData.cred=m; }
