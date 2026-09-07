@@ -29,9 +29,13 @@ await send('Page.enable'); await send('Runtime.enable'); await send('Network.ena
 await send('Network.setCacheDisabled', { cacheDisabled: true });   // or the modules come from cache
 await send('Page.navigate', { url });
 await enter(ev, sleep);
+// (a2) the guide starts OFF on a fresh browser (Lloyd, 2026-09-07: "have the guide turned off by default")
+let d = await ev(`JSON.stringify({guide:ngv.game.install.guide,mesh:ngv.game.install.guides.mesh.visible,text:document.querySelector('#guide').textContent})`);
+d = JSON.parse(d);
+const okDef=(!d.guide && !d.mesh && d.text === 'Guide off'); const defMsg=`guide is off by default on a fresh browser (${JSON.stringify(d)})`; console.log((okDef?'ok   ':'FAIL ')+defMsg);
 await ev(`ngv.game.install.setGuide(true); document.querySelector('#start').click()`); await sleep(500);
 
-const bad = [];
+const bad = okDef ? [] : [defMsg];
 const say = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!ok) bad.push(msg); };
 
 // helpers that live in the page: instance scale and the world box of one cover instance

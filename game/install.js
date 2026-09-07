@@ -79,7 +79,7 @@ export class Install {
     for (const c of new Set(this.slots.map((s) => s.column))) if (this.columnComplete(c)) this.powerColumn(c);
     let g = null;
     try { g = localStorage.getItem(GUIDE_KEY); } catch (e) { g = null; }
-    this.guide = g === null ? true : g === '1';
+    this.guide = g === '1';   // off unless the player turned it on (Lloyd, 2026-09-07: "have the guide turned off by default")
     this.guides.mesh.visible = this.guide;
     this.t = 0;
   }

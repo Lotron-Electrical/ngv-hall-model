@@ -450,7 +450,7 @@ Phases owed at the time: 2 fatigue + hallucinations, 3 the crew's AI, 4 sound. A
   the sim keeps its own copy of the geometry the two WILL drift, and the game would stop showing
   the product the proposal sells. Per-LED meshes stay Phong/Lambert/Basic (the sim measured
   MeshStandardMaterial halving the frame rate at 73k instances).
-  The guide: `install.guide`, default ON, remembered in localStorage `ngv-install-guide`, toggled
+  The guide: `install.guide`, default OFF (Lloyd, 2026-09-07: "have the guide turned off by default"; was ON), remembered in localStorage `ngv-install-guide`, toggled
   by `#guide` at the right end of the HUD (#hud is pointer-events:none, so the button opts back
   in; 44 px tall for a thumb). On, every EMPTY slot stands as a pulsing red bar (one
   InstancedMesh) and every FITTED one pulses green through its own fixture colour, at 1.2 Hz from
