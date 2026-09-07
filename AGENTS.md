@@ -1291,7 +1291,7 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
 
 ## The ceiling, tile by tile (Lloyd, 2026-09-07: "make the ceiling look exactly like the real Gandel hall ceiling ... Every stained glass tile must be shaped and recorded and registered. Do not fabricate anything")
 
-**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,897 pieces, every one traced from a
+**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,901 pieces, every one traced from a
 photograph and coloured from the same pixels; the synthetic infill of the 09-07 file (pieces laid
 to statistics and motif rules) is gone. `tools/pieces-provenance.json` is index-aligned with the
 pane file: source, source resolution, area, equivalent diameter, shape class and signal per piece.
@@ -1303,7 +1303,14 @@ rectified: the fifteen member lines across and five along are straight, and thei
 2181 to 2037 px, so the registration is piecewise-linear through the lines
 (`tools/pano_register.py`), each line placed on its lattice hu / hv; the result is a 4 mm tile on
 the shared huv grid in `sources/pano/` with a mask, a per-pixel source resolution and the
-registration recorded in `meta.json`.
+registration recorded in `meta.json`. A second stage (`tools/pano_refine.py --thin`) then measures
+the steel on that tile itself, the 15 x 5 member nodes with a + template and the 56 sub-square
+centres (where the hip crosses the diamond member) with an X template on the black steel, and
+warps the tile piecewise-affinely (four triangles per sub-square) so the measured steel lands on
+the lattice: 54 of 131 points measured with confidence, their radial offset p50 97 / p90 185 mm
+before and 26 / 83 mm after; on the hips, which neither stage used, the median offset is 32 mm
+and the p90 fell from 127 to 87 mm. Wide-member templates (the ridges' true widths) were tried
+and rejected: they slide along the ridge and made the hips worse.
 
 **Which line is which, and which way round.** Settled by data, not by reading the picture: the
 blurred-Lab NCC of the panorama against the bake ortho (`trackB/bottom-ortho-v29.png`, the real
@@ -1333,7 +1340,7 @@ relative envelope the topside needs missed the dark purples and blues). Watershe
 union-find merge, 9 mm polygon simplification, 30 mm minimum equivalent diameter, 18 mm minimum
 inscribed diameter (what a 1.8 mm source resolves), pieces more than half on a steel band dropped and the rest clipped clear
 (`tools/ceiling_assemble.py`, same band metric as `merge_panes.py`: ridge 0.125 m, cross / hip /
-both diamonds 0.09 m). 6,993 traced, 6,897 kept (29 too small after clipping, 67 on the steel).
+both diamonds 0.09 m). 6,990 traced, 6,901 kept (33 too small after clipping, 56 on the steel).
 Per bay 436 to 598 pieces in the whole coffers, 202 to 231 in the halves; glass covers 17 to 21 %
 of each bay's plan, the same everywhere, which is what a plate of one design should show.
 
