@@ -969,6 +969,52 @@ then the two sections under it for the detail.
   off the painted members and 125 mm off the ridges, so the fitted phase may drift 13 mm before
   glass meets steel.
 
+### The ceiling hardware: hub nodes and the lighting rig (2026-09-07)
+Brief: "a perfect, accurate model of the Gandel Hall ceiling: geometry, structure, any
+ceiling-mounted fixtures/trusses". The lattice, the relief and the glass were already measured
+(above); what the photographs showed that the model did not have was the steel at the column
+heads and the house lighting rig. Both live in the canopy block of index.html
+(`buildHubNodes`, `buildLightingRig`, `RIG`), inside `hallGroup`, so the column-height lever
+scales them with everything else.
+- THE HUB NODES replace the "drum". The 08-31 cloud saw a dark body ~0.9 m across hanging
+  200-300 mm under every funnel vertex and the viewer drew a cylinder there. lf_hub.jpg,
+  gh03_colhead_crop.jpg and the roof-void hub stills (trackA/checks/hub_*.jpg) show what it is:
+  the node where the coffer's eight members (four hips, four cross members) run down their
+  facets and meet on the column's square steel head. Nothing round hangs there. Built as one
+  InstancedMesh (`canopy-hub-nodes`, 12 x 9 boxes): a 0.62 m square head 300 mm deep under the
+  vertex and eight 0.45 m arms (240 mm cross members, 260 mm hips) each pitched to its own facet
+  (13.9 / 13.7 / 9.9 degrees), 1.1 m across, in `solids`. `canopy.hubs` holds it.
+- THE LIGHTING RIG is permanent, not an event hire: it is in the 2010s balcony photograph
+  (b0cefe7f, day), in gh03 and in Lloyd's 2026-08-17 balcony still (balc_b033), the same bar
+  each time. A triangular truss runs the length of the hall along the NORTH wall, between the
+  wall and the wall-side column row, flown on electric chain hoists whose chains rise to the
+  ceiling, one per bay, carrying profile spots and PARs that face the room. Measured off those
+  photographs against the tapestries (top edge 8.26 m, tools/tapestries.json) and the column
+  rows: centreline 2.2 m off the wall, 9.0 m above the carpet, u 1.0 to 46.0 (about 1 m in from
+  the west wall, 3 m short of the east), 300 mm side, apex up. `RIG` holds those numbers.
+  Hoists sit at the six ridge lines the truss passes (chains end 20 mm under the rib), 23
+  fixtures at 2 m pitch alternating profile / PAR, pitched 55 degrees into the room. Chords are
+  in `solids`; the group is `canopy.rig` (`userData.rig` carries the numbers for a proof).
+- THE ENVELOPE. A truss is mostly air and the sim's ceiling ray is one line up from the lift
+  deck, so it would thread between the chords: `rig-envelope` is an invisible box (colour and
+  depth writes off, rays only) round the chords AND the hanging fixtures, 8.16 m to 9.22 m. The
+  lift's ceiling ray (`lift.ceilingY`) now tests `[hallLevel, canopy.mesh, canopy.rig]`, so a
+  deck parked under the bar clamps at 8.16 m instead of driving through the fixtures.
+- NOT modelled, and why: the roof-void structure above the glass (white steel, catwalks, cable
+  trays, the pitched roof: trackA stills) is invisible from the hall, even through clear slabs by
+  day (b0cefe7f: clear pieces read as flat sky). The two 6.3 m circular rosettes in the central
+  bays (reference-stats motifs.big_circular_rosette_metric) are glass pattern, not hardware, and
+  which bay they are in is not determined from any photograph; the pane file does not place them.
+  Event trusses across the hall (the entrance shot, bc0db55c) are hires and vary per event.
+- PROOF: `node tools/ceiling-check.mjs <outdir> [tag]` (serve :8877; `CDP_PORT=9334` to own a
+  Chrome when a peer session holds :9333, which it did on 2026-09-07). 108 node instances under
+  the twelve heads (within 1 mm in plan, 0.18-0.22 m under the column tops); six chains each
+  ending 20 mm under the canopy surface (barycentric test against `canopy.mesh`'s own
+  triangles); truss centroid 9.00 m up inside the hall; the ray line in the source; then in
+  install mode the lift parked under the bar reads a ceiling of 8.16 m; six shots (along the
+  bar from the west end, close from a raised deck by day and by night, up at N3, the N3 node
+  from a 9.6 m deck, from under the truss).
+
 ### Phone controls (Lloyd, 2026-09-07: no big buttons; research-led)
 Lloyd: "we need to improve the controls on phone", then "No big buttons that will take up screen
 space. Do some research online on phone UI best practices. As well as phone joystick control best

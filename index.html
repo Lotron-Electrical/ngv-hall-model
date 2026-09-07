@@ -1217,28 +1217,148 @@ function buildProceduralCanopy(root){
  const mat=canopyMaterial([su0,sv0,su1,sv1],[ou,ov]);
  const mesh=new THREE.Mesh(geo,mat); mesh.name='canopy-procedural';
  root.add(mesh); solids.push(mesh);
- // 6. the measured hanging element at every column head: a matte near-black shallow drum
- //    ~0.9 m across, its underside 200-300 mm below the glass vertex (cloud: present at all
- //    twelve, unidentified; it also hides the 50 mm of cap the bake sinks into the glass)
- let drums=null;
- if(heads.length){ const dg=new THREE.CylinderGeometry(0.45,0.42,0.28,20);
-  const dm=new THREE.MeshLambertMaterial({color:0x241a15}); dm.name='canopy-hub-drum';
-  drums=new THREE.InstancedMesh(dg,dm,heads.length);
-  const M4=new THREE.Matrix4();
-  heads.forEach((h,k)=>{ const x=h.u*PUx+h.v*PVx, z=h.u*PUz+h.v*PVz;
-   M4.makeTranslation(x,planeAt(h.u,h.v)-0.10,z); drums.setMatrixAt(k,M4); });
-  root.add(drums); solids.push(drums); }
+ // 6. THE HUB NODES (2026-09-07, replacing the "drum"). The 08-31 cloud saw a dark body ~0.9 m
+ //    across hanging 200-300 mm under every funnel vertex and called it an unidentified drum.
+ //    The photographs identify it: it is the node where the eight members of the coffer (the
+ //    four hips and the four cross members) run down the facets and meet on the column head
+ //    (lf_hub.jpg, gh03_colhead_crop.jpg, the roof-void hub stills). Nothing round hangs
+ //    there; the column shaft runs straight into a square steel head and the eight members'
+ //    bottom flanges radiate from it, each climbing its own facet. Built as a square head with
+ //    eight arms pitched to the facets they lie on, 300 mm deep, 1.1 m across the arms.
+ let hubs=null;
+ if(heads.length) hubs=buildHubNodes(root,heads,{PU,PV,PUx,PUz,PVx,PVz,planeAt});
  // 7. hide, don't remove, the baked ceiling: layer 2 takes it out of the camera AND out of
  //    every layer-0 raycast (collision, disco scatter), while CEIL_Y keeps reading its bbox
  baked.visible=false; baked.layers.set(2);
  // the old void band stays; nudge it to the same near-black the ring uses (16,14,18 -> 10,9,12)
  if(voidMesh&&voidMesh.material.uniforms)voidMesh.material.uniforms.tint.value.setRGB(0.59,0.62,0.61);
- canopy={mesh,drums,fit:{ou,ov,PU,PV,rect:[su0,sv0,su1,sv1],plane,bays:[nI,nJ],anchors:anchors.length,
+ canopy={mesh,hubs,rig:null,fit:{ou,ov,PU,PV,rect:[su0,sv0,su1,sv1],plane,bays:[nI,nJ],anchors:anchors.length,
   glass:[gU0,gV0,gU1,gV1],pieces:{file:'tools/pieces.bin',du:BOARD.du,dv:BOARD.dv}}};
  console.info(`canopy: ${nI}x${nJ} bays at ${PU}x${PV} m, phase (${ou.toFixed(3)},${ov.toFixed(3)}), `+
   `vertex plane ${plane.map(x=>x.toFixed(5)).join(' ')}, ${pos.length/9} triangles, ${anchors.length} anchors, `+
   `plate only; glass ships as pieces`);
  buildGlassPieces(root, {ou,ov,PU,PV,su0,sv0,su1,sv1,plane,planeAt,PUx,PUz,PVx,PVz,du:BOARD.du,dv:BOARD.dv});
+ canopy.rig=buildLightingRig(root, {ou,ov,PU,PV,su0,sv0,su1,sv1,planeAt,PUx,PUz,PVx,PVz,huvOf});
+}
+
+// ============ THE HUB NODES AND THE LIGHTING RIG (2026-09-07) ============
+// Everything mounted on or hanging from the ceiling that the photographs show and the sim has
+// to respect (a lift deck stops under a truss as surely as under the glass).
+function buildHubNodes(root,heads,F){
+ const {PU,PV,PUx,PUz,PVx,PVz,planeAt}=F;
+ // arm pitches: a cross member climbs RELIEF over the half-module less the rib, a hip climbs
+ // the same over the half-diagonal (13.9 / 13.7 / 9.9 degrees on the measured lattice)
+ const a=PU/2-CANOPY.RIBH, b=PV/2-CANOPY.RIBH;
+ const DEPTH=0.30, HEAD=0.62, ARM=0.45, WU=0.24, WD=0.26;
+ const arms=[ [1,0,Math.atan(CANOPY.RELIEF/a),WU], [-1,0,Math.atan(CANOPY.RELIEF/a),WU],
+  [0,1,Math.atan(CANOPY.RELIEF/b),WU], [0,-1,Math.atan(CANOPY.RELIEF/b),WU],
+  [1,1,Math.atan(CANOPY.RELIEF/Math.hypot(a,b)),WD], [1,-1,Math.atan(CANOPY.RELIEF/Math.hypot(a,b)),WD],
+  [-1,1,Math.atan(CANOPY.RELIEF/Math.hypot(a,b)),WD], [-1,-1,Math.atan(CANOPY.RELIEF/Math.hypot(a,b)),WD] ];
+ const geo=new THREE.BoxGeometry(1,1,1);
+ const mat=new THREE.MeshLambertMaterial({color:0x0e0d10}); mat.name='canopy-hub-node';
+ const im=new THREE.InstancedMesh(geo,mat,heads.length*9);
+ const M=new THREE.Matrix4(), Q=new THREE.Quaternion(), P=new THREE.Vector3(), S=new THREE.Vector3();
+ const Qy=new THREE.Quaternion(), Qp=new THREE.Quaternion();
+ const worldOf=(u,v,y)=>P.set(u*PUx+v*PVx, y, u*PUz+v*PVz);
+ // the lattice's own yaw in world (hu runs along HU)
+ const yaw=Math.atan2(-PUz,PUx);
+ let k=0;
+ for(const h of heads){ const y0=planeAt(h.u,h.v);
+  // the head: bottom DEPTH below the vertex
+  Q.identity(); Qy.setFromAxisAngle(new THREE.Vector3(0,1,0),yaw); Q.copy(Qy);
+  M.compose(worldOf(h.u,h.v,y0-DEPTH/2), Q, S.set(HEAD,DEPTH,HEAD)); im.setMatrixAt(k++,M);
+  for(const [du,dv,pitch,w] of arms){ const L=Math.hypot(du,dv); const eu=du/L, ev=dv/L;
+   const r=HEAD/2+ARM/2-0.05;   // arm centre, tucked 50 mm into the head so no seam shows
+   const cu=h.u+eu*r, cv=h.v+ev*r;
+   // an arm lies along its own direction and is pitched up by the facet slope about the axis
+   // perpendicular to it in plan; its centre rises with the facet
+   const ang=yaw+Math.atan2(-ev,eu);   // hu -> world yaw, hv is 90 degrees on
+   Qy.setFromAxisAngle(new THREE.Vector3(0,1,0),ang);
+   Qp.setFromAxisAngle(new THREE.Vector3(0,0,1),pitch);   // box x is the arm's length
+   Q.copy(Qy).multiply(Qp);
+   M.compose(worldOf(cu,cv,y0-DEPTH/2+r*Math.tan(pitch)*0.85), Q, S.set(ARM,DEPTH,w)); im.setMatrixAt(k++,M); }
+ }
+ im.instanceMatrix.needsUpdate=true; im.name='canopy-hub-nodes';
+ root.add(im); solids.push(im); return im;
+}
+// THE LIGHTING RIG. A permanent triangular truss runs the length of the hall along the north
+// wall, between the wall and the wall-side column row, flown on electric chain hoists whose
+// chains rise to the ceiling at one point per bay, and it carries the house rig of profile
+// spots and PARs. Measured on the 2026 balcony photographs (b0cefe7f by day, Lloyd's
+// 2026-08-17 balcony still): centreline about 2.2 m off the wall, 9.0 m above the carpet
+// (the tapestries' top edge is 8.26 m and the fixtures hang level with it), from about 1 m in
+// from the west wall to about 3 m short of the east wall, 300 mm triangular truss apex up,
+// hoists at the ridge lines, about one fixture every 2 m facing the room.
+const RIG={d:2.2, y:9.0, u0:1.0, u1:46.0, side:0.30, chord:0.025, seg:0.30, fixEvery:2.0};
+function buildLightingRig(root,F){
+ const {PU,su0,su1,planeAt,PUx,PUz,PVx,PVz,huvOf}=F;
+ const O=huvOf(EVENT.N.origin.x,EVENT.N.origin.z);   // hall u=0,d=0 in huv
+ const hvOf=d=>O[1]-d, huOf=u=>O[0]+u;
+ const floorY=EVENT.N.origin.y;
+ const g=new THREE.Group(); g.name='lighting-rig';
+ const black=new THREE.MeshLambertMaterial({color:0x0b0b0d}); black.name='rig-steel';
+ const dark=new THREE.MeshLambertMaterial({color:0x17171a}); dark.name='rig-fixture';
+ const U=new THREE.Vector3(PUx,0,PUz), V=new THREE.Vector3(PVx,0,PVz), Y=new THREE.Vector3(0,1,0);
+ const at=(u,d,y)=>new THREE.Vector3().addScaledVector(U,huOf(u)).addScaledVector(V,hvOf(d)).setY(y);
+ const hv=hvOf(RIG.d), yc=floorY+RIG.y, L=RIG.u1-RIG.u0, um=(RIG.u0+RIG.u1)/2;
+ const s=RIG.side, hApex=s*0.577, hBase=-s*0.289;
+ // chords: the apex and the two base chords, one long tube each, along u
+ const chordQ=new THREE.Quaternion().setFromUnitVectors(Y,U);
+ const chordGeo=new THREE.CylinderGeometry(RIG.chord,RIG.chord,L,10);
+ const chords=[[hApex,0],[hBase,-s/2],[hBase,s/2]].map(([dy,dd])=>{ const m=new THREE.Mesh(chordGeo,black);
+  m.position.copy(at(um,RIG.d+dd,yc+dy)); m.quaternion.copy(chordQ); m.name='rig-chord'; g.add(m); solids.push(m); return m; });
+ // braces: on each of the three faces a zigzag, one diagonal per segment
+ const nSeg=Math.round(L/RIG.seg);
+ const bGeo=new THREE.CylinderGeometry(0.010,0.010,1,6);
+ const braces=new THREE.InstancedMesh(bGeo,black,nSeg*3); const M=new THREE.Matrix4(), Q=new THREE.Quaternion(), S=new THREE.Vector3(), dir=new THREE.Vector3();
+ const corners=[[hApex,0],[hBase,-s/2],[hBase,s/2]]; let k=0;
+ for(let i=0;i<nSeg;i++){ const ua=RIG.u0+i*RIG.seg, ub=ua+RIG.seg;
+  for(let f=0;f<3;f++){ const c0=corners[f], c1=corners[(f+1)%3]; const flip=(i+f)&1;
+   const A=at(ua,RIG.d+(flip?c1[1]:c0[1]),yc+(flip?c1[0]:c0[0])), B=at(ub,RIG.d+(flip?c0[1]:c1[1]),yc+(flip?c0[0]:c1[0]));
+   dir.subVectors(B,A); const len=dir.length(); Q.setFromUnitVectors(Y,dir.normalize());
+   M.compose(A.add(B).multiplyScalar(0.5),Q,S.set(1,len,1)); braces.setMatrixAt(k++,M); } }
+ braces.instanceMatrix.needsUpdate=true; braces.name='rig-braces'; g.add(braces);
+ // hoists: at every ridge line the truss passes, a chain hoist on the apex and its chain up to
+ // the ceiling surface where the ridge beam crosses the cross member
+ const chainGeo=new THREE.CylinderGeometry(0.007,0.007,1,6), hoistGeo=new THREE.BoxGeometry(0.22,0.32,0.16), bagGeo=new THREE.BoxGeometry(0.16,0.24,0.10);
+ const hoists=[];
+ for(let hu=su0;hu<=su1+1e-6;hu+=PU){ const u=hu-O[0]; if(u<RIG.u0+0.5||u>RIG.u1-0.5)continue;
+  const top=planeAt(hu,hv)+CANOPY.RELIEF-CANOPY.DIP-0.02;   // a ridge line: the rib's edge relief, whatever dv
+  const yb=yc+hApex+0.16;
+  const h=new THREE.Mesh(hoistGeo,black); h.position.copy(at(u,RIG.d,yb)); g.add(h);
+  const bag=new THREE.Mesh(bagGeo,dark); bag.position.copy(at(u,RIG.d+0.12,yb-0.02)); g.add(bag);
+  const ch=new THREE.Mesh(chainGeo,black); const yTop=top, yBot=yb+0.16; ch.scale.y=yTop-yBot; ch.position.copy(at(u,RIG.d,(yTop+yBot)/2)); g.add(ch);
+  hoists.push({u,chainTop:yTop,chainBottom:yBot}); }
+ // fixtures: profiles and PARs alternating, clamped under the base chords, aimed into the room
+ const nFix=Math.floor((L-1.0)/RIG.fixEvery)+1;
+ const profGeo=new THREE.CylinderGeometry(0.085,0.11,0.56,12), parGeo=new THREE.CylinderGeometry(0.115,0.10,0.34,12), spigGeo=new THREE.CylinderGeometry(0.018,0.018,0.26,6), yokeGeo=new THREE.BoxGeometry(0.30,0.03,0.22);
+ const profs=new THREE.InstancedMesh(profGeo,dark,Math.ceil(nFix/2)), pars=new THREE.InstancedMesh(parGeo,dark,Math.floor(nFix/2));
+ const spigs=new THREE.InstancedMesh(spigGeo,black,nFix), yokes=new THREE.InstancedMesh(yokeGeo,black,nFix);
+ let kp=0, ka=0; const aim=new THREE.Vector3(), Qy=new THREE.Quaternion();
+ const room=new THREE.Vector3().copy(V).negate();   // +d is into the room = -HV
+ for(let i=0;i<nFix;i++){ const u=RIG.u0+0.5+i*RIG.fixEvery; const side=(i%2?-1:1)*s/2*0.6;
+  const base=at(u,RIG.d+side,yc+hBase-0.03);
+  M.compose(base.clone().setY(base.y-0.13),Q.identity(),S.set(1,1,1)); spigs.setMatrixAt(i,M);
+  M.compose(base.clone().setY(base.y-0.27),Q.identity(),S.set(1,1,1)); yokes.setMatrixAt(i,M);
+  // aim: down into the room, pitched 55 degrees below level, yawed +-30 degrees along the hall
+  const yawA=((i*7)%5-2)*0.15;
+  aim.copy(room).multiplyScalar(Math.cos(0.96)).addScaledVector(U,Math.sin(yawA)*Math.cos(0.96)).setY(-Math.sin(0.96)).normalize();
+  Q.setFromUnitVectors(Y,aim.clone().negate());   // the cylinder's +y is the lamp's back end
+  const body=base.clone().setY(base.y-0.36).addScaledVector(aim,0.12);
+  M.compose(body,Q,S.set(1,1,1));
+  if(i%2===0) profs.setMatrixAt(kp++,M); else pars.setMatrixAt(ka++,M); }
+ for(const im of [profs,pars,spigs,yokes]){ im.instanceMatrix.needsUpdate=true; g.add(im); }
+ profs.name='rig-profiles'; pars.name='rig-pars';
+ // the envelope: a truss is mostly air, and the sim's ceiling ray (one line up from the lift
+ // deck) would thread between the chords. This box is the rig's clearance volume, chords and
+ // hanging fixtures together; it draws nothing (colour and depth writes off) and only rays see it
+ const envH=(hApex+0.05)-(hBase-0.75), envY=yc+((hApex+0.05)+(hBase-0.75))/2;
+ const env=new THREE.Mesh(new THREE.BoxGeometry(L,envH,s+0.30),new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}));
+ env.position.copy(at(um,RIG.d,envY)); env.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),U); env.name='rig-envelope'; g.add(env);
+ root.add(g);
+ g.userData.rig={d:RIG.d,y:RIG.y,u0:RIG.u0,u1:RIG.u1,side:s,hoists,fixtures:nFix,braces:nSeg*3};
+ console.info(`lighting rig: ${L.toFixed(1)} m of ${Math.round(s*1000)} mm truss at d ${RIG.d} m, ${RIG.y} m up, ${hoists.length} hoists, ${nFix} fixtures`);
+ return g;
 }
 
 // ============ THE GLASS, AS GEOMETRY (2026-09-01; slab look 2026-09-06) ============
@@ -5960,7 +6080,7 @@ function installStep(dt,now){
  // (Lloyd, 2026-09-06) the ceiling over the machine: a ray up from the deck against the scan and
  // the canopy, five times a second while anyone is aboard; the lift clamps its own height to it
  if(lift.aboard&&(!G.ceilAt||now-G.ceilAt>200)){ G.ceilAt=now; const ray=new THREE.Raycaster(new THREE.Vector3(lift.pos.x,world.floorY+lift.deckY+lift.height+0.3,lift.pos.z),new THREE.Vector3(0,1,0),0,30);
-  const hits=ray.intersectObjects([hallLevel,canopy&&canopy.mesh].filter(Boolean),true); lift.ceilingY=hits.length?hits[0].point.y:world.floorY+W.HALL.ceiling; }
+  const hits=ray.intersectObjects([hallLevel,canopy&&canopy.mesh,canopy&&canopy.rig].filter(Boolean),true); lift.ceilingY=hits.length?hits[0].point.y:world.floorY+W.HALL.ceiling; }
  if(lift.aboard){ const el=document.getElementById('deckh'); const c=lift.clearance(); el.querySelector('b.h').textContent=(lift.deckY+lift.height).toFixed(1)+' m'; el.querySelector('b.c').textContent=isFinite(c)?Math.max(0,c).toFixed(1)+' m':'-'; el.classList.toggle('top',c<0.3); el.classList.toggle('low',c>=0.3&&c<1.5); }
  document.body.classList.toggle('driving',lift.driving);
  // the fast / slow toggle (Q, or the button) and the wheel indicator while driving
@@ -6331,7 +6451,7 @@ requestAnimationFrame(frame);
 <tr><td>LED strips</td><td>Up to 8 per column, one per fin gap, on the shaft facing outward. Every strip is 60 LEDs/m; the pixel density option (60 px/m, 12 V 20 px/m, 24 V 10 px/m) sets how many LEDs share a colour. Count, density, colours and animation are set in the panel above and drawn live</td></tr>
 <tr><td>Walls</td><td>Flat, photo-textured</td></tr>
 <tr><td>Floor</td><td>Filled from one observed window</td></tr>
-<tr><td>Ceiling</td><td>Faceted glass canopy over the measured lattice (7.43 &times; 7.39 m inverted-pyramid coffers, 860 mm deep, 13.9&deg; facets, 0.45 m ridge ribs, phase-locked to the twelve column heads), its appearance a plan-view board stitched from the dense point cloud and the reference photographs flattened onto that lattice, backlit by the house lights above it; each funnel bottoms out on a column head, ridges midway between the columns</td></tr>
+<tr><td>Ceiling</td><td>Faceted glass canopy over the measured lattice (7.43 &times; 7.39 m inverted-pyramid coffers, 860 mm deep, 13.9&deg; facets, 0.45 m ridge ribs, phase-locked to the twelve column heads), its appearance a plan-view board stitched from the dense point cloud and the reference photographs flattened onto that lattice, backlit by the house lights above it; each funnel bottoms out on a column head, ridges midway between the columns; the eight-armed steel node on every column head; the permanent lighting truss along the wall side (300 mm triangular truss 9 m up, 2.2 m off the wall, on chain hoists at the ridge lines, profiles and PARs facing the room)</td></tr>
 <tr><td>Removed</td><td>People, couches, stage lights</td></tr>
 <tr><td>File</td><td>model.glb, 8.4 MB (hall only; the strips come from runs.json)</td></tr>
 </table>
