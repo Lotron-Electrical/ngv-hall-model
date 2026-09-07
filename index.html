@@ -198,7 +198,7 @@ body.paused #paused{display:flex}
 #stats{display:flex;gap:8px;flex-wrap:wrap;color:#fff;text-shadow:0 1px 2px #000;font:13px/1.3 ui-monospace,Consolas,monospace}
 #stats span{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:5px 7px}
 /* (Lloyd, 2026-09-04) the guide toggle: #ghud is pointer-events:none, so the button opts back in, and it sits at the RIGHT end clear of #bars at top-left. 44 px tall so it can be tapped */
-#installUi #guide{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
+#installUi #guide{flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
 #installUi #guide.off{color:var(--dim)}
 /* (Lloyd, 2026-09-05: "a + in the centre of the screen for the players reticle") two thin bars, a dark edge so it reads on the lit bars as well as the black */
 #reticle{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);z-index:5;display:none;pointer-events:none;opacity:1;filter:drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1px #000)}
@@ -210,7 +210,7 @@ body.paused #paused{display:flex}
 #reticle::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
 body.playing #reticle{display:block}
 /* the crew room (net.js): a button beside the guide, a small panel under it. Lines, not paragraphs */
-#installUi #crewBtn{flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
+#installUi #crewBtn{margin-left:auto;flex:0 0 auto;min-height:44px;padding:0 14px;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;letter-spacing:.04em;touch-action:manipulation}
 #installUi #crewBtn.on{border-color:#5fbf7a;color:#9fe7b4}
 /* OPAQUE, not .84: the clock chips, the bars and the deck read all sit at z 3 and printed through
    the panel's ground -- "0 columns done" read straight across Dave's row (Claude, 2026-09-07) */
@@ -296,15 +296,21 @@ body.panelOpen #prompt,body.sheetOpen #prompt{display:none}
 #summary .box{width:min(420px,100%);background:rgba(18,20,24,.96);border:1px solid var(--rule);border-radius:6px;padding:18px}
 #summary h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:30px;font-weight:500;margin:0 0 8px;color:var(--accent)}
 #touch{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
-/* (Lloyd, 2026-09-05: "make the joysticks the same as free roam") the same ring, knob, labels and
-   place as #sticks: 80 px ring with a 1 px white line, a 32 px white knob, MOVE and LOOK above,
-   70 px up from the stage's bottom edge (#installUi ends 44 px up, at the bar) and 28 px in, half strength */
-#installUi .stick{position:absolute;bottom:26px;width:80px;height:80px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.06);opacity:0;transition:opacity .8s ease;pointer-events:auto;touch-action:none}
-#installUi .stick::before{content:attr(data-label);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:8px;color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
-#installUi .stick.show{opacity:.5;transition:opacity 1.2s ease}   /* (Lloyd, 2026-09-04) the viewer's resting sticks: up until first used, then while held and a second after */   /* the #touch layer is pointer-events:none; the sticks must opt back in or no touch ever reaches them (2026-09-04: the controls did nothing on the phone) */
-#installUi .stick i{position:absolute;left:24px;top:24px;width:32px;height:32px;border-radius:50%;background:#fff}
-#move{left:28px}
-#look{right:28px}
+/* (Lloyd, 2026-09-07: "we need to improve the controls on phone. No big buttons that will take up
+   screen space") THE PLAY LAYER. One transparent surface takes every gesture: the left 40 % is the
+   move stick, wherever the thumb lands, and the rest is free look. touch-action:none so the browser
+   never steals a drag for a scroll, a pull-to-refresh or a double-tap zoom (research B) */
+#tzone{position:absolute;inset:0;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+/* the floating ring. It is PLACED by game/touch.js (left/top/width/height); nothing here fixes it
+   to a corner. 60-80 % opacity is the band the research gives for anything persistent */
+#installUi .stick{position:absolute;left:-999px;top:0;width:120px;height:120px;border-radius:50%;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.05);opacity:0;transition:opacity .35s ease;pointer-events:none;touch-action:none}
+#installUi .stick.show{opacity:var(--ctlop,.7)}
+#installUi .stick.ghost{opacity:calc(var(--ctlop,.7) * .45)}   /* the resting ghost: where the thumb would land, until it lands somewhere else */
+#installUi .stick.run{border-color:#7CFF9A}                     /* the rim latched the run (research 5) */
+#installUi .stick i{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:#fff}
+#installUi .stick.run i{background:#7CFF9A}
+body:not(.lookstick) #look{display:none}                        /* drag look has NO look stick at all (research 2) */
+body.ctlIdle #installUi .stick.show{opacity:calc(var(--ctlop,.7) * .5)}
 /* (Lloyd, 2026-09-06: "we should have an inventory system") four slots, the one in hand outlined green; a tap or 1-4 picks */
 #inv{position:absolute;left:12px;top:212px;display:none;gap:6px;pointer-events:auto;z-index:4}   /* `top` is written by hud.js (stackHud): the strip follows the clock chips and the bars down */
 #inv .slot{width:50px;height:46px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#ddd;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;position:relative;text-align:center;overflow:hidden}
@@ -318,14 +324,27 @@ body.playing #inv{display:flex}
    and the strip was printed straight through the UP and DOWN buttons on a phone. It comes back the
    moment you let go of the controls */
 body.playing.driving #inv{display:none}
-#drop{position:absolute;right:24px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
-body.carrying #drop{display:block}
-/* (Lloyd, 2026-09-06: floor protection) TURN flips the ply sheet in your hands between along the
-   hall and across it. Only up while a sheet is held, beside DROP, clear of the prompt above */
-#turn{position:absolute;right:98px;bottom:166px;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.45);border-color:rgba(201,167,106,.75);color:#e6cfa0;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;letter-spacing:.06em;pointer-events:auto;display:none}
-body.sheet #turn{display:block}
-#liftBtns{position:absolute;left:24px;bottom:166px;display:none;flex-direction:column;gap:10px;pointer-events:auto}   /* (Lloyd, 2026-09-04: could not look round on the lift) they sat on the look stick */
-body.driving #liftBtns{display:flex}   /* (Lloyd, 2026-09-04) the deck moves from the control box only */
+/* (Lloyd, 2026-09-07) THE CONTEXTUAL CLUSTER. Bottom-right corner, the green thumb zone of
+   Hoober's field study; nothing here is up unless the moment needs it. 48 dp of hit area with a
+   small glyph inside it (Material 48, Apple 44, NN/g 1 cm): the box is never shrunk, only the
+   letters. Left-handed mirrors the cluster with the stick zone */
+#installUi .ctlbtn{position:absolute;width:52px;height:52px;padding:0;border-radius:50%;background:rgba(0,0,0,.5);border-color:rgba(255,255,255,.5);color:#fff;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:15px;letter-spacing:.04em;line-height:1;pointer-events:auto;display:none;opacity:var(--ctlop,.7);touch-action:manipulation}
+body.ctlIdle #installUi .ctlbtn{opacity:calc(var(--ctlop,.7) * .5)}
+#drop{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+#turn{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(156px + env(safe-area-inset-bottom,0px));border-color:rgba(201,167,106,.75);color:#e6cfa0}
+#letGo{right:calc(78px + env(safe-area-inset-right,0px));bottom:calc(90px + env(safe-area-inset-bottom,0px));font-size:12px}
+body.lefty #drop,body.lefty #turn{right:auto;left:calc(16px + env(safe-area-inset-left,0px))}
+body.lefty #letGo{right:auto;left:calc(78px + env(safe-area-inset-left,0px))}
+body.playing.carrying:not(.driving) #drop{display:block}
+body.playing.sheet:not(.driving) #turn{display:block}
+body.playing.driving #letGo{display:block}
+/* (research 10) the deck: ONE vertical mini-stick, up only while you are driving, its magnitude the
+   speed. That is UP, DOWN and FAST gone in one control */
+#deckStick{position:absolute;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(90px + env(safe-area-inset-bottom,0px));width:48px;height:min(132px,40vh);border-radius:24px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.06);display:none;pointer-events:auto;touch-action:none;opacity:var(--ctlop,.7)}
+body.lefty #deckStick{right:auto;left:calc(20px + env(safe-area-inset-left,0px))}
+body.playing.driving #deckStick{display:block}
+#deckStick i{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:#fff}
+#deckStick b{position:absolute;left:0;right:0;top:-18px;text-align:center;font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.16em;color:#fff;opacity:.8}
 #wheels{position:absolute;left:24px;bottom:246px;display:none;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
 body.driving #wheels{display:block}
 /* (Lloyd, 2026-09-06: "it should also show how high we are") deck height and ceiling clearance, whenever you are aboard */
@@ -335,7 +354,6 @@ body.driving #wheels{display:block}
 #deckh.low b.c{color:#ffb454}
 #deckh.top b.c{color:#ff5c5c}
 body.aboard #deckh{display:block}
-#liftMode{font-size:18px!important;height:44px!important}
 @media (pointer:fine){#wheels{left:24px;bottom:24px}}   /* on a desk the keys do the work (Q flips fast / slow); the plan sits in the corner */
 /* (Claude, 2026-09-07) on the phone the plan at left 24 / bottom 246 was printed straight over the
    UP button and the inventory strip: "UP" and the deck height read through each other. The left
@@ -344,7 +362,10 @@ body.aboard #deckh{display:block}
    and at 360 with the sticks, both buttons, a two-line prompt and a toast up: this one and the
    sizes under it are the only ones that touch nothing (tools/game-boards.mjs step 17 holds it) */
 @media (pointer:coarse){#wheels{left:126px;bottom:26px} #wheels svg{display:block;width:84px;height:105px}}
-#liftBtns button{width:96px;height:60px;border-radius:6px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.42);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:22px;color:#fff}
+/* (Claude, 2026-09-07) the plan keeps that corner, and the RESTING GHOST stands down while you
+   drive: it is only a hint about where the stick lives, and at 360 it printed straight over the
+   plan. A stick actually under a thumb is transient, and the plan takes no touches anyway */
+body.driving #move.ghost{display:none}
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the prompt is a pill on the right edge above the look stick, right-aligned, narrow */
 /* (Lloyd, 2026-09-04: "on the side so they don't take up much viewing space") on the phone the
    prompt is a pill on the right edge above the look stick, right-aligned, narrow.
@@ -352,12 +373,103 @@ body.aboard #deckh{display:block}
    pill printed its left edge through the + in the middle of the screen. And the four slots go two
    by two in the top-left corner, 106 px wide instead of 218: at 360 the one-row strip ran under the
    reticle and under the pill, so "Put the sheet back" was printed over the slot holding the sheet */
-@media (pointer:coarse){#touch{display:block} #prompt{left:auto;right:12px;bottom:246px;transform:none;max-width:min(46vw,calc(50vw - 40px));text-align:right;font-size:15px;padding:7px 10px} #stats{font-size:12px}
- body.playing #inv{display:grid;grid-template-columns:repeat(2,50px);gap:6px;width:106px} body.playing.driving #inv{display:none}}
+/* (Lloyd, 2026-09-07, the research: keep exactly one contextual prompt, near the reticle, and let
+   it hide) the pill is the FALLBACK now, not the main way to act: a tap on the thing itself is. It
+   sits 56 px under the +, so the eye that read the reticle reads the words without travelling, and
+   hud.js hides it whenever there is nothing in range */
+@media (pointer:coarse){#touch{display:block}
+ #prompt{left:50%;right:auto;bottom:auto;top:calc(50% + 56px);transform:translateX(-50%);max-width:min(80vw,340px);text-align:center;font-size:15px;padding:7px 10px;opacity:.7}
+ #stats{font-size:12px}
+ #installUi #inv,#installUi #ghud{z-index:6}
+ #prompt[hidden]{display:none}
+ #prompt{min-height:48px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}
+ #installUi #guide,#installUi #crewBtn,#installUi #ctlBtn,#installUi #pauseBtn{min-height:48px}
+ /* (2026-09-07) the pause glyph made the header row five items wide: at 360 dp it ran 4 px off
+    the right edge. The gaps and the two word buttons give the room back, and the chips take
+    whatever is left and wrap, so the row fits whatever the clock says */
+ #installUi #ghud{gap:6px}
+ #installUi #stats{flex:1 1 0;min-width:0}
+ #installUi #crewBtn,#installUi #guide{flex:0 0 auto;min-width:48px;padding:0 8px;font-size:13px}
+ /* (skeptic 3, 2026-09-07) THE SLOTS COME OFF THE LEFT RAIL. Two by two in the top-left corner they
+    sat inside the move stick's zone (a 106 x 106 dead patch where the stick would not raise) and
+    not one of the four was inside a 45 mm thumb arc: the nearest was 119 mm out, 2.6 times a
+    comfortable reach. They are a 4-in-a-row strip along the bottom centre now, in the gap BETWEEN
+    the two thumbs, so either one reaches them. The strip itself takes no touches -- only the four
+    44 px slots do -- so a drag through the gaps is still a look or a walk */
+ body.playing #inv{display:flex;left:50%;right:auto;top:auto;transform:translateX(-50%);
+  bottom:calc(12px + env(safe-area-inset-bottom,0px));gap:8px;width:auto;pointer-events:none}
+ #inv .slot{width:44px;height:44px;pointer-events:auto;font-size:10px}
+ #inv .slot span{font-size:9px}
+ body.playing.driving #inv{display:none}
+ /* (skeptic 4) THE PILL TAKES NO POINTERS. 182 x 48 dead centre of the screen is exactly where a
+    thumb lands to look at the thing in front of it: a look drag started on it turned 0.0 deg and a
+    thumb landing on it never raised the stick. It is glass now, and installTapWorld runs its action
+    when a TAP lands inside its rect -- so a tap still acts and a drag still looks */
+ #prompt{pointer-events:none}
+ /* (skeptic 12) the deck stick was the one control the idle fade did not reach: LET GO went to 35 %
+    beside it while it stayed at 70 % in the same frame */
+ body.ctlIdle #deckStick{opacity:calc(var(--ctlop,.7) * .5)}
+ /* (skeptic 6) left-handed mirrors the wheel plan too. It stayed pinned at left 126 while LET GO
+    crossed to the left, and the two were drawn through each other at all three viewports */
+ body.lefty #wheels{left:auto;right:126px}
+ /* (skeptic 2, 7, 8, 15 + orchestrator) THE VIEWER'S BAR STANDS DOWN FOR A SHIFT. Menu, Tour, Full
+    screen, Stats and Phone remote cost 44 px of every screen (a tenth of the picture in landscape)
+    and three of them were live grenades mid-shift: Tour hijacked the render with the HUD still
+    painted over it, Phone remote put a QR card over the running hall, Stats stacked a second
+    read-out on the install one. During a shift the phone has the pause glyph instead */
+ body.install.playing .ctl{display:none}
+ body.install.playing #installUi{bottom:0}
+ body.install.playing #cv{height:100%}
+ body.install.playing #stage:fullscreen #cv{margin-top:0}}
 /* (Lloyd, 2026-09-04: "all the same menu stuff as the free roam, no full screen automatically") the
    shift runs inside the ordinary viewer: the Menu / Tour / Full screen bar and the panel stay, the
    stage keeps its place on the page; only the fly camera's sticks, pad and buttons stand down */
 body.install #sticks,body.install #pad,body.install #roamfab,body.install #celebratefab,body.install #hud,body.install #restbtns{display:none!important}
+/* (Lloyd, 2026-09-07) IMMERSIVE. Start Shift on a phone asks for fullscreen and a landscape lock;
+   both are best-effort (orientation lock is not Baseline and needs fullscreen first), so when the
+   browser refuses, this pins the stage over the page instead: no header, no page scroll, no
+   letterbox. Menu / stopping the shift puts it all back */
+/* (orchestrator, 2026-09-07) HELD MEANS HELD. While the pause glyph has the game, the play layer,
+   the slots, the pill and the reticle all stand down: DROP and a slot tap are ordinary listeners
+   that do not read `playing`, so a tap on either would have acted through the pause */
+body.halted #touch,body.halted #inv,body.halted #prompt,body.halted #reticle{display:none!important}
+html.immersive,html.immersive body{overflow:hidden;height:100%;overscroll-behavior:none}
+body.immersive #stage{position:fixed;left:0;top:0;right:0;bottom:0;width:100vw;height:100dvh;z-index:100;border:0;max-width:none}
+/* THE CONTROLS SHEET (the gear beside Guide). Same card as the task sheet: a label and a control
+   per row, one idea per line, no paragraph anywhere */
+#ctlSheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;width:min(340px,calc(100% - 20px));max-height:calc(100% - 24px);display:none;flex-direction:column;background:rgba(14,16,20,.96);border:1px solid var(--rule);border-radius:8px;padding:14px;color:#fff;pointer-events:auto}
+#ctlSheet.up{display:flex}
+#ctlSheet h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:26px;font-weight:500;margin:0 0 2px;color:var(--accent)}
+#ctlSheet .csst{color:var(--dim);font-size:13px;margin:0 0 6px}
+#ctlSheet .csbody{overflow-y:auto;min-height:0;flex:1 1 auto}
+#ctlSheet .csl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin:12px 0 5px}
+#ctlSheet .csrow{display:flex;align-items:center;gap:10px;min-height:44px}
+#ctlSheet .csrow label{flex:0 0 104px;font-size:14px;color:#e6e6e6}
+#ctlSheet .csrow input[type=range]{flex:1 1 auto;min-width:0}
+#ctlSheet .csrow output{flex:0 0 40px;text-align:right;font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--accent)}
+#ctlSheet .seg2{display:flex;gap:6px;flex:1 1 auto}
+#ctlSheet .seg2 button{flex:1 1 0;min-height:44px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.24);border-radius:5px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:16px;color:#fff}
+#ctlSheet .seg2 button[aria-pressed=true]{border-color:#7CFF9A;color:#9fe7b4;background:rgba(124,255,154,.12)}
+#ctlSheet #csClose{margin-top:12px;min-height:44px;width:100%;color:#fff}
+@media (max-height:560px){#ctlSheet{width:min(680px,calc(100% - 20px));max-height:calc(100% - 6px);padding:10px 14px}
+ #ctlSheet .csbody{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-content:start}
+ #ctlSheet .csl{grid-column:1 / -1;margin:8px 0 2px}
+ #ctlSheet .csrow{min-height:40px}
+ #ctlSheet .csst{display:none}                      /* the room goes to the rows: nothing may be cut in half */
+ #ctlSheet #csClose{min-height:42px;margin-top:8px}
+ #ctlSheet h3{font-size:20px;margin-bottom:4px}}
+#installUi #ctlBtn,#installUi #pauseBtn{flex:0 0 auto;width:48px;min-height:48px;padding:0;background:rgba(0,0,0,.6);border-color:rgba(255,255,255,.34);border-radius:5px;pointer-events:auto;font-size:18px;line-height:1;touch-action:manipulation}
+@media (pointer:fine){#installUi #ctlBtn,#installUi #pauseBtn{display:none}}   /* the desk has a mouse and keys: nothing in here applies to it */
+/* (orchestrator, 2026-09-07) THE PAUSE GLYPH. With the viewer's bar gone for the shift, Menu's job
+   lands here, beside the gear: it holds the night, opens the lighting panel, and closing the panel
+   puts you straight back in the hall. A rare action in the red reach zone, which is the trade the
+   research allows */
+#installUi #pauseBtn{font-size:15px}
+body.halted #installUi #pauseBtn{border-color:#7CFF9A;color:#9fe7b4}
+/* the panel is the only thing on screen while the game is held, so it carries its own way out:
+   the bar that used to hold Menu is not there to close it */
+#panelClose{position:sticky;top:0;z-index:2;width:100%;min-height:48px;margin-bottom:6px;background:rgba(8,8,10,.98);border:1px solid var(--rule);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+@media (pointer:fine){#panelClose{display:none}}
 body.install #installUi{bottom:44px}   /* clear of the bar */
 /* the shift takes the whole screen (Lloyd, 2026-09-04): the stage is a 70vh band inside a scrolling
    page, and a night's work seen through a letterbox with the page's headings above it is not a game */
@@ -386,7 +498,7 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
  <button type="button" id="roamfab">Free roam</button>
  <div id="installUi">
   <div id="vignette"></div>
-  <div id="ghud"><div id="stats"></div><button type="button" id="crewBtn">Crew</button><button type="button" id="guide">Guide on</button></div>
+  <div id="ghud"><div id="stats"></div><button type="button" id="crewBtn">Crew</button><button type="button" id="guide">Guide on</button><button type="button" id="ctlBtn" aria-label="Controls" title="Controls">&#9881;</button><button type="button" id="pauseBtn" aria-label="Pause and open the menu" title="Pause">&#10073;&#10073;</button></div>
   <div id="reticle" aria-hidden="true"></div>
   <!-- (Lloyd, 2026-09-05: multiplayer) the crew room: start one, or join with a code; the link carries the key and the code -->
   <div id="crewPanel" hidden>
@@ -428,11 +540,36 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
    </div>
    <button type="button" id="tsClose">Close</button>
   </div>
+  <!-- (Lloyd, 2026-09-07) THE CONTROLS SHEET. A rare thing to open, so the gear may sit in the top
+       corner (the red reach zone) where it costs no play space. One label, one control, one line -->
+  <div id="ctlSheet">
+   <h3>Controls</h3>
+   <div class="csst">Phone. Saved on this device.</div>
+   <div class="csbody">
+    <span class="csl">Look</span>
+    <div class="csrow"><label>Mode</label><div class="seg2" id="csLook"><button type="button" data-v="drag" aria-pressed="true">Drag</button><button type="button" data-v="stick" aria-pressed="false">Stick</button></div></div>
+    <div class="csrow"><label>Across</label><input type="range" id="csH" min="0.5" max="2" step="0.1" value="1"><output id="csHo">1.0</output></div>
+    <div class="csrow"><label>Up and down</label><input type="range" id="csV" min="0.5" max="2" step="0.1" value="1"><output id="csVo">1.0</output></div>
+    <div class="csrow"><label>Invert Y</label><div class="seg2" id="csInv"><button type="button" data-v="0" aria-pressed="true">Off</button><button type="button" data-v="1" aria-pressed="false">On</button></div></div>
+    <span class="csl">Move</span>
+    <div class="csrow"><label>Stick size</label><div class="seg2" id="csStick"><button type="button" data-v="S" aria-pressed="false">S</button><button type="button" data-v="M" aria-pressed="true">M</button><button type="button" data-v="L" aria-pressed="false">L</button></div></div>
+    <div class="csrow"><label>Auto run</label><div class="seg2" id="csRun"><button type="button" data-v="0" aria-pressed="false">Off</button><button type="button" data-v="1" aria-pressed="true">On</button></div></div>
+    <span class="csl">Layout</span>
+    <div class="csrow"><label>Left-handed</label><div class="seg2" id="csLefty"><button type="button" data-v="0" aria-pressed="true">Off</button><button type="button" data-v="1" aria-pressed="false">On</button></div></div>
+    <div class="csrow"><label>Opacity</label><input type="range" id="csOp" min="0.35" max="1" step="0.05" value="0.7"><output id="csOpo">70%</output></div>
+   </div>
+   <button type="button" id="csClose">Close</button>
+  </div>
   <div id="bars"></div>
   <div id="toast"></div>
   <div id="paused"><div><b>Paused</b><small>Click to resume &middot; Esc pauses</small></div></div>
   <div id="prompt">Loading hall&hellip;</div>
-  <div id="touch"><div id="move" class="stick" data-label="Move"><i></i></div><div id="look" class="stick" data-label="Look"><i></i></div><button type="button" id="drop">DROP</button><button type="button" id="turn">TURN</button><div id="liftBtns"><button type="button" id="liftUp">UP</button><button type="button" id="liftDown">DOWN</button><button type="button" id="liftMode">FAST</button></div></div>
+  <!-- (Lloyd, 2026-09-07: no big buttons) THE PLAY LAYER comes first, so a gesture anywhere lands
+       on it and every control after it still takes its own tap: they are siblings painted above it.
+       UP / DOWN / FAST are gone; the deck has a mini-stick that is only up while you drive -->
+  <div id="touch"><div id="tzone"></div><div id="move" class="stick"><i></i></div><div id="look" class="stick"><i></i></div>
+   <button type="button" id="drop" class="ctlbtn">DROP</button><button type="button" id="turn" class="ctlbtn">TURN</button>
+   <div id="deckStick"><b>DECK</b><i></i></div><button type="button" id="letGo" class="ctlbtn">LET GO</button></div>
   <!-- (Lloyd, 2026-09-05) the wheels: a plan of the chassis while you drive, the front pair turned as the steering is, a chevron for the way it rolls. Outside #touch, so a desk sees it too -->
   <div id="deckh">DECK <b class="h">0.0 m</b> &nbsp; CEILING <b class="c">-</b></div>
   <div id="inv"></div>
@@ -482,23 +619,24 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
     </div>
     <div class="keys phone">
      <span class="kl">Move</span>
-     <b>Left stick</b><i>Walk</i>
-     <b>Right stick</b><i>Look, hold it over to keep turning</i>
-     <span class="kl">Hands</span>
-     <b>Message</b><i>Tap it to do what it says</i>
+     <b>Left thumb</b><i>Drag anywhere on the left to walk</i>
+     <b>Push to the rim</b><i>Run</i>
+     <span class="kl">Look</span>
+     <b>Right thumb</b><i>Drag anywhere to turn</i>
+     <span class="kl">Do things</span>
+     <b>Tap a thing</b><i>Pick it up, fit it, talk to them</i>
+     <b>Tap the message</b><i>Do what the + is on</i>
+     <b>Slots</b><i>Four along the bottom: tap one for your hands</i>
      <b>DROP</b><i>Put down what you hold</i>
-     <b>Slots</b><i>Tap one to pick it up</i>
+     <b>TURN</b><i>Turn the ply sheet</i>
      <span class="kl">On the lift</span>
-     <b>Message</b><i>Take the controls, or let go</i>
-     <b>Left stick</b><i>Drive and steer</i>
-     <b>UP DOWN</b><i>Move the deck</i>
-     <span class="kl">Floor protection</span>
-     <b>Boards</b><i>The lift drives on ply sheets only</i>
-     <b>Sheets</b><i>The board stacks in storage</i>
-     <b>TURN</b><i>Turn the sheet</i>
-     <span class="kl">Crew</span>
-     <b>Crew</b><i>Open the crew panel</i>
-     <b>Look at one</b><i>Tap the message: give them a task</i>
+     <b>Tap the panel</b><i>Take the controls</i>
+     <b>Left thumb</b><i>Drive and steer</i>
+     <b>Deck stick</b><i>Raise and lower the deck</i>
+     <b>LET GO</b><i>Leave the controls</i>
+     <span class="kl">Top right</span>
+     <b>Gear</b><i>Sensitivity, stick size, left-handed</i>
+     <b>Pause</b><i>Hold the night and open the menu</i>
     </div>
     </div>
     <button type="button" id="start">Start Shift</button>
@@ -2015,7 +2153,8 @@ document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1)
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
 document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.cover=btn.dataset.c; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
 document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); sceneDirty=true; rcSync();});
-document.getElementById('hudb').onclick=()=>{state.hud=!state.hud; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); rcSync();};
+/* (skeptic 15) Stats put the free-roam overlay up on top of the install HUD: two read-outs at once */
+document.getElementById('hudb').onclick=()=>{if(document.body.classList.contains('playing'))return; state.hud=!state.hud; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); rcSync();};
 // density grouping and covers are strip concepts; the neon hides those rows
 function applySystemUI(){const neon=state.system==='neon';
  document.querySelectorAll('#sysseg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===state.system));
@@ -2242,7 +2381,9 @@ function rcApply(m){
 // the link libraries load on demand: a script in <head> blocks first paint for every visitor,
 // remote or not, and a phone that cannot reach the CDN sat on a white page (2026-08-28)
 const loadScript=src=>new Promise((ok,bad)=>{const e=document.createElement('script'); e.src=src; e.onload=ok; e.onerror=()=>bad(new Error('could not load '+src)); document.head.appendChild(e);});
+/* (skeptic 8) the QR card painted over the running hall, raw local URL and all */
 document.getElementById('remote').onclick=async()=>{
+ if(document.body.classList.contains('playing'))return;
  const box=document.getElementById('qr'); box.hidden=false;
  if(rc.peer)return;
  document.getElementById('qrstat').textContent='loading the link';
@@ -4057,8 +4198,15 @@ document.getElementById('logoh').oninput=e=>{document.getElementById('logohval')
  for(const r of rows)cats.get(catOfAny(r)).push(r);
  for(const n of order){ const d=document.createElement('details'); const sm=document.createElement('summary');
   sm.textContent=n; d.appendChild(sm); for(const r of cats.get(n))d.appendChild(r); panel.appendChild(d); }
- panel.classList.add('menu-overlay'); panel.hidden=true; stage.appendChild(panel);
- document.getElementById('menubtn').onclick=()=>{panel.hidden=!panel.hidden;};
+ panel.classList.add('menu-overlay'); panel.hidden=true;
+ /* (skeptic 9 + orchestrator, 2026-09-07) the panel's own way out. On a phone during a shift the
+    viewer's bar is not on screen, so nothing else could shut it */
+ { const x=document.createElement('button'); x.type='button'; x.id='panelClose'; x.textContent='Close and go back to the hall'; panel.insertBefore(x,panel.firstChild);
+   x.onclick=()=>menuPanel(false); }
+ stage.appendChild(panel);
+ /* (skeptic 9) Menu used to be a one-way door: it dropped immersive and nothing ever put it back,
+    so a second tap left the page scrolled and the stage unpinned for the rest of the night */
+ document.getElementById('menubtn').onclick=()=>menuPanel(panel.hidden);
  // the spec readout is stats, not a control: it shows only while the Stats button is pressed
  const syncSpec=()=>{const on=document.getElementById('hudb').getAttribute('aria-pressed')==='true'; for(const el of specEls)el.hidden=!on;};
  syncSpec(); document.getElementById('hudb').addEventListener('click',()=>setTimeout(syncSpec,0));
@@ -4539,7 +4687,7 @@ function tourStep(now){ const T=tour; if(!T)return; if(tourPaused){ tourShift(no
  if(houseRamp){ const q=Math.min(1,(now-houseRamp.t0)/houseRamp.dur); lit.house=houseRamp.from+(houseRamp.to-houseRamp.from)*smooth(q); if(q>=1)houseRamp=null; }
  TITLE_WIPE.cols=null;   /* the column wipe is armed by the one shot that wants it, every frame */
  if(k>=1){ sg.cam(1); if(SHOT){ playShot(); return; } tourNext(now); return; } sg.cam(k); sceneDirty=true; }
-document.getElementById('tourbtn').onclick=()=>{ trackWarm(); tourFlip(); };   /* trackWarm inside the gesture: WebKit unlocks the element only there */
+document.getElementById('tourbtn').onclick=()=>{ if(document.body.classList.contains('playing'))return; trackWarm(); tourFlip(); };   /* (skeptic 2) the tour took the camera while the shift ran on underneath it, HUD and all */   /* trackWarm inside the gesture: WebKit unlocks the element only there */
 // (Lloyd, 2026-09-05: "the flip from tour/stop tour and back should happen smoothly with a fade") the
 // button takes the picture through black: 0.5 s down, the switch on the black, 0.9 s back up. The
 // file's level goes down with the picture on the way out of a tour, so the music is not cut mid-note
@@ -5523,7 +5671,8 @@ async function buildInstall(){
   import('./game/sound.js'), import('./game/player.js'), import('./game/lift.js'), import('./game/items.js'),
   import('./game/install.js'), import('./game/clock.js'), import('./game/hud.js')]);
  const NETm=await import('./game/net.js');
- const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm,NETm,LIFTm,PLm,INSTm,CREWm,SNDm,BODYm}};
+ const TCHm=await import('./game/touch.js');   // (Lloyd, 2026-09-07) the phone scheme
+ const G={ready:false, mods:{W,FXm,ITEMm,CLKm,HUDm,NETm,LIFTm,PLm,INSTm,CREWm,SNDm,BODYm,TCHm}};
  // what the sim looked like on the way in, so the way out is exact
  G.saved={house:lit.house, count:state.count, fov:cam.fov, eye:eye.clone(), yaw, pitch, entered, idle, roam, roamed,
   bg:scene.background, order:cam.rotation.order, portal:portal?portal.group.visible:null, camKids:cam.children.length};
@@ -5567,8 +5716,10 @@ async function buildInstall(){
  const saved=CLKm.loadSave();
  const install=new INSTm.Install(G.group,RUNS,saved);
  const player=new PLm.Player(cam,cv);
- player.bind({prompt:document.getElementById("prompt"), inv:document.getElementById("inv"), moveStick:document.getElementById('move'), lookStick:document.getElementById('look'),
-  drop:document.getElementById('drop'), turn:document.getElementById('turn'), liftUp:document.getElementById('liftUp'), liftDown:document.getElementById('liftDown')});
+ // (Lloyd, 2026-09-07: no big buttons) the sticks and the deck belong to game/touch.js now: no
+ // ring elements and no UP / DOWN buttons are handed in, and player.js binds neither
+ player.bind({prompt:document.getElementById("prompt"), inv:document.getElementById("inv"),
+  drop:document.getElementById('drop'), turn:document.getElementById('turn')});
  const items=ITEMm.createItems(G.group,world,cam,W.collideWorld);
  // (Lloyd, 2026-09-06: floor protection) the path of ply that is already down, and what is left
  // on the stacks, come back with the fitted lights
@@ -5591,13 +5742,19 @@ async function buildInstall(){
  Object.assign(G,{player,lift,items,install,clock,world,fx,body,crew,snd:new SNDm.Sound(),
   hallToWorld:W.hallToWorld, dbg:{dt:0,frames:0}, last:performance.now(), runLightTick:0, doorsWereOpen:false, guideShown:null, toastTimer:null, action:null,
   sheetSig:sheetSig(world,items)});
+ // (Lloyd, 2026-09-07) THE PHONE CONTROLS. Only on a coarse pointer: a desk keeps the mouse, the
+ // keys and the pointer lock exactly as they were
+ G.touch=COARSE?new TCHm.TouchControls(player,{zone:document.getElementById('tzone'), move:document.getElementById('move'),
+  look:document.getElementById('look'), deck:document.getElementById('deckStick'), head:document.getElementById('ghud'),
+  root:document.getElementById('installUi'), onTap:(x,y)=>installTapWorld(G,x,y)}):null;
  // the three buttons the overlay owns; remembered so teardown can take them off again
  G.ui=[];
  const wire=(id,fn)=>{const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn));};
  wire('start',()=>installStart(G));
  wire('nextNight',()=>installNextNight(G));
  wire('guide',()=>{ if(G.install)G.install.setGuide(!G.install.guide); });
- wire('liftMode',()=>{ player.modeQueued=true; });
+ wire('letGo',()=>{ if(G.lift&&G.lift.driving)G.lift.letGo(); });
+ ctlWire(G);
  crewWire(G);
  document.getElementById('prompt').textContent='Press Start Shift';
  document.getElementById('overlay').classList.remove('gone');
@@ -5615,11 +5772,15 @@ async function buildInstall(){
 }
 
 function installStart(G){
+ immersiveOn();   // (Lloyd, 2026-09-07) same gesture: fullscreen, then the landscape lock if the browser has one
  document.getElementById('overlay').classList.add('gone');
  document.body.classList.add('playing');
  G.clock.running=true;
  G.player.lock();   // pointer lock, or the pause screen if the browser refuses it (the player owns both)
  G.snd.wake(); G.snd.tone(220,0.08,'sine',0.05);
+ // (orchestrator, 2026-09-07) `playing` is what takes the viewer's 44 px bar off a phone, and it
+ // lands AFTER immersiveOn's resize: without this the canvas keeps a 44 px black strip all night
+ resize();
 }
 
 function installNextNight(G){
@@ -5644,6 +5805,106 @@ function sheetSig(world,items){ return (world.sheets?world.sheets.length:0)+':'+
 function installToast(G,msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('up'); G.toastAt=performance.now();
  clearTimeout(G.toastTimer); G.toastTimer=setTimeout(()=>el.classList.remove('up'),6000); }
 
+// (Lloyd, 2026-09-07: "No big buttons that will take up screen space") A TAP ON THE WORLD IS THE
+// ACTION. The tap's own point is cast through the camera (items.js reads player.tapNdc): whatever
+// it lands on becomes the target and its prompt runs at once, so picking a box off a pallet is one
+// tap on the pallet. A tap that hits nothing was a look gesture and does nothing at all.
+// Fortnite mobile ships this as "In World" interaction; the research put it first
+function installTapWorld(G,x,y){
+ if(!G||!G.ready||!document.body.classList.contains('playing'))return false;
+ if(document.body.classList.contains('sheetOpen')||document.body.classList.contains('panelOpen')||document.body.classList.contains('halted'))return false;
+ if(G.lift.anim||document.getElementById('summary').classList.contains('up'))return false;
+ // (skeptic 4) THE PILL IS GLASS NOW and takes no pointers of its own, so a drag that starts on it
+ // is a look. A TAP inside its rect is still the pill being pressed: it runs the reticle's action
+ { const pr=document.getElementById('prompt');
+   if(!pr.hidden){ const b=pr.getBoundingClientRect();
+    if(b.width&&x>=b.left&&x<=b.right&&y>=b.top&&y<=b.bottom){ if(G.action&&G.action.run){ installInteract(G); return true; } return false; } } }
+ const P=G.player, r=cv.getBoundingClientRect();
+ if(!r.width||!r.height)return false;
+ P.aim=null;
+ P.tapNdc={x:((x-r.left)/r.width)*2-1, y:-((y-r.top)/r.height)*2+1};
+ let A=null; try{ A=G.mods.ITEMm.nearestAction(P,G.lift,G.install,G.items); }catch(e){ A=null; }
+ const hit=P.aim; P.tapNdc=null;
+ if(!A||!A.run||!hit)return false;
+ G.action=A; installInteract(G);
+ return true;
+}
+
+// (Lloyd, 2026-09-07) IMMERSIVE. Fullscreen and the landscape lock are asked for inside the Start
+// Shift gesture, because that is the only place a browser will grant them; both are best-effort
+// (orientation lock is not Baseline). body.immersive is the fallback AND the belt-and-braces: the
+// stage is pinned over the page either way, so the header cannot scroll back into view
+function immersiveOn(){
+ if(!COARSE)return;
+ const st=document.getElementById('stage');
+ try{ const r=st.requestFullscreen&&st.requestFullscreen();
+  if(r&&r.then)r.then(()=>{ try{ const o=screen.orientation; if(o&&o.lock){ const q=o.lock('landscape'); if(q&&q.catch)q.catch(()=>{}); } }catch(e){} }).catch(()=>{}); }catch(e){}
+ document.documentElement.classList.add('immersive'); document.body.classList.add('immersive');
+ scrollTo(0,0); resize();
+}
+// (orchestrator, 2026-09-07) THE MENU IS THE PAUSE. On a phone the viewer's bar is off the screen
+// for the whole shift, so the pause glyph beside the gear is the only way in: it HOLDS the night
+// (body.halted stops the clock, the crew, the body and every input) and opens the lighting panel
+// over the pinned stage. Closing the panel hands the hall straight back, still immersive -- the old
+// Menu dropped immersive and nothing ever put it back
+function menuPanel(open){
+ const panel=document.getElementById('panel'); if(!panel)return;
+ panel.hidden=!open;
+ const playing=document.body.classList.contains('playing');
+ document.body.classList.toggle('menuOpen',!!open);
+ document.body.classList.toggle('halted',!!open&&playing);
+ if(open){ if(IG&&IG.touch)IG.touch.letGo(); if(IG&&IG.player&&IG.player.dropKeys)IG.player.dropKeys(); }
+ else if(playing)immersiveOn();
+ resize();
+}
+function immersiveOff(){
+ if(!document.body.classList.contains('immersive'))return;
+ document.documentElement.classList.remove('immersive'); document.body.classList.remove('immersive');
+ try{ if(document.fullscreenElement&&document.exitFullscreen){ const q=document.exitFullscreen(); if(q&&q.catch)q.catch(()=>{}); } }catch(e){}
+ try{ const o=screen.orientation; if(o&&o.unlock)o.unlock(); }catch(e){}
+ resize();
+}
+
+// THE CONTROLS SHEET. Every row writes localStorage `ngv.ctl.*` and tells the controls to re-read
+// themselves, so a change is felt on the next touch and survives a reload
+function ctlWire(G){
+ const T=G.mods.TCHm, sheet=document.getElementById('ctlSheet');
+ const seg=(id,key,after)=>{ const el=document.getElementById(id); const fn=(e)=>{ const b=e.target.closest('button[data-v]'); if(!b)return;
+   for(const x of el.querySelectorAll('button[data-v]'))x.setAttribute('aria-pressed',String(x===b));
+   T.saveCtl(key,b.dataset.v); if(G.touch){ G.touch.ctl=T.loadCtl(); G.touch.apply(); } if(after)after(b.dataset.v); };
+  el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn)); };
+ const rng=(id,outId,key,fmt)=>{ const el=document.getElementById(id), o=document.getElementById(outId);
+  const fn=()=>{ o.textContent=fmt(el.value); T.saveCtl(key,el.value); if(G.touch){ G.touch.ctl=T.loadCtl(); G.touch.apply(); } };
+  el.addEventListener('input',fn); G.ui.push(()=>el.removeEventListener('input',fn)); return el; };
+ const one=(id,fn)=>{ const el=document.getElementById(id); el.addEventListener('click',fn); G.ui.push(()=>el.removeEventListener('click',fn)); };
+ seg('csLook','look'); seg('csInv','invY'); seg('csStick','stick'); seg('csRun','autorun'); seg('csLefty','lefty');
+ const h=rng('csH','csHo','sensH',v=>{const n=(+v).toFixed(1);return n;});
+ const v=rng('csV','csVo','sensV',x=>(+x).toFixed(1));
+ const op=rng('csOp','csOpo','opacity',x=>Math.round(+x*100)+'%');
+ one('ctlBtn',()=>{ sheet.classList.add('up'); document.body.classList.add('sheetOpen'); });
+ one('csClose',()=>closeCtlSheet(G,true));
+ one('pauseBtn',()=>menuPanel(document.getElementById('panel').hidden));
+ // what is stored, on screen
+ const c=T.loadCtl();
+ const press=(id,val)=>{ for(const b of document.getElementById(id).querySelectorAll('button[data-v]'))b.setAttribute('aria-pressed',String(b.dataset.v===String(val))); };
+ press('csLook',c.look); press('csInv',+c.invY); press('csStick',c.stick); press('csRun',+c.autorun); press('csLefty',+c.lefty);
+ h.value=c.sensH; document.getElementById('csHo').textContent=(+c.sensH).toFixed(1);
+ v.value=c.sensV; document.getElementById('csVo').textContent=(+c.sensV).toFixed(1);
+ op.value=c.opacity; document.getElementById('csOpo').textContent=Math.round(+c.opacity*100)+'%';
+ G.ui.push(()=>{ sheet.classList.remove('up'); });
+}
+
+// (skeptic 1, 2026-09-07) the Controls sheet closes the same way the task sheet does: Close asks for
+// the pointer back, Esc parks the game in the ordinary pause instead. Escape used to run the TASK
+// sheet's handler, which stripped `sheetOpen` and left the Controls card standing over a LIVE hall:
+// a drag under the card turned the camera 20 deg and the stick walked the player away
+function closeCtlSheet(G,relock){
+ document.getElementById('ctlSheet').classList.remove('up');
+ document.body.classList.remove('sheetOpen');
+ if(!G.player||G.player.coarse||!document.body.classList.contains('playing'))return;
+ if(relock)G.player.lock(); else G.player.setPaused(true);
+}
+
 function installInteract(G){
  const A=G.action; if(!A||!A.run)return;
  const before=G.install.counts().fitted, label=A.label;
@@ -5666,22 +5927,27 @@ function installInteract(G){
 // one frame of the shift, in the order game.html ran it: body, movement, lift, camera, doors,
 // crew, lights, fx, items, clock, HUD. The render is the sim's, further down frame().
 function installStep(dt,now){
- const G=IG, {W}=G.mods, ITEMm=G.mods.ITEMm, playing=document.body.classList.contains('playing');
+ const G=IG, {W}=G.mods, ITEMm=G.mods.ITEMm;
+ // (orchestrator, 2026-09-07) the pause glyph HOLDS the night: the clock, the body and the crew all
+ // read `playing`, so halting is one word here. The inputs are already dropped by menuPanel
+ const playing=document.body.classList.contains('playing')&&!document.body.classList.contains('halted');
  dt=Math.min(0.05,dt);   // the game's own cap: a long frame must not teleport anyone through a wall
  const {player,lift,items,install,clock,world,fx,body,crew,snd}=G;
  // (Lloyd, 2026-09-06: the task sheet) THE SHEET IS OPEN: the hall keeps running behind it, the
  // crew keep working, but the keys and the sticks are dropped every frame so a key pressed over
  // the card never walks you off. Cleared here, BEFORE anything reads them
- if(document.body.classList.contains('sheetOpen')){ player.keys.clear(); player.move.set(0,0); player.look.set(0,0);
+ if(document.body.classList.contains('sheetOpen')||document.body.classList.contains('halted')){ player.keys.clear(); player.move.set(0,0); player.look.set(0,0);
   player.actionQueued=false; player.dropQueued=false; player.liftUp=false; player.liftDown=false; }
  G.dbg.dt=dt; G.dbg.frames++;
+ if(G.touch)G.touch.update(dt);   // the run latch and the idle fade
+ if(!lift.driving)player.liftRate=0;
  const load=items.jack.held&&items.jack.carrying?3:player.inv.some(i=>i&&i.type!=='wrap')||items.jack.held?2:player.inv.some(Boolean)?1:(lift.aboard?1:0);
  // the inventory strip, redrawn only when it changes
  { const names={box:'BOX',emptyBox:'EMPTY<br>BOX',light:'LIGHT',wrapped:'WRAPPED<br>LIGHT',bag:'BAG',wrap:'WRAP',sheet:'PLY<br>SHEET'};
    const sig=player.inv.map((it,i)=>(it?it.type+(it.type==='box'?it.lights:it.type==='bag'?it.wraps:''):'-')+(i===player.active?'*':'')).join('|');
    if(sig!==G.invSig){ G.invSig=sig; document.getElementById('inv').innerHTML=player.inv.map((it,i)=>'<div class="slot'+(i===player.active?' on':'')+(it?'':' empty')+'" data-slot="'+i+'"><i>'+(i+1)+'</i>'+(it?names[it.type]+(it.type==='box'?'<span>&times;'+it.lights+'</span>':it.type==='bag'?'<span>'+it.wraps+'/8</span>':''):'')+'</div>').join(''); } }
- const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown));
- if(!clock.ended&&playing)body.update(dt,clock,load,moving);
+ const moving=player.move.lengthSq()>0.01||['KeyW','KeyA','KeyS','KeyD'].some(k=>player.keys.has(k))||(lift.driving&&(player.liftUp||player.liftDown||Math.abs(player.liftRate||0)>0.05));
+ if(!clock.ended&&playing)body.update(dt,clock,load,moving,player.sprinting);
  player.speedScale=body.speedScale();
  ITEMm.refreshObstacles(items,[lift].concat(crew.lifts, G.net?G.net.lifts():[]));
  if(G.net)G.net.addObstacles(world);
@@ -5698,7 +5964,7 @@ function installStep(dt,now){
  if(lift.aboard){ const el=document.getElementById('deckh'); const c=lift.clearance(); el.querySelector('b.h').textContent=(lift.deckY+lift.height).toFixed(1)+' m'; el.querySelector('b.c').textContent=isFinite(c)?Math.max(0,c).toFixed(1)+' m':'-'; el.classList.toggle('top',c<0.3); el.classList.toggle('low',c>=0.3&&c<1.5); }
  document.body.classList.toggle('driving',lift.driving);
  // the fast / slow toggle (Q, or the button) and the wheel indicator while driving
- if(player.takeMode()&&lift.aboard){ const m=lift.toggleMode(); document.getElementById('liftMode').textContent=m.toUpperCase(); document.getElementById('wmode').textContent=m.toUpperCase(); snd.tone(m==='fast'?520:330,0.06,'sine',0.04); }
+ if(player.takeMode()&&lift.aboard){ const m=lift.toggleMode(); document.getElementById('wmode').textContent=m.toUpperCase(); snd.tone(m==='fast'?520:330,0.06,'sine',0.04); }
  // (Lloyd, 2026-09-06: floor protection) R, or the TURN button, lays the sheet the other way
  if(player.takeTurn()&&player.carry&&player.carry.type==='sheet'){ ITEMm.turnSheet(items); snd.tone(300,0.05,'sine',0.035); }
  if(lift.driving){ const deg=(-lift.steer*180/Math.PI).toFixed(1), tr='rotate('+deg+')'; const fl=document.getElementById('wfl'), fr=document.getElementById('wfr');
@@ -5745,7 +6011,7 @@ function installStep(dt,now){
  if(player.takeAction())installInteract(G);
  // the floor protection is part of the night's work, and a board can go down without an ACTION
  { const sig=sheetSig(world,items); if(G.sheetSig!==sig){ G.sheetSig=sig; G.mods.CLKm.saveGame(clock,install,world,items); } }
- clock.update(dt);
+ if(playing)clock.update(dt);   /* the pause glyph holds the clock too (orchestrator, 2026-09-07) */
  G.mods.HUDm.updateHud(document.getElementById('stats'),document.getElementById('prompt'),clock,install,lift.blocked?{label:lift.blocked,run:null,hint:true}:G.action,player.carry,body);
  if(clock.ended&&!document.getElementById('summary').classList.contains('up')){
   const fittedTonight=install.counts().fitted-clock.fittedAtStart;
@@ -5880,7 +6146,14 @@ function crewWire(G){
   G.crew.assignTask(G.sheetFor,G.sheetTask,b.dataset.col); closeTaskSheet(G,true); };
  colsEl.addEventListener('click',onCol); G.ui.push(()=>colsEl.removeEventListener('click',onCol));
  wire('tsClose',()=>closeTaskSheet(G,true));
- const onEsc=(e)=>{ if(e.code==='Escape'&&document.body.classList.contains('sheetOpen'))closeTaskSheet(G,false); };
+ // (skeptic 1) Escape closes WHICHEVER card is up, innermost first, and each one restores its own
+ // paused state. One handler that only knew about the task sheet used to fire for the Controls
+ // sheet and the crew panel as well, clearing `sheetOpen` while their card stayed on the screen
+ const onEsc=(e)=>{ if(e.code!=='Escape')return;
+  if(document.getElementById('ctlSheet').classList.contains('up')){ closeCtlSheet(G,false); return; }
+  if(document.body.classList.contains('menuOpen')){ menuPanel(false); return; }
+  if(!document.getElementById('crewPanel').hidden){ document.getElementById('crewPanel').hidden=true; document.body.classList.remove('panelOpen'); if(G.player&&!G.player.coarse&&document.body.classList.contains('playing'))G.player.setPaused(true); return; }
+  if(document.body.classList.contains('sheetOpen'))closeTaskSheet(G,false); };
  window.addEventListener('keydown',onEsc); G.ui.push(()=>window.removeEventListener('keydown',onEsc));
  crewTasksSync(G);
  // a room in the address joins on the way in
@@ -5895,6 +6168,8 @@ function teardownInstall(){
  document.getElementById('crewPanel').hidden=true;
  document.getElementById('taskSheet').classList.remove('up'); document.body.classList.remove('sheetOpen','panelOpen'); G.sheetFor=null;
  G.player.unbind();
+ if(G.touch)G.touch.destroy();
+ immersiveOff();
  G.fx.reset();
  G.snd.close();
  clearTimeout(G.toastTimer);
@@ -5918,7 +6193,7 @@ function teardownInstall(){
  hallGroup.traverse(o=>{ if(o.name==='end-cap-near')o.visible=true; });
  if(court)court.visible=document.getElementById('court').checked;
  for(const [m,d,c,u,n] of G.savedDoor||[]){ m.uniforms.door.value.copy(d); m.uniforms.doorC.value.copy(c); m.uniforms.doorU.value.copy(u); m.uniforms.doorN.value.copy(n); }
- document.body.classList.remove('install','playing','carrying','driving','aboard','paused');
+ document.body.classList.remove('install','playing','carrying','driving','aboard','paused','lefty','lookstick','ctlIdle','sheet');
  document.getElementById('installUi').classList.remove('on');
  document.getElementById('vignette').style.opacity='';
  resize();

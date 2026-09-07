@@ -4,13 +4,17 @@
 // nothing below the chips has a fixed place any more. The block is measured each frame and the
 // bars, the slots and the deck read are stacked under it, one row or three. Only a `top` that has
 // actually moved is written, so the usual frame does no style work at all
+// (skeptic 3, 2026-09-07) on a PHONE the four slots are not in this stack at all any more: they run
+// along the bottom centre, between the two thumbs, where either one reaches them. Writing a `top`
+// here would be an inline style the stylesheet cannot beat, so the phone is left alone
+const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 function stackHud(stats) {
   if (!stats.offsetParent) return;             // the HUD is not on screen: nothing to measure
   const ghud = stats.parentElement;
   const put = (id, y) => { const e = document.getElementById(id); if (e && e.style.top !== y + 'px') e.style.top = y + 'px'; return e; };
   const y0 = ghud.offsetTop + stats.offsetHeight + 4;
   const bars = put('bars', y0);
-  put('inv', y0 + (bars ? bars.offsetHeight : 0) + 4);
+  if (!COARSE) put('inv', y0 + (bars ? bars.offsetHeight : 0) + 4);
   // the deck read is right-aligned, so it shares the bars' row -- but it must clear the Crew and
   // Guide buttons, which are the tall half of the header on a desk
   put('deckh', Math.max(y0, ghud.offsetTop + ghud.offsetHeight + 4));

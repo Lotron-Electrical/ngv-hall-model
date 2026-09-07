@@ -321,8 +321,11 @@ export class Lift {
   // Genie GS-2646 figures: 3.5 km/h stowed, 0.8 km/h raised, wheelbase about 1.8 m
   drive(dt, player, world, collide) {
     const scale = player.speedScale, slow = this.mode === 'slow';
-    if (player.liftUp) this.height += dt * 0.5 * scale * (slow ? 0.5 : 1);
-    if (player.liftDown) this.height -= dt * 0.5 * scale * (slow ? 0.5 : 1);
+    // (Lloyd, 2026-09-07: no big buttons) UP and DOWN are a one-axis mini-stick on a phone, so the
+    // deck's rate is analog: how far the thumb is pushed is how fast the deck moves, which is also
+    // what removed the FAST button from the phone. The keys are still full deflection either way
+    const deck = THREE.MathUtils.clamp((player.liftUp ? 1 : 0) - (player.liftDown ? 1 : 0) + (player.liftRate || 0), -1, 1);
+    if (deck) this.height += deck * dt * 0.5 * scale * (slow ? 0.5 : 1);
     this.height = THREE.MathUtils.clamp(this.height, 0, this.maxHeight());
 
     const { forward, strafe } = this.input(player);

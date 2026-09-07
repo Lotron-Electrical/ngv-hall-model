@@ -15,6 +15,10 @@ export class Player {
     this.dropQueued = false;
     this.liftUp = false;
     this.liftDown = false;
+    // (Lloyd, 2026-09-07) the deck's mini-stick on a phone: -1 .. 1, magnitude is the speed. The
+    // keys still write liftUp / liftDown and the two add up
+    this.liftRate = 0;
+    this.touchRun = false;
     this.onLift = false;
     this.airborne = false; this.vy = 0; this.jumpQueued = false; this.jumpsLeft = 2;   // the jump: 3.4 m/s up is a 0.6 m hop under 9.8 m/s2; two per flight
     // (Lloyd, 2026-09-06: "we should have an inventory system") four slots; `carry` is the ACTIVE
@@ -130,15 +134,20 @@ export class Player {
     if (ui.prompt) this.on(ui.prompt, 'click', () => this.actionQueued = true);
     if (ui.drop) this.on(ui.drop, 'click', () => this.dropQueued = true);
     if (ui.turn) this.on(ui.turn, 'click', () => this.turnQueued = true);
-    if (ui.inv) this.on(ui.inv, 'click', (e) => { const b = e.target.closest('[data-slot]'); if (b) this.select(+b.dataset.slot); });
+    // (skeptic 3c, 2026-09-07) POINTERDOWN, not click. Chrome never synthesises a click for a
+    // SECOND touch point, so a slot tapped while the move stick was held did nothing at all --
+    // changing what is in your hands meant stopping and letting go of the stick first
+    if (ui.inv) this.on(ui.inv, 'pointerdown', (e) => { const b = e.target.closest('[data-slot]'); if (!b) return; e.preventDefault(); this.select(+b.dataset.slot); });
     if (ui.liftUp) { this.on(ui.liftUp, 'pointerdown', (e) => { e.preventDefault(); this.liftUp = true; });
       this.on(ui.liftUp, 'pointerup', () => this.liftUp = false);
       this.on(ui.liftUp, 'pointercancel', () => this.liftUp = false); }
     if (ui.liftDown) { this.on(ui.liftDown, 'pointerdown', (e) => { e.preventDefault(); this.liftDown = true; });
       this.on(ui.liftDown, 'pointerup', () => this.liftDown = false);
       this.on(ui.liftDown, 'pointercancel', () => this.liftDown = false); }
-    this.bindStick(ui.moveStick, this.move);
-    this.bindStick(ui.lookStick, this.look);
+    // (Claude, 2026-09-07) the phone scheme owns the sticks now (game/touch.js): index.html hands
+    // no stick elements in, and these two rings are bound only by the old standalone entry
+    if (ui.moveStick) this.bindStick(ui.moveStick, this.move);
+    if (ui.lookStick) this.bindStick(ui.lookStick, this.look);
   }
 
   bindStick(el, out) {
@@ -217,7 +226,9 @@ export class Player {
       v.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
       // (Lloyd, 2026-09-05: "shift to sprint, which will increase FOV") Shift held on the floor is a
       // sprint, 1.7x the walk, and the view widens by 12 degrees while you are actually moving fast
-      this.sprinting = (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')) && v.lengthSq() > 0;
+      // (Lloyd, 2026-09-07: no big buttons) the phone has no sprint key: the move stick held at
+      // its rim latches the run (game/touch.js sets touchRun), which is the same sprint
+      this.sprinting = (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun) && v.lengthSq() > 0;
       this.pos.addScaledVector(v, dt * 3.3 * this.speedScale * (this.sprinting ? 1.7 : 1));
       // standing still is standing still: no push, so nothing can slide you (2026-09-04)
       if (v.lengthSq() > 0) collide(this.pos, 0.32, world, this.ignore || []);

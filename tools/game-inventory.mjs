@@ -52,7 +52,10 @@ s=await inv(); say(s.slots[1]==='light'&&s.slots[0]==='wrapped','unwrapped in pl
 await ev(`window.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit1'}))`); await sleep(300);
 s=await inv(); say(s.active===0&&s.hand==='wrapped'&&s.shown[0]===true&&s.shown[1]===false,'key 1 switches to slot 1: '+JSON.stringify(s));
 // a tap on the strip switches back
-await ev(`document.querySelector('#inv [data-slot="1"]').click()`); await sleep(300);
+// (2026-09-07) the slot listener is POINTERDOWN now, not click: Chrome never synthesises a click
+// for a second touch point, so a slot had to be tappable with the move stick still held
+await ev(`(()=>{const e=document.querySelector('#inv [data-slot="1"]');
+ e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:1,pointerType:'mouse'}));})()`); await sleep(300);
 s=await inv(); say(s.active===1&&s.hand==='light','tap on slot 2 switches back: active '+s.active+' hand '+s.hand);
 // pick up the wrap too: three things carried
 await face(`g.items.wraps[0].mesh.position`); await sleep(400);

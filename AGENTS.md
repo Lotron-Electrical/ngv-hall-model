@@ -969,6 +969,115 @@ then the two sections under it for the detail.
   off the painted members and 125 mm off the ridges, so the fitted phase may drift 13 mm before
   glass meets steel.
 
+### Phone controls (Lloyd, 2026-09-07: no big buttons; research-led)
+Lloyd: "we need to improve the controls on phone", then "No big buttons that will take up screen
+space. Do some research online on phone UI best practices. As well as phone joystick control best
+practices." What the phone showed before this: two fixed 80 px rings, a permanent UP / DOWN / FAST
+column, a DROP button and a prompt pill on the right edge, on a 412 px screen. All of it is gone
+except the pill, and the pill is now the fallback, not the way you act.
+- WHERE IT LIVES. `game/touch.js` (`TouchControls`, `loadCtl`, `saveCtl`, `DEFAULTS`, `RADIUS`) owns
+  every gesture; `index.html` owns the markup, the CSS and the two things only the host can do (the
+  world tap, the settings sheet). Only built on a coarse pointer: the desk keeps the mouse, the keys
+  and the pointer lock untouched. `player.js` binds no sticks now unless a host hands it ring
+  elements (`game/main.js`, the old standalone entry, still does).
+- THE PLAY LAYER. `#tzone` is one transparent surface over the shift, `touch-action:none`,
+  `user-select:none`, no context menu, Pointer Events with `setPointerCapture` per `pointerId`, no
+  throttling of `pointermove` (Chrome already frame-aligns it). The stick, the cluster and the pill
+  are siblings painted ABOVE it, so they take their own taps first.
+- MOVE: A FLOATING STICK. Left 40 % of the layer, below the header row (measured off `#ghud`, not a
+  fixed number: the clock chips wrap to three rows on a narrow phone). The base appears WHERE THE
+  THUMB LANDS and hides on release; a faint ghost rests in the corner until the first touch. Ring
+  radius 60 px (S / M / L = 50 / 60 / 72). THE LOGICAL CENTRE IS THE THUMB, always; only the drawn
+  ring is pulled inside the glass, so a thumb landing near an edge starts at a zero vector instead of
+  60 px of deflection. A second finger landing in the move zone while the stick is held is ignored,
+  not read as a look. Scaled radial dead zone 0.10
+  (`dir * ((mag - dz) / (1 - dz))`), linear, and the thumb may drag past the ring: the output clamps
+  and the stick keeps the finger. RUN WITH NO BUTTON: over 0.85 for 0.4 s latches, and it stays
+  latched until the thumb comes back under 0.3 (`player.touchRun`, the same sprint Shift gives) --
+  and running now COSTS: `body.update(dt, clock, load, moving, sprint)` drains 1.8x, minimum 2.2/s,
+  so the latch is a choice rather than the default walk.
+- LOOK: FREE DRAG, NO STICK. Anywhere the stick zone is not. POSITIONAL, not a rate: 0.22 deg/px
+  across and 0.18 deg/px up and down at sensitivity 1.0, with a mild curve
+  `sign(d) * |d| * (|d|/10)^0.15` on the per-event delta -- the /10 reference is what keeps a normal
+  drag honestly 0.22 deg/px whatever way the browser splits the events. Separate H and V sliders
+  (0.5x-2x) and an invert-Y toggle. Both thumbs work at once (`pointerId`). `Look: stick` in the
+  settings brings back the old rate stick (Lloyd asked for it twice on 2026-09-04), floating on the
+  right; drag is the default because a drag surface driven as a rate reads as drift.
+- ACT BY TAPPING THE THING. A tap (under 10 px, under 500 ms) hands its own screen point to
+  `installTapWorld`, which puts it in `player.tapNdc`; `items.js nearestAction` then casts THERE
+  instead of through the reticle, and whatever it hits decides the action and runs it at once
+  (`installInteract`, the same path the prompt uses). A tap that hits nothing was a look gesture and
+  does nothing. `navigator.vibrate(15)` on a tap that acted (Android only, after first activation).
+  The pill stays as the fallback for the reticle's own target: 56 px under the +, 70 %, hidden when
+  there is nothing in range. On a phone the pill takes NO POINTERS of its own: `installTapWorld`
+  checks the tap point against its rect first and runs the reticle action from there, so a tap acts
+  and a drag that starts on it is an ordinary look.
+- THE FOUR SLOTS ARE A BOTTOM STRIP. `#inv` is a 4-in-a-row strip along the bottom centre on a
+  phone, in the gap between the two thumbs, `pointer-events:none` on the strip and `auto` on the four
+  44 px slots, so a drag through a gap still walks or looks. Selection is `pointerdown`, not `click`:
+  Chrome never synthesises a click for a second touch point, so a slot must be tappable with the move
+  stick still held. `hud.js stackHud` leaves `#inv` alone on a coarse pointer (an inline `top` would
+  beat the stylesheet); the desk keeps the left-rail stack.
+- THE SHIFT OWNS THE WHOLE SCREEN. On a phone the viewer's bottom bar (Menu, Tour, Full screen,
+  Stats, Phone remote) is `display:none` for the whole shift: it cost 44 px of every screen, a tenth
+  of the picture in landscape, and three of its buttons were live mid-shift (Tour took the camera
+  with the install HUD still painted over it, Phone remote put a QR card over the running hall, Stats
+  stacked a second read-out). Those three also refuse to fire while `body.playing`. Menu's job moves
+  to a PAUSE GLYPH beside the gear: it sets `body.halted` (which turns `playing` off inside
+  `installStep`, so the clock, the body and the crew all stop) and opens the lighting panel over the
+  pinned stage; the panel carries its own `#panelClose`, and closing it calls `immersiveOn()` and
+  hands the hall straight back. Tour, Stats and Phone remote are not reachable during a shift.
+- ESCAPE CLOSES WHICHEVER CARD IS UP, innermost first: Controls sheet, then the menu panel, then the
+  crew panel, then the task sheet, each restoring its own paused state (`closeCtlSheet`, `menuPanel`,
+  `closeTaskSheet`). One handler that only knew the task sheet used to strip `sheetOpen` while the
+  Controls card stayed on the screen, leaving the game live and drivable underneath it.
+- CONTEXTUAL CONTROLS ONLY. Bottom-right corner (the thumb's green zone), 52 px boxes = 48 dp of hit
+  area with a small glyph: DROP only with something in the hands, TURN only with a ply sheet, and
+  while you drive a vertical DECK mini-stick whose magnitude is the speed, with LET GO beside it.
+  That mini-stick is what deleted UP, DOWN and FAST in one go (`player.liftRate`, added into
+  `Lift.drive`). The slots and DROP stand down while your hands are on the controls.
+- IMMERSIVE. Start Shift asks for `#stage.requestFullscreen()` then `screen.orientation.lock`
+  ('landscape') inside the same gesture; both are best-effort (the lock is not Baseline and needs
+  fullscreen first), so `body.immersive` + `html.immersive` pin the stage over the page either way:
+  no header, no page scroll. Menu, and stopping the shift, put it back. PORTRAIT (412x915) and
+  LANDSCAPE (915x412) are both supported layouts; nothing gates portrait.
+- SETTINGS. The gear beside Guide (a rare action, so the red top corner is the right place for it)
+  opens `#ctlSheet` in the task sheet's card style, one label and one control per row, two columns on
+  a short screen. Keys: `ngv.ctl.look` (drag|stick), `ngv.ctl.sensH`, `ngv.ctl.sensV`, `ngv.ctl.invY`,
+  `ngv.ctl.stick` (S|M|L), `ngv.ctl.autorun`, `ngv.ctl.lefty`, `ngv.ctl.opacity`. Left-handed mirrors
+  the stick zone AND the corner cluster. Opacity drives `--ctlop` (60-80 % is the band); everything
+  persistent fades to half of it after 3 s idle (`body.ctlIdle`), the deck stick included, and the
+  fade clock starts at the first frame so the resting ghost is never born faded. Left-handed mirrors
+  the wheel plan (`#wheels`) as well as the stick zone and the cluster.
+- WHERE THE RESEARCH BEAT THE FIRST INSTINCT: no look joystick at all (PUBG, CoD Mobile, Genshin and
+  Fortnite all drag the right half); positional look, never rate, on a drag surface; a scaled radial
+  dead zone instead of an axial one; and buttons that shrink their glyph, never their hit box.
+  Sources: https://www.gamedeveloper.com/business/doing-thumbstick-dead-zones-right ,
+  https://blog.activision.com/call-of-duty/2019-10/Getting-a-Grip-on-the-Call-of-Duty-Mobile-Controls ,
+  https://genshin-impact.fandom.com/wiki/Controls ,
+  https://www.fortnite.com/news/getting-started---fortnite-for-mobile?lang=en-US ,
+  https://m3.material.io/foundations/accessible-design/accessibility-basics ,
+  https://www.nngroup.com/articles/touch-target-size/ ,
+  https://www.lukew.com/ff/entry.asp?1927= ,
+  https://developer.chrome.com/blog/touch-action ,
+  https://developer.mozilla.org/en-US/docs/Web/API/ScreenOrientation/lock
+- PROOF: `node tools/game-phone.mjs <outdir>` drives real CDP touch (multi-touch where it matters) at
+  412x915 AND 915x412: immersive and no page scroll, nothing on screen overlapping anything else,
+  48 dp on every control up, the base landing under the thumb, the run latch, 100 px = 22 deg (44 at
+  sensitivity 2.0, inverted, and the stick option turning at a rate), both thumbs at once, a tap on a
+  pallet taking a box with the reticle pointed elsewhere, a tap on air doing nothing, DROP / TURN
+  appearing and doing their job, the deck stick raising and lowering the deck, LET GO, and every
+  settings row changing something measurable and surviving a reload. Section 14 is the skeptic pass
+  of 2026-09-07 (15 defects): Escape, the hidden bar and the three inert buttons, the pause glyph
+  holding the clock and handing the hall back, the slot strip (bottom centre, 44 dp, inside a 45 mm
+  thumb arc, gaps passing drags through, a slot tapped as a second finger), the pill taking a tap and
+  passing a drag, a 400 ms press, the edge clamp at four touch-down points, a palm on the left rail,
+  the deck stick's idle fade, the run's stamina cost, and left-handed driving at 412x915, 360x780 and
+  915x412.
+- KNOWN, NOT FIXED: the reticle is drawn in the centre of `#installUi`, which is 44 px shorter than
+  the canvas (the button row), so the + sits about 22 px above the true camera axis on a phone. That
+  is older than this change; the TAP is cast from the canvas, so a tap is exact either way.
+
 ## The lightshow (2026-09-04)
 
 Lloyd's own music and the light cues for it live on one clock. Three pieces:

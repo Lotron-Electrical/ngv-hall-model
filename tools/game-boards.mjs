@@ -356,7 +356,8 @@ const hudCheck = `(()=>{document.body.classList.add('carrying','sheet');
   return {id,x:b.left,y:b.top,w:b.width,h:b.height,shown:getComputedStyle(e).display!=='none'}};
  const over=(a,b)=>a.x<b.x+b.w-1&&b.x<a.x+a.w-1&&a.y<b.y+b.h-1&&b.y<a.y+a.h-1;
  const w=r('wheels');
- const others=['stats','inv','liftUp','liftDown','liftMode','prompt','deckh','move','look','drop','turn','toast','reticle'].map(r);
+ // (Claude, 2026-09-07) UP / DOWN / FAST are gone: the deck is a mini-stick and LET GO is beside it
+ const others=['stats','inv','prompt','deckh','move','look','drop','turn','letGo','deckStick','toast','reticle'].filter(id=>document.getElementById(id)).map(r);
  return {W:window.innerWidth,box:[Math.round(w.x),Math.round(w.y),Math.round(w.w),Math.round(w.h)],shown:w.shown,
   clash:others.filter(e=>e.shown&&over(w,e)).map(e=>e.id),
   onScreen:w.y>=0&&w.y+w.h<=window.innerHeight&&w.x>=0&&w.x+w.w<=window.innerWidth}})()`;

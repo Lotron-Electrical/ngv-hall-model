@@ -14,14 +14,20 @@ export class Body {
     this.rested = 0;        // seconds without effort, for the recovery ramp
   }
 
-  // what the body is doing this frame: load = 0 idle, 1 walking light, 2 carrying, 3 jacking a pallet
-  update(dt, clock, load, moving) {
+  // what the body is doing this frame: load = 0 idle, 1 walking light, 2 carrying, 3 jacking a
+  // pallet. `sprint` is Shift on a desk, or the phone's latched run: it moves you 1.7x faster and
+  // (skeptic 14, 2026-09-07) it now costs for it. Before this the latch was free, so a full-thumb
+  // walk was always a sprint and the setting decided nothing
+  update(dt, clock, load, moving, sprint) {
     const h = clock.minute / 60;
     // the clock's own toll: 2/h to 01:00, 6/h to 03:00, 12/h to 04:00, 20/h to 05:00
     const perHour = h < 25 ? 2 : h < 27 ? 6 : h < 28 ? 12 : 20;
     this.fatigue += perHour * dt / 60;              // one game hour is one real minute
     // effort drains stamina, and a tenth of that lands on fatigue for good
-    const drain = !moving ? 0 : load >= 3 ? 7 : load >= 2 ? 4 : load >= 1 ? 1.2 : 0;   // a box the length of the hall (12 s) costs about half the tank
+    let drain = !moving ? 0 : load >= 3 ? 7 : load >= 2 ? 4 : load >= 1 ? 1.2 : 0;   // a box the length of the hall (12 s) costs about half the tank
+    // running is running: 1.8x the effort, and an empty-handed sprint is work even though carrying
+    // nothing is not. A minute of flat-out running is about half the tank
+    if (moving && sprint) drain = Math.max(drain * 1.8, 2.2);
     if (drain > 0) { this.stamina -= drain * dt; this.fatigue += drain * dt * 0.1; this.rested = 0; }
     else { this.rested += dt; const rate = (moving ? 4 : 9) * (1 - this.fatigue / 100 * 0.6) * Math.min(1, 0.3 + this.rested / 3); this.stamina += rate * dt; }
     this.fatigue = Math.min(100, this.fatigue);

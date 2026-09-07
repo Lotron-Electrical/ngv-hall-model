@@ -120,7 +120,7 @@ function loop(now) {
   // the body: what it carries and whether it moves this frame set the drain
   const load = items.jack.held && items.jack.carrying ? 3 : player.inv.some((i) => i && i.type !== 'wrap') || (items.jack.held) ? 2 : player.inv.some(Boolean) ? 1 : (lift.aboard ? 1 : 0);
   const moving = player.move.lengthSq() > 0.01 || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].some((k) => player.keys.has(k)) || (lift.driving && (player.liftUp || player.liftDown));
-  if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving);
+  if (!clock.ended && document.body.classList.contains('playing')) body.update(dt, clock, load, moving, player.sprinting);
   player.speedScale = body.speedScale();
   refreshObstacles(items, [lift].concat(crew.lifts));
   player.ignore = lift.aboard ? [lift, lift.box] : [player.carry];

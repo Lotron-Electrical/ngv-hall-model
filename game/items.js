@@ -447,7 +447,13 @@ export function nearestAction(player, lift, install, items) {
   // is looking at") a ray from the centre of the view finds the thing you are pointing at; that
   // thing and what is in your hands decide the prompt. Place-based prompts (the lift's controls
   // and door, letting go of a pallet) do not need a target
-  const fwd = player.camera.getWorldDirection(new THREE.Vector3());
+  // (Lloyd, 2026-09-07: no big buttons on a phone) A TAP ON THE WORLD IS THE ACTION. The tap hands
+  // its own point in through `player.tapNdc` (clip coordinates) and the ray goes THERE instead of
+  // through the reticle, so tapping a pallet picks a box off it with no button anywhere on screen.
+  // Everything downstream is unchanged: the same hit decides the same prompt
+  const fwd = player.tapNdc
+    ? new THREE.Vector3(player.tapNdc.x, player.tapNdc.y, 0.5).unproject(player.camera).sub(p).normalize()
+    : player.camera.getWorldDirection(new THREE.Vector3());
   const ray = new THREE.Raycaster(p.clone(), fwd, 0, 3.4);
   // (Claude, 2026-09-07) the crew are raycast targets now and every one wears a name tag, which is
   // a Sprite: three's Sprite.raycast reads raycaster.camera and throws on null without it
