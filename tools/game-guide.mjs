@@ -11,7 +11,9 @@ const enter=async(ev,sleep)=>{
  await ev(`localStorage.clear(); localStorage.setItem('ngv.install','gandel-2026'); document.getElementById('install').click()`);
  for(let i=0;i<40;i++){ await sleep(500); if(await ev('!!(window.ngv&&window.ngv.game)'))break; }
 };
-const port = 9333, url = 'http://127.0.0.1:8877/index.html?install=gandel-2026&cb=' + Date.now();
+// NGV_PAGE points the same checks at another copy of the page, which is how the 2026-09-07 render
+// work measured its own frame-rate cost against git HEAD (git show HEAD:index.html > .before.html)
+const port = 9333, url = `http://127.0.0.1:8877/${process.env.NGV_PAGE || 'index.html'}?install=gandel-2026&cb=` + Date.now();
 const out = process.argv[2] || process.env.TMP;
 const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
 let t = tabs.find((x) => x.type === 'page'); if (!t) t = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json();

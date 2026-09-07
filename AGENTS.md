@@ -1139,3 +1139,37 @@ Lloyd's own music and the light cues for it live on one clock. Three pieces:
 `tools/show_analyse.py sound/<track>.mp3` bakes the same cue file from an external track (beats,
 sections, bands, no cues), for a show cued by hand. `tools/show_pack.py <name>` turns the studio's
 WAV into the mp3 that ships (the WAV is gitignored).
+
+## The lighting render (2026-09-07)
+
+Lloyd: "the lighting looks very one-dimensional", "nothing bounces", the glass "reflected nothing",
+the strips "are hard flat lines". Six terms went into `index.html`, three of them ported line for
+line into the game's `game/hallmat.js` (its `photoMaterial` carries the same closed form and the
+same constants). Every one is anchored to a measured number, none is a look constant.
+
+| Term | What it is | Where |
+| --- | --- | --- |
+| Lambertian line | a strip is a diffused FACE: intensity K B(azimuth) cos(elevation), K = Phi/pi^2 (4/pi of the old isotropic Phi/4pi, flux conserved). The vertical-segment integral still closes, over r^4 with one atan2 per light. rho is floored at half the shaft radius, not an epsilon | `photoMaterial`, `columnLit`, `glassMaterial`; game `photoMaterial` |
+| First bounce | half a Lambertian face's flux goes below the horizon onto the carpet; one virtual cosine emitter per light at the column foot carries 0.5 x flux x the carpet's albedo, softened by the light's mean height. Albedo measured off the floor texture at load (`measureBounce`; the game hard-codes that measurement as `FLOOR_ALB`, deep red 0.228/0.059/0.070) | `bounceAlb`, `bounceY` |
+| Column shadow | plan-view test: a column occludes a light when the segment fragment-to-light passes within the shaft radius of its axis, soft over half a radius. The two nearest columns are read out of the light list itself (`lightPos.w` names the column), so no new uniform vectors: the fragment stage sits at 192 of the guaranteed 224. Two columns on a desk, one on a phone (`nOcc`) | `occl`, `measureShaft` -> `COL_R` (mean run foot radius + 100 mm; game constant 0.26) |
+| Glass mirror | the canopy's underside reflects the strips: a normalised Phong lobe (n = 60, about 10 degrees, the hammer-chipped slab) about the mirror direction, weighted by Schlick Fresnel (F0 0.04), inside the loop the plate already runs | `glassMaterial` |
+| Emitter face | the lit face is not a flat panel: view-angle term S(theta)/cos(theta) from the cover's own blade profile, and a centre-bright section normalised to mean 1 so `EMIT_EXPOSURE` keeps its meaning | `emitterFace`, `FACE_S` |
+| Glare | veiling glare at 6% of the source (CIE/Vos), computed on the HDR emitters alone (layer 2, `BLOOM_LAYER`, drawn against the hall's depth), threshold 1/exposure so a dimmed strip blooms less; half resolution, quarter on a phone. Not an UnrealBloomPass over the carpet | `bloomPass`, `GLARE_GAIN` |
+| Auto-exposure | Menu > Camera > Exposure: Auto opens the lens as the house comes down, from the strips' lumens over the hall's measured surface area (`measureHallArea`, 4,813 m2), key HOUSE_LUX/2, cap x4, held at 1.0 while the house is over half up so every quote picture is unchanged. Fixed pins 1.0. Stored in `ngv.cam.exposure` | `exposureStep`, `EXPO` |
+
+The game's fitted bars (`game/fixture.js`) put their face and halo on layer 2 too, so a shift under
+lit bars glares the way the proposal does.
+
+Proofs, both against the static server on 8877 and a headless Chrome on `NGV_PORT` (default 9333;
+`tools/cdp.mjs` is the shared attach/evaluate/collect-errors module every proof in here repeats):
+
+- `tools/light-audit.mjs [outdir]`: the energy audit. Datasheet lumens per column (0.18% off),
+  the shader's closed form against the analytic Lambertian line at 1, 3 and 6 m (under 1%), flux
+  conservation over a 60 m sphere (0.00%), the canvas readback against the same formula in JS
+  (0.3%), exposure 1.000 with the house up, x4.00 with it off, Fixed pins it, the lumen, watt and
+  model lines byte-identical apart from the appended exposure readout. All ok on 2026-09-07.
+- `tools/light-shots.mjs <outdir> [page]`: seven fixed night views (hall-end, column-close,
+  floor-low, high-down, wall, warm-white, phone at 412x915). Shoot `.light-before.html`
+  (`git show HEAD~1:index.html`) for the same frames of the page as it was. 144 fps both, on the
+  desk GPU.
+- The install proofs (`game-guide`, `install-mode`, `game-liftlook`) still pass on the port.

@@ -691,7 +691,10 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
  <div class="row"><label>Camera</label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="collide" checked> Collision</label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="sound" checked> Sound<button type="button" class="i" data-tip="On, the floor, the walls, the glass and the columns are solid. Turn it off to fly through them.">!</button></label>
-  <label style="color:var(--dim);font-size:12px">Field of view <input type="range" id="fov" min="40" max="110" value="65"> <span id="fovval">65</span>&deg;</label></div>
+  <label style="color:var(--dim);font-size:12px">Field of view <input type="range" id="fov" min="40" max="110" value="65"> <span id="fovval">65</span>&deg;</label>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span style="color:var(--dim);font-size:13px">Exposure</span>
+   <div class="seg" id="expmode" style="flex:1"><button type="button" data-v="auto" aria-pressed="true">Auto</button><button type="button" data-v="fixed" aria-pressed="false">Fixed</button></div>
+   <button type="button" class="i" data-tip="A photograph of a light show is exposed for the show. <b>Auto</b> opens the lens as the house lights come down, from the LEDs' own lumens and the hall's surface area &mdash; no guessing, no flicker on a chase. <b>Fixed</b> pins it at the daylight reference, which is what every quote picture was shot at. Auto holds at 1.0 whenever the house is over half up.">!</button></div></div>
  <div class="row"><label>Courtyard<button type="button" class="i" data-tip="A PROPOSAL, not a scan. The court beyond the glazed wall is drawn from reference photographs (proportions only: floor at hall level, stone walls, the glazed roof left open) and the three delivery partners stand where the yellow sculpture stands today, Lotron in the middle. Nothing here is measured.">!</button></label>
   <label style="color:var(--dim);font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="court" checked> Partner sculptures in the court</label>
   <label style="color:var(--dim);font-size:12px">Sculpture width <input type="range" id="logoh" min="6" max="30" step="0.5" value="18"> <span id="logohval">22</span> m</label></div>
@@ -939,7 +942,11 @@ function photoMaterial(src){
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
   uniforms:{map:{value:src.map||null},tint:{value:new THREE.Color(src.map?0xffffff:src.color)},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
-   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()}},   // hole: x,z,radius,on. The void's bowl cuts through the carpet
+   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()},
+   // the render terms added 2026-09-07 (see "the lighting render" in AGENTS.md): the carpet's own
+   // colour for the first bounce, the floor plane it bounces off, the shaft radius the columns
+   // shadow with, and how many of them a fragment tests (1 on a phone, 2 on a desk, 0 = off)
+   bounceAlb:{value:new THREE.Vector3(0,0,0)},bounceY:{value:0},colR:{value:0.25},nOcc:{value:('ontouchstart' in window)?1:2}},   // hole: x,z,radius,on. The void's bowl cuts through the carpet
   vertexShader:`varying vec2 vUv; varying vec3 vPos;
    void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
@@ -951,7 +958,20 @@ function photoMaterial(src){
    uniform vec4 door; uniform vec3 doorC; uniform vec3 doorU; uniform vec3 doorN;
    // frost: the glazing gone milky and opaque (the tour's dinner shot, so nothing outside shows)
    uniform float frost;
+   // the bounce and the shadow (2026-09-07)
+   uniform vec3 bounceAlb; uniform float bounceY, colR; uniform int nOcc;
    varying vec2 vUv; varying vec3 vPos;
+   // A COLUMN BETWEEN A LIGHT AND A SURFACE CASTS A SHADOW. The shafts are vertical and run the
+   // full height of the hall, and every strip runs their full height too, so the occlusion test
+   // is the 2D one: does the plan-view segment from the fragment to the light pass within the
+   // shaft radius of a column axis. The penumbra is the smoothstep either side of it: a real
+   // 12 m line source is nothing like a point, so the shadow edge is soft over about half a
+   // radius, and the fluted shaft is not a clean cylinder anyway.
+   float occl(vec2 p, vec2 q, vec2 c, float r){
+    vec2 pq=q-p, pc=c-p; float L2=max(dot(pq,pq),1e-6);
+    float t=clamp(dot(pc,pq)/L2,0.0,1.0);
+    return smoothstep(r*0.55, r*1.25, length(pc-pq*t));
+   }
    void main(){
     // the void's bowl sits in a hole in the floor; the carpet does not stop dead at it but thins
     // out over the last 40 cm, the void showing through (Lloyd: smooth and subtle, no line, no glow)
@@ -963,12 +983,39 @@ function photoMaterial(src){
     // side being lit as far as the eye is concerned on a two-sided surface
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
     vec3 E=vec3(house+ambient+day*dayGain);
+    // THE TWO COLUMN AXES NEAREST THIS FRAGMENT, read out of the light list itself: a band light
+    // sits ON its column's axis and lightPos.w carries which column it is, so the shadow test
+    // needs no uniform array of its own (the fragment stage is already at 192 of WebGL2's
+    // guaranteed 224 vectors, see the note above). Two columns, because a fragment on the carpet
+    // between two rows is shadowed by one of each row and by nothing else that matters.
+    vec2 oc0=vec2(0.0), oc1=vec2(0.0); float od0=1e12, od1=1e12, ow0=-1.0, ow1=-1.0;
+    if(nOcc>0){ for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
+     vec2 cxz=lightPos[i].xz; float w=lightPos[i].w; vec2 dd=cxz-vPos.xz; float d=dot(dd,dd);
+     if(w==ow0){ od0=min(od0,d); }
+     else if(w==ow1){ od1=min(od1,d); }
+     else if(d<od0){ od1=od0; oc1=oc0; ow1=ow0; od0=d; oc0=cxz; ow0=w; }
+     else if(d<od1){ od1=d; oc1=cxz; ow1=w; } } }
     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
-     // closed-form diffuse integral of a vertical line of point sources: lightPos.xyz is the
-     // segment's foot, lightCol.w its height. F(t) integrates N.(v+t*up)/|v+t*up|^3; the light's
-     // total flux is divided by the height, so a band's lumens land exactly once.
+     // CLOSED-FORM DIFFUSE INTEGRAL OF A VERTICAL LAMBERTIAN LINE. lightPos.xyz is the segment's
+     // foot, lightCol.w its height, and lightCol.rgb the band's intensity Phi/4pi.
+     // (Lloyd, 2026-09-07: "the lighting looks very one-dimensional") until today the segment
+     // radiated ISOTROPICALLY: the same intensity straight down the shaft as out of the face. A
+     // diffused strip is Lambertian off its face, so its intensity falls with the cosine of the
+     // angle off the face normal. The blade texture already carries the AZIMUTHAL half of that
+     // cosine; the ELEVATION half was missing, which is why the light piled into a tight disc at
+     // the foot instead of running out across the carpet and up the wall opposite.
+     // I(alpha,beta) = K B(alpha) cos(beta). Integrating over the sphere with dOmega = cos(beta)
+     // d(alpha) d(beta) and B mean-normalised to 1 gives K 2pi (pi/2) = K pi^2, so K = Phi/pi^2:
+     // exactly 4/pi of the isotropic Phi/4pi, and flux is still conserved to the lumen.
+     // cos(beta) = rho/r with rho the horizontal distance, CONSTANT along a vertical segment, so
+     // the integral is the same one over r^4 instead of r^3 and still closes:
+     //   int (aN + bN t) rho / r^4 dt = A u /(2 rho r^2) + A atan(u/rho)/(2 rho^2) - bN rho/(2 r^2)
+     // with u = t + e, A = aN - bN e, r^2 = u^2 + rho^2. One atan2 per light: the difference of
+     // two arctangents is atan2((u1-u0) rho^2, rho (rho^2 + u0 u1)).
      vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
-     float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float c=dot(v,v); float e=v.y;
+     // a fragment cannot be inside the shaft, so rho never goes below the column's own radius:
+     // that is what keeps the atan term finite at the foot, not an arbitrary epsilon
+     float hd2=max(v.x*v.x+v.z*v.z,colR*colR*0.25); float rho=sqrt(hd2); float e=v.y;
      float aN=dot(N,v); float bN=N.y;
      // the LEDs above the fragment's own horizon are the only ones it can see, and the integrand
      // aN+bN*t crosses zero once: clip the span there rather than clamping the whole integral,
@@ -977,13 +1024,32 @@ function photoMaterial(src){
      if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
      else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
      else if(aN<=0.0) t1=t0;
-     float k=(aN-bN*e)/hd2;
-     float g0=(k*(t0+e)-bN)*inversesqrt(max(c+2.0*e*t0+t0*t0,1e-6));
-     float g1=(k*(t1+e)-bN)*inversesqrt(max(c+2.0*e*t1+t1*t1,1e-6));
-     float I=max(g1-g0,0.0)/h;
+     float A=aN-bN*e, u0=t0+e, u1=t1+e;
+     float r0=hd2+u0*u0, r1=hd2+u1*u1;
+     float da=atan((u1-u0)*hd2, rho*(hd2+u0*u1));
+     float I=max(A*(u1/r1-u0/r0)/(2.0*rho) + A*da/(2.0*hd2) - bN*rho*0.5*(1.0/r1-1.0/r0), 0.0)*(1.27323954/h);
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
-     E+=lightCol[i].rgb*(ledGain*I*blade); }
+     // the shadow: skip the light's own column (a strip is never behind its own shaft)
+     float sh=1.0;
+     if(nOcc>0&&lightPos[i].w!=ow0) sh*=occl(vPos.xz,lightPos[i].xz,oc0,colR);
+     if(nOcc>1&&lightPos[i].w!=ow1) sh*=occl(vPos.xz,lightPos[i].xz,oc1,colR);
+     E+=lightCol[i].rgb*(ledGain*I*blade*sh);
+     // THE FIRST BOUNCE (Lloyd: "nothing bounces"). Half of a Lambertian face's flux leaves below
+     // the horizon -- exactly half, because cos(beta) is even in beta -- and in a hall 15 m wide
+     // with 12.7 m columns that half lands on the carpet. The carpet is deep red, so it throws
+     // deep red back up the near wall and onto the glass. That returning light is modelled as one
+     // virtual cosine emitter per band light, sitting at the column's foot on the floor, carrying
+     // 0.5 x the band's flux x the carpet's own measured albedo (bounceAlb, sampled off the floor
+     // photograph at load). Its softening radius is the band's own height above the floor, which
+     // is roughly how far out its downward half actually spreads, and it keeps the term finite
+     // right at the foot. A cosine emitter of flux F has I = F cos(theta)/pi, so in the shader's
+     // units (lightCol = Phi/4pi/HOUSE_LUX) the 0.5 share and the 4/pi come to 2 x bounceAlb.
+     vec3 w=vec3(lightPos[i].x,bounceY,lightPos[i].z)-vPos;
+     float R=max(lightPos[i].y+h*0.5-bounceY,0.25);
+     float d2=dot(w,w)+R*R;
+     float cs=max(-w.y,0.0), cr=max(dot(N,w),0.0);
+     E+=lightCol[i].rgb*bounceAlb*(2.0*ledGain*cs*cr/(d2*d2)); }
     // through the fade the carpet passes through purple on its way to black (Lloyd): carpet, rim, void;
     // a narrow bell in the middle of the fade, about 8 cm wide (Lloyd: the line was too thick)
     float lipW=exp(-pow((holeA-0.5)/0.13,2.0));
@@ -1535,23 +1601,49 @@ function glassMaterial(){
     // 5. the LED show below: the closed-form vertical-segment integral the plate uses, on the
     //    underside; the rough face and the bevel throw some of it back down, in the slab's colour
     vec3 nd=-nUp; vec3 led=vec3(0.0);
+    // THE GLASS IS A DARK MIRROR AT NIGHT (Lloyd, 2026-09-07: it reflected nothing). A slab of
+    // stained glass with nothing but the void behind it reflects the room off its underside, and
+    // what is in the room is twelve lines of light. That reflection is the SPECULAR half of the
+    // same band lights this loop already integrates, so it costs no second pass and no second
+    // render: a normalised Phong lobe about the mirror direction, weighted by Schlick's Fresnel
+    // for glass (F0 = 0.04 at normal incidence, rising to 1 at grazing, which is why the far end
+    // of the canopy carries the strips and the panes overhead barely do). The lobe is broad, not
+    // a clean image: French's slabs are hammer-chipped and every coffer facet sits at 13.9 deg to
+    // its neighbour, so an exponent of 60 (about a 10 degree blur) is what a strip looks like in
+    // it. The lobe's own normalisation (n+2)/2pi keeps the reflected flux equal to the Fresnel
+    // share of what arrives, so nothing is invented.
+    vec3 Vv=normalize(cameraPosition-vPos);
+    vec3 Rv=reflect(-Vv,nd);
+    float cosV=clamp(dot(Vv,nd),0.0,1.0);
+    float fres=0.04+0.96*pow(1.0-cosV,5.0);
+    const float MIRN=60.0;
+    vec3 mir=vec3(0.0);
     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
+     // the same Lambertian r^4 form the room shader uses (2026-09-07): the strip is a diffused
+     // face, not a bare point, so its intensity falls with the cosine of the angle off that face
      vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
-     float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float cc=dot(v,v); float ee=v.y;
+     float hd2=max(v.x*v.x+v.z*v.z,0.0156); float rho=sqrt(hd2); float ee=v.y;
      float aN=dot(nd,v); float bN=nd.y;
      float t0=0.0, t1=h;
      if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
      else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
      else if(aN<=0.0) t1=t0;
-     float kk=(aN-bN*ee)/hd2;
-     float g0=(kk*(t0+ee)-bN)*inversesqrt(max(cc+2.0*ee*t0+t0*t0,1e-6));
-     float g1=(kk*(t1+ee)-bN)*inversesqrt(max(cc+2.0*ee*t1+t1*t1,1e-6));
-     float I=max(g1-g0,0.0)/h;
+     float AA=aN-bN*ee, u0=t0+ee, u1=t1+ee;
+     float r0=hd2+u0*u0, r1=hd2+u1*u1;
+     float da=atan((u1-u0)*hd2, rho*(hd2+u0*u1));
+     float I=max(AA*(u1/r1-u0/r0)/(2.0*rho) + AA*da/(2.0*hd2) - bN*rho*0.5*(1.0/r1-1.0/r0), 0.0)*(1.27323954/h);
      float az=atan(-v.z,-v.x);
      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
-     led+=lightCol[i].rgb*(I*blade); }
+     vec3 contrib=lightCol[i].rgb*(I*blade);
+     led+=contrib;
+     // the segment's middle stands in for the line: at any distance the eye is from the canopy,
+     // a 1.6 m band under a 60-exponent lobe is already a smear
+     vec3 Ld=normalize(v+vec3(0.0,h*0.5,0.0));
+     mir+=contrib*(pow(max(dot(Rv,Ld),0.0),MIRN)*(MIRN+2.0)*0.15915494); }
     led=led/(1.0+0.35*dot(led,vec3(0.2126,0.7152,0.0722)));
     L+=(T*0.55+vec3(0.05))*led*ledGain*(1.6+2.0*rim)*lip;
+    // the reflection rides ON the slab, not through it: it is not multiplied by the transmission
+    L+=mir*fres;
     gl_FragColor=vec4(L,1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -1577,12 +1669,209 @@ function govern(now){ if(now-GOV.at<1000)return; GOV.at=now; const fps=animate.f
  let i=GOV.i; if(fps<57){ if(i<GOV.steps.length-1)i++; GOV.good=0; } else if(fps>59){ if(++GOV.good>=5&&i>0){ i--; GOV.good=0; } } else GOV.good=0;
  if(i!==GOV.i){ GOV.i=i; R.setPixelRatio(GOV.steps[i]); resize(); } }
 addEventListener('resize',resize); resize();
+// ---- GLARE (Lloyd, 2026-09-07: the strips are hard flat lines). A 1,088 lm/m line seen straight
+// on is far above any camera's white point and both the eye and a phone spread it: veiling glare
+// off the lens elements and scatter in the cornea. The CIE/Vos glare models put the integral of
+// that point-spread at a few per cent of the source, so GLARE_GAIN is 6%, spread by one blur.
+// It is ENERGY-ANCHORED, not a look: the pass runs on the HDR emitters ALONE (their own layer,
+// drawn against the depth of the hall so a strip behind a column does not glare through it), it
+// keeps only what is over the display's white point, and that white point moves with the camera:
+// THR = 1/exposure, so a dimmed strip blooms less, and the neon (426 lm/m out of a 16 mm body)
+// blooms less than the bare strip (1,088 lm/m out of a 5 mm die) on its own radiance, with no
+// per-fixture constant anywhere. Half resolution, quarter on a phone; nothing else in the frame is
+// touched, which is the whole reason it is not an UnrealBloomPass over the carpet.
+const GLARE_GAIN=0.06;
+const BLOOM={on:true, rt:null, rt2:null, w:0, h:0, depthMat:null, scene:null, cam:null, blur:null, comp:null};
+function bloomInit(){
+ if(BLOOM.scene)return;
+ BLOOM.depthMat=new THREE.MeshBasicMaterial({colorWrite:false});
+ BLOOM.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+ BLOOM.scene=new THREE.Scene();
+ const g=new THREE.PlaneGeometry(2,2);
+ // one separable Gaussian, sigma 2.2 half-res texels (about 9 px across at full size): the eye's
+ // glare kernel is far wider than that in the tail but its energy is in the core
+ BLOOM.blur=new THREE.ShaderMaterial({uniforms:{src:{value:null},dir:{value:new THREE.Vector2()},thr:{value:1}},
+  vertexShader:'varying vec2 vU; void main(){vU=uv; gl_Position=vec4(position.xy,0.0,1.0);}',
+  fragmentShader:`uniform sampler2D src; uniform vec2 dir; uniform float thr; varying vec2 vU;
+   void main(){ const float w0=0.2270270, w1=0.3162162, w2=0.0702703;
+    vec3 c=max(texture2D(src,vU).rgb-thr,0.0)*w0;
+    c+=max(texture2D(src,vU+dir*1.3846154).rgb-thr,0.0)*w1;
+    c+=max(texture2D(src,vU-dir*1.3846154).rgb-thr,0.0)*w1;
+    c+=max(texture2D(src,vU+dir*3.2307692).rgb-thr,0.0)*w2;
+    c+=max(texture2D(src,vU-dir*3.2307692).rgb-thr,0.0)*w2;
+    gl_FragColor=vec4(c,1.0); }`,depthTest:false,depthWrite:false});
+ // the composite: the glare is linear radiance, so it goes through the SAME exposure and ACES
+ // curve the hall went through before it is added to the picture, or it would read as paint
+ BLOOM.comp=new THREE.ShaderMaterial({uniforms:{src:{value:null},gain:{value:GLARE_GAIN},expo:{value:1}},
+  vertexShader:'varying vec2 vU; void main(){vU=uv; gl_Position=vec4(position.xy,0.0,1.0);}',
+  fragmentShader:`uniform sampler2D src; uniform float gain, expo; varying vec2 vU;
+   vec3 aces(vec3 x){ x*=0.6; return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
+   void main(){ vec3 c=aces(texture2D(src,vU).rgb*gain*expo);
+    gl_FragColor=vec4(pow(c,vec3(0.4166667)),1.0); }`,
+  depthTest:false,depthWrite:false,transparent:true,blending:THREE.AdditiveBlending});
+ BLOOM.quad=new THREE.Mesh(g,BLOOM.blur); BLOOM.quad.frustumCulled=false; BLOOM.scene.add(BLOOM.quad);
+}
+function bloomPass(){
+ if(!BLOOM.on||!pix||lit.nLights<=0)return;
+ bloomInit();
+ const size=new THREE.Vector2(); R.getDrawingBufferSize(size);
+ const div=('ontouchstart' in window)?4:2;
+ const w=Math.max(8,Math.floor(size.x/div)), h=Math.max(8,Math.floor(size.y/div));
+ if(!BLOOM.rt||BLOOM.w!==w||BLOOM.h!==h){ if(BLOOM.rt){BLOOM.rt.dispose(); BLOOM.rt2.dispose();}
+  const o={type:THREE.HalfFloatType, depthBuffer:true, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter};
+  BLOOM.rt=new THREE.WebGLRenderTarget(w,h,o); BLOOM.rt2=new THREE.WebGLRenderTarget(w,h,Object.assign({},o,{depthBuffer:false}));
+  BLOOM.w=w; BLOOM.h=h; }
+ const cc=new THREE.Color(); R.getClearColor(cc); const ca=R.getClearAlpha(); const bg=scene.background, mask=cam.layers.mask, ac=R.autoClear;
+ R.setRenderTarget(BLOOM.rt); scene.background=null; R.setClearColor(0x000000,0); R.clear(true,true,false);
+ // 1. the hall's depth, so an emitter behind a column or a wall does not glare through it. Every
+ // emitter comes OUT of that pass: they are additive and depth-write-free in the real frame, and
+ // if the override material wrote their depth here they would occlude themselves in pass 2. They
+ // all sit directly under the scene (the sim's pix and glow, the shift's fitted bars and halos),
+ // so the list is one walk of its children, not a traverse.
+ const hid=[]; for(const o of scene.children) if(o.visible&&o.layers.isEnabled(BLOOM_LAYER)){ o.visible=false; hid.push(o); }
+ scene.overrideMaterial=BLOOM.depthMat;
+ R.autoClear=false; R.render(scene,cam);
+ // 2. the emitters alone, depth-tested against it
+ scene.overrideMaterial=null; for(const o of hid)o.visible=true;
+ cam.layers.set(BLOOM_LAYER); R.render(scene,cam); cam.layers.mask=mask;
+ // 3. threshold + separable blur, and add it back over the frame
+ const thr=1.0/Math.max(EXPO.now,0.01);
+ BLOOM.quad.material=BLOOM.blur; BLOOM.blur.uniforms.thr.value=thr;
+ BLOOM.blur.uniforms.src.value=BLOOM.rt.texture; BLOOM.blur.uniforms.dir.value.set(1/w,0);
+ R.setRenderTarget(BLOOM.rt2); R.clear(true,false,false); R.render(BLOOM.scene,BLOOM.cam);
+ BLOOM.blur.uniforms.thr.value=0.0;   // the threshold is already taken out of rt2
+ BLOOM.blur.uniforms.src.value=BLOOM.rt2.texture; BLOOM.blur.uniforms.dir.value.set(0,1/h);
+ R.setRenderTarget(BLOOM.rt); R.clear(true,false,false); R.render(BLOOM.scene,BLOOM.cam);
+ R.setRenderTarget(null);
+ BLOOM.quad.material=BLOOM.comp; BLOOM.comp.uniforms.src.value=BLOOM.rt.texture; BLOOM.comp.uniforms.expo.value=EXPO.now;
+ R.render(BLOOM.scene,BLOOM.cam);
+ BLOOM.quad.material=BLOOM.blur;
+ R.autoClear=ac; scene.background=bg; R.setClearColor(cc,ca);
+}
+// ---- CAMERA AUTO-EXPOSURE (Lloyd, 2026-09-07: "the lighting looks very one-dimensional").
+// A photograph of this show is exposed FOR the show. The page's whole lighting model is written in
+// units of HOUSE_LUX, so an exposure of 1.0 is "the house at 100%", which is exactly what every
+// quote picture and every daylight shot was taken at. With the house off, the same exposure gives
+// a black hall with lines in it -- the eye in that room would have opened up, and so would a phone.
+// THE KEY IS COMPUTED FROM THE LIGHTS, not from the framebuffer: no GPU readback, no frame of lag,
+// and the same number on every machine. The hall is a closed box, so the mean illuminance on its
+// surfaces is the flux arriving divided by their total area:
+//   mean = (house + day) x HOUSE_LUX  +  (lumens leaving the strips this frame x cover T) / area
+// Exposure is HOUSE_LUX / mean, clamped, so a dark scene opens up and a bright one never darkens
+// below the reference. It eases with a 0.2 s time constant (95% settled in 0.6 s) so a chase or a
+// strobe does not pump the picture, and it is HELD at 1.0 whenever the house is at or over half:
+// by day nothing changes, at all, from what the proposal has always shown.
+const EXPO={now:1, want:1, mean:HOUSE_LUX, area:0, mode:'auto'};
+try{ const s=localStorage.getItem('ngv.cam.exposure'); if(s==='auto'||s==='fixed')EXPO.mode=s; }catch(e){}
+// The key is HALF the daylight reference, not all of it: a photograph of a light show is
+// deliberately a stop under, or the hall stops reading as night and starts reading as a room with
+// the lights on. Two stops is the ceiling, past which the ambient floor and the 8-bit carpet
+// texture band.
+const EXPO_KEY=HOUSE_LUX*0.5, EXPO_HI=4.0;
+function exposureStep(dt){
+ const houseKey=lit.house+lit.day;
+ // the light the strips actually put into the room this frame, from the same figure the stats line
+ // prints ("N lm into the hall"): lit.lmStrip is the total at the strips, dT what the cover passes
+ const dT=state.system==='neon'?1:COVER_T[state.cover];
+ const led=EXPO.area>0?(lit.lmStrip||0)*dT/EXPO.area:0;
+ EXPO.mean=houseKey*HOUSE_LUX+led;
+ EXPO.want=(EXPO.mode==='fixed'||houseKey>=0.5)?1:Math.min(EXPO_HI,Math.max(1,EXPO_KEY/Math.max(EXPO.mean,1e-3)));
+ EXPO.now+=(EXPO.want-EXPO.now)*(1-Math.exp(-Math.max(dt,0)/0.2));
+ if(Math.abs(EXPO.want-EXPO.now)<0.002)EXPO.now=EXPO.want;
+ if(Math.abs(R.toneMappingExposure-EXPO.now)>1e-4)R.toneMappingExposure=EXPO.now;
+}
+// the hall's own surface area, summed off the scan's triangles (the photographed surfaces ARE the
+// room: floor, walls, canopy). One pass at load, in the model's own untouched geometry; the height
+// lever moves it by a couple of per cent at the extremes, well inside the ease.
+let HALL_AREA0=0;
+function measureHallArea(){ let A=0; const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),ab=new THREE.Vector3(),ac=new THREE.Vector3();
+ hallGroup&&hallGroup.traverse(o=>{ if(!o.isMesh||!o.geometry)return;
+  const mm=[].concat(o.material); if(!mm.some(x=>photoMats.includes(x)))return;
+  const g=o.geometry, p=g.attributes.position; if(!p)return; const idx=g.index;
+  const n=idx?idx.count:p.count;
+  for(let i=0;i+2<n;i+=3){ const i0=idx?idx.getX(i):i, i1=idx?idx.getX(i+1):i+1, i2=idx?idx.getX(i+2):i+2;
+   a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2);
+   ab.subVectors(b,a); ac.subVectors(c,a); A+=ab.cross(ac).length()*0.5; } });
+ HALL_AREA0=A; EXPO.area=A;
+}
+// THE COLUMNS SEE EACH OTHER (Lloyd, 2026-09-07). The shafts are gloss black steel at roughness
+// 0.5 and until today the only thing lighting them was a static RoomEnvironment, so a red column
+// stood beside a grey one and threw nothing on it. The band lights are added to the column's own
+// MeshStandardMaterial with the SAME segment integral the room shader uses, as a diffuse term
+// (albedo x E, exactly as a photograph renders) plus a Blinn highlight toward the segment's
+// middle, which is what a gloss shaft actually shows: a soft vertical smear of the neighbour's
+// colour, not a point.
+function columnLit(m){
+ m.onBeforeCompile=sh=>{
+  sh.uniforms.nLights={value:0}; sh.uniforms.lightPos={value:lightPos}; sh.uniforms.lightCol={value:lightCol};
+  sh.uniforms.blades={value:bladeTex}; sh.uniforms.colR={value:COL_R};
+  m.userData.ledUniforms=sh.uniforms;
+  sh.vertexShader='varying vec3 vWPos;\n'+sh.vertexShader.replace('#include <project_vertex>',
+   '#include <project_vertex>\n vWPos=(modelMatrix*vec4(transformed,1.0)).xyz;');
+  sh.fragmentShader='varying vec3 vWPos; uniform int nLights; uniform vec4 lightPos['+MAX_LIGHTS+']; uniform vec4 lightCol['+MAX_LIGHTS+']; uniform sampler2D blades; uniform float colR;\n'+
+   sh.fragmentShader.replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
+   { vec3 Nc=normal; vec3 Vc=normalize(cameraPosition-vWPos); vec3 Eled=vec3(0.0), Sled=vec3(0.0);
+     float gloss=exp2(10.0*(1.0-roughnessFactor)+1.0);
+     for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
+      vec3 v=lightPos[i].xyz-vWPos; float h=max(lightCol[i].w,0.01);
+      float hd2=max(v.x*v.x+v.z*v.z,colR*colR*0.25); float rho=sqrt(hd2); float e=v.y;
+      float aN=dot(Nc,v); float bN=Nc.y;
+      float t0=0.0, t1=h;
+      if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
+      else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
+      else if(aN<=0.0) t1=t0;
+      float A=aN-bN*e, u0=t0+e, u1=t1+e;
+      float r0=hd2+u0*u0, r1=hd2+u1*u1;
+      float da=atan((u1-u0)*hd2, rho*(hd2+u0*u1));
+      float I=max(A*(u1/r1-u0/r0)/(2.0*rho) + A*da/(2.0*hd2) - bN*rho*0.5*(1.0/r1-1.0/r0), 0.0)*(1.27323954/h);
+      float az=atan(-v.z,-v.x);
+      float blade=texture2D(blades, vec2(az*0.15915494+0.5, lightPos[i].w)).r*${BLADE_SCALE.toFixed(1)};
+      vec3 contrib=lightCol[i].rgb*(I*blade);
+      Eled+=contrib;
+      // the highlight: the segment's mid-point stands in for the line, which is what a smear
+      // half a metre wide on a 12 m reflection amounts to at any distance the eye is at
+      vec3 Ld=normalize(v+vec3(0.0,h*0.5,0.0));
+      Sled+=contrib*pow(max(dot(Nc,normalize(Ld+Vc)),0.0),gloss); }
+     reflectedLight.indirectDiffuse+=Eled*material.diffuseColor;
+     reflectedLight.indirectSpecular+=Sled*material.specularColor*0.25; }`);
+ };
+ m.needsUpdate=true;
+}
+// THE CARPET'S ALBEDO, measured off its own photograph (2026-09-07). Every photo material renders
+// as albedo x E, so the floor texture's mean linear value IS the carpet's diffuse reflectance, and
+// its colour cast is what the first bounce carries up the walls. sRGB in the texture, linear here.
+let BOUNCE_ALB=new THREE.Vector3(0,0,0);
+function measureBounce(){
+ const fm=photoMats.find(m=>/^(flat-)?floor$/i.test(m.name||'')); if(!fm)return;
+ const t=fm.uniforms.map.value, tint=fm.uniforms.tint.value;
+ let r=tint.r,g=tint.g,b=tint.b;
+ if(t&&t.image){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d',{willReadFrequently:true});
+  try{ x.drawImage(t.image,0,0,64,64); const d=x.getImageData(0,0,64,64).data; let sr=0,sg=0,sb=0;
+   const lin=v=>{v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+   for(let i=0;i<d.length;i+=4){sr+=lin(d[i]); sg+=lin(d[i+1]); sb+=lin(d[i+2]);}
+   const n=d.length/4; r=sr/n*tint.r; g=sg/n*tint.g; b=sb/n*tint.b;
+  }catch(e){ /* a tainted canvas leaves the tint alone: served from the same origin it never is */ } }
+ BOUNCE_ALB.set(r,g,b);
+ for(const m of photoMats) if(m.uniforms.bounceAlb)m.uniforms.bounceAlb.value.copy(BOUNCE_ALB);
+}
+// THE SHAFT RADIUS the columns shadow with. The run polylines ride the fin valleys, so their mean
+// distance from the column axis is the valley radius; the fins stand 50 mm proud at the foot and
+// 150 mm at the ceiling (the model table), so the silhouette a shadow is cast by is the valley
+// plus their mean 100 mm.
+let COL_R=0.25;
+function measureShaft(){ if(!RUNS)return; const ax={};
+ for(const r of RUNS.runs){ const c=r.column; if(!ax[c])ax[c]=[0,0,0]; ax[c][0]+=r.points[0][0]; ax[c][2]+=r.points[0][2]; ax[c][1]++; }
+ let s=0,n=0; for(const r of RUNS.runs){ const a=ax[r.column]; const cx=a[0]/a[1], cz=a[2]/a[1];
+  s+=Math.hypot(r.points[0][0]-cx,r.points[0][2]-cz); n++; }
+ if(n)COL_R=s/n+0.10;
+ for(const m of photoMats) if(m.uniforms.colR)m.uniforms.colR.value=COL_R;
+}
 new GLTFLoader().load('model.glb',g=>{
  // The floor, walls and canopy are photographs projected onto flat surfaces: the light is already
  // in them. Lighting them again darkens every face that does not happen to face the sky, which
  // turned the canopy black. They render unlit; only the columns keep a lit gloss material.
  g.scene.traverse(o=>{ if(!o.isMesh)return; const ms=Array.isArray(o.material)?o.material:[o.material];
-  const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnMats.push(m); return m;} return photoMaterial(m); });
+  const out=ms.map(m=>{ if(/column/i.test(m.name||'')){m.roughness=COLUMN_ROUGHNESS; columnLit(m); columnMats.push(m); return m;} return photoMaterial(m); });
   o.material=Array.isArray(o.material)?out:out[0];
   // the doorway (Lloyd's storyboard finale): the opening in the glazing on the court's axis
   // where the tour walks out; buildDoor sets it to the door leaf's footprint once the panes
@@ -1606,6 +1895,14 @@ new GLTFLoader().load('model.glb',g=>{
  // HUD's canopy-underside figure keeps its meaning; the new canopy lives inside hallGroup and
  // stretches with the column-height lever like everything else
  buildProceduralCanopy(g.scene);
+ // THE CARPET'S OWN COLOUR, for the first bounce (Lloyd, 2026-09-07: "nothing bounces"). The
+ // floor primitive is a photograph taken under the house lights, so in this page's model its
+ // texels ARE its albedo: a texel of 1.0 is a surface that returns everything the house gives it.
+ // The mean of that texture, in linear light, is therefore the carpet's diffuse reflectance and
+ // its colour cast, and it is measured here rather than guessed. Sampled at 64 x 64, which is
+ // plenty for a mean and costs nothing.
+ measureBounce(); measureShaft();
+ for(const m of photoMats){ if(m.uniforms.bounceY)m.uniforms.bounceY.value=FLOOR_Y; }
  // The scan never captured the entrance-end wall: raycasts from inside meet NOTHING from floor
  // to roof at x>=0, so that end read as a huge black hole beside the canopy and the camera flew
  // straight out of it. A matte near-black cap (the void band's colour) closes the end; it lives
@@ -1641,7 +1938,7 @@ new GLTFLoader().load('model.glb',g=>{
   if(typeof dirty==='function')dirty(); }).catch(e=>console.warn('tapestries',e));
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; hallLevel=new THREE.Group(); hallLevel.name='hall-level'; hallSway=new THREE.Group(); hallSway.name='hall-sway';
- hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
+ hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); measureHallArea(); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
  e=>{if(e.total)bar.textContent='Loading model, '+Math.round(100*e.loaded/e.total)+'%';},
  ()=>{bar.textContent='The 3D view could not start on this device. The stills below are the same model.'; document.getElementById('loader').classList.add('gone');});
 
@@ -1797,6 +2094,48 @@ const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015, TILE_T=0.001;
 // rougher (2026-08-28), so the viewer sets this on every column material as it loads
 const COLUMN_ROUGHNESS=0.5;
 const GAPS=8;
+const BLOOM_LAYER=2;   // the HDR emitters and their halos; the bloom pass draws this layer alone
+// THE EMITTER FACE IS NOT A FLAT PANEL (Lloyd, 2026-09-07). Two things were missing from the lit
+// tile, and both are the cover's own optics, not a look:
+//  - VIEW ANGLE. The blade profiles above already say what each cover does with the light it
+//    passes: S(theta) is its intensity at theta off the face normal. Radiance is intensity over
+//    PROJECTED area, so what the eye sees is S(theta)/cos(theta), normalised to 1 square on. For
+//    the black cover that falls to about 0.57 by 80 degrees; for the open channel the LED is down
+//    a 16 mm slot and its face goes dark past 35 degrees, which is the slot, not the die.
+//  - THE FACE PROFILE. An 18 mm diffuser over a 10 mm strip is brighter down its middle than at
+//    its edges. The profile is normalised to MEAN 1 across the face, so EMIT_EXPOSURE keeps its
+//    meaning exactly: the face's average brightness is unchanged, only its section.
+// S is written as A + B cos(pi a / Wd) out to a cutoff W, which is the black and opal shapes
+// exactly and a raised-cosine fit of the slot blade for the open channel.
+const FACE_S={black:[0.5,0.5,1.75,1.75], opal:[0.3,0.7,4.0,2.0], none:[0.5,0.5,1.22,0.61]};
+function emitterFace(mat,cover){
+ const [A,B,Wd,W]=FACE_S[cover]||FACE_S.black;
+ mat.onBeforeCompile=sh=>{
+  sh.uniforms.fA={value:A}; sh.uniforms.fB={value:B}; sh.uniforms.fWd={value:Wd}; sh.uniforms.fW={value:W};
+  sh.vertexShader='varying vec3 vFN; varying vec3 vFV; varying vec2 vFuv;\n'+sh.vertexShader.replace(
+   '#include <project_vertex>',
+   `#include <project_vertex>
+    { mat3 im=mat3(1.0); vec4 lp=vec4(position,1.0);
+      #ifdef USE_INSTANCING
+       im=mat3(instanceMatrix); lp=instanceMatrix*lp;
+      #endif
+      vFN=normalize(mat3(modelMatrix)*normalize(im*normal));
+      vFV=normalize(cameraPosition-(modelMatrix*lp).xyz); vFuv=uv; }`);
+  sh.fragmentShader='varying vec3 vFN; varying vec3 vFV; varying vec2 vFuv; uniform float fA,fB,fWd,fW;\n'+
+   sh.fragmentShader.replace('#include <opaque_fragment>',`
+    #include <opaque_fragment>
+    { float ct=clamp(abs(dot(normalize(vFN),normalize(vFV))),0.0,1.0);
+      float th=acos(ct);
+      float S=th<fW ? fA+fB*cos(th*3.14159265/fWd) : 0.0;
+      float S0=fA+fB;                                   // the same shape square on, for the normalise
+      float view=clamp(S/max(ct,0.15)/max(S0,1e-4),0.0,1.0);
+      // the section across the 18 mm face: a soft-shouldered core, mean 1 (1 - 0.35 x^3 averages 0.9125)
+      float x=abs(vFuv.x-0.5)*2.0;
+      float prof=(1.0-0.35*x*x*x)/0.9125;
+      gl_FragColor.rgb*=view*prof; }`);
+ };
+ mat.needsUpdate=true;
+}
 function chosenGaps(n){const g=new Set(); for(let i=0;i<n;i++)g.add(1+Math.round(i*GAPS/n)); return g;}
 function rebuild(){
  if(!RUNS)return;
@@ -1941,6 +2280,10 @@ function rebuild(){
  // bloom radius follows the flux out of the aperture, roughly its square root
  const gsize=neon?0.26:cover==='none'?0.14:cover==='opal'?0.11:0.08, ggain=HALO_PEAK/((gsize/pitch)*HALO_MEAN*coverT);
  glow=new THREE.Points(gg,new THREE.PointsMaterial({map:GLOWTEX,color:new THREE.Color().setScalar(ggain),size:gsize,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,sizeAttenuation:true}));
+ emitterFace(pm,neon?'opal':cover);
+ // the HDR emitters ride their own layer so the glare pass draws them and nothing else: the lit
+ // face and the halo disc proud of its aperture, both already additive and toneMapped:false
+ pix.layers.enable(BLOOM_LAYER); glow.layers.enable(BLOOM_LAYER);
  scene.add(ribbon); scene.add(pix); scene.add(glow); if(pcb){scene.add(pcb); scene.add(pkg);} if(cvr)scene.add(cvr);
  const metres=segs.reduce((a,s)=>a+s.L,0); P.metres=metres;
  sceneDirty=true;
@@ -1958,7 +2301,7 @@ function paintHeightStat(metres,nRuns){
  hs.textContent=`Set ${set.toFixed(2)} m · scanned ${H0.toFixed(3)} m (${d>=0?'+':''}${d.toFixed(2)}%) · mean run ${(metres/Math.max(1,nRuns)).toFixed(3)} m${state.skip>0?' after the '+state.skip+' m skip':''} · ${metres.toFixed(1)} m in total${ceil}`;}
 fetch('runs.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{RUNS=j;
  H0=j.runs.reduce((a,r)=>a+(r.points[r.points.length-1][1]-r.points[0][1]),0)/j.runs.length;
- initHeight(); rebuild();});
+ initHeight(); measureShaft(); rebuild();});
 // ---- colour helpers (sRGB in, linear out for the instance buffer)
 function hsv(h,s,v,out){const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c; let r,g,b;
  if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
@@ -2115,8 +2458,10 @@ function animate(time){
               :state.cover==='black'?`black acrylic passes ${Math.round(DIFFUSER_T*100)}%`
               :state.cover==='opal'?`opal passes ${Math.round(OPAL_T*100)}%`:'open channel';
   const modeTxt=(maxMode?'RGBW max':'RGBW')+' \u00b7 '+sys.label, wTxt=wt>=1000?(wt/1000).toFixed(2)+' kW':f(wt)+' W';
+  // the camera's own reading, so a picture can be read back to the number it was exposed at
+  const expTxt=` · exposure x${EXPO.now.toFixed(2)}${EXPO.mode==='fixed'?' (fixed)':''}, mean ${Math.round(EXPO.mean)} lux`;
   const txt=`Running: ${f(lm)} lm at the ${neon?'neon':'strips'} -> ${f(room)} lm into the hall (${passTxt})`+
-   ` · ${wTxt} (${(wt/mets).toFixed(1)} W/m) · ${modeTxt}`;
+   ` · ${wTxt} (${(wt/mets).toFixed(1)} W/m) · ${modeTxt}`+expTxt;
   const el=document.getElementById('runstat'); if(el.textContent!==txt){el.textContent=txt; if(rc.conn&&rc.conn.open)rc.conn.send({t:'stats',v:txt});}
   if(state.hud){const h=document.getElementById('hud');
    const ht=`${Math.round(animate.fps||0)} fps · ${n.toLocaleString()} ${neon?'px':'LEDs'} · ${modeTxt} · dimmer ${Math.round(lv*100)}%
@@ -2134,6 +2479,9 @@ ${f(room)} lm into the hall (${passTxt})`;
   lightCol[nl*4]=r*scale; lightCol[nl*4+1]=g*scale; lightCol[nl*4+2]=b*scale; nl++; }
  lit.nLights=nl;
  for(const m of photoMats){m.uniforms.house.value=lit.house; m.uniforms.nLights.value=nl; m.uniformsNeedUpdate=true;}
+ // the columns run the same segment integral on their own material (columnLit), so they need
+ // the same count; the arrays themselves are the very same Float32Arrays
+ for(const m of columnMats){const u=m.userData.ledUniforms; if(u){u.nLights.value=nl; u.colR.value=COL_R;}}
  // the props (lift, crew, boxes) are ordinary lit meshes and the scan is not, so install mode
  // holds the hemisphere at the game's own working level while the photographs stay at whatever
  // the house dimmer says -- which at night is nothing
@@ -2221,7 +2569,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, R, get P(){return P;}, WCOL, RGB_SCALE, lit, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
+window.ngv={state, R, get P(){return P;}, WCOL, RGB_SCALE, lit, EXPO, BLOOM, get bounceAlb(){return BOUNCE_ALB;}, get colR(){return COL_R;}, get hallArea(){return HALL_AREA0;}, HOUSE_LUX, get lightPos(){return lightPos;}, get lightCol(){return lightCol;}, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
  // event-layer debug handles for headless verification
  get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
  buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),
@@ -2272,6 +2620,12 @@ const cn=document.getElementById('cn');
 document.getElementById('cm').onclick=()=>{state.count=Math.max(0,state.count-1); cn.value=state.count; rebuild();};
 document.getElementById('cp').onclick=()=>{state.count=Math.min(GAPS,state.count+1); cn.value=state.count; rebuild();};
 document.querySelectorAll('#diff button').forEach(btn=>btn.onclick=()=>{state.cover=btn.dataset.c; document.querySelectorAll('#diff button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); rebuild(); rcSync();});
+// Exposure: Auto / Fixed (Lloyd, 2026-09-07). Stored, so a browser that has been set to Fixed
+// keeps taking the same pictures the quote was shot with.
+document.querySelectorAll('#expmode button').forEach(btn=>btn.onclick=()=>{EXPO.mode=btn.dataset.v;
+ document.querySelectorAll('#expmode button').forEach(x=>x.setAttribute('aria-pressed',x===btn));
+ try{localStorage.setItem('ngv.cam.exposure',EXPO.mode);}catch(e){}});
+document.querySelectorAll('#expmode button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===EXPO.mode));
 document.querySelectorAll('#drive button').forEach(btn=>btn.onclick=()=>{state.drive=btn.dataset.d; document.querySelectorAll('#drive button').forEach(x=>x.setAttribute('aria-pressed',x===btn)); sceneDirty=true; rcSync();});
 /* (skeptic 15) Stats put the free-roam overlay up on top of the install HUD: two read-outs at once */
 document.getElementById('hudb').onclick=()=>{if(document.body.classList.contains('playing'))return; state.hud=!state.hud; document.getElementById('hud').hidden=!state.hud; document.getElementById('hudb').setAttribute('aria-pressed',state.hud); rcSync();};
@@ -6383,7 +6737,7 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  if(!locked()&&(rc.mv.f||rc.mv.r||rc.mv.u)){const g=speed*dt*2; eye.addScaledVector(f,rc.mv.f*g); eye.addScaledVector(r,rc.mv.r*g); eye.y+=rc.mv.u*g;}
  resolveMove();
  }
- animate(now/1000); govern(now);
+ animate(now/1000); govern(now); exposureStep(dt);
  if(!playing){ cam.position.copy(eye); cam.lookAt(eye.clone().add(f)); }
  titleWipeStep();
  const wk=WARP.k=warpK(); sndStep(now/1000,boom?null:wk); trackStep(now/1000);
@@ -6394,7 +6748,7 @@ function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1
  if(boom){ if(boomRender(now/1000)){ done(); return; } }
  // no dropped frames and no shutter frames on the way in (Lloyd: no flashing is allowed)
  if(wk>0){ warpShake(wk,now/1000); warpRender(wk); }
- else R.render(scene,cam);
+ else { R.render(scene,cam); bloomPass(); }
  // the veil (Lloyd): a spinner on black until the hall, the strips and the object all exist and
  // thirty frames have drawn, since the first frames compile shaders and the strips settle, which
  // is what looked glitched; then the picture fades in

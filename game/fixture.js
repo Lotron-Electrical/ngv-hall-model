@@ -88,6 +88,10 @@ export class FixtureSet {
     // an InstancedMesh caches a bounding sphere built from the matrices it had when it was first
     // culled; ours change as lights go in, so culling them would hide fitted sections
     for (const m of [this.ribbon, this.cover, this.emit, this.halo]) { m.frustumCulled = false; scene.add(m); }
+    // (2026-09-07) the fitted bar's face and its halo are HDR emitters like the sim's, so they ride
+    // the sim's bloom layer and the glare pass picks them up: a shift under 768 lit bars glares the
+    // way the proposal's hall does. Layer 2 is BLOOM_LAYER in index.html.
+    for (const m of [this.emit, this.halo]) m.layers.enable(2);
 
     this._M = new THREE.Matrix4(); this._p = new THREE.Vector3();
     this._t = new THREE.Vector3(); this._b = new THREE.Vector3(); this._nn = new THREE.Vector3();

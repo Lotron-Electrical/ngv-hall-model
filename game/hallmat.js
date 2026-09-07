@@ -10,6 +10,10 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 //  - every installed run is a vertical LINE LIGHT: the closed-form integral of the LEDs along it
 //    (the same maths as the viewer), so a fitted run washes the column and floor the way the
 //    viewer's strips do. 12 columns x 8 runs = 96 = the viewer's MAX_LIGHTS, one slot per run;
+//  - (2026-09-07) the viewer's three new render terms, ported line for line: the line is LAMBERTIAN
+//    off its face rather than isotropic, the carpet's first bounce comes back up the walls, and the
+//    columns shadow each other. Same constants, same closed form, same comments; see the viewer's
+//    photoMaterial and AGENTS.md "The lighting render".
 //  - the columns keep their glTF material with the viewer's roughness and env map;
 //  - same renderer: sRGB out, ACES tone mapping, exposure 1, RoomEnvironment for the gloss.
 export const MAX_LIGHTS = 96;
@@ -18,6 +22,14 @@ export const HOUSE_LUX = 150;              // the photographs' floor illuminance
 export const LM_PER_PIXEL = 1088 / 60;     // ENTTEC 8PXA60: 1,088 lm/m at 60 px/m
 export const PX_PER_M = 60;
 const COLUMN_ROUGHNESS = 0.5;
+// the shaft radius the columns shadow with: the fin valley the runs ride, plus the fins' mean
+// 100 mm proud (50 at the foot, 150 at the ceiling). The viewer measures it off runs.json; the
+// game's slots are built on the same polylines, so the same figure stands.
+export const COL_R = 0.26;
+// the carpet's diffuse reflectance and colour, measured off the floor photograph the scan carries
+// (the viewer samples that texture at load; this is that measurement, so the game and the viewer
+// bounce the same red). Deep red wool: 23% in the red channel, 6% green, 7% blue.
+export const FLOOR_ALB = [0.228, 0.059, 0.070];
 
 export const lightPos = new Float32Array(MAX_LIGHTS * 4);
 export const lightCol = new Float32Array(MAX_LIGHTS * 4);
@@ -40,6 +52,8 @@ export function photoMaterial(src, hall) {
       alpha: { value: src.transparent ? src.opacity : 1.0 },
       house: { value: 1 }, ambient: { value: AMBIENT },
       nLights: { value: 0 }, lightPos: { value: lightPos }, lightCol: { value: lightCol },
+      bounceAlb: { value: new THREE.Vector3(FLOOR_ALB[0], FLOOR_ALB[1], FLOOR_ALB[2]) }, bounceY: { value: o.y },
+      colR: { value: COL_R }, nOcc: { value: ('ontouchstart' in window) ? 1 : 2 },
       doorU: { value: hall.doorU }, doorD: { value: hall.doorD }, doorHalfW: { value: hall.doorW * 0.5 }, doorTop: { value: o.y + 3.0 }
     },
     vertexShader: `varying vec2 vUv; varying vec3 vPos;
@@ -47,7 +61,16 @@ export function photoMaterial(src, hall) {
     fragmentShader: `uniform sampler2D map; uniform vec3 tint; uniform float house, ambient, alpha; uniform int nLights;
       uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}];
       uniform float doorU, doorD, doorHalfW, doorTop;
+      uniform vec3 bounceAlb; uniform float bounceY, colR; uniform int nOcc;
       varying vec2 vUv; varying vec3 vPos;
+      // the plan-view shadow test: the shafts are vertical and run the full height, so a column
+      // occludes a light exactly when the segment from the fragment to it passes within the shaft
+      // radius of that column's axis. Soft over half a radius: a 12 m line source is not a point.
+      float occl(vec2 p, vec2 q, vec2 c, float r){
+        vec2 pq=q-p, pc=c-p; float L2=max(dot(pq,pq),1e-6);
+        float t=clamp(dot(pc,pq)/L2,0.0,1.0);
+        return smoothstep(r*0.55, r*1.25, length(pc-pq*t));
+      }
       void main(){
         // the doorway: nothing of the scan inside the door volume
         { vec3 q=vPos-vec3(${o.x},${o.y},${o.z}); float du=dot(q,vec3(${U.x},${U.y},${U.z})); float dd=dot(q,vec3(${N.x},${N.y},${N.z}));
@@ -55,21 +78,52 @@ export function photoMaterial(src, hall) {
         vec3 albedo=texture2D(map,vUv).rgb*tint;
         vec3 Nn=normalize(cross(dFdx(vPos),dFdy(vPos)));
         vec3 E=vec3(house+ambient);
+        // the two column axes nearest this fragment, read out of the light list itself: a run
+        // light sits on its column's axis and lightPos.w says which column it is, so the shadow
+        // costs no uniform vectors of its own (the viewer's note about the 224-vector budget)
+        vec2 oc0=vec2(0.0), oc1=vec2(0.0); float od0=1e12, od1=1e12, ow0=-1.0, ow1=-1.0;
+        if(nOcc>0){ for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
+          vec2 cxz=lightPos[i].xz; float w=lightPos[i].w; vec2 dd=cxz-vPos.xz; float d=dot(dd,dd);
+          if(w==ow0){ od0=min(od0,d); }
+          else if(w==ow1){ od1=min(od1,d); }
+          else if(d<od0){ od1=od0; oc1=oc0; ow1=ow0; od0=d; oc0=cxz; ow0=w; }
+          else if(d<od1){ od1=d; oc1=cxz; ow1=w; } } }
         for(int i=0;i<${MAX_LIGHTS};i++){ if(i>=nLights)break;
-          // closed-form diffuse integral of a vertical line of point sources (viewer's maths):
-          // lightPos.xyz the segment's foot, lightCol.w its height, flux divided by the height
+          // CLOSED-FORM DIFFUSE INTEGRAL OF A VERTICAL LAMBERTIAN LINE (the viewer's maths).
+          // lightPos.xyz the segment's foot, lightCol.w its height, flux divided by the height.
+          // The bar is a diffused FACE, so its intensity falls with the cosine of the angle off
+          // that face: I = K B(azimuth) cos(elevation), and integrating over the sphere makes
+          // K = Phi/pi^2, exactly 4/pi of the isotropic Phi/4pi, flux still conserved. cos(beta)
+          // is rho/r with rho constant along a vertical segment, so the integral is the same one
+          // over r^4 and still closes:
+          //   int (aN + bN t) rho / r^4 dt = A u/(2 rho r^2) + A atan(u/rho)/(2 rho^2) - bN rho/(2 r^2)
           vec3 v=lightPos[i].xyz-vPos; float h=max(lightCol[i].w,0.01);
-          float hd2=max(v.x*v.x+v.z*v.z,2.5e-3); float c=dot(v,v); float e=v.y;
+          float hd2=max(v.x*v.x+v.z*v.z,colR*colR*0.25); float rho=sqrt(hd2); float e=v.y;
           float aN=dot(Nn,v); float bN=Nn.y;
           float t0=0.0, t1=h;
           if(bN>1e-6) t0=clamp(-aN/bN,0.0,h);
           else if(bN<-1e-6) t1=clamp(-aN/bN,0.0,h);
           else if(aN<=0.0) t1=t0;
-          float k=(aN-bN*e)/hd2;
-          float g0=(k*(t0+e)-bN)*inversesqrt(max(c+2.0*e*t0+t0*t0,1e-6));
-          float g1=(k*(t1+e)-bN)*inversesqrt(max(c+2.0*e*t1+t1*t1,1e-6));
-          float I=max(g1-g0,0.0)/h;
-          E+=lightCol[i].rgb*I; }
+          float A=aN-bN*e, u0=t0+e, u1=t1+e;
+          float r0=hd2+u0*u0, r1=hd2+u1*u1;
+          float da=atan((u1-u0)*hd2, rho*(hd2+u0*u1));
+          float I=max(A*(u1/r1-u0/r0)/(2.0*rho) + A*da/(2.0*hd2) - bN*rho*0.5*(1.0/r1-1.0/r0), 0.0)*(1.27323954/h);
+          float sh=1.0;
+          if(nOcc>0&&lightPos[i].w!=ow0) sh*=occl(vPos.xz,lightPos[i].xz,oc0,colR);
+          if(nOcc>1&&lightPos[i].w!=ow1) sh*=occl(vPos.xz,lightPos[i].xz,oc1,colR);
+          E+=lightCol[i].rgb*(I*sh);
+          // THE FIRST BOUNCE. Half of a Lambertian face's flux leaves below the horizon (the
+          // cosine is even in the elevation), and in this hall that half lands on the carpet,
+          // which is deep red and throws deep red back up the walls. One virtual cosine emitter
+          // per light, at the foot of its column on the floor, carrying 0.5 x the flux x the
+          // carpet's albedo; its softening radius is the light's own mean height, which is
+          // roughly how far its downward half spreads and keeps the term finite at the foot.
+          // In these units the 0.5 share and the 4/pi come to 2 x bounceAlb.
+          vec3 bw=vec3(lightPos[i].x,bounceY,lightPos[i].z)-vPos;
+          float BR=max(lightPos[i].y+h*0.5-bounceY,0.25);
+          float d2=dot(bw,bw)+BR*BR;
+          float cs=max(-bw.y,0.0), cr=max(dot(Nn,bw),0.0);
+          E+=lightCol[i].rgb*bounceAlb*(2.0*cs*cr/(d2*d2)); }
         gl_FragColor=vec4(albedo*E,alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -92,6 +146,12 @@ export function dressHall(gltfScene, hall) {
 // the installed runs as line lights: one per run, its foot at the run's first point and its
 // height the fitted length (the slots go in bottom to top, so the lit part is one segment)
 const WHITE = new THREE.Color(1.0, 0.93, 0.82);   // 4000 K-ish, the strip's white die
+// which column a run belongs to, as the viewer packs it: a number in lightPos.w the shader
+// compares for equality, so the shadow test can skip a light's own shaft. The viewer uses
+// (column index + 0.5)/16 because that value doubles as its blade-texture row; the game has no
+// blade rows, so it is the identity alone.
+const COLUMN_W = new Map();
+function columnW(name) { if (!COLUMN_W.has(name)) COLUMN_W.set(name, (COLUMN_W.size + 0.5) / 16); return COLUMN_W.get(name); }
 export function updateRunLights(install) {
   let nl = 0;
   const scale = LM_PER_PIXEL / (4 * Math.PI) / HOUSE_LUX;
@@ -100,7 +160,7 @@ export function updateRunLights(install) {
     let n = 0; for (const s of run.slots) { if (install.fitted.has(s.id)) n++; else break; }
     if (!n) continue;
     const h = n * 1.5, px = h * PX_PER_M, foot = run.points[0];
-    lightPos[nl * 4] = foot.x; lightPos[nl * 4 + 1] = foot.y; lightPos[nl * 4 + 2] = foot.z; lightPos[nl * 4 + 3] = 0;
+    lightPos[nl * 4] = foot.x; lightPos[nl * 4 + 1] = foot.y; lightPos[nl * 4 + 2] = foot.z; lightPos[nl * 4 + 3] = columnW(run.column);
     lightCol[nl * 4] = WHITE.r * px * scale; lightCol[nl * 4 + 1] = WHITE.g * px * scale; lightCol[nl * 4 + 2] = WHITE.b * px * scale; lightCol[nl * 4 + 3] = h;
     nl++;
   }
