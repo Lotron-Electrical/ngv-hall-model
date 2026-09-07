@@ -11,7 +11,7 @@ const port = +(process.env.CDP_PORT || 9333), url = 'http://127.0.0.1:8877/' + (
 const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); let t = tabs.find(x => x.type === 'page' && /index\.html|about:blank/.test(x.url)); if (!t) t = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json();
 const ws = new WebSocket(t.webSocketDebuggerUrl); let id = 0; const pend = {}; const logs = [];
 ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend[m.id]) { pend[m.id](m.result); delete pend[m.id]; }
-  if (m.method === 'Runtime.exceptionThrown' && new RegExp((process.env.PAGE || 'index.html').replace(/[.\/]/g, '\$&')).test((m.params.exceptionDetails.url || ''))) logs.push('EXC ' + JSON.stringify(m.params.exceptionDetails).slice(0, 400));
+  if (m.method === 'Runtime.exceptionThrown' && new RegExp((process.env.PAGE || 'index.html').replace(/[.\/]/g, '\\$&')).test((m.params.exceptionDetails.url || ''))) logs.push('EXC ' + JSON.stringify(m.params.exceptionDetails).slice(0, 400));
   if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') logs.push('ERR ' + m.params.args.map(a => a.value || a.description).join(' ').slice(0, 300)); };
 await new Promise(r => ws.onopen = r);
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pend[i] = r; ws.send(JSON.stringify({ id: i, method, params })); });
