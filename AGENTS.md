@@ -1214,7 +1214,10 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   with the south face so its photographed relation to the stone holds.
 - THE COURSING. Courses 0.306 +- 0.006 m (the 0.285 read off b0cefe7f was 7 % low), continuous
   along each wall: north joints at h = 0.0798 + 0.3044 k (+- 0.03), south 0.1192 + 0.3088 k
-  (+- 0.08, weak); `STONE.north/south`, an end wall takes the north's. Block joints: NONE traced
+  (+- 0.08, weak); `STONE.north/south`, an end wall takes the north's. Both phases are MIDDLE-OF-THE-WALL
+  phases (every strip that resolves lies in u 15-45; the ends are shadow at 48-60 mm gsd), worth +- 0.065
+  north / 0.09 south at the end stations and nothing at all on the end walls themselves
+  (courses.json phase_at_the_wall_ends). Block joints: NONE traced
   anywhere (a 14 mm joint is one sample at 15 mm gsd; the comb peak the mosaic gives is an
   artefact, proven on the tapestries), the only block number is 0.67 +- 0.10 m typical from the
   1968 photograph BUIL004259, so the block joints are still procedural and the stats line says so.
