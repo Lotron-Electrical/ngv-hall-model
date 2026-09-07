@@ -1291,7 +1291,7 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
 
 ## The ceiling, tile by tile (Lloyd, 2026-09-07: "make the ceiling look exactly like the real Gandel hall ceiling ... Every stained glass tile must be shaped and recorded and registered. Do not fabricate anything")
 
-**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,907 pieces, every one traced from a
+**What shipped (2026-09-08).** `tools/pieces.bin` is now 6,926 pieces, every one traced from a
 photograph and coloured from the same pixels; the synthetic infill of the 09-07 file (pieces laid
 to statistics and motif rules) is gone. `tools/pieces-provenance.json` is index-aligned with the
 pane file: source, source resolution, area, equivalent diameter, shape class and signal per piece.
@@ -1342,7 +1342,11 @@ relative envelope the topside needs missed the dark purples and blues). Watershe
 union-find merge, 9 mm polygon simplification, 30 mm minimum equivalent diameter, 18 mm minimum
 inscribed diameter (what a 1.8 mm source resolves), pieces more than half on a steel band dropped and the rest clipped clear
 (`tools/ceiling_assemble.py`, same band metric as `merge_panes.py`: ridge 0.125 m, cross / hip /
-both diamonds 0.09 m). 6,997 traced, 6,907 kept (33 too small after clipping, 57 on the steel).
+both diamonds 0.09 m). 6,987 distinct slabs traced on a 2 mm grid (four overlapping windows; a slab touching a
+window's interior cut is left to the window that holds it whole, and the assembler drops the
+406 duplicates), 6,926 kept (20 too small after clipping, 41 on the steel). The tile is rendered
+and refined at 2 mm (`--mm 2`) so the tracer works at the panorama's own resolution; the
+whole plate at 2 mm does not fit in memory, hence the windows.
 Per bay 436 to 598 pieces in the whole coffers, 202 to 231 in the halves; glass covers 17 to 21 %
 of each bay's plan, the same everywhere, which is what a plate of one design should show.
 

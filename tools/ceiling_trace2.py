@@ -186,7 +186,11 @@ def shape_class(sub, ap):
     return 'irregular'
 
 
-def trace(img, mask, gsd, meta, px0, py0, side, name, thr=THR, absolute=None):
+def trace(img, mask, gsd, meta, px0, py0, side, name, thr=THR, absolute=None, inner=None):
+    """inner: (west, north, east, south) flags, True where that side of this window is a cut through the
+    plate rather than the tile's edge; a piece touching a cut side is dropped, so a plate traced in
+    overlapping windows keeps each slab whole from the window that holds all of it (the assembler
+    drops the duplicates)."""
     mpp = GRID['mm']
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY).astype(np.float32)
     if absolute is not None:
@@ -220,6 +224,10 @@ def trace(img, mask, gsd, meta, px0, py0, side, name, thr=THR, absolute=None):
         if sl is None:
             continue
         sub = (lab[sl] == i)
+        if inner is not None:
+            cut_w, cut_n, cut_e, cut_s = inner          # True where this window's side is a cut through the plate
+            if (cut_w and sl[1].start <= 0) or (cut_n and sl[0].start <= 0) or (cut_e and sl[1].stop >= W) or (cut_s and sl[0].stop >= H):
+                continue
         area_px = float(sub.sum())
         eqd = 2 * np.sqrt(area_px / np.pi) * mpp
         if eqd < MIN_EQD_MM:
@@ -258,7 +266,7 @@ def trace(img, mask, gsd, meta, px0, py0, side, name, thr=THR, absolute=None):
 
 
 def main():
-    global LAT, MIN_EQD_MM, MIN_INSCRIBED_MM
+    global LAT, MIN_EQD_MM, MIN_INSCRIBED_MM, H_MAX_PX
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--tile', required=True)
     ap.add_argument('--side', required=True, choices=['top', 'under'])
@@ -271,12 +279,19 @@ def main():
     ap.add_argument('--min-inscribed', type=float, default=MIN_INSCRIBED_MM, help='smallest inscribed diameter mm')
     ap.add_argument('--window', default='', help='x,y,w,h in tile px')
     ap.add_argument('--lattice', default='new', choices=['new', 'old'])
+    ap.add_argument('--mm', type=float, default=4.0, help='grid pitch of the tile (its meta grid.mm)')
     args = ap.parse_args()
     LAT = LATTICES[args.lattice]
     MIN_EQD_MM, MIN_INSCRIBED_MM = args.min_eqd, args.min_inscribed
+    GRID['mm'] = args.mm; H_MAX_PX = 4.0 / args.mm       # the neck test's height is 4 mm whatever the pitch
     window = [int(v) for v in args.window.split(',')] if args.window else None
     img, mask, gsd, meta, px0, py0 = load_tile(args.tile, window)
-    pieces, lab = trace(img, mask, gsd, meta, px0, py0, args.side, args.name, args.thr, args.absolute)
+    inner = None
+    if window:
+        x, y, w, h = window
+        full = Image.open(os.path.join(args.tile, 'tile.png' if os.path.exists(os.path.join(args.tile, 'tile.png')) else 'ortho.png')).size
+        inner = (x > 0, y > 0, x + w < full[0], y + h < full[1])
+    pieces, lab = trace(img, mask, gsd, meta, px0, py0, args.side, args.name, args.thr, args.absolute, inner)
     cover = sum(p['area_m2'] for p in pieces) / max(mask.sum() * GRID['mm'] ** 2 * 1e-6, 1e-9)
     print(f'{args.name}: {len(pieces)} pieces, {cover:.1%} of the covered area, median eq diameter {np.median([p["eqd_mm"] for p in pieces]) if pieces else 0:.0f} mm')
     json.dump(dict(source=args.name, side=args.side, lattice=args.lattice, mm_per_px=GRID['mm'], grid=GRID, tile=args.tile, window=window,

@@ -19,7 +19,8 @@ SRC = _arg('--src', 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/
 OUT = _arg('--out', 'E:/sitecapture-captures/ngv-site/agent-ref-ceiling/sources/pano-refined' + ('-thin' if '--thin' in sys.argv else ''))
 GRID = dict(hu0=-56.635125, hv0=0.15882, mm=4.0)
 NEW = dict(PU=7.36, PV=7.50, HU0=-45.321133, HV0=11.294317)
-SEARCH = int(_arg('--search', 100))   # px each way (400 mm by default)
+SEARCH = int(_arg('--search', 100))   # px each way at 4 mm (400 mm by default); scaled to the tile's pitch below
+SCALE = 1.0                            # 4 mm / the tile's pitch, set in main() from the source meta
 STEEL = float(_arg('--steel', 12))   # max channel at or under this is steel (the panorama's steel is clipped black)
 
 
@@ -29,7 +30,7 @@ def px_of(hu, hv, px0, py0):
 
 def match(steel, x, y, tpl):
     """best offset (dx, dy) in px of the template around (x, y), and the score"""
-    W = tpl.shape[0]; R = SEARCH
+    W = tpl.shape[0]; R = int(SEARCH * SCALE)
     x, y = int(round(x)), int(round(y))
     y0, y1, x0, x1 = y - R - W // 2, y + R + W // 2, x - R - W // 2, x + R + W // 2
     if y0 < 0 or x0 < 0 or y1 > steel.shape[0] or x1 > steel.shape[1]:
@@ -41,7 +42,7 @@ def match(steel, x, y, tpl):
 
 def plus_tpl(wv, wh):
     """a node: the member along v (width wv px) crossing the member along u (width wh px)"""
-    W = 300
+    W = int(300 * SCALE); wv = int(wv * SCALE); wh = int(wh * SCALE)
     plus = np.zeros((W, W), np.float32)
     cv2.line(plus, (0, W // 2), (W, W // 2), 1.0, wh); cv2.line(plus, (W // 2, 0), (W // 2, W), 1.0, wv)
     return plus - plus.mean()
@@ -62,11 +63,11 @@ def node_widths(a, b):
 
 def templates():
     PU, PV = NEW['PU'], NEW['PV']
-    W = 300
+    W = int(300 * SCALE)
     plus = plus_tpl(40, 40)
     ex = np.zeros((W, W), np.float32)
     for s in (1, -1):
-        cv2.line(ex, (0, W // 2 - s * int(W / 2 * PV / PU)), (W, W // 2 + s * int(W / 2 * PV / PU)), 1.0, 40)
+        cv2.line(ex, (0, W // 2 - s * int(W / 2 * PV / PU)), (W, W // 2 + s * int(W / 2 * PV / PU)), 1.0, int(40 * SCALE))
     return plus - plus.mean(), ex - ex.mean()
 
 
@@ -75,7 +76,7 @@ def band_offset(steel, x, y, nx, ny, width_px):
     Profile +-100 px across the member. The member is a dark run; where the glass stops on one
     side (the black wedges beside the members) only its far edge is seen, and the centre is that
     edge plus half the member's width. A run open at both ends says nothing."""
-    R = 100
+    R = int(100 * SCALE); width_px = width_px * SCALE
     ks = np.arange(-R, R + 1, dtype=np.float32)
     xs = (x + nx * ks).astype(np.float32); ys = (y + ny * ks).astype(np.float32)
     if xs.min() < 0 or ys.min() < 0 or xs.max() >= steel.shape[1] - 1 or ys.max() >= steel.shape[0] - 1:
@@ -107,7 +108,7 @@ def band_offset(steel, x, y, nx, ny, width_px):
     if not cands:
         return None
     c = min(cands, key=abs)
-    return c if abs(c) <= 60 else None
+    return c if abs(c) <= 60 * SCALE else None
 
 
 def edge_width(a, b, along_u):
@@ -126,6 +127,8 @@ def measure(steel, nodes, centres, plus, ex):
 
 def main():
     meta = json.load(open(SRC + '/meta.json')); px0, py0 = meta['px0'], meta['py0']
+    global SCALE
+    GRID['mm'] = float(meta.get('grid', GRID)['mm']); SCALE = 4.0 / GRID['mm']
     tile = cv2.imread(SRC + '/tile.png'); mask = cv2.imread(SRC + '/mask.png', 0)
     gsd = np.load(SRC + '/gsd.npy')
     steel = (tile.max(axis=2) <= STEEL).astype(np.float32)

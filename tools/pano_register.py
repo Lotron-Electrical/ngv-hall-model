@@ -20,7 +20,7 @@ Mapping: piecewise-linear through the member lines (the panorama's pitch drifts 
 each line placed on its NEW-lattice hu / hv. Output: tile.png (RGB), mask.png, gsd.npy, meta.json
 in sources/pano/, lattice 'new'.
 """
-import json, os, sys
+import json, os, sys, argparse
 import numpy as np, cv2
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
@@ -35,6 +35,13 @@ V = [(235, 470), (2415, 326), (4528, 80), (6627, 362), (8714, 92), (10772, 251),
 H = [(71, 142), (2040, 92), (4098, 314), (6167, 96), (8176, 191)]
 
 def main():
+    global OUT
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--mm', type=float, default=4.0, help="grid pitch of the output tile (4 = the shared grid; 2 keeps the panorama's own 1.8 mm)")
+    ap.add_argument('--out', default=OUT)
+    args = ap.parse_args()
+    GRID['mm'] = args.mm
+    OUT = args.out
     PU, PV = NEW['PU'], NEW['PV']
     # x line k (east -> west): hu = east wall - k * PU/2, east wall = vertex + 6 PU ... the vertex phase
     hu_e = NEW['HU0'] + 6 * PU            # -1.161 east wall (vertex phase)
