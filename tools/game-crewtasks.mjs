@@ -106,9 +106,9 @@ const start = await ev(`(()=>{const g=ngv.game,W=g.mods.W,C=g.crew;
 say(start.names.length === 5 && start.names.join(',') === 'Dave,Priya,Marco,Jules,Tom', 'five by name: ' + start.names.join(', '));
 say(start.tasks.every(t => t === 'standby') && start.status.every(s => s === 'standing by'), 'all five on standby: ' + JSON.stringify(start.status));
 say(new Set(start.colours).size === 5, 'five different vest colours: ' + start.colours.map(c => '#' + c.toString(16)).join(' '));
-say(start.where.every(w => w[0] > 48.9 && w[0] < 71 && w[1] > 3 && w[1] < 12), 'all five wait in the corridor: ' + JSON.stringify(start.where));
-say(start.lifts.length === 2 && start.lifts.every(w => w[0] > 48.9), 'two crew lifts in storage: ' + JSON.stringify(start.lifts));
-say(start.jacks.length === 2 && start.jacks.every(w => w[0] > 48.9), 'two crew jacks in storage: ' + JSON.stringify(start.jacks));
+say(start.where.every(w => w[0] > 51.906 && w[0] < 74 && w[1] > 0.5 && w[1] < 12), 'all five wait in the corridor: ' + JSON.stringify(start.where));
+say(start.lifts.length === 2 && start.lifts.every(w => w[0] > 51.906), 'two crew lifts in storage: ' + JSON.stringify(start.lifts));
+say(start.jacks.length === 2 && start.jacks.every(w => w[0] > 51.906), 'two crew jacks in storage: ' + JSON.stringify(start.jacks));
 say(start.liftsFree, 'neither crew lift is claimed yet');
 say(!start.teams && !start.helper, 'the old unlock-by-columns shape is gone (no crew.teams, no crew.helper)');
 const p0 = await ev(`ngv.game.crew.members.map(m=>[+m.pos.x.toFixed(3),+m.pos.z.toFixed(3)])`);
@@ -303,7 +303,7 @@ console.log('--- 8. reassigning a fitter who is AWAY from his machine');
 // the ladder foot -- 11 m in one 50 ms frame
 await ev(`(()=>{const g=ngv.game,I=g.items,C=g.crew;
  const p=I.pallets.find(x=>x.column==='N6'); p.mesh.position.copy(p.home); p.mesh.rotation.y=0;
- I.boxes.forEach((b,i)=>{ if(b.disposed||b.onLift||b.carried)return; b.mesh.position.copy(g.hallToWorld(50.4+(i%6)*0.62,11.4-Math.floor(i/6)*0.5,g.world.floorY+0.2)); });
+ I.boxes.forEach((b,i)=>{ if(b.disposed||b.onLift||b.carried)return; b.mesh.position.copy(g.hallToWorld(53.4+(i%6)*0.62,11.4-Math.floor(i/6)*0.5,g.world.floorY+0.2)); });
  return 1})()`);
 await reset();
 let away = null;
@@ -338,13 +338,13 @@ const packState = `(()=>{const g=ngv.game,C=g.crew,W=g.mods.W;
   clean:g.mods.ITEMm.cleanupClear(g.items,g.lift).left,
   lifts:C.lifts.map(L=>+W.worldToHall(L.pos).u.toFixed(2)), jacks:C.jacks.map(j=>+W.worldToHall(j.mesh.position).u.toFixed(2))}})()`;
 for (let s = 20; s <= 700; s += 20) { await run(20); took = s; packed = await ev(packState);
- if (!packed.left.length && !packed.pallets.length && !packed.stacks && packed.members.every(u => u > 48.9)) break; }
+ if (!packed.left.length && !packed.pallets.length && !packed.stacks && packed.members.every(u => u > 51.906)) break; }
 say(packed.left.length === 0, `everything of the crew's is out of the hall after ${took} s: lifts ${JSON.stringify(packed.lifts)}, jacks ${JSON.stringify(packed.jacks)}` + (packed.left.length ? ' LEFT: ' + JSON.stringify(packed.left) : ''));
 // (the skeptic's D2) the pack-up used to walk home only a pallet that was already in the air
 say(wasIn.length >= 8 && packed.pallets.length === 0, `and every pallet the crew wheeled in went back out (${wasIn.length} -> ${packed.pallets.length})` + (packed.pallets.length ? ' LEFT: ' + JSON.stringify(packed.pallets) : ''));
 say(packed.stacks === 0, `no stack of ply is left in the hall either (${packed.stacks})`);
 say(!packed.clean.includes('pallets') && !packed.clean.includes('board stacks'), `the night's clean-up reads neither pallets nor board stacks: ${JSON.stringify(packed.clean)}`);
-say(packed.members.every(u => u > 48.9), 'and all five stand in the corridor: ' + JSON.stringify(packed.members));
+say(packed.members.every(u => u > 51.906), 'and all five stand in the corridor: ' + JSON.stringify(packed.members));
 const packR = await ev(`ngv.game._r`);
 say(!packR.err, 'the pack-up threw nothing: ' + (packR.err || 'clean'));
 say(packR.jump < SHOVE && packR.jumpY < RISE, `nobody teleported packing up: ${JSON.stringify(packR.jumpWho)} / up ${JSON.stringify(packR.jumpYWho)}`);

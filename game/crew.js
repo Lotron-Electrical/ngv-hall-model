@@ -204,7 +204,7 @@ export class Crew {
     // a lift left a 14 cm slot beside it and a walker that aimed straight through was stuck there
     // for the night. The five wait in the north lane, 5 m back from the doorway so they do not
     // hold the doors open all shift
-    this.corridorSpot = (i) => hallToWorld(55.6 - Math.floor(i / 2) * 1.3, 8.5 + (i % 2) * 0.7, world.floorY);
+    this.corridorSpot = (i) => hallToWorld(58.6 - Math.floor(i / 2) * 1.3, 8.5 + (i % 2) * 0.7, world.floorY);
     for (const [i, name] of CREW_NAMES.entries()) {
       const W = new Worker(scene, world, CREW_VESTS[i], name);
       W.index = i;
@@ -215,12 +215,12 @@ export class Crew {
     // first fitter who needs one takes a free one, and it goes back on the list where it stands
     for (let i = 0; i < 2; i++) {
       const L = new Lift(scene, world.floorY);
-      L.pos.copy(hallToWorld(56.5 + i * 3.5, 7.35 + i * 0.3, world.floorY));
+      L.pos.copy(hallToWorld(59.5 + i * 3.5, 7.35 + i * 0.3, world.floorY));
       L.home = L.pos.clone(); L.by = null; L.crew = true;
       L.noSpot = 0; L.parked = false; L.parkedAt = null; L.stuckCol = null;
       L.refresh();
       this.lifts.push(L);
-      const j = items.spawnJack(hallToWorld(57.0 + i * 3.5, 8.9, world.floorY));
+      const j = items.spawnJack(hallToWorld(60.0 + i * 3.5, 8.9, world.floorY));
       j.home = j.mesh.position.clone();
       this.jacks.push(j);
     }
@@ -387,7 +387,7 @@ export class Crew {
   unclaimJacks(W) { for (const j of this.allJacks()) if (j.by === W.name && j !== W.jack) { j.by = null; j.held = false; } }
   // the same for a pallet or a stack claimed for the pack-up run (strayLoad)
   unclaimLoads(W) { for (const p of (this.items.pallets || []).concat(this.items.stacks || [])) if (p.by === W.name && (!W.jack || W.jack.carrying !== p)) p.by = null; }
-  jackHome(j) { return j.home || hallToWorld(65.0, 4.4, this.world.floorY); }
+  jackHome(j) { return j.home || hallToWorld(68.0, 4.4, this.world.floorY); }
 
   putDown(W, at) {
     const it = W.carry; if (!it) return;

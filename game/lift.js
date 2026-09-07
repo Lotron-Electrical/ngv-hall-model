@@ -13,7 +13,7 @@ import { hallToWorld, worldToHall, HALL } from './world.js';
 export class Lift {
   constructor(scene, floorY) {
     this.floorY = floorY;
-    this.pos = hallToWorld(63.6, 6.6, floorY);   // parked at the aisle's end, clear of both pallet rows
+    this.pos = hallToWorld(66.6, 6.6, floorY);   // parked at the aisle's end, clear of both pallet rows
     this.yaw = 0;                                 // the chassis heading; forward is local +x
     // (2026-09-04) the stowed deck sits 1.25 m up, like a real 26-footer: the folded scissor
     // stack needs the room under it, and the two step treads at the back need the rise

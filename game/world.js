@@ -8,10 +8,15 @@ export const HALL = {
   u: new THREE.Vector3(0.975681, 0, 0.219196).normalize(),
   inRoom: new THREE.Vector3(0.219196, 0, -0.975681).normalize(),
   floorY: -1.435,
-  length: 48.9,
+  // (2026-09-08) the east wall is at u 51.906, the real station (the scan's closure at 48.9 was
+  // 2.85 m short; the walls pass cut it out and built the stone end wall with the photographed
+  // gallery recess, d 3.9 to 11.5 from 1.8 m up). The storage doors stay on the hall's centre
+  // line, d 7.5, where the crew's routes, the pallet aisle and the board grid all meet them; the
+  // walls pass cuts the doorway through the end wall there (the `door` uniform on its quads)
+  length: 51.906,
   depth: 15,
   ceiling: 12.2,
-  doorU: 48.9,
+  doorU: 51.906,
   doorD: 7.5,
   doorW: 2.5
 };
@@ -107,9 +112,9 @@ export function makeWorld(floorY = HALL.floorY) {
     // (2026-09-06) a BACK BAY past the pallet rows for the pallets of floor protection. The ply
     // could not go in the aisle: a 2.4 x 1.2 m stack there stands exactly where a person has to
     // stand to reach a light pallet, and a strip behind a pallet row is walled off by the row
-    storage: hallToWorld(57.5, 7.5, floorY),
-    skip: hallToWorld(73.6, 7.5, floorY),
-    corridor: { u0: 48.9, u1: 71.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
+    storage: hallToWorld(60.5, 7.5, floorY),
+    skip: hallToWorld(76.6, 7.5, floorY),
+    corridor: { u0: HALL.doorU, u1: 74.0, d0: 3.0, d1: 12.0, skipD0: 6.0, skipD1: 9.0 },
     obstacles: [],
     // (Lloyd, 2026-09-06: "we also need to put down floor protection before we can drive the
     // scissor lift on the carpet") the ply sheets that are down, laid on the grid below
@@ -129,19 +134,21 @@ export function makeWorld(floorY = HALL.floorY) {
 // sheets stay down for the whole job (the hall is closed for the works), so they are not part of
 // the nightly clean-up. People and the pallet jack walk on the carpet freely.
 export const SHEET = { long: 2.4, short: 1.2, thick: 0.018, grid: 1.2, tol: 0.05 };
+// the last grid line that still lies inside the hall (the grid hangs off the door line)
+const KMAX = Math.floor((HALL.doorU - 0.6) / SHEET.grid);
 
-// THE GRID, so a path tiles without gaps: lines at u = 48.9 - 1.2k (k >= 0, the first line is the
+// THE GRID, so a path tiles without gaps: lines at u = doorU - 1.2k (k >= 0, the first line is the
 // door line) and d = 0.3 + 1.2k. A sheet laid 'along u' has its 2.4 m side along the hall and
 // covers two cells along u by one across; 'along d' is the same board turned. The centre is what
 // is stored. Given a point, this is the cell pair that holds it, or the nearest one
 export function snapSheet(u, d, along) {
   const G = SHEET.grid, U0 = HALL.doorU;
   if (along === 'u') {
-    const j = Math.max(1, Math.min(39, Math.round((U0 - u) / G)));       // the shared line between the two cells
+    const j = Math.max(1, Math.min(KMAX, Math.round((U0 - u) / G)));       // the shared line between the two cells
     const m = Math.max(0, Math.min(11, Math.floor((d - 0.3) / G)));
     return { u: U0 - G * j, d: 0.3 + G * (m + 0.5), along: 'u' };
   }
-  const k = Math.max(0, Math.min(39, Math.floor((U0 - u) / G)));
+  const k = Math.max(0, Math.min(KMAX, Math.floor((U0 - u) / G)));
   const n = Math.max(1, Math.min(11, Math.round((d - 0.3) / G)));
   return { u: U0 - G * (k + 0.5), d: 0.3 + G * n, along: 'd' };
 }
@@ -158,9 +165,9 @@ export function sheetCells(u, d, along) {
   if (along === 'u') {
     const m = Math.max(0, Math.min(11, Math.floor((d - 0.3) / G)));
     const j = (U0 - u) / G;
-    for (const q of [Math.floor(j), Math.ceil(j)]) push({ u: U0 - G * Math.max(1, Math.min(39, q)), d: 0.3 + G * (m + 0.5), along: 'u' });
+    for (const q of [Math.floor(j), Math.ceil(j)]) push({ u: U0 - G * Math.max(1, Math.min(KMAX, q)), d: 0.3 + G * (m + 0.5), along: 'u' });
   } else {
-    const k = Math.max(0, Math.min(39, Math.floor((U0 - u) / G)));
+    const k = Math.max(0, Math.min(KMAX, Math.floor((U0 - u) / G)));
     const n = (d - 0.3) / G;
     for (const q of [Math.floor(n), Math.ceil(n)]) push({ u: U0 - G * (k + 0.5), d: 0.3 + G * Math.max(1, Math.min(11, q)), along: 'd' });
   }
@@ -329,7 +336,7 @@ export function buildProps(scene, world) {
   makeHallBox(scene, c.u1 + 0.12, (c.d0 + c.skipD0) * 0.5, world.floorY + 1.55, 0.24, c.skipD0 - c.d0, 3.1, wallMat);
   makeHallBox(scene, c.u1 + 0.12, (c.skipD1 + c.d1) * 0.5, world.floorY + 1.55, 0.24, c.d1 - c.skipD1, 3.1, wallMat);
   makeHallBox(scene, c.u1 + 0.12, midD, world.floorY + 3.05, 0.24, c.d1 - c.d0, 0.25, wallMat);
-  for (const [u, d] of [[51.5, 5.5], [51.5, 9.5], [56, 5.5], [56, 9.5], [60.5, 5.5], [60.5, 9.5], [65, 7.5], [68, 5.0], [68, 10.0]]) {
+  for (const [u, d] of [[54.5, 5.5], [54.5, 9.5], [59, 5.5], [59, 9.5], [63.5, 5.5], [63.5, 9.5], [68, 7.5], [71, 5.0], [71, 10.0]]) {
     const l = new THREE.PointLight(0xffddb0, 2.2, 8, 1.7);
     l.position.copy(hallToWorld(u, d, world.floorY + 2.65));
     scene.add(l);
@@ -337,14 +344,15 @@ export function buildProps(scene, world) {
   const doorFrame = new THREE.MeshStandardMaterial({ color: 0xb9a887, roughness: 0.65 });
   // (Lloyd, 2026-09-05: "some weird bar above the doors") the frame stands in the hall frame like
   // every other box; the header used to lie on the world x axis, 12.7 degrees off the wall
-  makeHallBox(scene, 48.6, 6.15, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
-  makeHallBox(scene, 48.6, 8.85, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
-  makeHallBox(scene, 48.6, 7.5, world.floorY + 3, 0.25, 2.85, 0.15, doorFrame);
+  const DU = HALL.doorU - 0.3, DD = HALL.doorD;
+  makeHallBox(scene, DU, DD - 1.35, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
+  makeHallBox(scene, DU, DD + 1.35, world.floorY + 1.5, 0.25, 0.15, 3, doorFrame);
+  makeHallBox(scene, DU, DD, world.floorY + 3, 0.25, 2.85, 0.15, doorFrame);
   // (Lloyd, 2026-09-06: "a sign above the doors that says storage") a lit board over the header,
   // facing the hall, standing in the hall frame like the frame itself
-  makeHallBox(scene, 48.55, 7.5, world.floorY + 3.42, 0.06, 1.9, 0.5, leafMatFor());
+  makeHallBox(scene, DU - 0.05, DD, world.floorY + 3.42, 0.06, 1.9, 0.5, leafMatFor());
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.42), new THREE.MeshBasicMaterial({ map: textTexture('STORAGE', 512, 120, '#f4efe2', '#1d2128'), toneMapped: false }));
-  sign.position.copy(hallToWorld(48.5, 7.5, world.floorY + 3.42));
+  sign.position.copy(hallToWorld(DU - 0.1, DD, world.floorY + 3.42));
   sign.lookAt(sign.position.clone().sub(HALL.u));   // plane normal along -u: read from inside the hall
   scene.add(sign);
   world.sign = sign;

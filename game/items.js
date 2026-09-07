@@ -289,7 +289,7 @@ function carry(player, item) {
 }
 
 // two rows of six, N along the near wall and S along the far one, 2.3 m apart, labels to the aisle
-function palletHome(i, world) { const row = i < 6 ? 0 : 1; return hallToWorld(51.6 + (i % 6) * 2.3, row ? 10.5 : 4.5, world.floorY); }
+function palletHome(i, world) { const row = i < 6 ? 0 : 1; return hallToWorld(54.6 + (i % 6) * 2.3, row ? 10.5 : 4.5, world.floorY); }
 
 // the plan's obstacles for collideWorld, rebuilt every frame from what stands on the floor
 export function refreshObstacles(items, lifts) {
@@ -382,7 +382,7 @@ export function createItems(scene, world, camera, collide) {
     const mesh = makeBag();
     // (2026-09-06) by the END wall, which moved east with the back bay. Four bags in a line make
     // a wall of their own on the plan, so they stand in the corner where nothing has to walk past
-    mesh.position.copy(hallToWorld(70.0, 9.6 + i * 0.7, world.floorY + 0.41));
+    mesh.position.copy(hallToWorld(73.0, 9.6 + i * 0.7, world.floorY + 0.41));
     scene.add(mesh);
     items.bags.push({ type: 'bag', wraps: 0, full: false, mesh });
   }
@@ -391,7 +391,7 @@ export function createItems(scene, world, camera, collide) {
   // (d 6 to 9) stays open. NOT in the aisle -- a stack there stands exactly where a person has
   // to stand to reach a light pallet, and on top of the crew's jacks (Claude, 2026-09-06, after
   // the inventory proof caught it) -- and not behind a pallet row, which is a wall to a walker
-  for (const [u, d] of [[66.6, 4.6], [68.2, 4.6], [69.8, 4.6], [66.6, 10.4], [68.2, 10.4]]) {
+  for (const [u, d] of [[69.6, 4.6], [71.2, 4.6], [72.8, 4.6], [69.6, 10.4], [71.2, 10.4]]) {
     const home = hallToWorld(u, d, world.floorY);
     const made = makeStack('d');
     made.group.position.copy(home);
@@ -411,7 +411,7 @@ export function createItems(scene, world, camera, collide) {
   scene.add(ghost);
   items.ghost = ghost;
   const jackMesh = makeJack();
-  jackMesh.position.copy(hallToWorld(65.0, 4.4, world.floorY));
+  jackMesh.position.copy(hallToWorld(68.0, 4.4, world.floorY));
   scene.add(jackMesh);
   items.jack = { type: 'jack', carrying: null, held: false, mesh: jackMesh };
   // for the crew (crew.js): their own jacks, boxes off a pallet without a carrier, loose wrap
@@ -828,13 +828,13 @@ export function resetForNight(player, lift, items) {
     box.onLift = false; box.deck = null; box.vel = null;
     box.mesh.removeFromParent();
     items.scene.add(box.mesh);
-    box.mesh.position.copy(hallToWorld(50.2 + (i % 6) * 0.62, 11.5 - Math.floor(i / 6) * 0.5, items.world.floorY + 0.2));
+    box.mesh.position.copy(hallToWorld(53.2 + (i % 6) * 0.62, 11.5 - Math.floor(i / 6) * 0.5, items.world.floorY + 0.2));
   }
   for (const [i, wrap] of items.wraps.entries()) {
     if (wrap.bagged) continue;
-    wrap.mesh.position.copy(hallToWorld(64.6, 9.3 + (i % 8) * 0.12, items.world.floorY + 0.05));
+    wrap.mesh.position.copy(hallToWorld(67.6, 9.3 + (i % 8) * 0.12, items.world.floorY + 0.05));
   }
-  for (const [i, l] of items.lights.entries()) { l.deck = null; l.vel = null; l.mesh.position.copy(hallToWorld(50.0 + (i % 6) * 0.3, 3.5 + Math.floor(i / 6) * 0.25, items.world.floorY + 0.05)); }
+  for (const [i, l] of items.lights.entries()) { l.deck = null; l.vel = null; l.mesh.position.copy(hallToWorld(53.0 + (i % 6) * 0.3, 3.5 + Math.floor(i / 6) * 0.25, items.world.floorY + 0.05)); }
   for (const b of items.bags) { b.deck = null; b.vel = null; }
   for (const w of items.wraps) { w.deck = null; w.vel = null; }
   items.jack.deck = null; items.jack.vel = null;
@@ -842,8 +842,8 @@ export function resetForNight(player, lift, items) {
   items.jack.carrying = null;
   if (items.ghost) items.ghost.visible = false;
   items.ghostSpot = null;
-  items.jack.mesh.position.copy(hallToWorld(65.0, 4.4, items.world.floorY));
-  lift.pos.copy(hallToWorld(63.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; lift.anim = null; lift.gate.rotation.y = 0; player.onLift = false; player.eye = 1.68;
+  items.jack.mesh.position.copy(hallToWorld(68.0, 4.4, items.world.floorY));
+  lift.pos.copy(hallToWorld(66.6, 6.6, items.world.floorY)); lift.yaw = 0; lift.aboard = false; lift.driving = false; lift.speed = 0; lift.steer = 0; lift.anim = null; lift.gate.rotation.y = 0; player.onLift = false; player.eye = 1.68;
   lift.height = 0;
   lift.box = null;
   lift.refresh();
@@ -854,7 +854,7 @@ export function resetForNight(player, lift, items) {
     items.scene.remove(player.carry.mesh);
   }
   player.carry = null;
-  player.pos.copy(hallToWorld(52.0, 7.5, items.world.floorY));
+  player.pos.copy(hallToWorld(55.0, 7.5, items.world.floorY));
 }
 
 export function cleanupClear(items, lift) {

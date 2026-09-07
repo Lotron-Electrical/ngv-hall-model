@@ -558,6 +558,19 @@ Phases owed at the time: 2 fatigue + hallucinations, 3 the crew's AI, 4 sound. A
 - Proof: `node tools/game-floorcheck.mjs` (needs the :8877 serve and headless Chrome on :9333). Samples the floor under 274 hall points and every lift part stowed, raised and parked in the hall: PASS = level within 1 mm and nothing below the floor. CDP drivers must `Network.setCacheDisabled` or they test the cached modules.
 
 
+### The storage doors at the real east wall (2026-09-08)
+
+The scan's east closure at u 48.9 was 2.85 m short of the real wall; the walls pass cut it out
+and built the stone end wall at u 51.906 with the photographed gallery recess (d 3.9 to 11.5
+from 1.8 m up). The storage doors keep the hall's centre line, d 7.5, where the crew's routes,
+the pallet aisle and the board grid meet them (a pier door at d 2.0 was tried: the straight
+corridor routes then cross the south pallet row and the machines stall): `HALL.doorU` 51.906,
+`HALL.doorD` 7.5, 2.5 m wide; the walls pass cuts the doorway through its end wall with the
+`door` uniform. Everything behind the wall moved +3.0 m with the door line (corridor u 51.906 to
+74; pallets, skip, lights, spawns, the crew's corridor spots, the board grid, which is anchored on
+the door line) and `hallmat.floorArea` is 51.5 x 15.4. The proofs
+`tools/game-boards.mjs` and `tools/game-crewtasks.mjs` carry the new door line.
+
 ### Install mode: the game lives inside the sim now (Lloyd, 2026-09-04)
 - Lloyd's ruling: the game is not a page of its own. The Shopify shop iframes
   `.../ngv-hall-model/?embed=1`, so the proposal sim IS the product and the night shift rides

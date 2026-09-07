@@ -23,7 +23,7 @@ export const MAX_LIGHTS = 96;
 // hour of a night and the pack-up see it.
 export const RIG_PHOT = (() => { const P = { n: 23, u0: 1.5, pitch: 2.0, d: 2.2, y: 8.52, tilt: 0.96,
   profile: { I0: 105000, sigma: 11.5 * Math.PI / 180 }, par: { I0: 60000, su: 26 * Math.PI / 180, sv: 14 * Math.PI / 180 },
-  col: [1.15, 0.97, 0.80], direct: 0.75, bounce: 0.25, floorShare: 0.95, floorArea: 48.9 * 15.4 };
+  col: [1.15, 0.97, 0.80], direct: 0.75, bounce: 0.25, floorShare: 0.95, floorArea: 51.5 * 15.4 };
  // a cone's flux, integrated over its hemisphere (the PAR's 26 degree sigma is past the small-angle
  // closed form by 6%): I(theta, phi) sin(theta) dtheta dphi on a 180 x 180 grid
  const coneFlux=(I0,su,sv)=>{ let F=0; const n=180; for(let a=0;a<n;a++){ const th=(a+0.5)/n*Math.PI/2; for(let b=0;b<n;b++){ const ph=(b+0.5)/n*2*Math.PI;

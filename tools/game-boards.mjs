@@ -76,12 +76,12 @@ const st1 = await ev(`(()=>{const g=ngv.game,W=g.mods.W;
  return {stacks:stacks.map(s=>[+s.u.toFixed(2),+s.d.toFixed(2),s.n]),clashes,liftPark:lifts.map(L=>[+L.u.toFixed(2),+L.d.toFixed(2)])}})()`);
 say(st1.stacks.length === 5, 'five board stacks: ' + JSON.stringify(st1.stacks));
 say(st1.stacks.every(s => s[2] === 30), 'thirty sheets on each');
-say(st1.stacks.every(s => s[0] > 48.9 && s[0] < 71 && s[1] > 3 && s[1] < 12), 'all five stand in the storage corridor');
+say(st1.stacks.every(s => s[0] > 51.906 && s[0] < 74 && s[1] > 0.5 && s[1] < 12), 'all five stand in the storage corridor');
 say(st1.clashes.length === 0, 'no stack overlaps a pallet, a lift, a jack, a bag or another stack: ' + JSON.stringify(st1.clashes));
 
 console.log('--- 2. taking a sheet off a stack');
 await ev(`(()=>{const g=ngv.game,h=g.mods.W.worldToHall(g.items.stacks[0].mesh.position);g.player.pos.copy(g.hallToWorld(h.u,h.d+2.1,g.world.floorY));})()`);
-await faceHall(66.6, 5.6, 0.5); await sleep(400);
+await faceHall(69.6, 5.6, 0.5); await sleep(400);
 say(/Take a sheet \(30 left\)/.test(await label()), 'at the stack: ' + await label());
 await act();
 let s = await inv();
@@ -91,15 +91,15 @@ say((await ev(`ngv.game.items.stacks[0].sheets`)) === 29, 'the stack shows 29');
 say((await ev(`ngv.game.items.stacks[0].pile.scale.y`)).toFixed(3) === (29 / 30).toFixed(3), 'the pile shrank with the count');
 
 console.log('--- 3. the first sheet, butted against the door line');
-await at(47.5, 7.5); await sleep(1400);   // the doors have to swing clear before a board may cross the line
-await faceHall(48.3, 7.5); await sleep(400);
+await at(50.5, 7.5); await sleep(1400);   // the doors have to swing clear before a board may cross the line
+await faceHall(51.3, 7.5); await sleep(400);
 say(/Lay the sheet here/.test(await label()), 'aimed just inside the doors: ' + await label());
 let g1 = await ghost();
 say(g1.on && g1.col === '35d06a', 'ghost up and green: ' + JSON.stringify(g1));
 await act();
 let S = await sheets();
 say(S.length === 1, 'one sheet down: ' + JSON.stringify(S));
-say(S.length === 1 && Math.abs((S[0][0] + 0.6) - 48.9) < 0.03, 'its +u edge sits on the door line: ' + (S[0] ? (S[0][0] + 0.6).toFixed(3) : '-'));
+say(S.length === 1 && Math.abs((S[0][0] + 0.6) - 51.906) < 0.03, 'its +u edge sits on the door line: ' + (S[0] ? (S[0][0] + 0.6).toFixed(3) : '-'));
 say((await inv()).hand === null, 'hands empty again');
 say((await ghost()).on === false, 'ghost hidden with nothing in hand');
 
@@ -112,10 +112,10 @@ const grab = async (i = 0) => { const back = await ev(`(()=>{const g=ngv.game,h=
  if ((await inv()).hand !== 'sheet') say(false, 'could not take a sheet off stack ' + i + ': ' + await label());
  return back; };
 let back = await grab(0);
-await at(back[0], back[1]); await faceHall(48.3, 7.5); await sleep(1400);
+await at(back[0], back[1]); await faceHall(51.3, 7.5); await sleep(1400);
 say(/No room for a sheet there/.test(await label()), 'on top of the first one: ' + await label());
 g1 = await ghost(); say(g1.on && g1.col === 'd94a3a', 'ghost red: ' + JSON.stringify(g1));
-await faceHall(50.2, 7.5); await sleep(350);
+await faceHall(53.2, 7.5); await sleep(350);
 say(/concrete/.test(await label()), 'aimed through the doors: ' + await label());
 
 console.log('--- 5. TURN, and the grid');
@@ -124,14 +124,14 @@ const along0 = await ev(`ngv.game.items.sheetAlong`);
 await ev(`window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyR'}))`); await sleep(250);
 const along1 = await ev(`ngv.game.items.sheetAlong`);
 say(along0 === 'd' && along1 === 'u', `R turns the sheet: ${along0} -> ${along1}`);
-await at(47.7, 6.2); await faceHall(47.7, 4.5); await sleep(500);
+await at(50.7, 6.2); await faceHall(50.7, 4.5); await sleep(500);
 say(/Lay the sheet here/.test(await label()), 'a turned sheet on clear carpet: ' + await label() + ' ' + JSON.stringify(await why()));
 await act();
 S = await sheets();
 say(S.length === 2 && S[1][2] === 'u', 'two sheets, the second turned: ' + JSON.stringify(S[1]));
 const grid = await ev(`(()=>{const g=ngv.game,W=g.mods.W;const bad=[];
  for(const s of g.world.sheets){const r=W.sheetRect(s);
-  for(const u of [r.u0,r.u1]){const k=(48.9-u)/1.2; if(Math.abs(k-Math.round(k))>0.01/1.2)bad.push('u '+u.toFixed(3));}
+  for(const u of [r.u0,r.u1]){const k=(51.906-u)/1.2; if(Math.abs(k-Math.round(k))>0.01/1.2)bad.push('u '+u.toFixed(3));}
   for(const d of [r.d0,r.d1]){const k=(d-0.3)/1.2; if(Math.abs(k-Math.round(k))>0.01/1.2)bad.push('d '+d.toFixed(3));}}
  for(let i=0;i<g.world.sheets.length;i++)for(let j=i+1;j<g.world.sheets.length;j++){
   const a=W.sheetRect(g.world.sheets[i]),b=W.sheetRect(g.world.sheets[j]);
@@ -151,17 +151,17 @@ const layAt = async (u, d) => {
  await act(); await sleep(150);
  return l + (/Lay the sheet here/.test(l) ? '' : ' ' + JSON.stringify(await why()));
 };
-for (const u of [47.1, 45.9, 44.7, 43.5, 42.3]) {
+for (const u of [50.1, 48.9, 47.7, 46.5, 45.3]) {
  const l = await layAt(u, 7.5);
  say(/Lay the sheet here/.test(l), `sheet at u ${u}: ${l}`);
 }
 S = await sheets();
 const run = S.filter(x => Math.abs(x[1] - 7.5) < 0.01 && x[2] === 'd').map(x => x[0]).sort((a, b) => a - b);
-say(run.length === 6 && Math.abs(Math.min(...run) - 42.3) < 0.01 && Math.abs(Math.max(...run) - 48.3) < 0.01,
- 'six sheets in a line from the door line to u 41.7: ' + JSON.stringify(run));
+say(run.length === 6 && Math.abs(Math.min(...run) - 45.3) < 0.01 && Math.abs(Math.max(...run) - 51.3) < 0.01,
+ 'six sheets in a line from the door line to u 44.7: ' + JSON.stringify(run));
 
 console.log('--- 7. the lift stops at the end of the boards');
-await ev(`(()=>{const g=ngv.game,L=g.lift;L.pos.copy(g.hallToWorld(50.6,7.7,g.world.floorY));L.yaw=2.9207;L.height=0;L.refresh();
+await ev(`(()=>{const g=ngv.game,L=g.lift;L.pos.copy(g.hallToWorld(53.6,7.7,g.world.floorY));L.yaw=2.9207;L.height=0;L.refresh();
  L.board(g.player,true);L.takeControls(g.player);})()`); await sleep(400);
 const drv = () => ev(`(()=>{const g=ngv.game,L=g.lift,W=g.mods.W;const h=W.worldToHall(L.pos);
  return {u:+h.u.toFixed(3),d:+h.d.toFixed(3),blocked:L.blocked,speed:+L.speed.toFixed(2),
@@ -171,7 +171,7 @@ const d1 = await drv();
 await sleep(2500);
 const d2 = await drv();
 await ev(`ngv.game.player.keys.delete('KeyW')`);
-say(d2.u < 48.9, 'the machine drove through the doors onto the boards: u ' + d2.u);
+say(d2.u < 51.906, 'the machine drove through the doors onto the boards: u ' + d2.u);
 say(d2.off === null, 'every wheel is on protected floor: ' + JSON.stringify(d2.wheels));
 say(/wheels stay on the boards/.test(d2.blocked || ''), 'stopped with the boards message: ' + d2.blocked);
 say(Math.abs(d2.u - d1.u) < 0.06, `two more seconds of W move it no further (${d1.u} -> ${d2.u})`);
@@ -180,7 +180,7 @@ await shot('lift-stopped');
 console.log('--- 8. two more boards, and it drives on');
 const stopU = d2.u;
 await ev(`ngv.game.lift.leave(ngv.game.player,true)`); await sleep(300);
-for (const u of [41.1, 39.9]) {
+for (const u of [44.1, 42.9]) {
  const l = await layAt(u, 7.5);
  say(/Lay the sheet here/.test(l), `sheet ahead of the machine at u ${u}: ${l}`);
 }
@@ -200,13 +200,13 @@ await ev(`ngv.game.lift.leave(ngv.game.player,true)`); await sleep(200);
 await at(under[0], under[1] + 1.9); await faceHall(under[0], under[1] + 0.9); await sleep(500);
 say(/A lift is standing on it/.test(await label()), 'under the wheels: ' + await label());
 const nSheets = (await sheets()).length;
-await at(48.3, 9.6); await faceHall(48.3, 8.4); await sleep(1400);
+await at(51.3, 9.6); await faceHall(51.3, 8.4); await sleep(1400);
 say(/Pick up the sheet/.test(await label()), 'a free one by the doors: ' + await label());
 await act();
 say((await sheets()).length === nSheets - 1, `world.sheets went ${nSheets} -> ${(await sheets()).length}`);
 say((await inv()).hand === 'sheet', 'the sheet is in your hands');
 const before9 = await ev(`ngv.game.items.stacks[0].sheets`);
-await at(66.6, 6.7); await faceHall(66.6, 5.6, 0.5); await sleep(400);
+await at(69.6, 6.7); await faceHall(69.6, 5.6, 0.5); await sleep(400);
 say(/Put the sheet back/.test(await label()), 'back at the stack: ' + await label());
 await act();
 say((await ev(`ngv.game.items.stacks[0].sheets`)) === before9 + 1, `the stack went ${before9} -> ${before9 + 1}`);
@@ -233,7 +233,7 @@ await ev(`(()=>{const g=ngv.game;
  const tick=()=>{ if(g._probe.stop)return; try{ const W=g.crew.byName('Dave');
    if(W&&W.lift){ const h=g.mods.W.worldToHall(W.lift.pos);
     g._probe.frames++; if(g.world.liftOnBoards(W.lift))g._probe.off++; g._probe.minU=Math.min(g._probe.minU,h.u);
-    if(h.u<48.9)g._probe.inHall=true; g._probe.boards=g.crew.byName('Priya').boards||0; } }catch(e){ g._probe.err=String(e&&e.message||e); }
+    if(h.u<51.906)g._probe.inHall=true; g._probe.boards=g.crew.byName('Priya').boards||0; } }catch(e){ g._probe.err=String(e&&e.message||e); }
   requestAnimationFrame(tick);};
  requestAnimationFrame(tick);})()`);
 const sheets0 = (await sheets()).length;
@@ -268,7 +268,7 @@ say(!reset.clean.includes('board stacks'), 'with the stacks home nothing about b
 
 console.log('--- 13. the phone pictures');
 await grab(0);
-await at(40.0, 6.2); await faceHall(40.0, 4.0); await sleep(900);
+await at(43.0, 6.2); await faceHall(43.0, 4.0); await sleep(900);
 const gs = await ghost();
 say(gs.on && gs.col === '35d06a', 'ghost green over the carpet for the shot: ' + JSON.stringify(gs) + ' ' + JSON.stringify(await why()));
 const btn = await ev(`(()=>{const b=document.getElementById('turn');const r=b.getBoundingClientRect();
@@ -277,7 +277,7 @@ say(btn.shown && btn.cls && btn.w > 40, 'the TURN button is up on the phone whil
 await shot('ghost-green');
 await act();   // hands empty again, so the lift shot carries the boards message alone
 // the machine back on the path, driving until the boards run out
-await ev(`(()=>{const g=ngv.game,L=g.lift;L.pos.copy(g.hallToWorld(44.0,7.5,g.world.floorY));L.yaw=2.9207;L.height=0;L.refresh();
+await ev(`(()=>{const g=ngv.game,L=g.lift;L.pos.copy(g.hallToWorld(47.0,7.5,g.world.floorY));L.yaw=2.9207;L.height=0;L.refresh();
  L.board(g.player,true);L.takeControls(g.player);})()`); await sleep(300);
 // the message belongs to the moment you are pushing at the boards, so the shot is taken with the
 // stick still over (Claude, 2026-09-07: it used to be read 700 ms after letting go, which is now
@@ -338,7 +338,7 @@ await act();
 say((await ev(`ngv.game.items.stacks[${room}].sheets`)) === roomBefore + 1 && (await total()) === 150, `stack ${room} went ${roomBefore} -> ${roomBefore + 1}, still 150 sheets in the game`);
 
 console.log('--- 16. the prompt answers the reticle with full hands (defect 4)');
-await at(51.6, 6.0); await faceHall(51.6, 4.5, 0.4); await sleep(450);
+await at(54.6, 6.0); await faceHall(54.6, 4.5, 0.4); await sleep(450);
 say(/Take box from/.test(await label()), 'at a light pallet: ' + await label());
 await act();
 say((await inv()).hand === 'box', 'a box in the hands');
@@ -376,7 +376,7 @@ await ev(`ngv.game.lift.leave(ngv.game.player,true)`); await sleep(300);
 
 console.log('--- 18. every cell sheetCells names really does cover the point');
 const cells = await ev(`(()=>{const W=ngv.game.mods.W,bad=[];
- for(let u=1;u<48.9;u+=3.7)for(let d=0.6;d<15;d+=2.3)for(const a of ['u','d']){
+ for(let u=1;u<51.906;u+=3.7)for(let d=0.6;d<15;d+=2.3)for(const a of ['u','d']){
   for(const c of W.sheetCells(u,d,a)){const r=W.sheetRect(c);
    if(u<r.u0-0.001||u>r.u1+0.001||d<r.d0-0.001||d>r.d1+0.001)bad.push([+u.toFixed(1),+d.toFixed(1),a,c.u,c.d]);}}
  return bad})()`);
@@ -409,7 +409,7 @@ await ev(`ngv.game._c.stop=true`);
 say(crew2.frames > 400, `sampled the crew lift every frame for 115 s (${crew2.frames} frames)`);
 say(crew2.off === 0, `never a wheel on bare carpet (${crew2.off} frames off the boards)`);
 say(crew2.sheets >= 4, `the feeder laid its own road: ${crew2.sheets} sheets, team count ${crew2.boards}`);
-say(crew2.now[0] < 48.9 - 1.3, `the whole machine is inside the hall: u ${crew2.now[0]}, wheels ` + JSON.stringify(crew2.wheels));
+say(crew2.now[0] < 51.906 - 1.3, `the whole machine is inside the hall: u ${crew2.now[0]}, wheels ` + JSON.stringify(crew2.wheels));
 say(crew2.start[0] - crew2.now[0] > 2.5, `and it kept moving up the hall: ${crew2.start[0].toFixed(2)} -> ${crew2.now[0]}`);
 say(crew2.worst < 2.4, 'every board they laid is under the path the machine took (worst ' + crew2.worst + ' m): ' + JSON.stringify(crew2.far));
 say(!crew2.err, 'the sampler itself never threw: ' + (crew2.err || 'clean'));
@@ -418,9 +418,9 @@ console.log('--- 20. the feeder walks back out through the doorway (defect 1, th
 const walkOut = await ev(`(()=>{const g=ngv.game,B=g.crew.byName('Priya');
  // the exact spot the feeder used to freeze on: inside the hall, a little off the door's centre
  if(B.carry&&B.carry.type==='sheet'){ if(B.carry.mesh)B.carry.mesh.removeFromParent(); g.items.returnSheet(B.pos); }
- B.carry=null; B.pos.copy(g.hallToWorld(47.6,8.1,g.world.floorY)); B.pos.y=g.world.floorY;
- g._w={u0:47.6,best:47.6}; return true})()`);
-say(walkOut === true, 'the feeder put back on the spot it used to freeze on: hall (47.6, 8.1)');
+ B.carry=null; B.pos.copy(g.hallToWorld(50.6,8.1,g.world.floorY)); B.pos.y=g.world.floorY;
+ g._w={u0:50.6,best:50.6}; return true})()`);
+say(walkOut === true, 'the feeder put back on the spot it used to freeze on: hall (50.6, 8.1)');
 for (let i = 0; i < 30; i++) { await sleep(1000);
  const u = await ev(`ngv.game.mods.W.worldToHall(ngv.game.crew.byName('Priya').pos).u`);
  await ev(`ngv.game._w.best=Math.max(ngv.game._w.best,${u})`);
@@ -437,9 +437,9 @@ console.log('--- 21. a machine stopped by another machine says why');
 await ev(`ngv.game.lift.leave(ngv.game.player,true)`); await sleep(300);
 const set21 = await ev(`(()=>{const g=ngv.game,L=g.lift,C=g.crew,W=g.mods.W;
  C.members.forEach(m=>C.assignTask(m,'standby'));
- L.pos.copy(g.hallToWorld(61.0,7.5,g.world.floorY)); L.yaw=Math.PI; L.height=0; L.anim=null; L.steer=0; L.speed=0; L.refresh();
+ L.pos.copy(g.hallToWorld(64.0,7.5,g.world.floorY)); L.yaw=Math.PI; L.height=0; L.anim=null; L.steer=0; L.speed=0; L.refresh();
  const X=C.lifts.find(l=>!l.by)||C.lifts[0];
- X.pos.copy(g.hallToWorld(57.0,7.5,g.world.floorY)); X.yaw=0; X.height=0; X.refresh();
+ X.pos.copy(g.hallToWorld(60.0,7.5,g.world.floorY)); X.yaw=0; X.height=0; X.refresh();
  L.board(g.player,true); L.takeControls(g.player);
  return {aboard:L.aboard,driving:L.driving,u:+W.worldToHall(L.pos).u.toFixed(2),
   crew:C.lifts.map(l=>+W.worldToHall(l.pos).u.toFixed(2))}})()`); await sleep(500);

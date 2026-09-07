@@ -66,7 +66,7 @@ async function init() {
   crew = new Crew(scene, world, items, install, collideWorld, lift);
   items.crew = crew;   // the reticle can point at a crew member (items.js 'crew'). No `items.talkTo` here: this entry has no task sheet, so no Talk prompt is offered at all
   clock.fittedAtStart = install.counts().fitted;
-  player.pos.copy(hallToWorld(52.0, 7.5, world.floorY));
+  player.pos.copy(hallToWorld(55.0, 7.5, world.floorY));
   player.yaw = 1.35;
   document.querySelector('#prompt').textContent = 'Press Start Shift';
   window.game = { player, lift, items, install, clock, world, fx, body, crew, hallToWorld, dbg: { dt: 0, frames: 0 } };
