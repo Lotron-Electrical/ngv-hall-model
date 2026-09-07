@@ -1173,3 +1173,31 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   (`git show HEAD~1:index.html`) for the same frames of the page as it was. 144 fps both, on the
   desk GPU.
 - The install proofs (`game-guide`, `install-mode`, `game-liftlook`) still pass on the port.
+
+## The walls (2026-09-07)
+
+- WHAT THE PHOTOGRAPHS SHOW. Ashlar in running bond, half-block stagger, fine pale joints. Measured
+  in `E:/sitecapture-captures/ngv-site/reference-photos/b0cefe7f` (daylight, balcony): the Abstract
+  sequence tapestry is 4.993 m tall and 1117 px, so 4.47 mm/px at its plane; the vertical
+  autocorrelation of the stone beside it peaks at 60-63 px = 268-282 mm, taken as a 285 mm course.
+  The head-on 7aad8857 gives block over course 2.25-2.75, taken as 2.5 = 710 mm. Joints about 10-15
+  mm, a shade paler than the stone. A stone patch reads linear 0.207/0.171/0.146 in daylight.
+- THE TONE (Lloyd's pick, four options shot with the house up: as baked / stone chroma 2x / that
+  plus a mauve carpet / the photograph's brightness plus the mauve carpet; he took the photograph's
+  walls and the carpet as baked). `WALL_TINT` = 3.3/4.7/4.7 multiplies the wall bake, which came
+  off the night scan at 0.062/0.037/0.031. The carpet keeps its measured albedo, so the night
+  bounce (bounceAlb, the game's FLOOR_ALB) is unchanged.
+- THE COURSING. The bake resolves the wall at 6.8 mm and its joints are a smear about 1.5 courses
+  tall, so the `walls` material draws the ashlar itself (`STONE` in index.html, the same block in
+  game/hallmat.js, compiled in for that material only: no uniform spent). Hall frame from vPos:
+  courses up from the carpet, blocks along the wall the face belongs to (an end wall or a recess
+  reveal runs across the hall, picked by the face normal), the joint mask box-filtered over the
+  pixel footprint so a far wall keeps the same joint share instead of going mortar-grey, a tone per
+  block and a fine grain within it. The bake is sampled three mips soft (55 mm) for its colour,
+  recesses and door shadows, which is what kills its own seams (the wall atlas gets a mip chain
+  and 8x anisotropy for that; it shipped with a plain linear sampler). Origin of the block phase
+  along the wall is u = 0; no photograph fixes it.
+- PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
+  the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
+  (-20, 1.6, 6.3) facing the north wall with the house up. Not done: the bake's own courses are
+  not registered to the drawn grid (its phase is a smear), so the drawn grid is the only one shown.

@@ -33,6 +33,9 @@ export const FLOOR_ALB = [0.228, 0.059, 0.070];
 // the stone walls' tone, the viewer's WALL_TINT (Lloyd's 2026-09-07 pick: the bake landed on the
 // daylight photograph's stone, warm grey, about three times lighter than the night scan)
 export const WALL_TINT = [3.3, 4.7, 4.7];
+// the ashlar the viewer draws on the walls (index.html STONE): running bond, half-block stagger,
+// courses and blocks measured off the daylight photographs, pale joints; same numbers here
+export const STONE = { course: 0.285, block: 0.710, joint: 0.014 };
 
 export const lightPos = new Float32Array(MAX_LIGHTS * 4);
 export const lightCol = new Float32Array(MAX_LIGHTS * 4);
@@ -49,6 +52,9 @@ export function setupRenderer(renderer, scene) {
 // door: the storage doorway cut out of the end wall (u along the wall, d into the room)
 export function photoMaterial(src, hall) {
   const o = hall.origin, U = hall.u, N = hall.inRoom;
+  const walls = (src.name || '') === 'walls';
+  // the wall atlas ships with a plain linear sampler; the ashlar samples it three mips soft
+  if (walls && src.map) { src.map.minFilter = THREE.LinearMipmapLinearFilter; src.map.generateMipmaps = true; src.map.anisotropy = 8; src.map.needsUpdate = true; }
   const m = new THREE.ShaderMaterial({
     uniforms: {
       map: { value: src.map || null }, tint: { value: (src.name || '') === 'walls' ? new THREE.Color().setRGB(...WALL_TINT) : new THREE.Color(src.map ? 0xffffff : src.color) },
@@ -78,8 +84,30 @@ export function photoMaterial(src, hall) {
         // the doorway: nothing of the scan inside the door volume
         { vec3 q=vPos-vec3(${o.x},${o.y},${o.z}); float du=dot(q,vec3(${U.x},${U.y},${U.z})); float dd=dot(q,vec3(${N.x},${N.y},${N.z}));
           if(abs(du-doorU)<0.6 && abs(dd-doorD)<doorHalfW && vPos.y<doorTop) discard; }
-        vec3 albedo=texture2D(map,vUv).rgb*tint;
         vec3 Nn=normalize(cross(dFdx(vPos),dFdy(vPos)));
+        vec3 albedo=texture2D(map,vUv).rgb*tint;
+        ${walls ? `{
+         // THE ASHLAR, the viewer's block line for line (index.html, "THE STONE COURSING"): the
+         // bake three mips soft for its colour, courses up from the carpet, blocks along the wall
+         // the face belongs to, joints box-filtered over the pixel footprint
+         albedo=texture2D(map,vUv,3.0).rgb*tint;
+         vec3 q=vPos-vec3(${o.x},${o.y},${o.z});
+         float su=dot(q,vec3(${U.x},${U.y},${U.z})), sd=dot(q,vec3(${N.x},${N.y},${N.z})), sy=q.y;
+         float along=abs(dot(Nn,vec3(${U.x},${U.y},${U.z})))<0.7?su:sd;
+         if(abs(Nn.y)<0.5){
+          float ci=floor(sy/${STONE.course}); float dy=abs(sy-(ci+0.5)*${STONE.course});
+          float ax=along+${STONE.block * 0.5}*mod(ci,2.0); float bi=floor(ax/${STONE.block}); float dx=abs(ax-(bi+0.5)*${STONE.block});
+          float ey=${STONE.course * 0.5}-dy, ex=${STONE.block * 0.5}-dx;
+          float ay=max(fwidth(sy),1e-4), ax2=max(fwidth(along),1e-4);
+          float jy=clamp((${STONE.joint * 0.5}-ey+ay*0.5)/ay,0.0,1.0), jx=clamp((${STONE.joint * 0.5}-ex+ax2*0.5)/ax2,0.0,1.0);
+          float joint=max(jx,jy);
+          float hb=fract(sin(dot(vec2(bi,ci),vec2(12.9898,78.233)))*43758.5453);
+          float hg=fract(sin(dot(floor(vec2(ax,sy)*160.0),vec2(39.3467,11.135)))*23421.631);
+          vec3 stoneCol=albedo*(0.88+0.24*hb)*(0.95+0.10*hg)*vec3(1.0+0.04*(hb-0.5),1.0,1.0-0.04*(hb-0.5));
+          vec3 mortar=vec3(dot(albedo,vec3(0.3333)))*vec3(1.36,1.31,1.21);
+          albedo=mix(stoneCol,mortar,joint);
+         }
+        }` : ''}
         vec3 E=vec3(house+ambient);
         // the two column axes nearest this fragment, read out of the light list itself: a run
         // light sits on its column's axis and lightPos.w says which column it is, so the shadow
