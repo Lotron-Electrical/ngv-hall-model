@@ -1362,6 +1362,25 @@ new GLTFLoader().load('model.glb',g=>{
   const cap2=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
+ // The four Roger Kemp tapestries on the long walls. The bake sees them as a smear (the phone
+ // frames are 6-10 m off and the selection score favours the stone), so each one is the NGV
+ // collection image on a plane 30 mm proud of the wall, on the rectangle measured off the wall
+ // bake (tools/tapestries.json, world corners in model.glb space). photoMaterial, so they take
+ // the house and daylight levels like the walls do. Loaded after the hall so the hall never
+ // waits on them.
+ fetch('tools/tapestries.json').then(r=>r.json()).then(doc=>{ const centre=HALL_BOX.getCenter(new THREE.Vector3());
+  for(const t of doc.tapestries){ const c=t.corners.map(a=>new THREE.Vector3(...a));
+   const n=new THREE.Vector3().subVectors(c[1],c[0]).cross(new THREE.Vector3().subVectors(c[3],c[0])).normalize();
+   // corners run west to east on both walls; seen from inside, west is on the left for the north
+   // wall and on the right for the south wall, so the south wall's image is mirrored in u
+   const flip=n.dot(new THREE.Vector3().subVectors(centre,c[0]))<0; if(flip)n.negate();   /* n: proud of the wall, into the hall */
+   const pos=new Float32Array(12); c.forEach((v,i)=>{ v.addScaledVector(n,0.03); pos.set([v.x,v.y,v.z],3*i); });
+   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+   geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(flip?[1,0, 0,0, 0,1, 1,1]:[0,0, 1,0, 1,1, 0,1]),2)); geo.setIndex([0,1,2, 0,2,3]);
+   const tex=new THREE.TextureLoader().load(t.image); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
+   const m=photoMaterial({map:tex, name:'tapestry-'+t.position}); m.side=THREE.DoubleSide;   /* the wall behind hides the back */
+   const mesh=new THREE.Mesh(geo,m); mesh.name='tapestry-'+t.position; mesh.userData.tapestry=t; g.scene.add(mesh); }
+  if(typeof dirty==='function')dirty(); }).catch(e=>console.warn('tapestries',e));
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; hallLevel=new THREE.Group(); hallLevel.name='hall-level'; hallSway=new THREE.Group(); hallSway.name='hall-sway';
  hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
