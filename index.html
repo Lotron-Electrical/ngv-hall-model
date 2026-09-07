@@ -1023,7 +1023,7 @@ const STONE={course:0.285, block:0.710, joint:0.014};
 const WALLF={openU0:7.71, openPitch:3.685, openW:1.3, openY:[9.0,11.0], openDepth:0.6,
  grilleU0:12.5, grillePitch:4.2, grilleW:1.0, grilleH:0.16, grilleY:2.8,
  doorU:20.0, doorW:2.3, doorH:2.5, doorDepth:1.0, textU:26.0, textY:4.2, skirt:0.10,
- dNorth:-0.05, dSouth:15.38, uMin:1.0, uMax:47.9};
+ dNorth:-0.05, dSouth:15.38, uMin:1.0, uMax:51.5};
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
 // smeared images"): tools/stone.jpg, a tileable limestone tile built to the photograph's stone
 // (mean linear 0.207/0.171/0.146, mottle pink to cream over 25-100 cm, grain at 5-25 mm, pits and
@@ -1089,6 +1089,8 @@ function photoMaterial(src){
      float su=dot(q,vec3(0.975681,0.0,0.219196)), sd=dot(q,vec3(0.219186,0.0,-0.975639)), sy=q.y;
      bool longWall=abs(dot(N,vec3(0.975681,0.0,0.219196)))<0.7;
      float along=longWall?su:sd;
+     // the scan's two closures stand in the wrong places (ENDW): cut them out, the real end walls are built
+     if(!longWall&&((su>-5.3&&su<-4.0)||(su>48.5&&su<49.6)))discard;
      // the openings and the foyer door are holes in the bake mesh (WALLF); the reveals sit behind
      if(longWall&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&abs(fract((su-${(WALLF.openU0).toFixed(3)})/${(WALLF.openPitch).toFixed(3)}+0.5)-0.5)*${(WALLF.openPitch).toFixed(3)}<${(WALLF.openW*0.5).toFixed(3)})discard;
      if(longWall&&sd<1.0&&sy<${(WALLF.doorH).toFixed(3)}&&abs(su-${(WALLF.doorU).toFixed(3)})<${(WALLF.doorW*0.5).toFixed(3)})discard;
@@ -2098,7 +2100,7 @@ new GLTFLoader().load('model.glb',g=>{
    const m=photoMaterial({map:tex, name:'tapestry-'+t.position}); m.side=THREE.DoubleSide;   /* the wall behind hides the back */
    const mesh=new THREE.Mesh(geo,m); mesh.name='tapestry-'+t.position; mesh.userData.tapestry=t; g.scene.add(mesh); }
   if(typeof dirty==='function')dirty(); }).catch(e=>console.warn('tapestries',e));
- buildWallDetails(g.scene);
+ buildWallDetails(g.scene); buildEndWalls(g.scene);
  HALL_BOX=new THREE.Box3().setFromObject(g.scene);
  hallGroup=g.scene; hallLevel=new THREE.Group(); hallLevel.name='hall-level'; hallSway=new THREE.Group(); hallSway.name='hall-sway';
  hallLevel.add(g.scene); hallSway.add(hallLevel); scene.add(hallSway); measureHallArea(); applyColumnHeight(); paintHeightStat(); bar.remove(); if(typeof buildBeams==='function')buildBeams(); buildDoor(); buildPortal(); warpWarm();},
@@ -2150,6 +2152,59 @@ function buildWallDetails(root){
   const W=3.4, H=W*400/1400, d=w.d-w.s*0.004;
   quad([[F.textU-W/2,d,F.textY-H/2],[F.textU+W/2,d,F.textY-H/2],[F.textU+W/2,d,F.textY+H/2],[F.textU-W/2,d,F.textY+H/2]],
    new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, name:'inscription'}),'inscription',true); }
+}
+
+// ============ the real end walls (ENDW): the scan's closures are in the wrong places ============
+// The ceiling session's trace of the NGV panorama (2026-09-08, tools/pieces-provenance.json) puts
+// the plate's end on the vertex phase one bay past the outer columns at both ends: 7 pitches,
+// 51.5 m between the end walls. In the hall frame that is u = 7.71 - 7.366 = 0.34 (west) and
+// 44.54 + 7.366 = 51.91 (east), the N-row column line and its bay. The scan's west closure sits
+// at u = -4.65, five metres past the real wall, and its east closure at 49.06, 2.85 m short of
+// it (the bake's long walls run -4.65 to 49.06). So: the walls shader cuts both scan closures
+// out, the long walls and the carpet are extended to 51.91 with the stone and carpet materials,
+// and two stone end walls are built at the real stations. Each end wall carries the gallery the
+// photographs show (the balcony stills 756d0ba6, 9277befa, d1b1f2a4: stone piers each side of
+// a tall central recess between the column rows, three dark gallery tiers inside it, stone
+// above to the canopy and a stone base below): recess d 3.9 to 11.5, y 1.8 to 10.0, 6 m deep,
+// tiers at 3.6, 6.4 and 9.2 m. The east end is built like the west (the balcony photographs
+// are taken from it, so a gallery is there; its tier heights are the west's, unmeasured).
+const ENDW={west:0.344, east:51.906, top:13.5, recess:{d0:3.9, d1:11.5, y0:1.8, y1:10.0, depth:6.0, tiers:[3.6,6.4,9.2], slab:0.35}, scanEast:49.06, dSouth:15.38};
+function buildEndWalls(root){
+ const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
+ const hp=(u,d,y)=>new THREE.Vector3().copy(O).addScaledVector(HU,u).addScaledVector(HN,d).setY(O.y+y);
+ // a 1 x 1 white map: the stone shader reads the bake only as a recess mask, and a built quad has no recesses
+ const white=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); white.needsUpdate=true; white.colorSpace=THREE.SRGBColorSpace;
+ const stone=photoMaterial({map:white, name:'walls'}); stone.side=THREE.DoubleSide; photoMats.push(stone);
+ // the carpet beyond the scan's floor: the carpet's own measured albedo (FLOOR_ALB), lit like the floor
+ const carpet=photoMaterial({color:0x854449, name:'floor-extension'}); carpet.side=THREE.DoubleSide; photoMats.push(carpet);
+ const darkMat=new THREE.MeshLambertMaterial({color:0x2a2622, side:THREE.DoubleSide, name:'gallery-tier'});
+ const voidMat=new THREE.MeshBasicMaterial({color:0x08080a, side:THREE.DoubleSide, name:'gallery-void'});
+ const quad=(pts,mat,name)=>{ const pos=new Float32Array(12); pts.forEach((p,i)=>{ const v=hp(...p); pos.set([v.x,v.y,v.z],3*i); });
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array([0,0,1,0,1,1,0,1]),2)); geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,mat); m.name=name; root.add(m); solids.push(m); return m; };
+ // the long walls and the carpet from the scan's east closure to the real east wall
+ const u0=W.scanEast-0.02, u1=W.east, D=W.dSouth;
+ quad([[u0,F.dNorth,0],[u1,F.dNorth,0],[u1,F.dNorth,W.top],[u0,F.dNorth,W.top]],stone,'wall-north-extension');
+ quad([[u0,D,0],[u1,D,0],[u1,D,W.top],[u0,D,W.top]],stone,'wall-south-extension');
+ quad([[u0,0,0],[u1,0,0],[u1,D,0],[u0,D,0]],carpet,'floor-extension');
+ // the two end walls with their galleries
+ for(const [u,s] of [[W.west,-1],[W.east,1]]){   /* s: into the end wall, away from the hall */
+  const R=W.recess, ub=u+s*R.depth;
+  quad([[u,0,0],[u,R.d0,0],[u,R.d0,W.top],[u,0,W.top]],stone,'end-wall-pier');
+  quad([[u,R.d1,0],[u,D,0],[u,D,W.top],[u,R.d1,W.top]],stone,'end-wall-pier');
+  quad([[u,R.d0,R.y1],[u,R.d1,R.y1],[u,R.d1,W.top],[u,R.d0,W.top]],stone,'end-wall-lintel');
+  quad([[u,R.d0,0],[u,R.d1,0],[u,R.d1,R.y0],[u,R.d0,R.y0]],stone,'end-wall-base');
+  // the recess: stone reveals, a dark back and soffit, the tiers as slabs across it
+  quad([[u,R.d0,R.y0],[ub,R.d0,R.y0],[ub,R.d0,R.y1],[u,R.d0,R.y1]],stone,'gallery-reveal');
+  quad([[u,R.d1,R.y0],[ub,R.d1,R.y0],[ub,R.d1,R.y1],[u,R.d1,R.y1]],stone,'gallery-reveal');
+  quad([[ub,R.d0,R.y0],[ub,R.d1,R.y0],[ub,R.d1,R.y1],[ub,R.d0,R.y1]],voidMat,'gallery-back');
+  quad([[u,R.d0,R.y1],[u,R.d1,R.y1],[ub,R.d1,R.y1],[ub,R.d0,R.y1]],voidMat,'gallery-soffit');
+  quad([[u,R.d0,R.y0],[u,R.d1,R.y0],[ub,R.d1,R.y0],[ub,R.d0,R.y0]],darkMat,'gallery-floor');
+  for(const y of R.tiers){ const ya=y, yb=y+R.slab;
+   quad([[u,R.d0,yb],[u,R.d1,yb],[ub,R.d1,yb],[ub,R.d0,yb]],darkMat,'gallery-tier-top');
+   quad([[u,R.d0,ya],[u,R.d1,ya],[ub,R.d1,ya],[ub,R.d0,ya]],darkMat,'gallery-tier-soffit');
+   quad([[u,R.d0,ya],[u,R.d1,ya],[u,R.d1,yb],[u,R.d0,yb]],darkMat,'gallery-tier-front'); } }
 }
 
 // ============ LED strips, built live from runs.json ============

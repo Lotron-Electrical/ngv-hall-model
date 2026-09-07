@@ -1220,6 +1220,17 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   the Felton inscription centred between the tapestries (u 26.0, 4.2 m up, a canvas, mirrored in
   u on the north wall because u runs right to left seen from inside); a 100 mm shadow gap at the
   carpet. Not done: the openings' exact u phase (+-0.5 m) and the grille phase (+-1 m).
+- THE END WALLS (2026-09-08, from the ceiling session's panorama trace: the plate ends on the
+  vertex phase one bay past the outer columns, 7 pitches = 51.5 m). The scan's closures stand
+  at u = -4.65 and 49.06; the real end walls are at u = 0.34 and 51.91 (7.71 - 7.366 and 44.54 +
+  7.366 on the N-row column line). `ENDW` + buildEndWalls: the walls shader cuts both scan
+  closures out, the long walls and the carpet (the carpet's own albedo, no photo) run on to
+  51.91, and two stone end walls carry the gallery the balcony stills show (756d0ba6, 9277befa,
+  d1b1f2a4: stone piers each side of a tall central recess between the column rows, three dark
+  tiers inside, stone above and below): recess d 3.9 to 11.5, y 1.8 to 10.0, 6 m deep, tiers at
+  3.6, 6.4, 9.2 m. The east end is built like the west (the balcony photographs are taken from
+  it; its tier heights are unmeasured). OPEN: the install sim's corridor door (buildDoor, the
+  `door` uniform) still sits in the old closure plane at 49.06, told to the install session.
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
   (-20, 1.6, 6.3) facing the north wall with the house up. Not done: the bake's own courses are
