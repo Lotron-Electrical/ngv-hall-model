@@ -5159,8 +5159,8 @@ function creditsBuild(L){ if(!logo||logo.userData.cred)return; const cv=document
  const g=cv.getContext('2d'), F='"IBM Plex Sans",system-ui,Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
  const line=(txt,x,y,px,wt,col,sp)=>{ g.font=wt+' '+px+'px '+F; g.fillStyle=col; try{ g.letterSpacing=(sp||0)+'px'; }catch(e){} g.fillText(txt,x,y); };
  line('SPECIAL THANKS',1024,110,66,'500','#c9c9c9',14);
- line('Patrick Connell',560,300,88,'600','#f2f2f2',0); line('Photogrammetry & 3D',560,400,58,'400','#a6a6a6',0);
- line('Gabriel Fischer',1488,300,88,'600','#f2f2f2',0); line('Sound design & music',1488,400,58,'400','#a6a6a6',0);
+ line('Patrick Connell',560,300,88,'600','#f2f2f2',0); line('Photogrammetry & 3D',560,404,66,'400','#bdbdbd',0);
+ line('Gabriel Fischer',1488,300,88,'600','#f2f2f2',0); line('Sound design & music',1488,404,66,'400','#bdbdbd',0);
  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
  const m=new THREE.Mesh(new THREE.PlaneGeometry(L.W,L.credH),new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
  m.position.set(0,L.credY-L.yTop,0.01); m.frustumCulled=false; m.visible=false; m.userData.img=true; logo.add(m); logo.userData.cred=m; }
@@ -5244,7 +5244,7 @@ function finaleStep(s){ if(!finale)finaleStart(); if(!finale)return; const F=fin
  const dx=Math.max(0,Math.min(1,(s-tD)/FIN.drop)), dk=0.4*(1-(1-dx)*(1-dx))+0.6*smooth(dx);   /* (Lloyd, 2026-09-05) part ease-out, part glide: the marks are moving as the black clears (a pure ease-in held them out of the frame for a second) and still land softly */   /* (Lloyd, 2026-09-04) a glide, in and out, instead of the ease-out that slammed in */
  // the eye stays a metre outside the glass at least; where the triangle would not fit from there
  // (a phone's narrow picture) the whole sculpture shrinks instead
- const th=Math.tan(cam.fov*Math.PI/360), D0=Math.max(0.7*L.top/th,0.55*L.wTot/(th*cam.aspect)), Dmax=COURT.logoZ-1.0, sf=Math.min(1,Dmax/D0), D=Math.min(D0,Dmax);
+ const th=Math.tan(cam.fov*Math.PI/360), D0=Math.max(0.64*L.top/th,0.49*L.wTot/(th*cam.aspect)),   /* (Lloyd, 2026-09-08: "make everything a bit bigger on that logo page") the stack fills 78 % of the height and the widest mark 86 % of the width, from 71 % and 76 %; on a phone the credits must still clear the Free roam and Start again buttons */ Dmax=COURT.logoZ-1.0, sf=Math.min(1,Dmax/D0), D=Math.min(D0,Dmax);
  const hUp=D*th*1.02/sf+L.top*0.5-(L.credY-L.credH/2)+0.2;   // (Lloyd, 2026-09-05) the lowest line (the credits) starts just above the top of the frame, so the marks show the moment the glide begins; the old start sat a whole triangle higher and read as 2 s of black
  turntable.scale.setScalar(F.scale*(1+(sf-1)*pk));
  for(const [o,h] of F.homes){ const t=targets.get(o); if(!t)continue;
