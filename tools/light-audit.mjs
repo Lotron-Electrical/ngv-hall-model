@@ -25,6 +25,7 @@
 // Needs the static server on 8877 and a headless Chrome on NGV_PORT (default 9333).
 import fs from 'node:fs';
 import { attach, reporter } from './cdp.mjs';
+import { houseE, RIG_PHOT } from './rigphot.mjs';
 
 const out = process.argv[2];
 if (out) fs.mkdirSync(out, { recursive: true });
@@ -175,10 +176,13 @@ try {
         return JSON.stringify({dark,house,led,shad,day:ngv.lit.day,occ:keepOcc});
       })();})()`);
     const pr = JSON.parse(probe);
-    const E = [0, 1, 2].map(k => (pr.led[k] - pr.dark[k]) / Math.max(pr.house[k] - pr.dark[k], 1e-6));
+    // the house pixel is albedo x H, where H is the rig's pools plus the bounce at this very
+    // point (2026-09-07: the house is no longer a flat 1.0); the ratio still cancels the albedo
+    const Hc = RIG_PHOT.col.map(c => c * houseE([cx + rho, S.floorY, cz], [0, 1, 0]));
+    const E = [0, 1, 2].map(k => (pr.led[k] - pr.dark[k]) / Math.max(pr.house[k] - pr.dark[k], 1e-6) * Hc[k]);
     const Ejs = segE(lp, lc, S.n, [cx + rho, S.floorY, cz], [0, 1, 0], S.colR);
     const got = lum(E) * 150, exp = lum(Ejs) * 150;
-    const Esh = [0, 1, 2].map(k => (pr.shad[k] - pr.dark[k]) / Math.max(pr.house[k] - pr.dark[k], 1e-6));
+    const Esh = [0, 1, 2].map(k => (pr.shad[k] - pr.dark[k]) / Math.max(pr.house[k] - pr.dark[k], 1e-6) * Hc[k]);
     R.note(`canvas readback at 3 m, the same pixel four ways: dark ${pr.dark.slice(3).join(',')} / house ${pr.house.slice(3).join(',')} / strips ${pr.led.slice(3).join(',')} / strips + ${pr.occ} column shadows ${pr.shad.slice(3).join(',')} sRGB`);
     R.note(`the shadows take ${(100 - lum(Esh) / Math.max(lum(E), 1e-9) * 100).toFixed(0)}% off this fragment (${(lum(Esh) * 150).toFixed(1)} lux with them, ${(lum(E) * 150).toFixed(1)} without)`);
     R.say(pct(got, exp) < 30, `the shader agrees with the audit: ${got.toFixed(1)} lux read off the canvas, ${exp.toFixed(1)} lux from the same formula in JS (${pct(got, exp).toFixed(1)}% off, all 12 columns)`);

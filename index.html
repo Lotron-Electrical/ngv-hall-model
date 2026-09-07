@@ -800,6 +800,50 @@ const hemi=new THREE.HemisphereLight(0xfff4e6,0x40302a,0.9); scene.add(hemi);
 // The canopy itself is drawn procedurally (see PROCEDURAL MEASURED-LATTICE CANOPY below) but
 // keeps this exact lighting model: house+day backlight on the glass slabs, LED_GAIN_GLASS from below.
 const HOUSE_LUX=150;        // assumed floor illuminance in the photographs (typical hall house lighting)
+// THE HOUSE LIGHT (Lloyd, 2026-09-07: "the lighting needs to be fixed"). Until now the house term was
+// one flat number on every surface: E = house + ambient, the same on the carpet, on the wall at 11 m
+// and on the underside of the truss, so nothing had a direction and nothing fell off. The house light
+// of this hall is the permanent rig: 23 profiles and PARs on the truss along the north wall (RIG,
+// buildLightingRig), pitched 55 degrees into the room, and the room's own first bounce. They are
+// now the source. Each fixture is a Gaussian cone in candela: the profile an ETC Source Four 26
+// degree at 750 W (about 105 kcd on axis, sigma 11.5 degrees), the PAR a PAR64 CP62 medium flood
+// at 1 kW (about 60 kcd, 44 x 24 degrees, the wide axis along the hall), so E = I(theta) cos / r2,
+// summed over the 23 (constants only: their seats and aims are the builder's own formula, no
+// uniform spent; the fragment stage was at 192 of 224 vectors). The rig at full makes about
+// 380,000 lm, which over the 753 m2 of carpet is far more than the 150 lux
+// the photographs show, so house = 1 is the rig dimmed to `dim` (0.75 x 150 lux of direct light on
+// the carpet with 95% of the flux landing there, tools/house-audit.mjs measures the share) plus
+// the first bounce, `bounce` x 150 lux at the carpet falling to half at the wall top: direct and
+// bounce sum to the photographs' level, and 0.25 / 0.75 is a room reflectance of about 0.25.
+// Flux of a cone is integrated numerically (the PAR's 26 degree sigma is 6% past small-angle). Tungsten at 3200 K, `col`. The daylight term on the
+// stone walls now grows with height (the upper wall sees the canopy, the foot sees the hall).
+// tools/rigphot.mjs mirrors these numbers for tools/house-audit.mjs, which checks the flux, the
+// carpet's mean and a canvas readback against them.
+const RIG_PHOT=(()=>{ const P={n:23, u0:1.5, pitch:2.0, d:2.2, y:8.52, tilt:0.96,
+  profile:{I0:105000, sigma:11.5*Math.PI/180}, par:{I0:60000, su:26*Math.PI/180, sv:14*Math.PI/180},
+  col:[1.15,0.97,0.80], direct:0.75, bounce:0.25, floorShare:0.95, floorArea:48.9*15.4};
+ // a cone's flux, integrated over its hemisphere (the PAR's 26 degree sigma is past the small-angle
+ // closed form by 6%): I(theta, phi) sin(theta) dtheta dphi on a 180 x 180 grid
+ const coneFlux=(I0,su,sv)=>{ let F=0; const n=180; for(let a=0;a<n;a++){ const th=(a+0.5)/n*Math.PI/2; for(let b=0;b<n;b++){ const ph=(b+0.5)/n*2*Math.PI;
+   const tu=Math.atan2(Math.sin(th)*Math.cos(ph),Math.cos(th)), tv=Math.atan2(Math.sin(th)*Math.sin(ph),Math.cos(th));
+   F+=I0*Math.exp(-(tu*tu/(su*su)+tv*tv/(sv*sv)))*Math.sin(th)*(Math.PI/2/n)*(2*Math.PI/n); } } return F; };
+ P.fluxProfile=coneFlux(P.profile.I0,P.profile.sigma,P.profile.sigma); P.fluxPar=coneFlux(P.par.I0,P.par.su,P.par.sv);
+ P.flux=12*P.fluxProfile+11*P.fluxPar; P.dim=P.direct*HOUSE_LUX*P.floorArea/(P.floorShare*P.flux); return P; })();
+// the GLSL: the direct term of the 23 fixtures at POS with normal NRM, added to the float OUT in
+// units of HOUSE_LUX at house = 1 (the same loop the JS mirror in tools/rigphot.mjs evaluates)
+function rigGLSL(POS,NRM,OUT){ const R=RIG_PHOT, f=v=>v.toFixed(6);
+ return `{ const vec3 RO=vec3(-54.907447,-1.43545,3.040286), RU=vec3(0.975681,0.0,0.219196), RN=vec3(0.219186,0.0,-0.975639);
+   for(int i=0;i<${R.n};i++){ float fi=float(i);
+    float yawA=(mod(fi*7.0,5.0)-2.0)*0.15;
+    vec3 aim=normalize(RN*${f(Math.cos(R.tilt))}+RU*(sin(yawA)*${f(Math.cos(R.tilt))})+vec3(0.0,-${f(Math.sin(R.tilt))},0.0));
+    vec3 P=RO+RU*(${f(R.u0)}+${f(R.pitch)}*fi)+RN*${f(R.d)}+vec3(0.0,${f(R.y)},0.0)+aim*0.12;
+    vec3 v=${POS}-P; float r2=max(dot(v,v),1.0); vec3 vn=v*inversesqrt(r2);
+    float ca=dot(vn,aim); if(ca>0.05){
+     vec3 ax=normalize(RU-aim*dot(RU,aim)); vec3 ay=cross(aim,ax);
+     float tu=atan(dot(vn,ax),ca), tv=atan(dot(vn,ay),ca);
+     float I=(mod(fi,2.0)<0.5)?${f(R.profile.I0)}*exp(-(tu*tu+tv*tv)*${f(1/(R.profile.sigma**2))}):${f(R.par.I0)}*exp(-(tu*tu*${f(1/(R.par.su**2))}+tv*tv*${f(1/(R.par.sv**2))}));
+     ${OUT}+=I*max(dot(${NRM},-vn),0.0)/r2; } }
+   ${OUT}*=${f(R.dim/HOUSE_LUX)}; }`; }
 // ENTTEC 8PXA60-RGBW-12V-B pixel strip (SK6805-class, GRBW wire order): 1,088 lm/m at 21.8 W/m,
 // 10 mm wide, 120 deg, black PCB (datasheet ID 5957689, July 2025). The datasheet splits the
 // light as RGB 432.8 + W 700 lm/m, white die 4000 K, and the page models the four channels
@@ -1070,7 +1114,12 @@ function photoMaterial(src){
     }`:''}
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
-    vec3 E=vec3(house+ambient+day*dayGain);
+    // the house light: the rig's 23 fixtures and the room's bounce (RIG_PHOT), not a flat number;
+    // the daylight on the stone walls grows with height, the foot of the wall seeing the hall
+    float hy=clamp((vPos.y+1.43545)/12.2,0.0,1.0);
+    float skyF=${(src.name||'')==='walls'?'0.4+0.6*hy*hy':'1.0'};
+    float Erig=0.0; ${rigGLSL('vPos','N','Erig')}
+    vec3 E=vec3(ambient+day*dayGain*skyF)+house*(Erig+${RIG_PHOT.bounce.toFixed(3)}*(1.0-0.5*hy))*vec3(${RIG_PHOT.col.map(v=>v.toFixed(3)).join(',')});
     // THE TWO COLUMN AXES NEAREST THIS FRAGMENT, read out of the light list itself: a band light
     // sits ON its column's axis and lightPos.w carries which column it is, so the shadow test
     // needs no uniform array of its own (the fragment stage is already at 192 of WebGL2's
@@ -1892,11 +1941,11 @@ function measureHallArea(){ let A=0; const a=new THREE.Vector3(),b=new THREE.Vec
 function columnLit(m){
  m.onBeforeCompile=sh=>{
   sh.uniforms.nLights={value:0}; sh.uniforms.lightPos={value:lightPos}; sh.uniforms.lightCol={value:lightCol};
-  sh.uniforms.blades={value:bladeTex}; sh.uniforms.colR={value:COL_R};
+  sh.uniforms.blades={value:bladeTex}; sh.uniforms.colR={value:COL_R}; sh.uniforms.house={value:lit.house};
   m.userData.ledUniforms=sh.uniforms;
   sh.vertexShader='varying vec3 vWPos;\n'+sh.vertexShader.replace('#include <project_vertex>',
    '#include <project_vertex>\n vWPos=(modelMatrix*vec4(transformed,1.0)).xyz;');
-  sh.fragmentShader='varying vec3 vWPos; uniform int nLights; uniform vec4 lightPos['+MAX_LIGHTS+']; uniform vec4 lightCol['+MAX_LIGHTS+']; uniform sampler2D blades; uniform float colR;\n'+
+  sh.fragmentShader='varying vec3 vWPos; uniform int nLights; uniform vec4 lightPos['+MAX_LIGHTS+']; uniform vec4 lightCol['+MAX_LIGHTS+']; uniform sampler2D blades; uniform float colR; uniform float house;\n'+
    sh.fragmentShader.replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
    { vec3 Nc=normal; vec3 Vc=normalize(cameraPosition-vWPos); vec3 Eled=vec3(0.0), Sled=vec3(0.0);
      float gloss=exp2(10.0*(1.0-roughnessFactor)+1.0);
@@ -1921,7 +1970,10 @@ function columnLit(m){
       vec3 Ld=normalize(v+vec3(0.0,h*0.5,0.0));
       Sled+=contrib*pow(max(dot(Nc,normalize(Ld+Vc)),0.0),gloss); }
      reflectedLight.indirectDiffuse+=Eled*material.diffuseColor;
-     reflectedLight.indirectSpecular+=Sled*material.specularColor*0.25; }`);
+     reflectedLight.indirectSpecular+=Sled*material.specularColor*0.25;
+     // the house light's pools on the shaft (RIG_PHOT), the same loop as the photo materials
+     { vec3 Nw=inverseTransformDirection(normal,viewMatrix); float Erig=0.0; ${rigGLSL('vWPos','Nw','Erig')}
+       reflectedLight.indirectDiffuse+=Erig*house*vec3(${RIG_PHOT.col.map(v=>v.toFixed(3)).join(',')})*material.diffuseColor; } }`);
  };
  m.needsUpdate=true;
 }
@@ -2621,7 +2673,8 @@ ${f(room)} lm into the hall (${passTxt})`;
  // the props (lift, crew, boxes) are ordinary lit meshes and the scan is not, so install mode
  // holds the hemisphere at the game's own working level while the photographs stay at whatever
  // the house dimmer says -- which at night is nothing
- hemi.intensity=IG?0.9*(1+AMBIENT):0.9*(lit.house+AMBIENT+lit.day); for(const m of columnMats)m.envMapIntensity=lit.house+AMBIENT+lit.day;
+ // the hemisphere carries only the house's bounce share on the columns; their pools come from the rig loop in columnLit
+ hemi.intensity=IG?0.9*(1+AMBIENT):0.9*(lit.house*RIG_PHOT.bounce+AMBIENT+lit.day); for(const m of columnMats){m.envMapIntensity=lit.house*RIG_PHOT.bounce+AMBIENT+lit.day; if(m.userData.ledUniforms&&m.userData.ledUniforms.house)m.userData.ledUniforms.house.value=lit.house;}
  // the crowd stands in the same light as the room: house + daylight, plus the strips' own colour
  if(eventLitMats.length){ let r=0,g=0,b=0; const n2=nl||0;
   for(let q=0;q<n2;q++){ r+=lightCol[q*4]; g+=lightCol[q*4+1]; b+=lightCol[q*4+2]; }
@@ -2705,7 +2758,7 @@ function elmCsv(){
 window.elmCsv=elmCsv;
 // the module keeps its state private, which also keeps it out of reach of the headless
 // checks that verify this page; ngv is the deliberate keyhole they drive it through
-window.ngv={state, R, get P(){return P;}, WCOL, RGB_SCALE, lit, EXPO, BLOOM, get bounceAlb(){return BOUNCE_ALB;}, get colR(){return COL_R;}, get hallArea(){return HALL_AREA0;}, HOUSE_LUX, get lightPos(){return lightPos;}, get lightCol(){return lightCol;}, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
+window.ngv={state, R, get P(){return P;}, WCOL, RGB_SCALE, lit, EXPO, BLOOM, RIG_PHOT, HOUSE_LUX, get bounceAlb(){return BOUNCE_ALB;}, get colR(){return COL_R;}, get hallArea(){return HALL_AREA0;}, HOUSE_LUX, get lightPos(){return lightPos;}, get lightCol(){return lightCol;}, dirty:()=>{sceneDirty=true;}, get H0(){return H0;}, columnMeshes, scene, cam, get hall(){return hallGroup;}, get floorY(){return FLOOR_Y;}, get ceilY(){return CEIL_Y;}, get canopy(){return canopy;},
  // event-layer debug handles for headless verification
  get EVENT(){return EVENT;}, get speaker(){return speaker;}, get dinner(){return dinner;}, get wedding(){return wedding;}, get wheelchairs(){return wheelchairs;},
  buildEvent:()=>buildEvent(), fireCelebrate:()=>fireCelebrate(), eventPoint:(u,y,d)=>eventPoint(u,y,d),

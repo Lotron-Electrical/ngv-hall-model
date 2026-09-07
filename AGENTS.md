@@ -1224,3 +1224,34 @@ Proofs, both against the static server on 8877 and a headless Chrome on `NGV_POR
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
   (-20, 1.6, 6.3) facing the north wall with the house up. Not done: the bake's own courses are
   not registered to the drawn grid (its phase is a smear), so the drawn grid is the only one shown.
+
+## The house light (2026-09-08)
+
+- WHY (Lloyd, 2026-09-07: "the lighting needs to be fixed"). The house term was one flat number on
+  every surface, E = house + ambient: the carpet, the wall at 11 m and the truss's underside all
+  the same, nothing with a direction, nothing falling off.
+- WHAT. The house light is the permanent rig (RIG, "The ceiling's hardware"): the 23 profiles and
+  PARs along the north wall, pitched 55 degrees into the room, plus the room's first bounce.
+  `RIG_PHOT` in index.html (mirrored number for number in tools/rigphot.mjs, asserted by the
+  audit): each fixture a Gaussian cone in candela, the profile an ETC Source Four 26 degree at
+  750 W (105 kcd on axis, sigma 11.5 degrees), the PAR a PAR64 CP62 medium flood at 1 kW (60 kcd,
+  44 x 24 degrees, wide axis along the hall); E = I(theta) cos / r2 summed over the 23 in
+  `rigGLSL`, seats and aims from the builder's own formula so no uniform is spent (the fragment
+  stage was at 192 of 224). Cone flux integrated numerically (the PAR's sigma is past small
+  angle): the rig at full makes 372,000 lm; the photographs' 150 lux on the carpet is the rig at
+  `dim` = 24%, direct 0.75 of HOUSE_LUX with 95% of the flux on the carpet (measured by the audit)
+  plus the bounce 0.25 falling to half at the wall top, direct + bounce = 1 so every quote picture
+  keeps its mean. Tungsten 3200 K, `col`. Columns take the same loop in columnLit (indirectDiffuse,
+  world normal) and the hemisphere keeps only the bounce share. The daylight term on the stone
+  walls grows with height (skyF = 0.4 + 0.6 h2): the upper wall sees the canopy.
+- PROOF. `node tools/house-audit.mjs <outdir>`: the two cones on a 720 grid against the page's 180
+  grid (0.0%), lumens in = lux out over carpet + long walls + end walls (100.1%), the carpet's
+  share (95%), the carpet's mean at house 1 (149 lux), the page's RIG_PHOT = the mirror's to
+  1e-6, a canvas readback of a pool centre against the carpet between pools (1.2% off), no
+  console errors. tools/light-audit.mjs stays all ok; its canvas probe now multiplies the
+  (led - dark) / (house - dark) ratio by the mirror's house E at the probe, since the house pixel
+  is no longer albedo x 1.0. Before/after: `git show <parent>:index.html > .light-before2.html`
+  and the four views in tools/house-audit.mjs.
+- NOT DONE. The canopy's coloured daylight pattern on the walls (nothing measured to project);
+  the fixtures' real focus and gel state on any given night; the rig's own fixtures do not glare
+  (they are dark Lambert bodies, not emitters).

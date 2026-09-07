@@ -17,6 +17,33 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 //  - the columns keep their glTF material with the viewer's roughness and env map;
 //  - same renderer: sRGB out, ACES tone mapping, exposure 1, RoomEnvironment for the gloss.
 export const MAX_LIGHTS = 96;
+// THE HOUSE LIGHT, the viewer's RIG_PHOT and rigGLSL line for line (index.html, "THE HOUSE LIGHT"):
+// the 23 rig fixtures as Gaussian cones in candela plus the room's bounce, dimmed to the
+// photographs' 150 lux on the carpet. The sim runs its shift with the house off, but the last
+// hour of a night and the pack-up see it.
+export const RIG_PHOT = (() => { const P = { n: 23, u0: 1.5, pitch: 2.0, d: 2.2, y: 8.52, tilt: 0.96,
+  profile: { I0: 105000, sigma: 11.5 * Math.PI / 180 }, par: { I0: 60000, su: 26 * Math.PI / 180, sv: 14 * Math.PI / 180 },
+  col: [1.15, 0.97, 0.80], direct: 0.75, bounce: 0.25, floorShare: 0.95, floorArea: 48.9 * 15.4 };
+ // a cone's flux, integrated over its hemisphere (the PAR's 26 degree sigma is past the small-angle
+ // closed form by 6%): I(theta, phi) sin(theta) dtheta dphi on a 180 x 180 grid
+ const coneFlux=(I0,su,sv)=>{ let F=0; const n=180; for(let a=0;a<n;a++){ const th=(a+0.5)/n*Math.PI/2; for(let b=0;b<n;b++){ const ph=(b+0.5)/n*2*Math.PI;
+   const tu=Math.atan2(Math.sin(th)*Math.cos(ph),Math.cos(th)), tv=Math.atan2(Math.sin(th)*Math.sin(ph),Math.cos(th));
+   F+=I0*Math.exp(-(tu*tu/(su*su)+tv*tv/(sv*sv)))*Math.sin(th)*(Math.PI/2/n)*(2*Math.PI/n); } } return F; };
+ P.fluxProfile = coneFlux(P.profile.I0, P.profile.sigma, P.profile.sigma); P.fluxPar = coneFlux(P.par.I0, P.par.su, P.par.sv);
+ P.flux = 12 * P.fluxProfile + 11 * P.fluxPar; P.dim = P.direct * 150 * P.floorArea / (P.floorShare * P.flux); return P; })();
+function rigGLSL(POS, NRM, OUT, o, U, N) { const R = RIG_PHOT, f = v => v.toFixed(6);
+ return `{ const vec3 RO=vec3(${o.x},${o.y},${o.z}), RU=vec3(${U.x},${U.y},${U.z}), RN=vec3(${N.x},${N.y},${N.z});
+   for(int i=0;i<${R.n};i++){ float fi=float(i);
+    float yawA=(mod(fi*7.0,5.0)-2.0)*0.15;
+    vec3 aim=normalize(RN*${f(Math.cos(R.tilt))}+RU*(sin(yawA)*${f(Math.cos(R.tilt))})+vec3(0.0,-${f(Math.sin(R.tilt))},0.0));
+    vec3 P=RO+RU*(${f(R.u0)}+${f(R.pitch)}*fi)+RN*${f(R.d)}+vec3(0.0,${f(R.y)},0.0)+aim*0.12;
+    vec3 v=${POS}-P; float r2=max(dot(v,v),1.0); vec3 vn=v*inversesqrt(r2);
+    float ca=dot(vn,aim); if(ca>0.05){
+     vec3 ax=normalize(RU-aim*dot(RU,aim)); vec3 ay=cross(aim,ax);
+     float tu=atan(dot(vn,ax),ca), tv=atan(dot(vn,ay),ca);
+     float I=(mod(fi,2.0)<0.5)?${f(R.profile.I0)}*exp(-(tu*tu+tv*tv)*${f(1 / (R.profile.sigma ** 2))}):${f(R.par.I0)}*exp(-(tu*tu*${f(1 / (R.par.su ** 2))}+tv*tv*${f(1 / (R.par.sv ** 2))}));
+     ${OUT}+=I*max(dot(${NRM},-vn),0.0)/r2; } }
+   ${OUT}*=${f(R.dim / 150)}; }`; }
 export const AMBIENT = 0.015;
 export const HOUSE_LUX = 150;              // the photographs' floor illuminance (viewer's assumption)
 export const LM_PER_PIXEL = 1088 / 60;     // ENTTEC 8PXA60: 1,088 lm/m at 60 px/m
@@ -120,7 +147,9 @@ export function photoMaterial(src, hall) {
           if(opening||grille)albedo=vec3(0.03); if(doorway)albedo=vec3(0.9,0.87,0.82);
          } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
         }` : ''}
-        vec3 E=vec3(house+ambient);
+        float hy=clamp((vPos.y-(${o.y}))/12.2,0.0,1.0);
+        float Erig=0.0; ${rigGLSL('vPos', 'Nn', 'Erig', o, U, N)}
+        vec3 E=vec3(ambient)+house*(Erig+${RIG_PHOT.bounce.toFixed(3)}*(1.0-0.5*hy))*vec3(${RIG_PHOT.col.map(v => v.toFixed(3)).join(',')});
         // the two column axes nearest this fragment, read out of the light list itself: a run
         // light sits on its column's axis and lightPos.w says which column it is, so the shadow
         // costs no uniform vectors of its own (the viewer's note about the 224-vector budget)
