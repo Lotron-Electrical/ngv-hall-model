@@ -2578,10 +2578,26 @@ function buildEndWalls(root){
   //   night, east end  +0.114 m                       (17 frames, p25 +0.069 p75 +0.138)
   //   walk, west end   +0.078 m                       (25 sharpest frames, p25 +0.055 p75 +0.098)
   // Two captures, different nights and different cameras, agree in sign and size at the east end, so the
-  // old 0.56 (from end_profile.py's "lit interior shows from h 8.9") was short. NOT a face-position error:
-  // moving the end face reproduces the offset too, but only with a size that halves as the camera doubles
-  // its distance, and the measured offset is flat from 22 m to 43 m (+0.150 near, +0.149 far). A per-end
-  // split (west 0.64, east 0.70) sits inside the spread between the two east numbers, so one value is used.
+  // old 0.56 (from end_profile.py's "lit interior shows from h 8.9") was short. A per-end split (west 0.64,
+  // east 0.70) sits inside the spread between the two east numbers, so one value is used.
+  // THE THREE FIGURES ABOVE ARE WEAKER THAN THEY LOOK, and an adversarial audit is what showed it. They
+  // were read with the old single-look edge finder, which partly FOLLOWED the line the model drew: the same
+  // 25 frames measuring the same east parapet settled on h 9.039 when the model drew it 8.90 and on h 9.093
+  // when the model drew it 9.02 (tools/follow_test.py). So roughly 45 percent of that +0.157 was the model
+  // agreeing with itself, and the sentence that used to stand here, claiming the offset was flat with
+  // distance and therefore not a face-position error, rested on the same run and has been withdrawn.
+  // What survives is not the size of the move but its direction, and the pooled test after it: across every
+  // capture that sees an end, the west parapet now pools EXACTLY on 9.02 where it pooled +0.12 before the
+  // move, and the east pools +0.073 inside a capture spread of 0.129 (tools/level_pool.py). The east is
+  // therefore known to about 50 mm and no better, which is the same number the follow test returns.
+  // THE FACE ITSELF WAS PUT ON TRIAL and it stands (tools/face_sweep.py, 2026-09-09). The audit's largest
+  // claim was that the east face is 0.26-0.36 m west of the drawn u 48.056, which would move the whole
+  // east-end build. The discriminator is stated in tools/end_levels.py: a wrong face zeroes EVERY level
+  // together on one u. Swept over five faces (47.70 through 48.20) and pooled over the day walk, the night
+  // walk and b1, the levels do not agree on any face: the parapet is smallest on 47.70, the head on 47.90,
+  // the end-wall top on 48.20, and every residual stays under 0.13 m across the whole 0.5 m sweep. That is
+  // the signature of NO face error, and of a test that cannot place the face better than about +-0.3 m.
+  // The audit's version used one capture and two levels. The face stays 48.056; do not move the east end.
   // The deck it stands on stays 8.34: b1 and b3 stand on it at eye 9.17-10.14, which is a person's height
   // above 8.34 and no other. The 4k frame d4_000198 looks down through the glass over this upstand.
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+W.upstand],[uF,0,fl[1]+W.upstand]],upstandMat,'gallery-parapet');
