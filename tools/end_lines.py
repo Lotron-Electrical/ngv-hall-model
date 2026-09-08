@@ -9,7 +9,7 @@ uF = float(sys.argv[5]) if len(sys.argv) > 5 else (48.056 if side == 'east' else
 zoom = len(sys.argv) > 6
 hc = [float(a) for a in sys.argv[6].split(',')] if zoom else [0, 13.5]
 dc = [float(a) for a in sys.argv[7].split(',')] if len(sys.argv) > 7 else [0, 15.364]
-cam, p = U.load_class(cls)[k]; im = cv2.imread(p)
+cam, p = U.load_class(cls)[k]; im = cv2.imread(os.environ.get('IMG', p))   # IMG=path: another image on the same pose (the sim)
 def pt(u, d, h):
     x, y, z = cam.project(np.asarray([world(u, d, h)]))
     if z[0] <= 0 or abs(x[0]) > 3 * cam.w or abs(y[0]) > 3 * cam.h: return None
@@ -34,4 +34,4 @@ if abs(down[1]) < abs(right[1]): c = cv2.rotate(c, cv2.ROTATE_90_CLOCKWISE if ri
 elif down[1] > 0: c = cv2.rotate(c, cv2.ROTATE_180)
 sc = min(3.0 if zoom else 2.0, 1300 / max(c.shape)); c = cv2.resize(c, None, fx=sc, fy=sc, interpolation=cv2.INTER_CUBIC)
 S = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose/'
-out = S + 'lines-%s-%s%s.jpg' % (side, k, '-zoom' if zoom else ''); cv2.imwrite(out, c, [cv2.IMWRITE_JPEG_QUALITY, 90]); print(out, c.shape)
+out = S + 'lines-%s-%s%s%s.jpg' % (side, k, '-zoom' if zoom else '', '-sim' if 'IMG' in os.environ else ''); cv2.imwrite(out, c, [cv2.IMWRITE_JPEG_QUALITY, 90]); print(out, c.shape)

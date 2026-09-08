@@ -31,9 +31,12 @@ for (const pp of pix) {
         out.push((o.name||'?')+':'+o.type+':'+(o.parent&&o.parent.name||'')+'/'+(o.material&&o.material.name||'-')+' u'+mn[0].toFixed(1)+'..'+mx[0].toFixed(1)+' d'+mn[1].toFixed(1)+'..'+mx[1].toFixed(1)+' h'+mn[2].toFixed(1)+'..'+mx[2].toFixed(1)); });
       return out.join('\\n');})()`);
     console.log(r); continue; }
-  const [px, py] = pp.split(',').map(Number);
+  // hall:u,d,h : the ray through that hall-frame point (no pixel arithmetic); plain px,py otherwise. Points objects are skipped.
+  let ndc;
+  if (pp.startsWith('hall:')) { const [hu, hd, hz] = pp.slice(5).split(',').map(Number); ndc = `(()=>{const O=[-54.907447,-1.43545,3.040286],HU=[0.975681,0,0.219196],HD=[0.219196,0,-0.975681]; const v=new T.Vector3(O[0]+${hu}*HU[0]+${hd}*HD[0], O[1]+${hz}, O[2]+${hu}*HU[2]+${hd}*HD[2]); v.project(c); return new T.Vector2(v.x, v.y);})()`; }
+  else { const [px, py] = pp.split(',').map(Number); ndc = `new T.Vector2(${px}/${W}*2-1, 1-${py}/${H}*2)`; }
   const r = await P.ev(`(async()=>{const T=await import('three'); const rc=new T.Raycaster(); const c=ngv.cam; c.updateMatrixWorld();
-    rc.setFromCamera(new T.Vector2(${px}/${W}*2-1, 1-${py}/${H}*2), c); const hits=rc.intersectObjects(ngv.scene.children,true).filter(x=>x.object.visible);
+    rc.setFromCamera(${ndc}, c); const hits=rc.intersectObjects(ngv.scene.children,true).filter(x=>x.object.visible&&x.object.isMesh);
     const O=[-54.907447,-1.43545,3.040286],HU=[0.975681,0,0.219196],HD=[0.219196,0,-0.975681];
     const hc=p=>{const q=[p.x-O[0],p.y-O[1],p.z-O[2]]; return 'u'+(q[0]*HU[0]+q[2]*HU[2]).toFixed(2)+' d'+(q[0]*HD[0]+q[2]*HD[2]).toFixed(2)+' h'+q[1].toFixed(2);};
     return hits.slice(0,3).map(x=>(x.object.name||'?')+':'+x.object.type+':'+(x.object.parent&&x.object.parent.name||'')+'/'+(x.object.material&&x.object.material.name||'-')+' @'+x.distance.toFixed(2)+' '+hc(x.point)).join(' | ');})()`);

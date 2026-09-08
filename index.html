@@ -929,7 +929,7 @@ const lightPos=new Float32Array(MAX_LIGHTS*4), lightCol=new Float32Array(MAX_LIG
 // point sources make it.
 // lightCol.w carries the segment height: see the uniform-budget note by the shader below
 const lit={house:0, nLights:0,day:0};   // house lights start OFF (Lloyd, 2026-09-01)
-const photoMats=[], columnMats=[], glazingMats=[];
+const photoMats=[], columnMats=[], glazingMats=[], endLitMats=[];   /* endLitMats: the galleries' unlit tones, night -> day by lit.day */
 // the tour asks for frost (0..1) and frame() eases the glazing to it
 let frostTarget=0, frostNow=0;
 // DAYLIGHT, per surface. The canopy and the glazed wall are backlit by the sky, so they gain most;
@@ -978,6 +978,7 @@ function applyDay(hour){
  scene.background=finaleDark?SKY_BLACK:SKY_NIGHT.clone().lerp(SKY_DAY,lit.day);
  if(typeof updateBeams==='function')updateBeams(hour);
  for(const grp of [typeof court!=='undefined'?court:null, typeof eventGroup!=='undefined'?eventGroup:null]) if(grp)grp.traverse(o=>{ if(o.isMesh&&o.material.userData&&o.material.userData.night){o.material.color.copy(o.material.userData.night).lerp(o.material.userData.day,lit.day);} });
+ for(const m of endLitMats){ m.color.copy(m.userData.night).lerp(m.userData.day,lit.day); }
  sceneDirty=true;
 }
 // THE STONE'S TONE (Lloyd, 2026-09-07, pick D of four). The wall bake comes off a night scan and
@@ -2272,7 +2273,7 @@ function buildWallDetails(root){
 // cameras stood at u 47.81-48.64 (median 48.15) on the east gallery, a rail's width behind its edge,
 // so the east face is 48.0 +-0.2; 3.85 satisfies both. The lit doorway in the west top gallery's back
 // wall (an exit sign over it in d4_000049) sits against the south wall: d 13.4-14.2 (+-0.3).
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.07], apron:4.4, groundTop:4.2, head:10.0, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.4,14.2,10.0],
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.56, apron:5.4, groundTop:5.3, head:10.3, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.4,14.2,10.0],
  doors:{west:[[11.5,12.7,'port'],[12.9,14.6,'lit']], east:[[5.7,8.0,'dark'],[9.8,11.1,'port']]}};
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -2286,9 +2287,20 @@ function buildEndWalls(root){
  const carpet=photoMaterial({color:0x854449, name:'floor-extension'}); carpet.side=THREE.DoubleSide; photoMats.push(carpet);
  const darkMat=new THREE.MeshLambertMaterial({color:0x2a2622, side:THREE.DoubleSide, name:'gallery-fascia'});
  const floorMat=new THREE.MeshLambertMaterial({color:0x4a4640, side:THREE.DoubleSide, name:'gallery-floor'});
- const ceilMat=new THREE.MeshLambertMaterial({color:0x5a554e, side:THREE.DoubleSide, name:'gallery-ceiling'});   /* unlit by day in the frames of both ends */
+ // the galleries' unlit tones, a night and a day colour each (end_profile.py, real against sim on the same pose)
+ const dnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:night, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); m.color.lerp(m.userData.day,lit.day); endLitMats.push(m); return m; };
+ const ceilMat=dnm(0x070605,0x3a3632,'gallery-ceiling');   /* the lower tier's ceiling underside: dim, about half the stone */
+ const upstandMat=dnm(0x0a0908,0x4a4540,'gallery-parapet');   /* the top slab's fascia and the 0.56 upstand: about the stone */
  const soffitMat=new THREE.MeshLambertMaterial({color:0x9a948a, side:THREE.DoubleSide, name:'gallery-soffit'});   /* the head's soffit, its foot lit */
  const backMat=new THREE.MeshLambertMaterial({color:0x7d776e, side:THREE.DoubleSide, name:'gallery-back'});
+ // the tiers' tones (end_profile.py, real against sim on the same pose, 2026-09-08): the top gallery is lit by
+ // day, three times the stone, with downlights; the recess under the lower floor is near black; the lower
+ // tier's interior about the stone. Unlit materials, so the day frames' ratios hold whatever the house does.
+ const topBackMat=dnm(0x110e0b,0x8a7660,'gallery-back-lit');
+ const topSoffitMat=dnm(0x13100d,0x9c8a70,'gallery-soffit');
+ const lowBackMat=dnm(0x0a0908,0x4e4841,'gallery-back-low');
+ const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
+ const lampMat=dnm(0x2a2620,0xfff4e0,'gallery-downlight');
  const lobbyMat=new THREE.MeshBasicMaterial({color:0xb9b3a8, side:THREE.DoubleSide, name:'lobby-ceiling'});
  const lobbyBack=new THREE.MeshBasicMaterial({color:0xcfc9be, side:THREE.DoubleSide, name:'lobby-back'});
  const railMat=new THREE.MeshBasicMaterial({color:0x0c1014, side:THREE.DoubleSide, transparent:true, opacity:0.28, name:'gallery-rail'});
@@ -2329,19 +2341,25 @@ function buildEndWalls(root){
   if(s<0){ const [d0,d1,hd]=W.westTopDoor, du=uB-s*0.01;   /* the lit doorway behind the top floor, a hair in front of the back wall */
    quad([[du,d0,fl[1]],[du,d1,fl[1]],[du,d1,hd],[du,d0,hd]],litMat,'gallery-door'); }
   // the lower floor: the apron under it, the glass balustrade on it, the floor and its ceiling back to the plate end
-  quad([[uF,0,W.apron],[uF,D,W.apron],[uF,D,fl[0]],[uF,0,fl[0]]],meshMat,'gallery-apron');
+  quad([[uF,0,W.apron],[uF,D,W.apron],[uF,D,fl[0]],[uF,0,fl[0]]],apronMat,'gallery-apron');
   quad([[uF,0,fl[0]],[uF,D,fl[0]],[uF,D,fl[0]+W.rails[0]],[uF,0,fl[0]+W.rails[0]]],railMat,'gallery-rail');
   quad([[uF,0,fl[0]+W.rails[0]-0.06],[uF,D,fl[0]+W.rails[0]-0.06],[uF,D,fl[0]+W.rails[0]],[uF,0,fl[0]+W.rails[0]]],handMat,'gallery-handrail');
   quad([[uF,0,fl[0]],[uB,0,fl[0]],[uB,D,fl[0]],[uF,D,fl[0]]],floorMat,'gallery-floor');
   quad([[uF,0,fl[1]-W.slab],[uB,0,fl[1]-W.slab],[uB,D,fl[1]-W.slab],[uF,D,fl[1]-W.slab]],ceilMat,'gallery-ceiling');
-  quad([[uB,0,fl[0]],[uB,D,fl[0]],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],backMat,'gallery-back');
+  quad([[uB,0,fl[0]],[uB,D,fl[0]],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackMat,'gallery-back');
   // the top floor: the fascia, a solid dark parapet, the floor, the lit soffit on the head, the back wall
-  quad([[uF,0,fl[1]-W.slab],[uF,D,fl[1]-W.slab],[uF,D,fl[1]],[uF,0,fl[1]]],darkMat,'gallery-fascia');
-  quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],meshMat,'gallery-parapet');
+  quad([[uF,0,fl[1]-W.slab],[uF,D,fl[1]-W.slab],[uF,D,fl[1]],[uF,0,fl[1]]],upstandMat,'gallery-fascia');
+  // a 0.56 m solid upstand with glass over it: the lit interior shows from h 8.9 in every frame of both
+  // ends (end_profile.py) and the 4k frame d4_000198 looks down through the glass
+  quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+W.upstand],[uF,0,fl[1]+W.upstand]],upstandMat,'gallery-parapet');
+  quad([[uF,0,fl[1]+W.upstand],[uF,D,fl[1]+W.upstand],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
   quad([[uF,0,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],handMat,'gallery-handrail');
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
-  quad([[uF,0,W.head],[uB,0,W.head],[uB,D,W.head],[uF,D,W.head]],soffitMat,'gallery-soffit');
-  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,W.head],[uB,0,W.head]],backMat,'gallery-back');
+  quad([[uF,0,W.head],[uB,0,W.head],[uB,D,W.head],[uF,D,W.head]],topSoffitMat,'gallery-soffit');
+  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,W.head],[uB,0,W.head]],topBackMat,'gallery-back');
+  // the downlights in the top gallery's soffit (the day frames show a row of them, about 3 m apart)
+  for(let dl=1.9; dl<D-0.5; dl+=2.8){ const uL=uF+s*0.7, hL=W.head-0.02, r=0.14;
+   quad([[uL-s*r,dl-r,hL],[uL+s*r,dl-r,hL],[uL+s*r,dl+r,hL],[uL-s*r,dl+r,hL]],lampMat,'gallery-downlight'); }
  }
 }
 
