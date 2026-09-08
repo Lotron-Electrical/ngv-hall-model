@@ -6,7 +6,7 @@ import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 chain, u, d, h = sys.argv[1], *map(float, sys.argv[2:5])
 crop = int(sys.argv[5]) if len(sys.argv) > 5 else 0; out = sys.argv[6] if len(sys.argv) > 6 else ''
-recs = json.load(open(chain)); cam, _ = U.load_class('day4k')[recs[0]['frame']]
+recs = json.load(open(chain)); cam, _ = U.load_class(recs[0].get('cname', 'day4k'))[recs[0]['frame']]
 X = O + u * HU + d * HD + np.array([0, h, 0])
 IM = 'E:/sitecapture-captures/ngv-video/day4k/images/'
 for r in recs:

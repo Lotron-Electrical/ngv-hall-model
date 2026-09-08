@@ -6,8 +6,8 @@ sys.path.insert(0, 'tools'); import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 chain, k, hour, house, pref = sys.argv[1:6]
 recs = json.load(open(chain)); rec = [r for r in recs if r['frame'] == k][0]
-cam, _ = U.load_class('day4k')[recs[0]['frame']]; R = np.array(rec['R']); C = np.array(rec['C'])
-ipath = 'E:/sitecapture-captures/ngv-video/day4k/images/%s.png' % k
+cname = recs[0].get('cname', 'day4k'); cam, _ = U.load_class(cname)[recs[0]['frame']]; R = np.array(rec['R']); C = np.array(rec['C'])
+ipath = U.CLASSES[cname].get('frames', 'E:/sitecapture-captures/ngv-video/day4k/images/') + '%s.png' % k
 S = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose/'
 q = C - O; u, d, h = q @ HU, q @ HD, q[1]
 f = R.T @ np.array([0, 0, 1.0]); fu, fd, fh = f @ HU, f @ HD, f[1]; hor = max(np.hypot(fu, fd), 1e-6); pitch = np.degrees(np.arcsin(fh))

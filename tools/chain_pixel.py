@@ -6,7 +6,7 @@ import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 chain, fr, plane, *pix = sys.argv[1:]
 rec = [r for r in json.load(open(chain)) if r['frame'] == fr][0]; R = np.array(rec['R']); C = np.array(rec['C'])
-cam, _ = U.load_class('day4k')[json.load(open(chain))[0]['frame']]
+recs0 = json.load(open(chain)); cam, _ = U.load_class(recs0[0].get('cname', 'day4k'))[recs0[0]['frame']]   # chain_pose2 chains name their class
 fx, fy, cx, cy, k1, k2, p1, p2 = cam.params; K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]]); dist = np.array([k1, k2, p1, p2])
 axis, val = plane.split('='); val = float(val)
 NV = HU if axis == 'u' else HD if axis == 'd' else np.array([0, 1.0, 0]); off = O[1] if axis == 'h' else 0.0
