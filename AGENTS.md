@@ -1274,8 +1274,11 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   The 3.99 "floor" of the previous build was the ground's soffit line (endwalls.json's face-plane
   edges 3.80 / 3.91, the 2014 dark strip to 4.17), never a balcony: gone. Back walls on the plate
   line. The scan's closures (u -4.65, 49.06) are the lobbies' back walls, hidden behind the ground
-  walls and discarded in the shader above h 4.0 (ENDW.cut). Unmeasured: the apron's exact top
-  (taken as the floor), the doors' heights (2.4, the 2014 scale), the west top doorway's width.
+  walls and discarded in the shader above h 4.0 (ENDW.cut). Unmeasured: the doors' heights (2.4,
+  the 2014 scale), the west top doorway's width, the glass rails' exact heights (0.89 / 0.50).
+  The south wall's two tapestries hung 30 mm INSIDE the rendered stone until 2026-09-08 (the
+  loader offset them from the bake's corners, but WALL_SHIFT draws the south face 223 mm forward):
+  every tapestry now hangs 80 mm proud of the certified wall plane (WALLF.dNorth/dSouth).
 - THE GALLERIES' HEAD (2026-09-08, tools/pose_frames_for.py found the sharpest posed frames that hold
   each end: night w5_000240 and day w1_000356 look at the EAST end from 36-38 m, the first frames of
   it from inside; tools/end_overlay2.py draws ENDW into any of them, upright). Both ends read the
