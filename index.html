@@ -1143,6 +1143,23 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  sign:{text:'GANDEL HALL', u0:24.5, u1:27.1, h0:2.65, h1:3.0},
  exitSigns:[{north:false, u0:40.5, u1:40.85, h0:2.68, h1:2.88}],   /* the green exit light east of the south door: night w5_000082 met with the south face (wall_pixel.py) puts its glow on u 40.66, h 2.78, +-0.3 (18 m, grazing); a red indicator sits below it (u 40.2, h 1.6), too small to build */   /* the name over the north doorway: walk w1_000446 met with the face, wall_pixel.py */   /* the lit glazed doorway: the brightness along the wall face in 7 day-walk frames (tools/door_profile.py) runs u 23.1-29.4 in every frame holding both edges, head 2.2-2.4; the balcony 4k frames put the west edge 0.3 further west */
  skirt:0.10,
+ // THE NORTH FACE DEPTH, now fitted from an estimator that is actually identified (2026-09-09,
+ // tools/face_depth.py). tools/wall_edges.py used to fit this jointly with the jamb positions and the
+ // audit showed that fit told us nothing: forcing the depth term to zero moved the residual rms by 3 mm
+ // over 492 readings, so the data never constrained it. The identified form is simple. A jamb is a
+ // vertical line ON the face, so a face drawn at the wrong depth throws that line sideways in the image by
+ // the depth error times (how far along the hall the camera stands from the jamb) divided by (how far out
+ // from the wall it stands). A misplaced JAMB adds a constant to the readings; a misplaced FACE adds a
+ // SLOPE against that ratio. Remove each jamb's own mean, regress what is left on the ratio, and the slope
+ // is the depth error alone. The ratio ranges over 2.8 to 15.6 within a single capture, so it is strongly
+ // determined. Six captures, fitted separately and then pooled:
+ //   b1 -0.009; b3 +0.016; b7s -0.019; day4k -0.009; night +0.017; walk +0.002
+ //   pooled -0.003 m, capture range 0.036 m
+ // So d -0.090 stands, confirmed to 3 mm with a capture-to-capture spread of 36 mm. That is the tightest
+ // number in this whole wall effort, and it matters beyond itself: a face error would have contaminated
+ // every jamb reading taken through it, and it has not.
+ // The SOUTH face 15.364 has no equivalent yet. Its glazing comes from the scan mesh rather than a table,
+ // so there are no drawn vertical lines on it to run this estimator against. UNMEASURED by this method.
  dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
 const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross

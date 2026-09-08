@@ -108,6 +108,21 @@ cand = list(sharp)
 # So the per-capture medians are written out and tools/wall_pool.py pools them ACROSS captures, where the
 # real spread lives. Pass a path as the last argument to write this capture's medians there.
 import json, os
+# WALL_RAW writes every per-frame reading, not just the medians, because the wall's FACE DEPTH can only be
+# fitted from the raw pairs. A face drawn too near or too far throws a jamb sideways in the image by an
+# amount proportional to (how far the camera stands along the hall from that jamb) / (how far it stands out
+# from the wall), and that ratio is the fourth number in every row. Regressing the offsets on it recovers
+# the depth error directly; the joint least-squares this file used before could not separate it (forcing the
+# depth term to zero changed the residual rms by 3 mm over 492 readings, which is no separation at all).
+if os.environ.get('WALL_RAW'):
+    with open(os.environ['WALL_RAW'], 'w') as fh:
+        print('class,jamb,u,offset,dist,along,ratio', file=fh)
+        for nm, rows in acc.items():
+            uu = dict((n, u) for n, _, u in JAMBS)[nm]
+            for r in rows:
+                print('%s,%s,%.3f,%.4f,%.3f,%.3f,%.4f'
+                      % (cls, nm.replace(',', ' '), uu, r[0], r[1], r[2], r[3]), file=fh)
+    print('wrote', os.environ['WALL_RAW'])
 if os.environ.get('WALL_JSON'):
     rec = {}
     for nm, oi, uu in JAMBS:
