@@ -1287,9 +1287,11 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               the top gallery's lit interior shows from h 8.85-8.95 on both ends (the 2014
               "solid parapet 8.33-9.43" was the upstand plus the glass's dark reflection), and
               the 4k frame d4_000198, shot leaning on it, looks down through glass; the chain-posed
-              straight-down frame d4_000232 (tools/chain_pose.py, chain_pixel.py) puts the glass's cap
-              0.2 m under a phone held over it (h 9.63), so the 9.40 top holds (+-0.05); a perforated
-              grating runs along the deck's front edge behind it (unbuilt, extent unmeasured). The
+              straight-down frame d4_000232 (tools/chain_pose.py, chain_pixel.py) has the glass's cap
+              0.2-0.4 m under the phone on either of its two anchors (h 9.63 / 9.81), the cap on the
+              built 9.40 within +-0.15; a perforated floor vent strip 0.3 m wide lies 0.2-0.3 m behind
+              the glass on the deck (u 48.38-48.69, d 12.65 to past 13.36; unbuilt, its south end
+              unseen). The
               deck itself (d4_000120, chained from d4_000104, looking along it): a plain cool mid-grey
               0.8x the stone beside it, built as `floorMat` dnm(0x1a1c1e, 0x85898d). Its glass top met
               with the h 9.40 plane runs straight (u 47.53-47.59), the phone 0.26 m behind it; the
