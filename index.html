@@ -2155,8 +2155,15 @@ new GLTFLoader().load('model.glb',g=>{
    const n=new THREE.Vector3().subVectors(c[1],c[0]).cross(new THREE.Vector3().subVectors(c[3],c[0])).normalize();
    // corners run west to east on both walls; seen from inside, west is on the left for the north
    // wall and on the right for the south wall, so the south wall's image is mirrored in u
-   const flip=n.dot(new THREE.Vector3().subVectors(centre,c[0]))<0; if(flip)n.negate();   /* n: proud of the wall, into the hall */
-   const pos=new Float32Array(12); c.forEach((v,i)=>{ v.addScaledVector(n,0.03); pos.set([v.x,v.y,v.z],3*i); });
+   // which wall, in the hall frame (the HALL_BOX centre was wrong for the south wall: its two
+   // tapestries were pushed 30 mm INTO the stone and the bake hid them, seen on the d4_000198 pose pair)
+   const inRoom=new THREE.Vector3(0.219186,0,-0.975639), dc=new THREE.Vector3().addVectors(c[0],c[2]).multiplyScalar(0.5).sub(new THREE.Vector3(-54.907447,-1.43545,3.040286)).dot(inRoom);
+   const flip=dc>7.68; n.copy(inRoom); if(flip)n.negate();   /* n: proud of the wall, into the hall; the south wall's image mirrored */
+   // hang 80 mm proud of the RENDERED face (the certified wall planes, WALLF.dNorth/dSouth: the
+   // GLB's south face is drawn 223 mm forward of its geometry by WALL_SHIFT, which buried a
+   // tapestry 30 mm proud of the bake's own corners)
+   const dFace=flip?WALLF.dSouth-0.08:WALLF.dNorth+0.08, O=new THREE.Vector3(-54.907447,-1.43545,3.040286);
+   const pos=new Float32Array(12); c.forEach((v,i)=>{ const dv=new THREE.Vector3().subVectors(v,O).dot(inRoom); v.addScaledVector(inRoom,dFace-dv); pos.set([v.x,v.y,v.z],3*i); });
    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
    geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(flip?[1,0, 0,0, 0,1, 1,1]:[0,0, 1,0, 1,1, 0,1]),2)); geo.setIndex([0,1,2, 0,2,3]);
    const tex=new THREE.TextureLoader().load(t.image); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=8;
