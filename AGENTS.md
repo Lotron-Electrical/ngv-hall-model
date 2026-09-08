@@ -1242,7 +1242,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
 - END GALLERIES (`ENDW`, rebuilt 2026-09-08, Lloyd: "get the ends of the hall correct"). They PROJECT
   into the hall, they are not a recess: the 138 day4k frames were all shot from the east gallery
   standing 3.9 m in front of the plate end (u 48.0, h 9.7), the 1968 ground plan (BUIL005490, 27.1
-  mm/px off the column pitch) puts the hall's end walls 3.7 m past the outer columns, and the 4K view
+  mm/px off the column pitch) puts the hall's end walls 3.7 m past the outer columns (the 4K cameras themselves stood at
+  u 47.81-48.64 on the east one, so the face is 3.85 in, satisfying both), and the 4K view
   of the west end shows the stack: a lit ground lobby, three open floors with dark fascias and dark
   glass balustrades, lit ceilings, a stone wall with double doors behind the top one. Floors on the
   measured h 3.99 / 6.33 / 8.34 (endwalls.json), face u 4.05 / 48.2, back wall on the plate end
@@ -1254,7 +1255,14 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   top slab h 8.08 (slab 0.26), the middle fascia top h 6.32 (the 6.33 floor confirmed), the middle
   parapet top h 7.22 (endwalls.json F3, rail 0.89). Unmeasured: the lower level's rail (the truss
   hides it, takes the middle one's), the lobby ceiling (the truss again; the first slab's underside
-  is used), the east's own tiers (its frames stand 13 m out; it repeats the west).
+  is used), the east's own tiers (its frames stand 13 m out; it repeats the west). The west top
+  gallery's lit doorway (exit sign, against the south wall, d 13.4-14.2 +-0.3) is drawn.
+- THE PLEAT'S DIRECTION (2026-09-08): two photographs settle it as the GLB declares, the V pointing
+  OUT into the court: from inside (lloyd-07 head-on) the transoms above eye level chevron DOWN at
+  every bay centre (the apex is the far point), and from the court balcony (courtyard/lloyd-01) the
+  head's dark facets peak at the bay centres, the near point when looking up. Its depth and angle
+  stay unmeasured (tools/glazing_hyp.py draws both hypotheses into the one posed frame that holds
+  the middle fins, w1_000131, and it is too blurred to read).
 - TAPESTRIES (2026-09-08): all four identified by NCC on the 4 mm orthos against the collection
   images at true size (tools/tap_id.py): south-A Organic form 0.545, south-B Evolving forms 0.394,
   north-A Abstract sequence 0.339 (mirrored, as the north wall reads in u), north-B Piano movement
