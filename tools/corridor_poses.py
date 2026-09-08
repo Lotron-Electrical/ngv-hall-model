@@ -20,7 +20,7 @@ REVEAL = -0.99        # the back of the reveal: FACE minus openDepth 0.9
 BACK = -2.99          # the corridor's back wall as drawn: REVEAL minus width 2.0
 
 rows = []
-for name in ('walk', 'night', 'day4k', 'b1', 'b3', 'b6g'):
+for name in ('walk', 'night', 'day4k', 'b1', 'b3', 'b6g', 'b7s'):
     spec = U.CLASSES[name]
     if not os.path.isdir(spec['model']):
         print('%-6s no model' % name); continue

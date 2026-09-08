@@ -5,7 +5,10 @@ import { attach } from './cdp.mjs';
 const [out, W, H, vfov, u, d, h, fu, fd, pitch, hour, house] = process.argv.slice(2);
 const P = await attach({ port: +(process.env.CDP_PORT || 9334), width: +W, height: +H });
 await P.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
-await P.send('Page.navigate', { url: 'http://127.0.0.1:8877/index.html?install=gandel-2026' });
+// SHOT_URL lets the shot come from the LIVE sandbox instead of a local server, which is the only way to
+// verify a change the way Lloyd sees it when no local server can be started.
+const PAGE = process.env.SHOT_URL || 'http://127.0.0.1:8877/index.html?install=gandel-2026';
+await P.send('Page.navigate', { url: PAGE });
 for (let i = 0; i < 120; i++) { await P.sleep(500); if (await P.ev('!!(window.ngv&&window.ngv.hall&&document.getElementById("install"))').catch(() => false)) break; }
 await P.ev(`localStorage.setItem('ngv.install','gandel-2026'); document.getElementById('install').click()`);
 for (let i = 0; i < 60; i++) { await P.sleep(500); if (await P.ev('!!(window.ngv&&window.ngv.game)').catch(() => false)) break; }

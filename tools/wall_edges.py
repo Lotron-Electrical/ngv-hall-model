@@ -10,12 +10,18 @@
 # puts it on d -0.09) produces a sideways offset that shrinks as the camera backs away, while a jamb in
 # the wrong place along the hall does not.
 #   python tools/wall_edges.py <class> [max_frames]
-import sys, cv2, numpy as np
-sys.path.insert(0, 'tools'); import underside_geom as U
+import sys, os, cv2, numpy as np
+sys.path.insert(0, 'tools'); import underside_geom as U; import edge_refine as ER
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 OPEN = [[4.098,5.310],[7.697,8.911],[10.785,11.998],[15.154,16.367],[18.646,19.859],[22.357,23.570],
         [26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]]
 DFACE = -0.09
+# OPEN_WIDTH redraws every opening to a given width about its own centre without editing this file. That is
+# how the follow bias is tested on the wall: measure the SAME twelve physical openings with the model
+# claiming two different widths and see whether the answer changes. tools/wall_follow.py does it.
+if os.environ.get('OPEN_WIDTH'):
+    _w = float(os.environ['OPEN_WIDTH'])
+    OPEN = [[(a + b) / 2 - _w / 2, (a + b) / 2 + _w / 2] for a, b in OPEN]
 cls = sys.argv[1]
 maxf = int(sys.argv[2]) if len(sys.argv) > 2 else 40
 JAMBS = []
@@ -23,9 +29,15 @@ for i, (a, b) in enumerate(OPEN):
     JAMBS.append(('opening %2d west jamb' % i, i, a))
     JAMBS.append(('opening %2d east jamb' % i, i, b))
 ALLU = sorted(u for _, _, u in JAMBS)
+# THE WINDOW IS A CONSTANT (2026-09-09). It used to be 0.45 x the gap to the nearest other jamb, which is
+# circular: the table under test set its own search width, so redrawing the openings changed both where the
+# search starts and how far it may run. It is now the same for every jamb and every draw. The separability
+# check stays, because a jamb whose neighbour is inside the window genuinely cannot be told from it, but it
+# only ever REFUSES a jamb; it never changes the search.
+WINC = float(os.environ.get('WINDOW', 0.25))
 def window(uu):
     near = min((abs(uu - o) for o in ALLU if abs(o - uu) > 1e-6), default=1.0)
-    return min(0.35, 0.45 * near)
+    return WINC if near > 2.2 * WINC else 0.0
 frames = U.load_class(cls)
 # Frames are chosen PER JAMB, not once for the whole wall. Ranking the class as a whole picks the sharpest
 # frames anywhere and they all look at the same stretch of wall, which is why the first run measured
@@ -59,6 +71,7 @@ for fr in sorted(want, key=lambda f: -sharp[f]):
     for name in want[fr]:
         uu = dict((n, u) for n, _, u in JAMBS)[name]
         win = window(uu)
+        if win <= 0.0: continue
         hs = np.linspace(9.15, 11.20, 15)
         pts = np.array([O + uu * HU + DFACE * HD + np.array([0, hv, 0]) for hv in hs])
         side = np.array([O + (uu + 0.25) * HU + DFACE * HD + np.array([0, hv, 0]) for hv in hs])
@@ -76,15 +89,14 @@ for fr in sorted(want, key=lambda f: -sharp[f]):
             L = np.hypot(vx, vy)
             if L < 5: continue
             mpp = 0.25 / L
-            R = int(round(win / mpp))
-            if R < 4 or R > 90: continue
-            t = np.arange(-R, R + 1)
-            sx = np.clip(np.round(x[i] + vx / L * t).astype(int), 0, img.shape[1] - 1)
-            sy = np.clip(np.round(y[i] + vy / L * t).astype(int), 0, img.shape[0] - 1)
-            prof = img[sy, sx].astype(np.float32)
-            if prof.max() - prof.min() < 10: continue
-            j = int(np.argmax(np.abs(np.gradient(prof))[2:-2])) + 2
-            offs.append(float(t[j]) * mpp)
+            # tools/edge_refine.py: a fixed point, not a single look. The audit measured this instrument
+            # ECHOING the table it was checking: drawn width 1.256 measured 1.219, drawn 1.213 measured
+            # 1.189, so 0.70 of every change came straight back as "measurement". Re-centring the window on
+            # what was found until it stops moving removes that, and a peak on the window rim (the real
+            # jamb is outside) is now refused instead of being reported as a small offset.
+            e = ER.find_edge(img, x[i], y[i], vx / L, vy / L, mpp, win, min_contrast=10.0)
+            if e is None: continue
+            offs.append(e)
         if len(offs) >= 5:
             q = cam.center - O
             acc[name].append((float(np.median(offs)),
