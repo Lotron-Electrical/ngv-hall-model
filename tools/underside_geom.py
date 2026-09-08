@@ -334,7 +334,11 @@ CLASSES = {
 # time in balcony2-register with the day4k camera frozen; "frames" is the full extracted set (every 2nd frame),
 # "img" the accepted ones. b6s / b7s are thinned sets of the two long clips (balcony2_subset.py).
 B2 = "E:/sitecapture-captures/ngv-video/balcony2"
-for _t in ("b1", "b3", "b4", "b5", "b6s", "b7s"):
+# b6g is the tight gallery set from clip 153148 (frames 1000-1340, every 2nd). Only 6 of its 171 frames
+# registered, all refused elsewhere for 7-9 inliers, but those six settle the question the clip was cut
+# for: they stand on the EAST UPPER BALCONY (u 49.1-49.4, d 13.4-13.7, h 9.6-9.8, looking west), not
+# behind the north wall. tools/b6g_where.py prints them.
+for _t in ("b1", "b3", "b4", "b5", "b6s", "b7s", "b6g"):
     CLASSES[_t] = {"prefixes": None, "model": B2 + "-register/work/model-%s-accepted" % _t,
                    "img": B2 + "-register/images-colour-%s-accepted/" % _t, "frames": B2 + "/%s/images/" % _t,
                    "factor": 1.0, "note": "20260809 4K balcony/gallery clip %s, registered 2026-09-09" % _t}
