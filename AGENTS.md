@@ -1257,7 +1257,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   26.20, 30.06, 33.93 +- 0.25, pitch 3.86 +- 0.12, the GLB's 3.90 agrees; fold depth, glass angle,
   transoms and the door's size do NOT resolve from any source, so the declared sawtooth stays).
   3 grilles, a lit door at u 37.96-39.66 head 2.91 (a gallery beyond: pale floor, ceiling lights;
-  the 2014 photograph's lit doorway), a dark aperture at u 45.70-48.22 head 2.52 (+- 0.3).
+  the 2014 photograph's lit doorway), a dark aperture at u 45.70-48.22 head 2.52 (+- 0.3). A green
+  exit light sits beside the lit door's east jamb, u 40.5-40.85, h 2.68-2.88 (night w5_000082 met
+  with the south face, +-0.3; `WALLF.exitSigns`), with a small red indicator below it, unbuilt.
   Tapestries measured at u 8.37-12.49 (4.1 m wide: narrower than the 5.46 m work tools/
   tapestries.json puts there by elimination) and 37.95-42.71.
 - THE ENDS (ENDW, rebuilt a second time on 2026-09-08, Lloyd: "it's a balcony", "you aren't looking

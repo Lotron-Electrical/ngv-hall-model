@@ -1058,7 +1058,8 @@ const WALLF={openings:[[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.38
   {north:false, u0:37.962, u1:39.662, h:2.906, lit:true, depth:1.0},
   {north:false, u0:45.698, u1:48.218, h:2.522, lit:false, depth:1.0},
   {north:true, u0:23.10, u1:29.40, h:2.3, lit:true, depth:1.0, photoOnly:true, back:0xc4cbd2, bright:[28.4,29.4]}],
- sign:{text:'GANDEL HALL', u0:24.5, u1:27.1, h0:2.65, h1:3.0},   /* the name over the north doorway: walk w1_000446 met with the face, wall_pixel.py */   /* the lit glazed doorway: the brightness along the wall face in 7 day-walk frames (tools/door_profile.py) runs u 23.1-29.4 in every frame holding both edges, head 2.2-2.4; the balcony 4k frames put the west edge 0.3 further west */
+ sign:{text:'GANDEL HALL', u0:24.5, u1:27.1, h0:2.65, h1:3.0},
+ exitSigns:[{north:false, u0:40.5, u1:40.85, h0:2.68, h1:2.88}],   /* the green exit light east of the south door: night w5_000082 met with the south face (wall_pixel.py) puts its glow on u 40.66, h 2.78, +-0.3 (18 m, grazing); a red indicator sits below it (u 40.2, h 1.6), too small to build */   /* the name over the north doorway: walk w1_000446 met with the face, wall_pixel.py */   /* the lit glazed doorway: the brightness along the wall face in 7 day-walk frames (tools/door_profile.py) runs u 23.1-29.4 in every frame holding both edges, head 2.2-2.4; the balcony 4k frames put the west edge 0.3 further west */
  skirt:0.10,
  dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
 const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
@@ -2198,6 +2199,7 @@ function buildWallDetails(root){
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
  const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
  const darkBack=new THREE.MeshLambertMaterial({color:0x171512, side:THREE.DoubleSide, name:'door-back'});
+ const exitMat=new THREE.MeshBasicMaterial({color:0x2ee88a, side:THREE.DoubleSide, name:'exit-sign'});
  for(const w of walls){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
   // reveal depth, the corridor's near face as it read in every frame, unlit
@@ -2218,6 +2220,9 @@ function buildWallDetails(root){
   // the vent grilles, 5 mm proud of the stone, each at its measured box
   for(const [u0,u1,y0,y1] of (w.north?F.grilles.north:F.grilles.south)){ const d=w.d-w.s*0.005;
    quad([[u0,d,y0],[u1,d,y0],[u1,d,y1],[u0,d,y1]],grilleMat,'wall-grille'); }
+  // the exit lights on the stone (F.exitSigns): small green boxes, lit day and night
+  for(const E of (F.exitSigns||[])){ if(E.north!==w.north)continue; const d=w.d-w.s*0.03;
+   quad([[E.u0,d,E.h0],[E.u1,d,E.h0],[E.u1,d,E.h1],[E.u0,d,E.h1]],exitMat,'exit-sign'); }
   // the doors: a lit vestibule behind the lit ones, stone reveals and a dark back behind the rest
   for(const D of F.doors){ if(D.north!==w.north)continue; const u0=D.u0, u1=D.u1, d0=w.d, d1=w.d+w.s*D.depth, h=D.h;
    const side=D.lit?lit:stoneMat, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
