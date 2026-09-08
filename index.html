@@ -2219,7 +2219,7 @@ function buildWallDetails(root){
    const panel=(y,h)=>{ g.fillStyle='#5e5e5e'; g.fillRect(x+34,y,188,h); g.fillStyle='#b4b4b4'; g.fillRect(x+34,y,188,4); g.fillRect(x+34,y,4,h); g.fillStyle='#464646'; g.fillRect(x+34,y+h-4,188,4); g.fillRect(x+218,y,4,h); g.fillStyle='#8c8c8c'; g.fillRect(x+44,y+10,168,h-20); };
    panel(40,300); panel(380,220); g.fillStyle='#c4c4c4'; g.fillRect(i%2?x+14:x+226,300,16,60); }   /* two recessed panels a leaf, a push plate by the meeting stile */
   const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=8; return tx; };
- const leafMat=(k)=>{ const m=cnm(0x4a423b,0x7c6c5e,'door-leaf'); m.map=doorTex(k); return m; };   /* closed door leaves (2026-09-09): dark painted timber, tones unmeasured (the walks saw these doors open); the grey canvas times the clock tint */   /* closed door leaves (2026-09-09): dark timber, night and day tones unmeasured (the walks saw these doors open), lerped by the clock like the vestibule tones */
+ const leafMat=(k)=>cnm(0x0a0908,0x1e1b18,'door-leaf');   /* closed door leaves: plain, dark, almost black (Lloyd, 2026-09-09: "those door sections can just be dark/almost black doors"); the panelled canvas of 583b547 is gone */
  const exitMat=new THREE.MeshBasicMaterial({color:0x2ee88a, side:THREE.DoubleSide, name:'exit-sign'});
  for(const w of walls){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
