@@ -2210,7 +2210,14 @@ function buildWallDetails(root){
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
  const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
  const darkBack=new THREE.MeshLambertMaterial({color:0x171512, side:THREE.DoubleSide, name:'door-back'});
- const leafMat=cnm(0x1c1916,0x4a4038,'door-leaf');   /* closed door leaves (2026-09-09): dark timber, night and day tones unmeasured (the walks saw these doors open), lerped by the clock like the vestibule tones */
+ const doorTex=(k)=>{ const cv=document.createElement('canvas'); cv.width=256*k; cv.height=640; const g=cv.getContext('2d');
+  g.fillStyle='#8d8d8d'; g.fillRect(0,0,cv.width,cv.height);   /* grey: the material colour tints it */
+  for(let i=0;i<k;i++){ const x=i*256; g.fillStyle='#9a9a9a'; g.fillRect(x+6,6,244,628);
+   g.fillStyle='#6a6a6a'; g.fillRect(x,0,6,640); g.fillRect(x+250,0,6,640); g.fillRect(x,0,256,6); g.fillRect(x,634,256,6);   /* the frame and the meeting stiles */
+   const panel=(y,h)=>{ g.fillStyle='#5e5e5e'; g.fillRect(x+34,y,188,h); g.fillStyle='#b4b4b4'; g.fillRect(x+34,y,188,4); g.fillRect(x+34,y,4,h); g.fillStyle='#464646'; g.fillRect(x+34,y+h-4,188,4); g.fillRect(x+218,y,4,h); g.fillStyle='#8c8c8c'; g.fillRect(x+44,y+10,168,h-20); };
+   panel(40,300); panel(380,220); g.fillStyle='#c4c4c4'; g.fillRect(i%2?x+14:x+226,300,16,60); }   /* two recessed panels a leaf, a push plate by the meeting stile */
+  const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=8; return tx; };
+ const leafMat=(k)=>{ const m=cnm(0x4a423b,0x7c6c5e,'door-leaf'); m.map=doorTex(k); return m; };   /* closed door leaves (2026-09-09): dark painted timber, tones unmeasured (the walks saw these doors open); the grey canvas times the clock tint */   /* closed door leaves (2026-09-09): dark timber, night and day tones unmeasured (the walks saw these doors open), lerped by the clock like the vestibule tones */
  const exitMat=new THREE.MeshBasicMaterial({color:0x2ee88a, side:THREE.DoubleSide, name:'exit-sign'});
  for(const w of walls){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
@@ -2239,7 +2246,7 @@ function buildWallDetails(root){
    quad([[E.u0,d,E.h0],[E.u1,d,E.h0],[E.u1,d,E.h1],[E.u0,d,E.h1]],exitMat,'exit-sign'); }
   // the doors: a lit vestibule behind the lit ones, stone reveals and a dark back behind the rest
   for(const D of F.doors){ if(D.north!==w.north)continue; const u0=D.u0, u1=D.u1, d0=w.d, d1=w.d+w.s*D.depth, h=D.h;
-   if(D.closed){ const dL=d0+w.s*0.12; quad([[u0,dL,0],[u1,dL,0],[u1,dL,h],[u0,dL,h]],leafMat,'door-leaf');
+   if(D.closed){ const dL=d0+w.s*0.12, k=Math.max(1,Math.round((u1-u0)/1.0)); quad([[u0,dL,0],[u1,dL,0],[u1,dL,h],[u0,dL,h]],leafMat(k),'door-leaf',w.north);   /* a leaf a metre: north 6, south 2 */
     quad([[u0,d0,0],[u0,dL,0],[u0,dL,h],[u0,d0,h]],stoneMat,'door-reveal'); quad([[u1,d0,0],[u1,dL,0],[u1,dL,h],[u1,d0,h]],stoneMat,'door-reveal'); quad([[u0,d0,h],[u1,d0,h],[u1,dL,h],[u0,dL,h]],stoneMat,'door-head'); continue; }
    const side=D.lit?lit:stoneMat, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
    const back=D.lit?(D.back?new THREE.MeshBasicMaterial({color:D.back, side:THREE.DoubleSide, name:'vestibule-back'}):litBack):darkBack;
@@ -2249,13 +2256,7 @@ function buildWallDetails(root){
    quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],top,'door-head'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],floor,'door-floor');
    quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],back,'door-back'); }
   if(!w.north)continue;
-  // the hall's name over the north doorway (F.sign, measured in w1_000446): pale letters on a clear canvas, 20 mm proud of the stone
-  if(F.sign){ const S=F.sign, cv=document.createElement('canvas'); cv.width=1024; cv.height=Math.round(1024*(S.h1-S.h0)/(S.u1-S.u0));
-   const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height); g.fillStyle='#a39d95'; g.textBaseline='middle';   /* pale letters: 50 against the stone's 34 in w1_000446, 1.5x */ g.textAlign='center';
-   g.font='bold '+Math.round(cv.height*0.8)+'px Arial'; try{ g.letterSpacing='12px'; }catch(e){} g.fillText(S.text,cv.width/2,cv.height*0.54);
-   const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=8;
-   const m=new THREE.MeshBasicMaterial({map:tx, transparent:true, side:THREE.DoubleSide, name:'hall-sign'});
-   const d=w.d-w.s*0.02; quad([[S.u0,d,S.h0],[S.u1,d,S.h0],[S.u1,d,S.h1],[S.u0,d,S.h1]],m,'hall-sign',true); }
+  // (the GANDEL HALL sign drawn over the north door from 2026-09-08 is gone: Lloyd, 2026-09-09, "that should never have been there")
   // (the Felton inscription that was drawn here from 7aad8857 is gone: Lloyd, 2026-09-08, "I didn't want that there")
  }
 }
