@@ -8,7 +8,7 @@ def world(u, d, h): return O + u * HU + d * HD + np.array([0, h, 0])
 cls, k, side = sys.argv[1:4]
 FLOORS = [3.99, 6.33, 8.34]; SLAB = 0.26; RAILS = [0.89, 0.89, 1.07]; D = 15.364
 uB = 51.906 if side == 'east' else 0.344; s = 1 if side == 'east' else -1
-uF = float(sys.argv[4]) if len(sys.argv) > 4 else uB - s * 3.85
+faces = [float(a) for a in sys.argv[4].split(",")] if len(sys.argv) > 4 else [uB - s * 3.85]
 sc = float(sys.argv[5]) if len(sys.argv) > 5 else 2.0
 cam, p = U.load_class(cls)[k]; im = cv2.imread(p)
 def pt(u, d, h):
@@ -16,11 +16,16 @@ def pt(u, d, h):
     return (int(round(x[0])), int(round(y[0]))) if z[0] > 0 else None
 def line(a, b, col, w=1):
     if a and b: cv2.line(im, a, b, col, w, cv2.LINE_AA)
-for i, hf in enumerate(FLOORS):
-    line(pt(uF, 0, hf), pt(uF, D, hf), (0, 255, 255), 2)
-    line(pt(uF, 0, hf - SLAB), pt(uF, D, hf - SLAB), (0, 255, 255), 1)
-    line(pt(uF, 0, hf + RAILS[i]), pt(uF, D, hf + RAILS[i]), (255, 0, 255), 1)
-for dd in (0, D): line(pt(uF, dd, 0), pt(uF, dd, 12), (0, 200, 0), 1)
+COLS = [(0, 255, 255), (255, 0, 255), (0, 200, 0), (255, 128, 0)]
+for j, uF in enumerate(faces):
+    col = COLS[j % 4]
+    for i, hf in enumerate(FLOORS):
+        line(pt(uF, 0, hf), pt(uF, D, hf), col, 2)
+        line(pt(uF, 0, hf - SLAB), pt(uF, D, hf - SLAB), col, 1)
+        line(pt(uF, 0, hf + RAILS[i]), pt(uF, D, hf + RAILS[i]), col, 1)
+    line(pt(uF, 0, 10.0), pt(uF, D, 10.0), col, 1)
+    for dd in (0, D): line(pt(uF, dd, 0), pt(uF, dd, 12), col, 1)
+uF = faces[0]
 line(pt(uB, 0, 10.0), pt(uB, D, 10.0), (255, 255, 255), 1)
 for hz in (2, 4, 6, 8, 10, 12):   # a height scale on the plate end, every 2 m
     line(pt(uB, 0, hz), pt(uB, D, hz), (200, 200, 200), 1)

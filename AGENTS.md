@@ -1239,36 +1239,30 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   the 2014 photograph's lit doorway), a dark aperture at u 45.70-48.22 head 2.52 (+- 0.3).
   Tapestries measured at u 8.37-12.49 (4.1 m wide: narrower than the 5.46 m work tools/
   tapestries.json puts there by elimination) and 37.95-42.71.
-- END GALLERIES (`ENDW`, rebuilt 2026-09-08, Lloyd: "get the ends of the hall correct"). They PROJECT
-  into the hall, they are not a recess: the 138 day4k frames were all shot from the east gallery
-  standing 3.9 m in front of the plate end (u 48.0, h 9.7), the 1968 ground plan (BUIL005490, 27.1
-  mm/px off the column pitch) puts the hall's end walls 3.7 m past the outer columns (the 4K cameras themselves stood at
-  u 47.81-48.64 on the east one, so the face is 3.85 in, satisfying both), and the 4K view
-  of the west end shows the stack: a lit ground lobby, three open floors with dark fascias and dark
-  glass balustrades, lit ceilings, a stone wall with double doors behind the top one. Floors on the
-  measured h 3.99 / 6.33 / 8.34 (endwalls.json), face u 4.05 / 48.2, back wall on the plate end
-  (0.344 / 51.906, the face-plane edge h 9.96-10.04). The scan's closures, u -4.65 and 49.06, are
-  the real ground-level walls (the lobby's back, the kitchen wall) and are KEPT below the first
-  fascia (the shader cut is h > 3.73 only). Read off the posed 4K frame d4_000049 with
-  tools/endwall_overlay.py (the geometry drawn into the frame) and tools/endwall_rows.py (an image
-  row cast onto the face plane): the top parapet's top h 9.41 (rail 1.07), the ceiling under the
-  top slab h 8.08 (slab 0.26), the middle fascia top h 6.32 (the 6.33 floor confirmed), the middle
-  parapet top h 7.22 (endwalls.json F3, rail 0.89). Unmeasured: the lower level's rail (the truss
-  hides it, takes the middle one's), the lobby ceiling (the truss again; the first slab's underside
-  is used), the east's own tiers (its frames stand 13 m out; it repeats the west). The west top
-  gallery's lit doorway (exit sign, against the south wall, d 13.4-14.2 +-0.3) is drawn.
-- THE PLEAT'S DIRECTION (2026-09-08): two photographs settle it as the GLB declares, the V pointing
-  OUT into the court: from inside (lloyd-07 head-on) the transoms above eye level chevron DOWN at
-  every bay centre (the apex is the far point), and from the court balcony (courtyard/lloyd-01) the
-  head's dark facets peak at the bay centres, the near point when looking up. Its depth: the posed
-  frames give at most 12 px of leverage between an apex on the face and one 2.1 m out (they all
-  stand within 28 deg of the wall normal; past 55 deg the fins hide the bay; tools/glazing_depth.py
-  ranks every frame/bay pair and draws the apex at candidate depths). In the sharpest, w6_000082
-  bay 3, the apex mullion sits between the 1.5 and the 2.09 candidates: the declared 2.09 m / 41.5
-  deg is CONSISTENT with the frames and cannot be pinned tighter than about +-0.5 m from this
-  material. The courtyard balcony photo (lloyd-01) was also tried (tools/court_lines.py: vanishing
-  points give a 95 deg lens of unknown distortion, six pale bands where five fins were expected)
-  and judged unfit for a depth solve.
+- THE ENDS (ENDW, rebuilt a second time on 2026-09-08, Lloyd: "it's a balcony", "you aren't looking
+  through enough"). Read across every source this time: the 2014 photograph of the east end
+  (reference-photos/south-glazing/drawings/great-hall-ngv-2014.jpg, 4732 px; the far end profiled row
+  by row and scaled on the top balcony, floor 8.34 and the 4K cameras' own height), the posed floor
+  frames of both ends with BOTH face hypotheses drawn in (tools/end_overlay2.py class frame side
+  4.194,0.344: the end assemblies' corners fall on the plane 3.85 m in front of the plate line
+  on both ends, so the face stays on u 4.194 / 48.056 and the day4k cameras stood on its
+  parapet), the 4K west frames, endwalls.json and the 1968 plans (agent-ref-ceiling/online/
+  ngv_*_floor_plan_1968_BUIL0054*.jpg: the first-floor plan's balconies are 0.46 of a column pitch
+  deep on both ends, 3.9 m, the depth built). The stack, ONE plane per end:
+    h 0-4.2   a stone ground wall with doors (east: double doors d 5.7-8.0 and a porthole door
+              9.8-11.1, the 2014 photograph; west: a porthole door 11.5-12.7 and the lit doorway
+              12.9-14.6, w1_000028 and endwalls.json's lit opening), +-0.3 in d
+    4.4-6.33  a dark perforated apron under the lower balcony (the 2014 band h 4.39-6.14)
+    6.33      the lower balcony floor, a glass balustrade to 7.22 (endwalls.json: 6.33 and the
+              7.2 rail on the face)
+    8.08-8.34 the top balcony's fascia; 8.34-9.41 a SOLID dark parapet (the 2014 band 8.33-9.43;
+              the 4K frames show the people on it from the chest up)
+    10.0      the lit soffit, and stone from there to the top, on the face plane
+  The 3.99 "floor" of the previous build was the ground's soffit line (endwalls.json's face-plane
+  edges 3.80 / 3.91, the 2014 dark strip to 4.17), never a balcony: gone. Back walls on the plate
+  line. The scan's closures (u -4.65, 49.06) are the lobbies' back walls, hidden behind the ground
+  walls and discarded in the shader above h 4.0 (ENDW.cut). Unmeasured: the apron's exact top
+  (taken as the floor), the doors' heights (2.4, the 2014 scale), the west top doorway's width.
 - THE GALLERIES' HEAD (2026-09-08, tools/pose_frames_for.py found the sharpest posed frames that hold
   each end: night w5_000240 and day w1_000356 look at the EAST end from 36-38 m, the first frames of
   it from inside; tools/end_overlay2.py draws ENDW into any of them, upright). Both ends read the
