@@ -1294,6 +1294,10 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
     5.4-6.33  a near-black recess under the lower balcony (11-19 in the same profiles)
     6.33      the lower balcony floor, a glass balustrade to 7.22 (endwalls.json: 6.33 and the
               7.2 rail on the face); its interior reads about the stone (mid grey, unlit)
+    6.33-8.08 the lower tier's interior: near black by day (0.1-0.15x the stone in d4_000049,
+              `lowBackMat`), four white fittings on the west back wall (d 1.64, 11.97, 13.17,
+              13.29, h 7.8-8.0) and a green exit sign (d 13.52, h 7.32), `ENDW.lowLamps/lowExit`;
+              the east lower tier is unseen from a height (2026-09-09)
     6.33-6.85 the lower tier's solid upstand (0.52), glass over it to 7.22: the 2009 Commons frame
               from the east gallery shows bar stools through the run above a dark panel ending 6.8,
               and the 2026 profiles step up out of the dark 6.8-7.3 on both ends (2026-09-09)
