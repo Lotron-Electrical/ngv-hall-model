@@ -1431,7 +1431,11 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   d1b1f2a4: stone piers each side of a tall central recess between the column rows, three dark
   tiers inside, stone above and below): recess d 3.9 to 11.5, y 1.8 to 10.0, 6 m deep, tiers at
   3.6, 6.4, 9.2 m. The east end is built like the west (the balcony photographs are taken from
-  it; its tier heights are unmeasured). OPEN: the install sim's corridor door (buildDoor, the
+  it; its tier heights are unmeasured). The west top gallery's south doorway (4K d4_000049, 45 m off):
+  a pale panel d 12.4-15.3 from the parapet to the head round a darker door d 13.35-14.15 with a green
+  exit light over it (`ENDW.westTopPanel/westTopDoor/westTopExit`, 2026-09-09); the sign meets the back
+  wall on h 11.07, above the 10.65 head, so the gallery ceiling may be higher behind a lower front
+  fascia (or the register's tilt is 0.4 degrees off), unresolved. OPEN: the install sim's corridor door (buildDoor, the
   `door` uniform) still sits in the old closure plane at 49.06, told to the install session.
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
