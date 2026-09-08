@@ -1545,6 +1545,13 @@ within 0.30; west 9 matched, mean +0.09, |median| 0.20, 90 % within 0.37. No bia
 hard sim edges. Unmeasured still: the glass rails' heights (0.89 / 1.06 kept), the corridor's ceiling and back wall
 (1968 plan), the east door windows' positions, the tapestries' +-0.4. Log: PLAN-20260908-walls.md 23:55.
 
+**The 1968 photographs are NOT evidence for the walls as they stand.** The ref-photos harvest (online/PHOTOS.md,
+52 files: Sievers' 1968 NLA plates, O'Callaghan c1968-71, Commons, Flickr) shows the hall as opened: one end a
+full-height glazed screen to the courtyard, no row of openings high in the long wall, no end galleries. The
+openings, the corridor behind them and the two-tier ends belong to the later refurbishment, so only imagery
+after it (the 2014 Commons frame, the 2020-2022 videos, Lloyd's 2026 scans) can be read against the model.
+Nothing online shows the corridor from inside.
+
 **Online video and photographs (2026-09-08, agent-ref-walls/online/).** Two research agents harvested YouTube
 and Wikimedia Commons for the hall's interior. Useful: `video/qXnaPNrQAsI.webm` ("[4K] NGV Tour", 2022, 1080p),
 258-275 s shot FROM the east top gallery looking west: it confirms the north wall's six top openings as deep dark
