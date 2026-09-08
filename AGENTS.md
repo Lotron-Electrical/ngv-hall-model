@@ -1303,8 +1303,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               the 4k frame d4_000198, shot leaning on it, looks down through glass; the chain-posed
               straight-down frame d4_000232 (tools/chain_pose.py, chain_pixel.py) has the glass's cap
               0.2-0.4 m under the phone on either of its two anchors (h 9.63 / 9.81), the cap on the
-              built 9.40 within +-0.15; a perforated floor vent strip 0.3 m wide lies 0.3 m behind
-              the glass on the deck (`ENDW.eastVent` u 48.35-48.69, d 12.64-13.34: its south end seen, its
+              built 9.40 within +-0.15; a perforated floor vent strip 0.34 m wide lies 0.15 m behind
+              the glass on the deck (`ENDW.eastVent` u 48.21-48.55, 0.15 behind the built cap as the frame has it behind the real one, d 12.64-13.34: its south end seen, its
               north end and near edge past the frame; holes on a 22 mm pitch in the deck's tone, 2026-09-09). The
               deck itself (d4_000120, chained from d4_000104, looking along it): a plain cool mid-grey
               0.8x the stone beside it, built as `floorMat` dnm(0x1a1c1e, 0x85898d). Its glass top met
