@@ -1262,15 +1262,29 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   parapet), the 4K west frames, endwalls.json and the 1968 plans (agent-ref-ceiling/online/
   ngv_*_floor_plan_1968_BUIL0054*.jpg: the first-floor plan's balconies are 0.46 of a column pitch
   deep on both ends, 3.9 m, the depth built). The stack, ONE plane per end:
-    h 0-4.2   a stone ground wall with doors (east: double doors d 5.7-8.0 and a porthole door
+    h 0-5.3   a stone ground wall with doors (east: double doors d 5.7-8.0 and a porthole door
               9.8-11.1, the 2014 photograph; west: a porthole door 11.5-12.7 and the lit doorway
-              12.9-14.6, w1_000028 and endwalls.json's lit opening), +-0.3 in d
-    4.4-6.33  a dark perforated apron under the lower balcony (the 2014 band h 4.39-6.14)
+              12.9-14.6, w1_000028 and endwalls.json's lit opening), +-0.3 in d. The stone reads
+              as stone up to h 5.4 in every frame's brightness profile (tools/end_profile.py,
+              six frames of both ends: 26-29 against the stone's 23-28), so the ground wall
+              runs to 5.3, not 4.2 (the 2014 photograph's 4.39 band top was misread).
+    5.4-6.33  a near-black recess under the lower balcony (11-19 in the same profiles)
     6.33      the lower balcony floor, a glass balustrade to 7.22 (endwalls.json: 6.33 and the
-              7.2 rail on the face)
-    8.08-8.34 the top balcony's fascia; 8.34-9.41 a SOLID dark parapet (the 2014 band 8.33-9.43;
-              the 4K frames show the people on it from the chest up)
-    10.0      the lit soffit, and stone from there to the top, on the face plane
+              7.2 rail on the face); its interior reads about the stone (mid grey, unlit)
+    8.08-8.34 the top balcony's fascia; 8.34-8.90 a 0.56 solid upstand, GLASS over it to 9.40:
+              the top gallery's lit interior shows from h 8.85-8.95 on both ends (the 2014
+              "solid parapet 8.33-9.43" was the upstand plus the glass's dark reflection), and
+              the 4k frame d4_000198, shot leaning on it, looks down through glass
+    10.3      the head (the lit band ends 10.2 east / 10.65 west, +-0.3), the lit soffit, and
+              stone from there to the top, on the face plane
+  TONES (tools/end_profile.py class:frame:PAIR samples the sim half of a pose pair on the real
+  pose, so real and sim profiles compare number for number): by day the top gallery reads THREE
+  times the stone with a row of downlights about 3 m apart (w2_000252 150-180 against 50;
+  w1_000356 119 against 25); by night it reads dark, a shade over the stone (w6_000184). So the
+  top gallery's back, soffit, floor and five downlights are unlit warm materials, the fascia and
+  upstand and the lower ceiling about the stone, the recess near black, each with a night colour
+  (dnm(), endLitMats) lerped by lit.day in applyDay; the night values sit under the night
+  auto-exposure (a 0x2e2a26 back rendered pale in the 22:00 pair; 0x110e0b reads right).
   The 3.99 "floor" of the previous build was the ground's soffit line (endwalls.json's face-plane
   edges 3.80 / 3.91, the 2014 dark strip to 4.17), never a balcony: gone. Back walls on the plate
   line. The scan's closures (u -4.65, 49.06) are the lobbies' back walls, hidden behind the ground
