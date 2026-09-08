@@ -1286,7 +1286,10 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
     8.08-8.34 the top balcony's fascia; 8.34-8.90 a 0.56 solid upstand, GLASS over it to 9.40:
               the top gallery's lit interior shows from h 8.85-8.95 on both ends (the 2014
               "solid parapet 8.33-9.43" was the upstand plus the glass's dark reflection), and
-              the 4k frame d4_000198, shot leaning on it, looks down through glass
+              the 4k frame d4_000198, shot leaning on it, looks down through glass; the chain-posed
+              straight-down frame d4_000232 (tools/chain_pose.py, chain_pixel.py) puts the glass's cap
+              0.2 m under a phone held over it (h 9.63), so the 9.40 top holds (+-0.05); a perforated
+              grating runs along the deck's front edge behind it (unbuilt, extent unmeasured)
     10.65     the head (the west's measured head; the east's 10.2 is where the lit back ends, not
               the head: Lloyd's own 4K deck frames d4_000031 (u 48.34, h 10.05, pitched 18 up) and
               d4_000169 (h 10.29) stand 0.3 m behind the glass and see canopy, not soffit, above
