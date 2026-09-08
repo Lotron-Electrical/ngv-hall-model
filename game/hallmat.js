@@ -71,7 +71,7 @@ export const WALLF = { openings: [[4.076,5.332],[7.676,8.932],[10.764,12.020],[1
   grilles: { north: [[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
     south: [[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]] },
   doors: [{ north: true, u0: 45.970, u1: 47.786, h: 2.970, lit: false }, { north: false, u0: 37.962, u1: 39.662, h: 2.906, lit: true },
-    { north: false, u0: 45.698, u1: 48.218, h: 2.522, lit: false }, { north: true, u0: 18.85, u1: 21.15, h: 2.5, lit: true }] };
+    { north: false, u0: 45.698, u1: 48.218, h: 2.522, lit: false }, { north: true, u0: 23.10, u1: 29.40, h: 2.3, lit: true }] };   // the lit glazed north doorway, its edges from the wall brightness in 7 day-walk frames (2026-09-08)
 const glslOr = (list, f) => list.map(f).join('||') || 'false';
 // the limestone tile the viewer paints the stones with (tools/stone.jpg, 1 m per repeat)
 const STONE_TEX = (() => { const t = new THREE.TextureLoader().load('tools/stone.jpg'); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; })();

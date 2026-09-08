@@ -1225,10 +1225,23 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   with art behind), sill 8.99, head 11.35, 1.256 m wide, at IRREGULAR spacing 3.09-4.37 m: eleven
   as holes in the scan relief, the twelfth at u 22.96 hidden behind the event's LED screen in every
   frame but plain in 7aad8857 (evenly spaced, no 7.4 m gap). Ten of the eleven read darker than the
-  stone, so the corridor is built unlit (a Lambert back at the 0.6 m reveal, depth unmeasured); no
-  art resolved. 6 grilles (about 0.9 x 0.33 m at h 2.6-3.0; u 10-30 is a stage in every frame,
-  unmeasured there), a dark door at u 45.97-47.79 head 2.97, the foyer door at u 20 (b0cefe7f only,
-  +- 3 m, the scan cannot see there), the inscription (7aad8857 only, not resolved by the scan),
+  stone, so the corridor is built unlit; no art resolved. The reveals are 0.9 m (+-0.3: the
+  certified cloud holds points 0.2-0.6 m behind the face inside the openings with a tail to 1.8,
+  tools/opening_cloud.py, and the 2014 photograph shows deep stone-lined reveals). Behind them the
+  corridor (`WALLF.corridor`): the 1968 second-floor plan BUIL005494 draws the CIRCULATION GALLERY
+  along this wall about 2 m wide (schematic, +-0.5), its floor the second floor h 8.34; its ceiling
+  (11.8) and back wall are UNMEASURED (no frame or cloud point sees them), so it is one dark Lambert
+  volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'). 6 grilles
+  (about 0.9 x 0.33 m at h 2.6-3.0; u 10-30 is a stage in every frame, unmeasured there), a dark
+  door at u 45.97-47.79 head 2.97, and the LIT GLAZED DOORWAY at u 23.1-29.4, head 2.3 (+-0.2):
+  the brightness along the wall face at h 1.2 through seven posed day-walk frames
+  (tools/door_profile.py; w1_000009/11/17/18/19/24/28) runs u 23.1 to 29.4 wherever both edges are
+  in frame, the west metre (28.4-29.4) saturating and the rest reading grey-blue glass with a
+  dark mullion near u 26; the balcony 4k frames d4_000080/83 put the west edge 0.3 further west.
+  It is built as the lit door with back 0xc4cbd2 and a bright strip 28.4-29.4 (`back`, `bright`).
+  The page had it at u 18.85-21.15 from 7aad8857, which does not show it (the stage covers that
+  stretch); the 2014 photograph's single lit door is this one. Pose pairs door-w18, door-w11,
+  door-d80 in agent-ref-walls/shots/pose/. The inscription (7aad8857 only, not resolved by the scan),
   proud bands from the scan (plinth +150 mm to h 0.74, band +205 mm at h 7.28-8.99, already in the
   mesh). Tapestries measured at u 8.13-14.03 and 37.51-42.64 (+- 0.4): tools/tapestries.json agrees.
 - SOUTH WALL. NO high openings (the scan relief has none, 7aad8857 and the 2014 photograph agree).
@@ -1341,7 +1354,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   midway (u = 7.71 + 3.685 k), 1.3 m wide, 9.0 to 11.0 m up, 0.6 m reveals (cut out of the bake
   mesh by discard, four Lambert reveals and a black back built behind); vent grilles 1.0 x 0.16 m
   at 4.2 m pitch (u = 12.5 + 4.2 k), 2.8 m up, black quads 5 mm proud; the foyer door in the north
-  wall at u = 20.0 (+-3 m, no ruler crosses it), 2.3 x 2.5 m, a lit white vestibule 1 m deep;
+  wall at u = 20.0 (+-3 m, no ruler crosses it; SUPERSEDED 2026-09-08: measured u 23.1-29.4, see
+  NORTH WALL above), 2.3 x 2.5 m, a lit white vestibule 1 m deep;
   the Felton inscription centred between the tapestries (u 26.0, 4.2 m up, a canvas, mirrored in
   u on the north wall because u runs right to left seen from inside); a 100 mm shadow gap at the
   carpet. Not done: the openings' exact u phase (+-0.5 m) and the grille phase (+-1 m).

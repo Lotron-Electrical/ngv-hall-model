@@ -1050,13 +1050,13 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 //    (two methods, ortho/REPORT.md), so the faces are d = -0.090 and 15.364 and the mesh is moved
 //    to them in the vertex shader (WALL_SHIFT).
 const WALLF={openings:[[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.388],[18.628,19.876],[22.336,23.592],[26.044,27.300],[29.948,31.196],[33.588,34.836],[37.348,38.596],[40.884,42.140],[44.508,45.756]],
- openY:[8.99,11.35], openDepth:0.6,
+ openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.8},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); the corridor from the 1968 plan, unlit in every capture */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
   {north:false, u0:37.962, u1:39.662, h:2.906, lit:true, depth:1.0},
   {north:false, u0:45.698, u1:48.218, h:2.522, lit:false, depth:1.0},
-  {north:true, u0:18.85, u1:21.15, h:2.5, lit:true, depth:1.0, photoOnly:true}],
+  {north:true, u0:23.10, u1:29.40, h:2.3, lit:true, depth:1.0, photoOnly:true, back:0xc4cbd2, bright:[28.4,29.4]}],   /* the lit glazed doorway: the brightness along the wall face in 7 day-walk frames (tools/door_profile.py) runs u 23.1-29.4 in every frame holding both edges, head 2.2-2.4; the balcony 4k frames put the west edge 0.3 further west */
  skirt:0.10,
  dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
 const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
@@ -2196,14 +2196,25 @@ function buildWallDetails(root){
    quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],stoneMat,'opening-reveal');
    quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],stoneMat,'opening-reveal');
    quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],stoneMat,'opening-sill');
-   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],stoneMat,'opening-head');
-   quad([[u0,d1,y0],[u1,d1,y0],[u1,d1,y1],[u0,d1,y1]],corridorMat,'opening-back'); }
+   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],stoneMat,'opening-head'); }
+  // the circulation gallery behind the openings (the 1968 second-floor plan): a dark corridor W wide
+  // past the reveals, its floor the second floor, seen only through the openings
+  if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
+   quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-back');
+   quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
+   quad([[ua,dR,C.ceil],[ub,dR,C.ceil],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-ceiling');
+   // the wall's own back face BETWEEN the openings (each opening stays open into the corridor)
+   let up=ua; for(const [u0,u1] of F.openings){ if(u0>up)quad([[up,dR,C.floor],[u0,dR,C.floor],[u0,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); up=u1; }
+   if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); }
   // the vent grilles, 5 mm proud of the stone, each at its measured box
   for(const [u0,u1,y0,y1] of (w.north?F.grilles.north:F.grilles.south)){ const d=w.d-w.s*0.005;
    quad([[u0,d,y0],[u1,d,y0],[u1,d,y1],[u0,d,y1]],grilleMat,'wall-grille'); }
   // the doors: a lit vestibule behind the lit ones, stone reveals and a dark back behind the rest
   for(const D of F.doors){ if(D.north!==w.north)continue; const u0=D.u0, u1=D.u1, d0=w.d, d1=w.d+w.s*D.depth, h=D.h;
-   const side=D.lit?lit:stoneMat, back=D.lit?litBack:darkBack, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
+   const side=D.lit?lit:stoneMat, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
+   const back=D.lit?(D.back?new THREE.MeshBasicMaterial({color:D.back, side:THREE.DoubleSide, name:'vestibule-back'}):litBack):darkBack;
+   // a brighter run of the glazing (the day walk: the west metre of the north doorway saturates, the rest reads grey-blue glass)
+   if(D.bright){ const [b0,b1]=D.bright, dS=d1-w.s*0.01; quad([[b0,dS,0],[b1,dS,0],[b1,dS,h],[b0,dS,h]],lit,'vestibule-bright'); }
    quad([[u0,d0,0],[u0,d1,0],[u0,d1,h],[u0,d0,h]],side,'door-reveal'); quad([[u1,d0,0],[u1,d1,0],[u1,d1,h],[u1,d0,h]],side,'door-reveal');
    quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],top,'door-head'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],floor,'door-floor');
    quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],back,'door-back'); }
