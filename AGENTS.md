@@ -1246,7 +1246,10 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   It is built as the lit door with back 0xc4cbd2 and a bright strip 28.4-29.4 (`back`, `bright`).
   The page had it at u 18.85-21.15 from 7aad8857, which does not show it (the stage covers that
   stretch); the 2014 photograph's single lit door is this one. Pose pairs door-w18, door-w11,
-  door-d80 in agent-ref-walls/shots/pose/. The inscription (7aad8857 only, not resolved by the scan),
+  door-d80 in agent-ref-walls/shots/pose/. Over that doorway the hall's name, "GANDEL HALL" in pale
+  letters (1.5x the stone): walk w1_000446 met with the wall plane (tools/wall_pixel.py) puts it on
+  u 24.5-27.1, h 2.65-3.0, letters 0.35 tall; built as `WALLF.sign`, a canvas 20 mm proud (2026-09-08).
+  The inscription (7aad8857 only, not resolved by the scan),
   proud bands from the scan (plinth +150 mm to h 0.74, band +205 mm at h 7.28-8.99, already in the
   mesh). Tapestries measured at u 8.13-14.03 and 37.51-42.64 (+- 0.4): tools/tapestries.json agrees.
 - SOUTH WALL. NO high openings (the scan relief has none, 7aad8857 and the 2014 photograph agree).
