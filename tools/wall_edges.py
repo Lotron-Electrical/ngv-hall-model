@@ -27,22 +27,37 @@ def window(uu):
     near = min((abs(uu - o) for o in ALLU if abs(o - uu) > 1e-6), default=1.0)
     return min(0.35, 0.45 * near)
 frames = U.load_class(cls)
-cand = []
+# Frames are chosen PER JAMB, not once for the whole wall. Ranking the class as a whole picks the sharpest
+# frames anywhere and they all look at the same stretch of wall, which is why the first run measured
+# openings 4-6 from 20 frames and openings 0-3 from three. Here every frame's sharpness is read once, every
+# frame is asked which jambs it can actually resolve, and each jamb then takes the sharpest frames that see
+# IT. An image is still only read once, whatever it ends up measuring.
+sharp, sees = {}, {}
 for fr, (cam, ip) in frames.items():
-    pts = np.array([O + 24.0 * HU + DFACE * HD + np.array([0, hv, 0]) for hv in (9.2, 10.2, 11.2)])
-    x, y, z = cam.project(pts)
-    if (z <= 0.5).any(): continue
+    vis = []
+    for name, oi, uu in JAMBS:
+        pts = np.array([O + uu * HU + DFACE * HD + np.array([0, hv, 0]) for hv in (9.2, 10.2, 11.2)])
+        side = np.array([O + (uu + 0.25) * HU + DFACE * HD + np.array([0, hv, 0]) for hv in (9.2, 10.2, 11.2)])
+        x, y, z = cam.project(pts); xs, ys, zs = cam.project(side)
+        if (z <= 0.5).any() or (zs <= 0.5).any(): continue
+        if ((x > 40) * (x < cam.w - 40) * (y > 40) * (y < cam.h - 40)).sum() < 3: continue
+        if np.median(np.hypot(xs - x, ys - y)) < 5: continue      # 0.25 m is under 5 px: unresolvable
+        vis.append(name)
+    if not vis: continue
     small = cv2.imread(ip, cv2.IMREAD_REDUCED_GRAYSCALE_4)
     if small is None: continue
-    cand.append((float(cv2.Laplacian(small, cv2.CV_32F).var()), fr))
-cand.sort(reverse=True)
-order = [c[1] for c in cand[:maxf]]
+    sharp[fr] = float(cv2.Laplacian(small, cv2.CV_32F).var()); sees[fr] = vis
+want = {}
+for name, oi, uu in JAMBS:
+    got = sorted((f for f in sees if name in sees[f]), key=lambda f: -sharp[f])[:maxf]
+    for f in got: want.setdefault(f, []).append(name)
 acc = {n: [] for n, _, _ in JAMBS}
 used = 0
-for fr in order:
+for fr in sorted(want, key=lambda f: -sharp[f]):
     cam, ip = frames[fr]
     img = None
-    for name, oi, uu in JAMBS:
+    for name in want[fr]:
+        uu = dict((n, u) for n, _, u in JAMBS)[name]
         win = window(uu)
         hs = np.linspace(9.15, 11.20, 15)
         pts = np.array([O + uu * HU + DFACE * HD + np.array([0, hv, 0]) for hv in hs])
@@ -57,7 +72,7 @@ for fr in order:
             used += 1
         offs = []
         for i in np.flatnonzero(ok):
-            vx, vy = xs[i] - x[i], ys[i] - y[i]          # the image direction of 0.25 m east, here
+            vx, vy = xs[i] - x[i], ys[i] - y[i]
             L = np.hypot(vx, vy)
             if L < 5: continue
             mpp = 0.25 / L
@@ -74,9 +89,24 @@ for fr in order:
             q = cam.center - O
             acc[name].append((float(np.median(offs)),
                               float(np.hypot(float(q @ HU) - uu, float(q @ HD) - DFACE)),
-                              float(q @ HU) - uu,          # which side of the jamb the camera stands on
-                              (float(q @ HU) - uu) / max(float(q @ HD) - DFACE, 0.5)))   # the tangent of the
-                              # angle off the wall's normal: the lever a wrong wall-face depth pulls on
+                              float(q @ HU) - uu,
+                              (float(q @ HU) - uu) / max(float(q @ HD) - DFACE, 0.5)))
+cand = list(sharp)
+# A capture's own quartiles say how well ITS frames agree with each other, which is not the same as how
+# well the measurement is known: consecutive frames of one walking pass share the pass's every systematic.
+# So the per-capture medians are written out and tools/wall_pool.py pools them ACROSS captures, where the
+# real spread lives. Pass a path as the last argument to write this capture's medians there.
+import json, os
+if os.environ.get('WALL_JSON'):
+    rec = {}
+    for nm, oi, uu in JAMBS:
+        a = acc[nm]
+        if len(a) >= 3:
+            v = [x[0] for x in a]
+            rec[nm] = {'u': uu, 'opening': oi, 'n': len(v), 'median': float(np.median(v)),
+                       'p25': float(np.percentile(v, 25)), 'p75': float(np.percentile(v, 75))}
+    json.dump({'class': cls, 'frames': used, 'jambs': rec}, open(os.environ['WALL_JSON'], 'w'), indent=1)
+    print('wrote', os.environ['WALL_JSON'])
 print('%s: %d frames measured (of %d that see the wall)' % (cls, used, len(cand)))
 rows = []
 for name, oi, uu in JAMBS:

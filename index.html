@@ -1078,6 +1078,18 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 //  - The wall faces: the scan mesh sits 60 mm (north) / 223 mm (south) behind the certified cloud
 //    (two methods, ortho/REPORT.md), so the faces are d = -0.090 and 15.364 and the mesh is moved
 //    to them in the vertex shader (WALL_SHIFT).
+// THE OPENINGS, AND WHAT THE IMAGERY CAN ACTUALLY SETTLE (2026-09-09, tools/wall_edges.py and
+// tools/wall_pool.py). Every jamb was measured from five separate captures: the day walk, the night
+// walk, the two balcony clips b1 and b3, and the 4K balcony set. Pooling them is what matters, because
+// one capture's own quartiles only say how well its consecutive video frames agree with each other, and
+// they share every systematic that pass has. Capture to capture the median spread on a jamb is 0.162 m,
+// so ABOUT 0.15 m IS THIS METHOD'S REAL UNCERTAINTY per jamb, not the 0.02-0.03 that a single tight
+// capture suggests. Against the table below the pooled residual on every jamb that was moved (openings
+// 7, 8, 9) is within 21 mm; against the table before them it was -0.10 to -0.21 m on all six, negative
+// in the median of four captures. So the moves removed a real bias and are kept. Of the other eighteen
+// jambs, twenty-one of twenty-four cannot be agreed across captures at all (worst 394 mm), and not one
+// is both agreed and out by more than 50 mm. The openings are therefore as accurate as this imagery can
+// make them; moving any of them further would be fitting noise.
 const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.785,11.998],[15.154,16.367],[18.646,19.859],[22.357,23.570],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
  openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[45.16]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); the corridor from the 1968 plan; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
