@@ -1,11 +1,11 @@
 # Brightness along the north wall face at height h, u step 0.1, through posed frames: the lit doorway
 # is the bright run. Prints the run's u edges (half-max) per frame, and the h profile at the run's middle.
 #   python tools/door_profile.py <h> <u_lo> <u_hi> class:frame ...
-import sys, cv2, numpy as np
+import sys, os, cv2, numpy as np
 sys.path.insert(0, 'tools'); import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 def world(u, d, h): return O + u * HU + d * HD + np.array([0, h, 0])
-hz, ulo, uhi = map(float, sys.argv[1:4]); dw = -0.09
+hz, ulo, uhi = map(float, sys.argv[1:4]); dw = 15.364 if os.environ.get('SIDE') == 'south' else -0.09
 for spec in sys.argv[4:]:
     cls, k = spec.split(':'); cam, p = U.load_class(cls)[k]; g = cv2.imread(p, 0).astype(float)
     us = np.arange(ulo, uhi + 0.001, 0.1)
