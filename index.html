@@ -714,6 +714,25 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
   <label style="color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="cycle"> Cycle</label></div>
  <div class="row"><label for="house">House lights</label>
   <input type="range" id="house" min="0" max="100" value="0"><span id="houseval" style="color:var(--dim);font-size:13px">0%</span></div>
+ <!-- The ceiling as a pixel map (Lloyd, 2026-09-09). One pane, one RGBW pixel. -->
+ <div class="row"><label for="pixpat">Ceiling pixels</label>
+  <select id="pixpat" style="flex:1;min-width:140px">
+   <option value="off">Off</option>
+   <option value="wash">Colour wash</option>
+   <option value="rainbow">Rainbow along the hall</option>
+   <option value="sweep">Sweep</option>
+   <option value="ripple">Ripple</option>
+   <option value="twinkle">Twinkle</option>
+   <option value="plasma">Plasma</option>
+   <option value="coffer">Coffer chase</option>
+   <option value="white">White channel only</option>
+  </select><span id="pixval" style="color:var(--dim);font-size:13px">panes</span></div>
+ <div class="row"><label for="pixlevel">Pixel level</label>
+  <input type="range" id="pixlevel" min="0" max="250" value="100"><span id="pixlevelval" style="color:var(--dim);font-size:13px">100%</span></div>
+ <div class="row"><label for="pixhue">Pixel hue</label>
+  <input type="range" id="pixhue" min="0" max="100" value="58"><span id="pixhueval" style="color:var(--dim);font-size:13px">58</span></div>
+ <div class="row"><label for="pixthru">Past the glass</label>
+  <input type="range" id="pixthru" min="0" max="100" value="15"><span id="pixthruval" style="color:var(--dim);font-size:13px">15%</span></div>
  <div class="stat" id="stat"></div>
  <div class="stat" id="runstat"></div>
  <!-- always open, no summary of its own: the menu entry "Pixel mapping" is the one door, and a
@@ -749,6 +768,15 @@ html.bare #stage .ctl,html.bare #sticks,html.bare #restbtns{display:none!importa
    <label>ELM up axis <select id="pm_up"><option value="y">Y up (as modelled)</option><option value="z">Z up (swap Y and Z)</option></select></label>
    <label>ELM protocol <select id="pm_proto"><option value="ArtNet">Art-Net (ELM shows universes from 0)</option><option value="sACN">sACN</option></select></label>
    <button type="button" id="pm_elm" class="sw">Download ELM CSV (one row per pixel)</button>
+  </div>
+  <p class="note">The ceiling is its own fixture set: one RGBW pixel behind every pane of glass, addressed
+   in the order the panes are traced. The two files below patch it the same way the columns are patched.</p>
+  <div class="pmgrid">
+   <label>Canopy first universe <input type="number" id="cx_u0" value="200" min="0"></label>
+   <label>Panes per universe <input type="number" id="cx_ppu" value="128" min="1" max="128"></label>
+   <label>&nbsp;<span class="note" id="cx_tot">counting panes</span></label>
+   <button type="button" id="cx_csv" class="sw">Download canopy patch CSV (one row per pane)</button>
+   <button type="button" id="cx_elm" class="sw">Download canopy ELM CSV (3D stage)</button>
   </div>
   <div class="stat" id="pm_tot"></div>
   <div class="pmtable"><table id="pm_table"></table></div>
@@ -1666,6 +1694,64 @@ function buildLightingRig(root,F){
 // and the shader lights it as a dyed 25 mm slab: the sky or the void lights behind it, times
 // its transmission colour, streaked the way cast slab glass is, with the bevel scattering the
 // backlight white and the LED show below catching in the rough face.
+// ============ THE CEILING AS A PIXEL MAP (Lloyd, 2026-09-09) ============
+// "pixel map the ceiling. So we can display patterns and animations in the stained glass as if they are
+// being back lit by RGBW lights behind each stained glass tile."
+// Every pane is ALREADY its own polygon with its own traced colour (tools/pieces.bin: 6,926 panes, median
+// 146 mm across, 149.6 m2 of glass, 97% of them with real chroma), so each pane IS a pixel and nothing has
+// to be invented to address one. A pane's id indexes a 128 x 128 RGBA texture: rgb is the fixture's colour
+// and ALPHA IS ITS WHITE CHANNEL, because what would sit in the void behind the glass is RGBW, not RGB.
+// The shader adds that light to the same "back" term the sky and the void lamps already use, so it arrives
+// THROUGH the pane's own dye exactly as a real backlight would: a deep red slab stays red whatever colour
+// is put behind it. PIX.through bleeds a share past the dye, because a show that has to read as one image
+// across 6,926 differently coloured pieces cannot be filtered by every one of them.
+// The patch: 6,926 panes x RGBW = 27,704 channels = 55 universes of 128 pixels.
+const PIX={side:128, on:0, gain:1.35, through:0.15, speed:1, pattern:'off', hue:0.58,
+           panes:[], n:0, u0:0, u1:1, v0:0, v1:1, tex:null, data:null, uni:null, t:0, wasOn:0,
+           uStart:0, ppu:128};
+function pixInit(){
+ const S=PIX.side; PIX.data=new Uint8Array(S*S*4);
+ PIX.tex=new THREE.DataTexture(PIX.data,S,S,THREE.RGBAFormat,THREE.UnsignedByteType);
+ PIX.tex.magFilter=THREE.NearestFilter; PIX.tex.minFilter=THREE.NearestFilter;
+ PIX.tex.generateMipmaps=false; PIX.tex.needsUpdate=true;
+}
+pixInit();
+window.PIX=PIX;   // the map is a live object: a show tool, a probe or a shot can drive it directly
+function pixHsv(h,sa,v){ h=((h%1)+1)%1*6; const i=Math.floor(h), f=h-i, q=v*(1-sa), w=v*(1-sa*f), e=v*(1-sa*(1-f));
+ switch(i%6){case 0:return[v,e,q];case 1:return[w,v,q];case 2:return[q,v,e];case 3:return[q,w,v];case 4:return[e,q,v];default:return[v,q,w];} }
+// x runs 0..1 along the hall, y 0..1 across it, q is the pane's own fixed random number (so a twinkle does
+// not march in the order the panes were traced), t is seconds. Each returns [r,g,b,w] in 0..1.
+const PIXPAT={
+ off:()=>[0,0,0,0],
+ white:()=>[0,0,0,1],
+ wash:(x,y,q,t,P)=>{const c=pixHsv(P.hue,0.92,1); return [c[0],c[1],c[2],0.10];},
+ rainbow:(x,y,q,t,P)=>{const c=pixHsv(x*1.15+t*0.07,0.95,1); return [c[0],c[1],c[2],0];},
+ sweep:(x,y,q,t,P)=>{const sPos=(t*0.16)%1.25-0.125; const d=Math.abs(x-sPos); const b=Math.exp(-(d/0.07)*(d/0.07));
+  const c=pixHsv(P.hue,0.55,1); return [c[0]*b,c[1]*b,c[2]*b,b*0.55];},
+ ripple:(x,y,q,t,P)=>{const r=Math.hypot((x-0.5)*3.4,(y-0.5)); const b=0.5+0.5*Math.sin(r*9.0-t*2.2);
+  const c=pixHsv(P.hue+r*0.25,0.85,1); const k=b*b; return [c[0]*k,c[1]*k,c[2]*k,k*0.2];},
+ twinkle:(x,y,q,t,P)=>{const ph=Math.sin(t*1.5+q*6.2832); const b=Math.pow(Math.max(0,ph),9);
+  const c=pixHsv(P.hue+q*0.12,0.35,1); return [c[0]*b,c[1]*b,c[2]*b,b];},
+ plasma:(x,y,q,t,P)=>{const v=Math.sin(x*7+t*0.9)+Math.sin(y*5-t*0.7)+Math.sin((x+y)*6+t*0.5);
+  const c=pixHsv(P.hue+v*0.09,0.9,1); const b=0.55+0.45*Math.sin(v*1.7+t*0.3); return [c[0]*b,c[1]*b,c[2]*b,0];},
+ coffer:(x,y,q,t,P)=>{const i=Math.floor((x*(PIX.u1-PIX.u0))/7.36)+Math.floor((y*(PIX.v1-PIX.v0))/7.50)*7;
+  const b=Math.pow(Math.max(0,Math.sin(t*1.1-i*0.9)),3); const c=pixHsv(P.hue+i*0.07,0.8,1);
+  return [c[0]*b,c[1]*b,c[2]*b,b*0.25];},
+};
+// The whole map is refilled each frame from the pattern and pushed as one texture upload: 6,926 texels is
+// 27 KB, far cheaper than touching 6,926 materials, and it is the same shape a real controller sends.
+function pixStep(dt){
+ if(!PIX.tex||!PIX.n)return;
+ if(PIX.uni){ PIX.uni.pixOn.value=PIX.on; PIX.uni.pixGain.value=PIX.gain; PIX.uni.pixThrough.value=PIX.through; }
+ if(!PIX.on){ if(PIX.wasOn){ PIX.data.fill(0); PIX.tex.needsUpdate=true; PIX.wasOn=0; sceneDirty=true; } return; }
+ PIX.wasOn=1; PIX.t+=(dt||0)*PIX.speed;
+ const f=PIXPAT[PIX.pattern]||PIXPAT.off, D=PIX.data, t=PIX.t;
+ for(let i=0;i<PIX.n;i++){ const q=PIX.panes[i], c=f(q.x,q.y,q.q,t,PIX), o=i*4;
+  D[o]=Math.max(0,Math.min(255,c[0]*255))|0; D[o+1]=Math.max(0,Math.min(255,c[1]*255))|0;
+  D[o+2]=Math.max(0,Math.min(255,c[2]*255))|0; D[o+3]=Math.max(0,Math.min(255,c[3]*255))|0; }
+ PIX.tex.needsUpdate=true; sceneDirty=true;
+}
+PIX.step=pixStep;   // so a probe or a show tool can advance the map without waiting for a frame
 let glassMesh=null;
 function coffRelief(du,dv,PU,PV){
  // height above the funnel vertex at an offset (du,dv) from a coffer centre. The coffer is an
@@ -1689,7 +1775,8 @@ async function buildGlassPieces(root, F){
   console.warn('canopy: pieces.bin is not a piece file'); return; }
  const n=dv2.getUint32(4,true), u0=dv2.getFloat32(8,true), v0=dv2.getFloat32(12,true), mm=dv2.getUint16(16,true);
  let o=18;                                // 'NGVP' + u32 count + 2*f32 origin + u16 scale
- const pos=[], col=[], aux=[];
+ const pos=[], col=[], aux=[], pid=[];
+ PIX.panes.length=0;
  const PROUD=0.006;                        // the pane sits 6 mm below the plate face, toward the hall
  const RIM=0.014;                          // the chipped bevel round a slab, ~14 mm wide seen from below
  const lin=1/255;
@@ -1714,6 +1801,9 @@ async function buildGlassPieces(root, F){
   const hcu=cu+F.du, hcv=cv+F.dv;
   if(hcu<F.su0||hcu>F.su1||hcv<F.sv0||hcv>F.sv1)continue;
   kept++;
+  const pane=kept-1;                      // the pane's own pixel id: dense, and the order the patch uses
+  {const Wc=lift(cu,cv); PIX.panes.push({u:hcu,v:hcv,X:Wc[0],Y:Wc[1],Z:Wc[2],r:r,g:g,b:b,
+    area:Math.abs(A),x:0,y:0,q:hash(i*7919+13)});}
   const seed=hash(i);
   // the bevel ring: every vertex slides inward along the bisector of its two edge normals.
   // Small slabs keep a body: the inset is capped at a third of the slab's rough radius, and a
@@ -1729,7 +1819,7 @@ async function buildGlassPieces(root, F){
    inner.push([c[0]+bx*rim/ch, c[1]+by*rim/ch]); }
   if(ok){ let Ai=0; for(let j=0;j<k;j++){ const p=inner[j],q=inner[(j+1)%k]; Ai+=p[0]*q[1]-q[0]*p[1]; } Ai*=0.5;
    if((Ai>0)!==(A>0)||Math.abs(Ai)<0.2*Math.abs(A))ok=false; }
-  const emit=(P,e)=>{ pos.push(P[0],P[1],P[2]); col.push(r*lin,g*lin,b*lin); aux.push(hcu,hcv,seed,e); };
+  const emit=(P,e)=>{ pos.push(P[0],P[1],P[2]); col.push(r*lin,g*lin,b*lin); aux.push(hcu,hcv,seed,e); pid.push(pane); };
   const outerW=uv.map(p=>lift(p[0],p[1]));
   if(ok){ ringed++;
    const innerW=inner.map(p=>lift(p[0],p[1]));
@@ -1746,6 +1836,20 @@ async function buildGlassPieces(root, F){
  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
  geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(col),3));
  geo.setAttribute('aux',new THREE.BufferAttribute(new Float32Array(aux),4));
+ geo.setAttribute('pid',new THREE.BufferAttribute(new Float32Array(pid),1));
+ // the map's own frame: every pane's centroid normalised over what the glass actually covers, so a
+ // pattern written in 0..1 lands on the canopy and not on the bounding box of the whole model. u and v
+ // here are the CANOPY BOARD's own axes (the trace's frame, u -52.57 to -1.27 along the hall and v 0.18
+ // to 14.86 across it), not the wall builder's hall u: the patch CSV carries true world x,y,z beside them
+ // so nothing downstream has to know which frame is which.
+ PIX.n=PIX.panes.length;
+ if(PIX.n){ let a=1e9,b2=-1e9,c2=1e9,d2=-1e9;
+  for(const q of PIX.panes){ if(q.u<a)a=q.u; if(q.u>b2)b2=q.u; if(q.v<c2)c2=q.v; if(q.v>d2)d2=q.v; }
+  PIX.u0=a; PIX.u1=b2; PIX.v0=c2; PIX.v1=d2;
+  for(const q of PIX.panes){ q.x=(q.u-a)/Math.max(b2-a,1e-6); q.y=(q.v-c2)/Math.max(d2-c2,1e-6); }
+  const pv=document.getElementById('pixval'); if(pv)pv.textContent=PIX.n.toLocaleString()+' panes';
+  if(typeof cxPatch==='function')cxPatch();
+  console.info(`canopy pixel map: ${PIX.n} panes, hall u ${a.toFixed(2)} to ${b2.toFixed(2)}, v ${c2.toFixed(2)} to ${d2.toFixed(2)}, ${4*PIX.n} RGBW channels`); }
  geo.computeBoundingBox(); geo.computeBoundingSphere();
  const gm=glassMaterial();
  glassMesh=new THREE.Mesh(geo,gm); glassMesh.name='canopy-glass-pieces';
@@ -1768,13 +1872,16 @@ function glassMaterial(){
  const m=new THREE.ShaderMaterial({
   uniforms:{house:{value:1},ambient:{value:AMBIENT},day:{value:0},sun:{value:new THREE.Vector3(0,1,0)},
    dayGain:{value:dayGainOf('ceiling-glass-procedural')},ledGain:{value:LED_GAIN_GLASS},
-   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex}},
-  vertexShader:`attribute vec4 aux; varying vec3 vCol; varying vec3 vPos; varying vec4 vAux;
-   void main(){vCol=color; vAux=aux; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz;
+   nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},
+   pix:{value:PIX.tex},pixOn:{value:0},pixGain:{value:PIX.gain},pixThrough:{value:PIX.through},pixSide:{value:PIX.side}},
+  vertexShader:`attribute vec4 aux; attribute float pid; varying float vPid;
+   varying vec3 vCol; varying vec3 vPos; varying vec4 vAux;
+   void main(){vCol=color; vAux=aux; vPid=pid; vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz;
     gl_Position=projectionMatrix*viewMatrix*wp;}`,
   fragmentShader:`uniform float house, ambient, day, dayGain, ledGain; uniform int nLights; uniform vec3 sun;
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades;
-   varying vec3 vCol; varying vec3 vPos; varying vec4 vAux;
+   uniform sampler2D pix; uniform float pixOn, pixGain, pixThrough, pixSide;
+   varying vec3 vCol; varying vec3 vPos; varying vec4 vAux; varying float vPid;
    float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
    float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
     float a=hash21(i), b=hash21(i+vec2(1.0,0.0)), c=hash21(i+vec2(0.0,1.0)), d=hash21(i+vec2(1.0,1.0));
@@ -1804,7 +1911,15 @@ function glassMaterial(){
     float sunF=clamp(dot(nUp,sun),0.0,1.0);
     vec3 sky=vec3(0.93,0.965,1.04)*(day*dayGain*0.72)*(0.68+0.38*sunF);
     vec3 lamps=vec3(1.0,0.86,0.66)*house*0.95;
-    vec3 back=sky+lamps+vec3(0.030,0.033,0.040)+vec3(ambient);
+    // THE PANE'S OWN BACKLIGHT. Its id picks one texel of the pixel map: rgb is the fixture's colour,
+    // alpha is its white channel, and an RGBW emitter puts out both together. Most of it is added to the
+    // backlight the sky and the void lamps already provide, so it comes through this pane's dye the way a
+    // real light behind the glass would; pixThrough carries the rest past the dye, which is the only way a
+    // single image reads across pieces whose own colours span the whole wheel.
+    vec2 pxy=vec2(mod(vPid,pixSide),floor(vPid/pixSide));
+    vec4 pxc=texture2D(pix,(pxy+vec2(0.5))/pixSide);
+    vec3 leds=(pxc.rgb+vec3(pxc.a))*pixGain*pixOn;
+    vec3 back=sky+lamps+vec3(0.030,0.033,0.040)+vec3(ambient)+leds*(1.0-pixThrough);
     // 3. inside the slab: streaks along the pour, fine seeds, fixed to the piece
     float seed=vAux.z*37.0, ang=vAux.z*6.2832;
     vec2 q=huv-vAux.xy; vec2 sq=vec2(cos(ang)*q.x-sin(ang)*q.y, sin(ang)*q.x+cos(ang)*q.y);
@@ -1821,6 +1936,7 @@ function glassMaterial(){
     float band=1.0-smoothstep(0.08,0.55,e);
     float glint=smoothstep(0.90,0.96,vnoise(huv*42.0+seed*7.0))*band;
     vec3 L=T*back*bodyV*lip;
+    L+=leds*pixThrough*bodyV*lip;      // the share that bypasses the slab's own colour
     L+=mix(T,vec3(1.0),0.7)*back*glint*1.3;
     float rim=glint;
     // 5. the LED show below: the closed-form vertical-segment integral the plate uses, on the
@@ -1874,7 +1990,7 @@ function glassMaterial(){
     #include <colorspace_fragment>
    }`,
   vertexColors:true, side:THREE.DoubleSide});
- m.name='ceiling-glass-pieces'; photoMats.push(m); return m;
+ m.name='ceiling-glass-pieces'; photoMats.push(m); PIX.uni=m.uniforms; return m;
 }
 const cam=new THREE.PerspectiveCamera(65,1,0.05,400);
 // start: eye height inside the hall, looking down its length (the hall runs along -x)
@@ -3054,6 +3170,43 @@ function pixelMap(){
 function pmShow(){const v=document.getElementById('pm_show').value; pmHi.kind=v?v[0]:''; pmHi.v=v?+v.slice(1):0; sceneDirty=true;}
 for(const id of ['pm_ppu','pm_u0','pm_maxout','pm_opc','pm_order','pm_dir'])document.getElementById(id).addEventListener('input',pixelMap);
 document.getElementById('pm_show').onchange=pmShow;
+// ---- THE CANOPY'S OWN PATCH (2026-09-09). One RGBW pixel per pane, addressed in trace order, which is
+// the same order the shader's pane ids run in, so what a console drives and what this page draws cannot
+// drift apart. 128 panes fill a universe exactly (4 channels each, 512 slots), which is why that is the
+// default; a controller that wants 170 RGB pixels per universe is the wrong shape for RGBW and the field
+// is there to say so. Positions are the pane centroids lifted onto the coffer surface, in millimetres,
+// the same convention the strips' ELM file uses.
+function cxPatch(){
+ const ppu=Math.max(1,Math.min(128,+document.getElementById('cx_ppu').value||128));
+ const u0=Math.max(0,+document.getElementById('cx_u0').value||0);
+ PIX.ppu=ppu; PIX.uStart=u0;
+ const nU=Math.ceil(PIX.n/ppu);
+ const el=document.getElementById('cx_tot');
+ if(el)el.textContent=PIX.n?`${PIX.n.toLocaleString()} panes -> ${(PIX.n*4).toLocaleString()} channels -> ${nU} universes (${u0} to ${u0+nU-1})`:'the canopy has not loaded yet';
+ return {ppu,u0,nU};
+}
+function cxCsv(){
+ const {ppu,u0}=cxPatch();
+ const out=['pane,canopy_u_m,canopy_v_m,x_mm,y_mm,z_mm,area_m2,trace_r,trace_g,trace_b,universe,address_r,address_g,address_b,address_w'];
+ for(let i=0;i<PIX.n;i++){ const q=PIX.panes[i], uni=u0+Math.floor(i/ppu), ch=1+(i%ppu)*4;
+  out.push([i,q.u.toFixed(3),q.v.toFixed(3),(q.X*1000).toFixed(0),(q.Y*1000).toFixed(0),(q.Z*1000).toFixed(0),
+            q.area.toFixed(4),q.r,q.g,q.b,uni,ch,ch+1,ch+2,ch+3].join(',')); }
+ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([out.join('\n')],{type:'text/csv'}));
+ a.download='ngv-canopy-pane-patch.csv'; a.click();
+}
+function cxElm(){
+ const {ppu,u0}=cxPatch();
+ const zup=document.getElementById('pm_up').value==='z', proto=document.getElementById('pm_proto').value;
+ const out=['x,y,z,protocol,universe,address,type,bits,strip,order,name'];
+ for(let i=0;i<PIX.n;i++){ const q=PIX.panes[i], uni=u0+Math.floor(i/ppu), ch=1+(i%ppu)*4;
+  const X=(q.X*1000).toFixed(0), Y=(q.Y*1000).toFixed(0), Z=(q.Z*1000).toFixed(0);
+  out.push([zup?X:X, zup?Z:Y, zup?Y:Z, proto, uni, ch, 'RGBW', 8, 'canopy', i, 'pane'+i].join(',')); }
+ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([out.join('\n')],{type:'text/csv'}));
+ a.download='ngv-canopy-elm.csv'; a.click();
+}
+for(const id of ['cx_u0','cx_ppu'])document.getElementById(id).addEventListener('input',cxPatch);
+document.getElementById('cx_csv').onclick=cxCsv;
+document.getElementById('cx_elm').onclick=cxElm;
 document.getElementById('pm_csv').onclick=()=>{const rows=pixelMap.rows||[];
  const csv=['strip,column,gap,pixels,leds,length_m,direction,controller,output,start_universe,start_channel,end_universe,end_channel']
   .concat(rows.map(e=>[e.strip,e.column,e.gap,e.pixels,e.leds,e.length.toFixed(2),e.dir,e.controller,e.output,e.u0,e.ch0,e.u1,e.ch1].join(','))).join('\n');
@@ -3202,6 +3355,19 @@ document.getElementById('anim').onchange=e=>{L().anim=e.target.value; paintLayer
 document.getElementById('spd').oninput=e=>L().speed=e.target.value/100;
 document.getElementById('level').oninput=e=>{state.level=e.target.value/100; document.getElementById('levelval').textContent=e.target.value+'%'; sceneDirty=true;};
 document.getElementById('house').oninput=e=>{lit.house=e.target.value/100; document.getElementById('houseval').textContent=e.target.value+'%'; rcSync();};
+// the ceiling pixel map's own controls. "Past the glass" is the one that needs a word: turned all the way
+// down, the light is filtered by each pane's own colour, which is what a real backlight does; turned up, a
+// share of it bypasses the dye so a pattern stays readable across pieces of every colour.
+{const ps=document.getElementById('pixpat'), pl=document.getElementById('pixlevel'),
+       ph=document.getElementById('pixhue'), pt=document.getElementById('pixthru');
+ const sync=()=>{ PIX.pattern=ps.value; PIX.on=ps.value==='off'?0:1;
+  PIX.gain=1.35*(+pl.value/100); PIX.hue=+ph.value/100; PIX.through=+pt.value/100;
+  document.getElementById('pixlevelval').textContent=pl.value+'%';
+  document.getElementById('pixhueval').textContent=ph.value;
+  document.getElementById('pixthruval').textContent=pt.value+'%';
+  if(PIX.n)document.getElementById('pixval').textContent=PIX.n.toLocaleString()+' panes';
+  sceneDirty=true; };
+ ps.onchange=sync; pl.oninput=sync; ph.oninput=sync; pt.oninput=sync; sync();}
 // colour wheel: hue round the ring, saturation from the centre, brightness on the slider
 const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), mark=document.getElementById('mark'), val=document.getElementById('val');
 (function drawWheel(){const W=160,c=W/2,img=wctx.createImageData(W,W),d=img.data,o=[0,0,0];
@@ -7229,7 +7395,7 @@ cv.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; tapAt={x:t.cl
 cv.addEventListener('touchend',e=>{ const t=[...e.changedTouches].find(x=>tapAt&&x.identifier===tapAt.id); if(!t)return;
  if(performance.now()-tapAt.t<400&&Math.hypot(t.clientX-tapAt.x,t.clientY-tapAt.y)<10&&portalHit(t.clientX,t.clientY))approachStart(); tapAt=null; });
 
-function frame(now){ portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
+function frame(now){ pixStep(Math.min(0.1,(now-last)/1000)); portalStep(now/1000); roamFabSync(); if(roam)roamStep(now/1000); if(tour)tourStep(now/1000); else if(restFinale&&finale)finaleStep(FIN_REST()); else if(approach)approachStep(now/1000); else if(idle)idleStep(now/1000); if(eventAnim)eventAnim(Math.min(0.1,(now-last)/1000),now/1000); if(wheelchairs.length)updateWheelchairs(Math.min(0.1,(now-last)/1000)); for(const f of fxList)f.mat.uniforms.t.value=now/1000-f.obj.userData.t0; if(confettiMat&&confetti)confettiMat.uniforms.t.value=now/1000-confetti.userData.t0; if((logo||partners.length)&&!finale){const dy=Math.min(0.1,(now-last)/1000)*2*Math.PI/45; // one turn every 45 s
   if(turntable)turntable.rotation.y+=dy;}
  // frosted glass writes depth, so nothing behind it ghosts through (the tag's glow did)
  if(frostNow!==frostTarget){ frostNow+=(frostTarget-frostNow)*Math.min(1,(now-last)/1000*2.5); if(Math.abs(frostNow-frostTarget)<0.003)frostNow=frostTarget; for(const m of glazingMats){ m.uniforms.frost.value=frostNow; m.depthWrite=frostNow>0.5; } }

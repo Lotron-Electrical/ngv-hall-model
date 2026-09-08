@@ -18,6 +18,16 @@ const place = () => P.ev(`(()=>{const g=ngv.game,P=g.player,L=g.lift;const p=g.h
 const eye = await place(); await P.sleep(1200); await place(); await P.sleep(150);
 await P.ev(`(()=>{const g=ngv.game; if(g.fx)g.fx.baseFov=${vfov}; ngv.cam.fov=${vfov}; ngv.cam.updateProjectionMatrix(); return ngv.cam.fov;})()`).catch(() => {});
 await place(); await P.sleep(120);
+// PIXPAT / PIXLEVEL / PIXHUE / PIXTHRU drive the ceiling pixel map (2026-09-09), so a shot can carry a
+// pattern in the stained glass. They set the real controls, not the internals, so the shot shows what a
+// visitor would see after moving the same sliders.
+if (process.env.PIXPAT) { const setv = (id, v) => `(()=>{const e=document.getElementById('${id}'); if(!e)return 'no ${id}'; e.value=${JSON.stringify(String(v))}; e.dispatchEvent(new Event('${id === 'pixpat' ? 'change' : 'input'}')); return e.value;})()`;
+  console.log('pixpat', await P.ev(setv('pixpat', process.env.PIXPAT)).catch(e => e.message));
+  if (process.env.PIXLEVEL) await P.ev(setv('pixlevel', process.env.PIXLEVEL)).catch(() => {});
+  if (process.env.PIXHUE) await P.ev(setv('pixhue', process.env.PIXHUE)).catch(() => {});
+  if (process.env.PIXTHRU) await P.ev(setv('pixthru', process.env.PIXTHRU)).catch(() => {});
+  if (process.env.PIXT) await P.ev(`(()=>{window.PIX.t=${+process.env.PIXT}; return PIX.t;})()`).catch(() => {});
+  await P.sleep(900); }
 // HIDE=name1,name2 hides every mesh whose name or material name matches (an isolation aid)
 if (process.env.HIDE) { const names = JSON.stringify(process.env.HIDE.split(',')); await P.ev(`(()=>{const N=${names}; let n=0; ngv.scene.traverse(o=>{ if(o.isMesh&&(N.includes(o.name)||(o.material&&N.includes(o.material.name)))){o.visible=false;n++;} }); ngv.dirty(); return n;})()`).then(n => console.log('hidden', n)); await P.sleep(600); }
 // PICK=x,y[;x,y...] names the mesh under each pixel of the shot (an isolation aid: what is that slab?)
