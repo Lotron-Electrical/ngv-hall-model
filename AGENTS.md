@@ -1232,7 +1232,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   along this wall; on the full zoomify scan (7047 x 5635) the hall's column pitch is 190 px for
   7.37 m (25.8 px/m) and the gallery strip is 50 px = 1.9 m wide between its outer line and the
   toothed hall wall (the wall with its alcoves 33 px = 1.3 m thick; the 27 teeth are schematic,
-  not the 12 openings), so width 2.0 (+-0.2); its floor the second floor h 8.34; its ceiling
+  not the 12 openings), so width 2.0 (+-0.2); the third-floor plan BUIL005496 draws NOTHING over
+  it (the hall's void runs to the outer wall there), so the gallery is the top storey on that
+  side and its ceiling is not another floor; its floor the second floor h 8.34; its ceiling
   (11.8) and back wall are UNMEASURED (no frame or cloud point sees them), so it is one dark Lambert
   volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'). 6 grilles
   (about 0.9 x 0.33 m at h 2.6-3.0; u 10-30 is a stage in every frame, unmeasured there), a dark
