@@ -1325,7 +1325,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               plane. The deck frames d4_000031/169 (h 10.05/10.29, 0.3 m behind the glass, canopy
               above the face) only bound the head from below (10.62). Stone from the head to the
               top on the face plane. A white light fitting on each back wall (`ENDW.wallLamps`:
-              east d 7.9, h 10.5 from w1_000404 and w1_000356, +-0.25; west d 7.0, h 11.4 from
+              east d 7.9, 12.28 and 13.25, h 10.5-10.6, plus a green exit sign on d 13.5, h 10.69,
+              from w1_000404 and w1_000356, +-0.25 (`topExit.east`); west d 7.0, h 11.4 from
               w2_000252 alone; 2026-09-09)
   TONES (tools/end_profile.py class:frame:PAIR samples the sim half of a pose pair on the real
   pose, so real and sim profiles compare number for number): by day the top gallery reads THREE
