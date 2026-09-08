@@ -1239,12 +1239,23 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   the 2014 photograph's lit doorway), a dark aperture at u 45.70-48.22 head 2.52 (+- 0.3).
   Tapestries measured at u 8.37-12.49 (4.1 m wide: narrower than the 5.46 m work tools/
   tapestries.json puts there by elimination) and 37.95-42.71.
-- END GALLERIES (`ENDW`). Both ends share two face-plane edges: the recess head at h 9.96 / 10.04
-  and an edge at 3.80 / 3.91; the west resolves elements in depth at h 3.99 (5.8 m back, the
-  gallery floor), 6.33 (2.65 m), 8.34 (6.6 m), 10.97 (1.0 m). So the recess runs h 3.92-10.0, 6.2 m
-  deep, tiers at 6.33 and 8.34 (three balustrades with the floor, as b0cefe7f shows). Unmeasured:
-  the recess width (d 3.9-11.5 kept), the balustrade heights, the east's tiers (its frames all
-  stand 13 m out on the south side): the east is the west's, said so.
+- END GALLERIES (`ENDW`, rebuilt 2026-09-08, Lloyd: "get the ends of the hall correct"). They PROJECT
+  into the hall, they are not a recess: the 138 day4k frames were all shot from the east gallery
+  standing 3.9 m in front of the plate end (u 48.0, h 9.7), the 1968 ground plan (BUIL005490, 27.1
+  mm/px off the column pitch) puts the hall's end walls 3.7 m past the outer columns, and the 4K view
+  of the west end shows the stack: a lit ground lobby, three open floors with dark fascias and dark
+  glass balustrades, lit ceilings, a stone wall with double doors behind the top one. Floors on the
+  measured h 3.99 / 6.33 / 8.34 (endwalls.json), face u 4.05 / 48.2, back wall on the plate end
+  (0.344 / 51.906, the face-plane edge h 9.96-10.04). The scan's closures, u -4.65 and 49.06, are
+  the real ground-level walls (the lobby's back, the kitchen wall) and are KEPT below the first
+  fascia (the shader cut is h > 3.54 only). Unmeasured, taken as: fascia 0.45, balustrade 1.1,
+  ceilings 0.45 under the floor above; the east's tiers repeat the west's (its frames stand 13 m out).
+- TAPESTRIES (2026-09-08): all four identified by NCC on the 4 mm orthos against the collection
+  images at true size (tools/tap_id.py): south-A Organic form 0.545, south-B Evolving forms 0.394,
+  north-A Abstract sequence 0.339 (mirrored, as the north wall reads in u), north-B Piano movement
+  0.446; each next candidate under 0.26. Placed on the NCC boxes (tools/tap_place.py writes
+  tools/tapestries.json): the south pair had sat 0.3 m low / 0.3 m west.
+- THE INSCRIPTION is gone (Lloyd, 2026-09-08: "I didn't want that there").
 - PROOF. `tools/wall-check.mjs <out> [page] [tag]` (CDP_PORT 9334): nine views by day and night
   in install mode; before/after in `agent-ref-walls/shots/`. `game/hallmat.js` paints the same
   lists flat for the sim.

@@ -21,27 +21,28 @@
    "confidence": "high",
    "corners": [
     [
-     -46.893,
-     1.841,
-     4.872
+     -46.9186,
+     1.9146,
+     4.8897
     ],
     [
-     -41.174,
-     1.841,
-     6.157
+     -41.2108,
+     1.9146,
+     6.172
     ],
     [
-     -41.186,
-     6.827,
-     6.201
+     -41.2108,
+     6.9046,
+     6.172
     ],
     [
-     -46.906,
-     6.827,
-     4.916
+     -46.9186,
+     6.9046,
+     4.8897
     ]
    ],
-   "identification": "medium: NCC winner on 11 of 12 frames"
+   "identification": "medium: NCC winner on 11 of 12 frames",
+   "placement": "ortho NCC 2026-09-08 (agent-ref-walls, tools/tap_id.py): box u 8.20-14.05 h 3.35-8.34, +-0.05 m"
   },
   {
    "position": "north-2",
@@ -62,27 +63,28 @@
    "confidence": "high",
    "corners": [
     [
-     -17.915,
-     1.753,
-     11.381
+     -17.9992,
+     1.9146,
+     11.386
     ],
     [
-     -12.531,
-     1.753,
-     12.591
+     -12.6622,
+     1.9146,
+     12.585
     ],
     [
-     -12.543,
-     6.753,
-     12.635
+     -12.6622,
+     6.8746,
+     12.585
     ],
     [
-     -17.928,
-     6.753,
-     11.426
+     -17.9992,
+     6.8746,
+     11.386
     ]
    ],
-   "identification": "high: NCC 0.62-0.69 vs 0.21-0.23"
+   "identification": "high: NCC 0.62-0.69 vs 0.21-0.23",
+   "placement": "ortho NCC 2026-09-08 (agent-ref-walls, tools/tap_id.py): box u 37.84-43.31 h 3.35-8.31, +-0.05 m"
   },
   {
    "position": "south-1",
@@ -103,27 +105,28 @@
    "confidence": "medium",
    "corners": [
     [
-     -43.238,
-     1.937,
-     -10.128
+     -43.2228,
+     2.2346,
+     -10.1008
     ],
     [
-     -37.876,
-     1.937,
-     -8.923
+     -37.9054,
+     2.2346,
+     -8.9061
     ],
     [
-     -37.889,
-     6.937,
-     -8.879
+     -37.9054,
+     7.1946,
+     -8.9061
     ],
     [
-     -43.25,
-     6.937,
-     -10.083
+     -43.2228,
+     7.1946,
+     -10.1008
     ]
    ],
-   "identification": "by elimination only: no usable image of this bay; the other three of the four >5 m works are placed"
+   "identification": "by elimination only: no usable image of this bay; the other three of the four >5 m works are placed",
+   "placement": "ortho NCC 2026-09-08 (agent-ref-walls, tools/tap_id.py): box u 8.52-13.97 h 3.67-8.63, +-0.05 m"
   },
   {
    "position": "south-2",
@@ -144,27 +147,28 @@
    "confidence": "low",
    "corners": [
     [
-     -14.589,
-     1.937,
-     -3.691
+     -14.2842,
+     2.0646,
+     -3.5991
     ],
     [
-     -9.374,
-     1.937,
-     -2.52
+     -9.0741,
+     2.0646,
+     -2.4286
     ],
     [
-     -9.387,
-     6.937,
-     -2.475
+     -9.0741,
+     7.0646,
+     -2.4286
     ],
     [
-     -14.602,
-     6.937,
-     -3.647
+     -14.2842,
+     7.0646,
+     -3.5991
     ]
    ],
-   "identification": "high: NCC 0.51-0.65 vs 0.10-0.18"
+   "identification": "high: NCC 0.51-0.65 vs 0.10-0.18",
+   "placement": "ortho NCC 2026-09-08 (agent-ref-walls, tools/tap_id.py): box u 38.18-43.52 h 3.50-8.50, +-0.05 m"
   }
  ],
  "identified": "2026-09-07, bandpass NCC of rectified day-4K balcony frames against the NGV collection images (scratchpad kemp/identification.json)"
