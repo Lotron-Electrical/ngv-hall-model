@@ -1091,7 +1091,7 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // is both agreed and out by more than 50 mm. The openings are therefore as accurate as this imagery can
 // make them; moving any of them further would be fitting noise.
 const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.785,11.998],[15.154,16.367],[18.646,19.859],[22.357,23.570],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
- openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[45.16]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); the corridor from the 1968 plan; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[45.16]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width UNMEASURED, from the 1968 plan; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -2375,6 +2375,23 @@ function buildWallDetails(root){
   // inference from one lamp and it is still unmeasured, and so is the plan's 2.0 width. What that clip
   // DOES describe, and describes well, is the upper gallery: glass vitrines of Greek urns, a broad flat
   // coping, an ashlar back wall with dark niches, round columns. Those belong to the balcony build.
+  // THE POSE CENSUS, which closes this question for the whole archive (2026-09-09, tools/corridor_poses.py).
+  // Photometry cannot reach in here: an opening is 100-150 px wide from the floor with under 20 grey levels
+  // of signal inside it, and the head soffit stands over the reveal so an upward sightline ends on its
+  // underside. The one instrument left is the one that placed clip 153148: a registered camera IS a
+  // measurement of the point it stood at. So every accepted model in the archive was walked and every
+  // camera centre put in this frame. 1,116 registered cameras: 1,094 stand in the hall, 22 stand INSIDE
+  // AN OPENING, and ZERO stand in the corridor. The 22 are all b1, all in opening 5 (u 19.36-19.71), all
+  // reaching only d -0.14 to -0.45 with the lens pointed back out at the hall (look d +0.68 to +0.81).
+  // The deepest is 0.36 m past the inner face and still 0.54 m short of the back of the reveal.
+  // SO: nobody has ever carried a camera into this room, and C.width 2.0 and C.ceil 11.4 cannot be
+  // measured from this archive by any method. They stay as the 1968 plan and the one downlight put them,
+  // and they stay marked unmeasured. Do not spend another pass trying; the frames do not exist.
+  // The ONE number the census does settle is the floor. Those 22 cameras sit h 9.58-9.86 while leaning
+  // through the opening, and a phone is carried 1.35-1.65 m above the feet, so the surface the operator
+  // stood on is h 7.93-8.51. C.floor 8.34 sits inside that, and it is the second floor the building
+  // already has, so the corridor floor is now corroborated rather than assumed. It also makes the sill
+  // (8.99) a low 0.65 m above that floor, which is why a person leaning on it puts a lens near 9.7.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
