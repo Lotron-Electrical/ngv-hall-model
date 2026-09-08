@@ -41,7 +41,7 @@ if len(slopes) >= 2:
     med = float(np.median(v)); rng = float(v.max() - v.min())
     print('POOLED over %d captures: %+0.3f m, capture range %.3f m' % (len(v), med, rng))
     if rng > 0.10: print('the captures disagree by %.0f mm: the face is NOT measured by this' % (rng * 1000))
-    elif abs(med) > 0.05: print('agreed and out: the north face should move %+0.3f m from d -0.090' % med)
-    else: print('agreed and within %.0f mm: d -0.090 stands' % (abs(med) * 1000))
+    elif abs(med) > 0.05: print('agreed and out: the drawn face should move %+0.3f m' % med)
+    else: print('agreed and within %.0f mm: the drawn face stands' % (abs(med) * 1000))
 else:
     print('fewer than two captures could be fitted: not measured')

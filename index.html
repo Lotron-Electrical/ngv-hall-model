@@ -1158,8 +1158,20 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // So d -0.090 stands, confirmed to 3 mm with a capture-to-capture spread of 36 mm. That is the tightest
  // number in this whole wall effort, and it matters beyond itself: a face error would have contaminated
  // every jamb reading taken through it, and it has not.
- // The SOUTH face 15.364 has no equivalent yet. Its glazing comes from the scan mesh rather than a table,
- // so there are no drawn vertical lines on it to run this estimator against. UNMEASURED by this method.
+ // THE SOUTH FACE 15.364 IS NOW MEASURED TOO, and by the same estimator (tools/south_edges.py). The
+ // reason it had none was that the south GLAZING comes from the scan mesh rather than a table, so there
+ // were no drawn vertical lines to search for. That is true of the glazing and not of the wall: the south
+ // face also carries three grilles and two doors, and those are tables here, which gives ten vertical
+ // edges to work with. Fitted the same way and pooled:
+ //   day4k -0.010; night -0.050; walk +0.003        pooled -0.010 m, capture range 0.053 m
+ // So 15.364 stands, confirmed to 10 mm over three captures. b3 and b7s see this wall but never square
+ // enough on for the fit.
+ // The south wall's own FEATURES are a different story and none of them is moved. Across those same
+ // captures the grille and door edges pool with a median capture-to-capture spread of 185 mm, 2.4 times
+ // their spread inside one capture, and only one of nine (door 2 east, +0.041) is both agreed and settled.
+ // Grille 2 reads about 0.09 m west in the captures that resolve it, but only one capture resolves BOTH
+ // its edges, so that cannot be applied as a shift the way the north openings were. The south wall is
+ // where it is drawn; what stands on it is not measured.
  dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
 const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
