@@ -2204,7 +2204,7 @@ function buildWallDetails(root){
  // only its dark ceiling shows. Night captures: unlit.
  const cnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:day, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); endLitMats.push(m); return m; };   /* applyDay lerps it each frame */
  const corridorMat=cnm(0x0a0908,0x2a2724,'corridor');   /* its ceiling, floor and near faces */
- const corridorBackMat=cnm(0x0c0b0a,0x4b4844,'corridor-back');
+ const corridorBackMat=cnm(0x0c0b0a,0x423a2c,'corridor-back');   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});

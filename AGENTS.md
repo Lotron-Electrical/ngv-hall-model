@@ -1238,7 +1238,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   11.4 (+-0.1: the deck frame d4_000120 sees a downlight in it through the nearest opening,
   h 11.29-11.46 across the corridor's depth, chain_pixel.py 2026-09-09; `corridor.lamps` builds
   that one lamp, its depth assumed mid-corridor: every camera that sees it stands on the one deck
-  spot, so no parallax, tools/lamp_seers.py); its back wall is UNMEASURED, so it is one dark
+  spot, so no parallax, tools/lamp_seers.py); its back wall's depth is UNMEASURED, its daytime
+  tone measured (warm, 0.68/0.60/0.45 of the stone beside the opening in d4_000120, corridorBackMat
+  day 0x423a2c renders it 52/43/29 against the frame's 51/38/26); so it is one dark
   volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'); the scan
   closes each opening with a black cap about 1.2 m in, so photoMaterial and game/hallmat.js
   discard scan fragments 0.3-3.5 m behind the face inside an opening (tools/patch_open_caps.py)
