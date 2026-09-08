@@ -1267,9 +1267,13 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   parapet), the 4K west frames, endwalls.json and the 1968 plans (agent-ref-ceiling/online/
   ngv_*_floor_plan_1968_BUIL0054*.jpg: the first-floor plan's balconies are 0.46 of a column pitch
   deep on both ends, 3.9 m, the depth built). The stack, ONE plane per end:
-    h 0-5.3   a stone ground wall with doors (east: double doors d 5.7-8.0 and a porthole door
-              9.8-11.1, the 2014 photograph; west: a porthole door 11.5-12.7 and the lit doorway
-              12.9-14.6, w1_000028 and endwalls.json's lit opening), +-0.3 in d. The stone reads
+    h 0-5.3   a stone ground wall with doors (east: double doors d 5.7-8.0 with a round window per
+              leaf and a porthole door 9.8-11.1, the 2014 photograph; west: ONE double door
+              12.9-14.6 with a round window per leaf at d 13.25 and 13.95, h 1.5, 0.4 across:
+              the day frames show two bright discs on dark leaves, endwalls.json's night "two
+              light sources" are those windows lit from the lobby, and the old 11.5-12.7
+              porthole door was a misplacement of them, tools/patch_end_doors.py), +-0.3 in d.
+              The stone reads
               as stone up to h 5.4 in every frame's brightness profile (tools/end_profile.py,
               six frames of both ends: 26-29 against the stone's 23-28), so the ground wall
               runs to 5.3, not 4.2 (the 2014 photograph's 4.39 band top was misread).
