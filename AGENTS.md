@@ -1319,7 +1319,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               canopy; the east floor frame w1_000404 reads the lit back wall to 12.9 on the back
               plane. The deck frames d4_000031/169 (h 10.05/10.29, 0.3 m behind the glass, canopy
               above the face) only bound the head from below (10.62). Stone from the head to the
-              top on the face plane
+              top on the face plane. A white light fitting on each back wall (`ENDW.wallLamps`:
+              east d 7.9, h 10.5 from w1_000404 and w1_000356, +-0.25; west d 7.0, h 11.4 from
+              w2_000252 alone; 2026-09-09)
   TONES (tools/end_profile.py class:frame:PAIR samples the sim half of a pose pair on the real
   pose, so real and sim profiles compare number for number): by day the top gallery reads THREE
   times the stone with a row of downlights about 3 m apart (w2_000252 150-180 against 50;
