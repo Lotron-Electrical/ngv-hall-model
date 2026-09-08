@@ -1090,7 +1090,30 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // jambs, twenty-one of twenty-four cannot be agreed across captures at all (worst 394 mm), and not one
 // is both agreed and out by more than 50 mm. The openings are therefore as accurate as this imagery can
 // make them; moving any of them further would be fitting noise.
-const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.785,11.998],[15.154,16.367],[18.646,19.859],[22.357,23.570],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
+// THE OPENINGS MOVE AS OPENINGS (2026-09-09, tools/wall_edges.py repaired, tools/opening_shift.py).
+// Two things changed since the table above was set this morning. The jamb instrument was ECHOING the table
+// it was checking (drawn 1.256 measured 1.219, drawn 1.213 measured 1.189, a follow gain of 0.70); with the
+// fixed-point finder and a constant search window that gain is 0.37 and the two drawn widths now measure
+// 1.217 and 1.202, which BRACKET the shipped 1.213, so the width itself is confirmed and is not touched
+// again here. And clip 154940 (b7s) joined the archive, a sixth capture and the only one that looks at this
+// wall from the south upper gallery.
+// The second change is how the numbers are read. Five individual jambs pool as more than 50 mm out, but
+// applying them one at a time would give four openings widths of 1.269, 1.112, 1.094 and 1.240, and this is
+// a wall of twelve identical windows: the width is not what varies. Where both jambs of an opening resolve
+// they mostly move the SAME WAY BY THE SAME AMOUNT, which is an opening standing a few centimetres from
+// where it is drawn. So the estimator is the SHIFT: each capture states its own shift for an opening (the
+// mean of its two jamb offsets, both read in the same frames, where most of the error is common to them),
+// and those per-capture shifts are then pooled. Four openings move, every width left alone:
+//   opening  3   -0.078   (night -0.121, walk -0.036, range 0.085)
+//   opening  4   +0.073   (night +0.099, walk +0.047, range 0.052)
+//   opening  5   +0.124   (b7s +0.120, walk +0.127, range 0.007)   a floor walk and a balcony clip
+//   opening  6   +0.061   (b1 +0.019, walk +0.103, range 0.084)
+// Openings 7, 8, 9 and 12 pool agreed and within 50 mm and STAY, which independently confirms this
+// morning's shifts of 7, 8 and 9 with the repaired instrument. Openings 1, 10 and 11 cannot be agreed
+// across captures (108, 178 and 192 mm) and opening 2 has only one capture; none of those is moved.
+// Every shift is a LOWER bound, because a follow gain of 0.37 remains and a following instrument
+// understates. Do not read a small residual on the next re-measure as confirmation: part of it is the echo.
+const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
  // THE SILL AND THE HEAD, tested for the first time (2026-09-09, tools/open_levels.py, open_pool.py).
  // Every wall measurement until today was horizontal: where the jambs stand along the hall. The openings
  // also have a top and a bottom and nobody had ever put a photograph against them. Two protections were
