@@ -2318,7 +2318,7 @@ function buildWallDetails(root){
 // cameras stood at u 47.81-48.64 (median 48.15) on the east gallery, a rail's width behind its edge,
 // so the east face is 48.0 +-0.2; 3.85 satisfies both. The lit doorway in the west top gallery's back
 // wall (an exit sign over it in d4_000049) sits against the south wall: d 13.4-14.2 (+-0.3).
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.56, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.1, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.68, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.1, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -2406,8 +2406,20 @@ function buildEndWalls(root){
   quad([[uB,0,fl[0]],[uB,D,fl[0]],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackMat,'gallery-back');
   // the top floor: the fascia, a solid dark parapet, the floor, the lit soffit on the head, the back wall
   quad([[uF,0,fl[1]-W.slab],[uF,D,fl[1]-W.slab],[uF,D,fl[1]],[uF,0,fl[1]]],upstandMat,'gallery-fascia');
-  // a 0.56 m solid upstand with glass over it: the lit interior shows from h 8.9 in every frame of both
-  // ends (end_profile.py) and the 4k frame d4_000198 looks down through the glass
+  // a 0.68 m solid upstand with glass over it. The top of the solid part is the one balcony line the floor
+  // imagery can actually resolve, and it was measured again on 2026-09-09 (tools/end_levels.py: the level's
+  // line projected into every frame that sees it, the strongest brightness gradient inside a window that
+  // never reaches halfway to the next modelled level, per-frame medians over 21 samples across the end):
+  //   walk, east end   +0.157 m over the drawn 8.90   (22 sharpest frames, p25 +0.147 p75 +0.173)
+  //   night, east end  +0.114 m                       (17 frames, p25 +0.069 p75 +0.138)
+  //   walk, west end   +0.078 m                       (25 sharpest frames, p25 +0.055 p75 +0.098)
+  // Two captures, different nights and different cameras, agree in sign and size at the east end, so the
+  // old 0.56 (from end_profile.py's "lit interior shows from h 8.9") was short. NOT a face-position error:
+  // moving the end face reproduces the offset too, but only with a size that halves as the camera doubles
+  // its distance, and the measured offset is flat from 22 m to 43 m (+0.150 near, +0.149 far). A per-end
+  // split (west 0.64, east 0.70) sits inside the spread between the two east numbers, so one value is used.
+  // The deck it stands on stays 8.34: b1 and b3 stand on it at eye 9.17-10.14, which is a person's height
+  // above 8.34 and no other. The 4k frame d4_000198 looks down through the glass over this upstand.
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+W.upstand],[uF,0,fl[1]+W.upstand]],upstandMat,'gallery-parapet');
   quad([[uF,0,fl[1]+W.upstand],[uF,D,fl[1]+W.upstand],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
   quad([[uF,0,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],handMat,'gallery-handrail');
