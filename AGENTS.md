@@ -1311,11 +1311,15 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               with the h 9.40 plane runs straight (u 47.53-47.59), the phone 0.26 m behind it; the
               d4_000232 chain put the same edge under the phone, the anchors differ 0.27 in u, so the
               face is +-0.3 and the built 48.056 stays
-    10.65     the head (the west's measured head; the east's 10.2 is where the lit back ends, not
-              the head: Lloyd's own 4K deck frames d4_000031 (u 48.34, h 10.05, pitched 18 up) and
-              d4_000169 (h 10.29) stand 0.3 m behind the glass and see canopy, not soffit, above
-              the face, so the head clears 10.62; pose pairs bal-d31, bal-d168), the soffit with
-              its downlights, and stone from there to the top, on the face plane
+    11.1      the head: a 2.1 m deep FRONT soffit with its downlights, the back wall running on
+              to the canopy behind it (`ENDW.head`, `soffitDepth`, 2026-09-09). The west floor
+              frame w2_000252 has a lit fascia edge on 11.1, a dark underside spanning u 4.2-2.07
+              on that plane, then the lit back wall beyond; the 4K deck frame d4_000049 has the
+              exit light on the back wall on 11.07 and stone continuous above the doorway to the
+              canopy; the east floor frame w1_000404 reads the lit back wall to 12.9 on the back
+              plane. The deck frames d4_000031/169 (h 10.05/10.29, 0.3 m behind the glass, canopy
+              above the face) only bound the head from below (10.62). Stone from the head to the
+              top on the face plane
   TONES (tools/end_profile.py class:frame:PAIR samples the sim half of a pose pair on the real
   pose, so real and sim profiles compare number for number): by day the top gallery reads THREE
   times the stone with a row of downlights about 3 m apart (w2_000252 150-180 against 50;
@@ -1434,8 +1438,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   it; its tier heights are unmeasured). The west top gallery's south doorway (4K d4_000049, 45 m off):
   a pale panel d 12.4-15.3 from the parapet to the head round a darker door d 13.35-14.15 with a green
   exit light over it (`ENDW.westTopPanel/westTopDoor/westTopExit`, 2026-09-09); the sign meets the back
-  wall on h 11.07, above the 10.65 head, so the gallery ceiling may be higher behind a lower front
-  fascia (or the register's tilt is 0.4 degrees off), unresolved. OPEN: the install sim's corridor door (buildDoor, the
+  wall on h 11.07, under the 11.1 head (resolved the same day: a 2.1 m front soffit, the wall
+  open to the canopy behind it). OPEN: the install sim's corridor door (buildDoor, the
   `door` uniform) still sits in the old closure plane at 49.06, told to the install session.
 - PROOF. `tools/light-audit.mjs` (the shader still conserves flux), `tools/game-guide.mjs`, and
   the before/after pairs: `git show HEAD~1:index.html > .wall-before.html`, shoot both pages at
