@@ -1527,6 +1527,13 @@ neighbours and the steel), but for the saturated slabs the hue agrees to 16 to 1
 median against the walk and the combined sheet, so the panorama's colours are not corrected:
 a correction fitted to blur would be fabrication. Scratch: `colour_check.json`.
 
+**The ends in numbers (2026-09-08, tools/end_residual.py).** Six pose pairs on the current build (three a side,
+day, night and 4K), the brightness profile up each end face stepped real against sim at four d stations, each sim
+step matched to the nearest real step of its sign within 0.45 m: east 11 matched, mean 0.00 m, |median| 0.30, 90 %
+within 0.45; west 11 matched, mean 0.00, |median| 0.20, 90 % within 0.35. No bias; the scatter is blur against
+hard sim edges. Unmeasured still: the glass rails' heights (0.89 / 1.06 kept), the corridor's ceiling and back wall
+(1968 plan), the east door windows' positions, the tapestries' +-0.4. Log: PLAN-20260908-walls.md 23:55.
+
 **Online video and photographs (2026-09-08, agent-ref-walls/online/).** Two research agents harvested YouTube
 and Wikimedia Commons for the hall's interior. Useful: `video/qXnaPNrQAsI.webm` ("[4K] NGV Tour", 2022, 1080p),
 258-275 s shot FROM the east top gallery looking west: it confirms the north wall's six top openings as deep dark

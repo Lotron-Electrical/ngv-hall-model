@@ -5,6 +5,8 @@ O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.21
 spec, side = sys.argv[1], sys.argv[2]; pix = sys.argv[3:]
 cname, fr = spec.split(':'); cam, ipath = U.load_class(cname)[fr]
 dwall = -0.09 if side == 'north' else 15.364
+# east / west: the end galleries' front faces (ENDW.face 3.85 in front of the plate lines)
+uwall = {'east': 48.056, 'west': 4.194}.get(side); NV = HU if uwall is not None else HD; target = uwall if uwall is not None else dwall
 p = cam.params
 if cam.model == 'PINHOLE': fx, fy, cx, cy = p; k1 = k2 = p1 = p2 = 0.0
 else: fx, fy, cx, cy, k1, k2, p1, p2 = p
@@ -25,9 +27,9 @@ for pp in pix:
     px, py = map(float, pp.split(','))
     xn, yn = undistort((px - cx) / fx, (py - cy) / fy)
     D = cam.R.T @ np.array([xn, yn, 1.0])
-    dC = (C - O) @ HD; dD = D @ HD
+    dC = (C - O) @ NV; dD = D @ NV
     if abs(dD) < 1e-6: print(pp, 'parallel'); continue
-    t = (dwall - dC) / dD
+    t = (target - dC) / dD
     if t <= 0: print(pp, 'wall behind the camera'); continue
     X = C + t * D
-    print('%s -> u %.2f h %.2f (range %.1f m)' % (pp, (X - O) @ HU, X[1] - O[1], t))
+    print('%s -> u %.2f d %.2f h %.2f (range %.1f m)' % (pp, (X - O) @ HU, (X - O) @ HD, X[1] - O[1], t))
