@@ -352,6 +352,17 @@ lifted the same way in `tour.mp3` so the crossfade is level-matched.
   what.
 - Writes that a client would see (a live stream on a hall, a commit, a push) need the owner's word
   first.
+- **WHAT THIS REPO SHIPS IS THE SANDBOX, NEVER THE PROPOSAL PAGE** (Lloyd, 2026-09-09: "make sure
+  the Sim that is shipped is the sandbox version and we don't ship to the one on the proposal page
+  unless I say so"). `git push origin main` publishes GitHub Pages at
+  https://lotron-electrical.github.io/ngv-hall-model/, and that page is the sandbox: its header
+  reads "Sandbox" over "Gandel Hall Sim" (index.html, the `<header>` line). Checked 2026-09-09: the
+  proposal page https://lotronelectrical.com/pages/ngv-gandel-hall carries NO iframe and NO link to
+  the sim, and nothing in this repo can write to Shopify (no workflow, no deploy script; the only
+  file that names the store is tools/live-preview.js, and that name is an ELM show file). So a push
+  from here cannot reach the proposal. Putting the sim on the proposal page, or changing what the
+  proposal embeds, is a separate act on the Shopify side and needs Lloyd to ask for it by name.
+  Before reporting anything live, say WHICH page: the sandbox.
 
 ## Zero-touch show file (measured 2026-08-31)
 
