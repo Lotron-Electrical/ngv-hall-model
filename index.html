@@ -1055,9 +1055,9 @@ const WALLF={openings:[[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.38
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
-  {north:false, u0:37.962, u1:39.662, h:2.906, lit:true, depth:1.0},
+  {north:false, u0:37.962, u1:39.662, h:2.906, closed:true, depth:1.0},
   {north:false, u0:45.698, u1:48.218, h:2.522, lit:false, depth:1.0},
-  {north:true, u0:23.10, u1:29.40, h:2.3, lit:true, depth:1.0, photoOnly:true, back:0xc4cbd2, bright:[28.4,29.4]}],
+  {north:true, u0:23.10, u1:29.40, h:2.3, closed:true, depth:1.0}],
  sign:{text:'GANDEL HALL', u0:24.5, u1:27.1, h0:2.65, h1:3.0},
  exitSigns:[{north:false, u0:40.5, u1:40.85, h0:2.68, h1:2.88}],   /* the green exit light east of the south door: night w5_000082 met with the south face (wall_pixel.py) puts its glow on u 40.66, h 2.78, +-0.3 (18 m, grazing); a red indicator sits below it (u 40.2, h 1.6), too small to build */   /* the name over the north doorway: walk w1_000446 met with the face, wall_pixel.py */   /* the lit glazed doorway: the brightness along the wall face in 7 day-walk frames (tools/door_profile.py) runs u 23.1-29.4 in every frame holding both edges, head 2.2-2.4; the balcony 4k frames put the west edge 0.3 further west */
  skirt:0.10,
@@ -2210,6 +2210,7 @@ function buildWallDetails(root){
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
  const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
  const darkBack=new THREE.MeshLambertMaterial({color:0x171512, side:THREE.DoubleSide, name:'door-back'});
+ const leafMat=cnm(0x1c1916,0x4a4038,'door-leaf');   /* closed door leaves (2026-09-09): dark timber, night and day tones unmeasured (the walks saw these doors open), lerped by the clock like the vestibule tones */
  const exitMat=new THREE.MeshBasicMaterial({color:0x2ee88a, side:THREE.DoubleSide, name:'exit-sign'});
  for(const w of walls){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
@@ -2238,6 +2239,8 @@ function buildWallDetails(root){
    quad([[E.u0,d,E.h0],[E.u1,d,E.h0],[E.u1,d,E.h1],[E.u0,d,E.h1]],exitMat,'exit-sign'); }
   // the doors: a lit vestibule behind the lit ones, stone reveals and a dark back behind the rest
   for(const D of F.doors){ if(D.north!==w.north)continue; const u0=D.u0, u1=D.u1, d0=w.d, d1=w.d+w.s*D.depth, h=D.h;
+   if(D.closed){ const dL=d0+w.s*0.12; quad([[u0,dL,0],[u1,dL,0],[u1,dL,h],[u0,dL,h]],leafMat,'door-leaf');
+    quad([[u0,d0,0],[u0,dL,0],[u0,dL,h],[u0,d0,h]],stoneMat,'door-reveal'); quad([[u1,d0,0],[u1,dL,0],[u1,dL,h],[u1,d0,h]],stoneMat,'door-reveal'); quad([[u0,d0,h],[u1,d0,h],[u1,dL,h],[u0,dL,h]],stoneMat,'door-head'); continue; }
    const side=D.lit?lit:stoneMat, floor=D.lit?litFloor:darkBack, top=D.lit?lit:stoneMat;
    const back=D.lit?(D.back?new THREE.MeshBasicMaterial({color:D.back, side:THREE.DoubleSide, name:'vestibule-back'}):litBack):darkBack;
    // a brighter run of the glazing (the day walk: the west metre of the north doorway saturates, the rest reads grey-blue glass)
@@ -5742,7 +5745,7 @@ function roamSinkStep(now,s){ const R=roam, Q=portal; if(!Q)return;
 // (measured at u = 48.9 from the event origin, so 0.6 m off it), on the hall's centre line (the
 // column rows stand at d = 3.8 and 11.3, the walls at -0.2 and 15.6), 2 m off the floor, looking
 // straight down the axis. HOME is the veil's hold at the same end and stays what it is
-const ROAM_EYE={u:48.3,d:7.6,h:2.0};
+const ROAM_EYE={u:47.0,d:7.6,h:2.0};
 function roamHome(){ const at=EP(ROAM_EYE.u,ROAM_EYE.h,ROAM_EYE.d), look=EP(0,ROAM_EYE.h,ROAM_EYE.d); const d=look.clone().sub(at).normalize(); return {eye:at,yaw:Math.atan2(-d.z,d.x),pitch:0}; }
 function roamPathHome(){ const H=roamHome(), to=H.eye, from=eye.clone(), pts=[from,to];
  if(!segClear(from,to)){ const via=new THREE.Vector3(from.x,to.y,to.z); if(segClear(from,via)&&segClear(via,to))pts.splice(1,0,via); }
