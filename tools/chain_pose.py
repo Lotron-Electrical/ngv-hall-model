@@ -33,7 +33,7 @@ for i in range(i0 + step, end + 1, step):
     if np.linalg.det(Rrel) < 0: Rrel = -Rrel
     R = Rrel @ R; pA, dA = pB, dB; rec = describe(R, C, i); rec['inliers'] = int(mask.sum()); out.append(rec)
     print('%s u %.2f d %.2f h %.2f fwd %.2f %.2f pitch %.1f inl %d' % (rec['frame'], rec['u'], rec['d'], rec['h'], rec['fu'], rec['fd'], rec['pitch'], rec['inliers']))
-    if i in cams:   # an accepted frame on the way: report the drift against its registered pose, then re-anchor
-        ca, _ = cams[i]; fw = ca.R.T @ np.array([0, 0, 1.0]); ang = np.degrees(np.arccos(np.clip(fw @ (R.T @ np.array([0, 0, 1.0])), -1, 1)))
+    if ('d4_%06d' % i) in cams:   # an accepted frame on the way: report the drift against its registered pose, then re-anchor
+        ca, _ = cams['d4_%06d' % i]; fw = ca.R.T @ np.array([0, 0, 1.0]); ang = np.degrees(np.arccos(np.clip(fw @ (R.T @ np.array([0, 0, 1.0])), -1, 1)))
         print('   accepted frame: chain forward off by %.2f deg; re-anchored' % ang); R, C = ca.R.copy(), ca.center.copy()
 json.dump(out, open('E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose/chain-%s-%d.json' % (start, end), 'w'), indent=1)

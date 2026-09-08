@@ -2294,9 +2294,9 @@ function buildEndWalls(root){
  // the carpet beyond the scan's floor: the carpet's own measured albedo (FLOOR_ALB), lit like the floor
  const carpet=photoMaterial({color:0x854449, name:'floor-extension'}); carpet.side=THREE.DoubleSide; photoMats.push(carpet);
  const darkMat=new THREE.MeshLambertMaterial({color:0x2a2622, side:THREE.DoubleSide, name:'gallery-fascia'});
- const floorMat=new THREE.MeshLambertMaterial({color:0x4a4640, side:THREE.DoubleSide, name:'gallery-floor'});
  // the galleries' unlit tones, a night and a day colour each (end_profile.py, real against sim on the same pose)
  const dnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:night, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); m.color.lerp(m.userData.day,lit.day); endLitMats.push(m); return m; };
+ const floorMat=dnm(0x1a1c1e,0x85898d,'gallery-floor');   /* the deck: a cool mid grey, 0.8x the stone beside it in the 4K frame d4_000120 (chain-posed), was a warm dark Lambert */
  const ceilMat=dnm(0x070605,0x3a3632,'gallery-ceiling');   /* the lower tier's ceiling underside: dim, about half the stone */
  const upstandMat=dnm(0x0a0908,0x4a4540,'gallery-parapet');   /* the top slab's fascia and the 0.56 upstand: about the stone */
  const soffitMat=new THREE.MeshLambertMaterial({color:0x9a948a, side:THREE.DoubleSide, name:'gallery-soffit'});   /* the head's soffit, its foot lit */
