@@ -1235,7 +1235,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   not the 12 openings), so width 2.0 (+-0.2); the third-floor plan BUIL005496 draws NOTHING over
   it (the hall's void runs to the outer wall there), so the gallery is the top storey on that
   side and its ceiling is not another floor; its floor the second floor h 8.34; its ceiling
-  (11.8) and back wall are UNMEASURED (no frame or cloud point sees them), so it is one dark Lambert
+  11.4 (+-0.1: the deck frame d4_000120 sees a downlight in it through the nearest opening,
+  h 11.29-11.46 across the corridor's depth, chain_pixel.py 2026-09-09; `corridor.lamps` builds
+  that one lamp, its depth assumed mid-corridor); its back wall is UNMEASURED, so it is one dark
   volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'); the scan
   closes each opening with a black cap about 1.2 m in, so photoMaterial and game/hallmat.js
   discard scan fragments 0.3-3.5 m behind the face inside an opening (tools/patch_open_caps.py)

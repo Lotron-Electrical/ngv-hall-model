@@ -1051,7 +1051,7 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 //    (two methods, ortho/REPORT.md), so the faces are d = -0.090 and 15.364 and the mesh is moved
 //    to them in the vertex shader (WALL_SHIFT).
 const WALLF={openings:[[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.388],[18.628,19.876],[22.336,23.592],[26.044,27.300],[29.948,31.196],[33.588,34.836],[37.348,38.596],[40.884,42.140],[44.508,45.756]],
- openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.8},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); the corridor from the 1968 plan, unlit in every capture */
+ openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[45.16]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); the corridor from the 1968 plan; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -2204,7 +2204,8 @@ function buildWallDetails(root){
  // only its dark ceiling shows. Night captures: unlit.
  const cnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:day, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); endLitMats.push(m); return m; };   /* applyDay lerps it each frame */
  const corridorMat=cnm(0x0a0908,0x2a2724,'corridor');   /* its ceiling, floor and near faces */
- const corridorBackMat=cnm(0x0c0b0a,0x4b4844,'corridor-back');   /* the back wall, 0.45x the stone by day */
+ const corridorBackMat=cnm(0x0c0b0a,0x4b4844,'corridor-back');
+ const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
  const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
@@ -2224,6 +2225,8 @@ function buildWallDetails(root){
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
    quad([[ua,dR,C.ceil],[ub,dR,C.ceil],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-ceiling');
+   // the corridor's downlights (C.lamps, u measured): a lit 0.15 disc under the ceiling, mid-corridor
+   for(const lu of (C.lamps||[])){ const ld=(dR+dB)/2, r=0.075, y=C.ceil-0.01; quad([[lu-r,ld-r,y],[lu+r,ld-r,y],[lu+r,ld+r,y],[lu-r,ld+r,y]],lampMat,'corridor-lamp'); }
    // the wall's own back face BETWEEN the openings (each opening stays open into the corridor)
    let up=ua; for(const [u0,u1] of F.openings){ if(u0>up)quad([[up,dR,C.floor],[u0,dR,C.floor],[u0,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); up=u1; }
    if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); }
