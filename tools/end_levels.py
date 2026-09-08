@@ -91,6 +91,21 @@ for fr in order:
         if len(offs) >= 6:
             q = cam.center - O; du = abs(float(q @ HU) - uF)      # how far down the hall this camera stands
             acc[name].append((float(np.median(offs)), du))
+# The same lesson the wall jambs taught (tools/wall_pool.py): one capture's quartiles say how well its own
+# consecutive frames agree, not how well the level is known. So each capture writes its medians out and
+# tools/level_pool.py pools them across captures, where the spread that matters lives.
+import json, os
+if os.environ.get('LEVEL_JSON'):
+    rec = {}
+    for nm, hv in LEVELS:
+        a = acc[nm]
+        if a is None or len(a) < 3: continue
+        v = [x[0] for x in a]
+        rec[nm] = {'h': hv, 'n': len(v), 'median': float(np.median(v)),
+                   'p25': float(np.percentile(v, 25)), 'p75': float(np.percentile(v, 75))}
+    json.dump({'class': cls, 'end': end, 'face': uF, 'frames': used, 'levels': rec},
+              open(os.environ['LEVEL_JSON'], 'w'), indent=1)
+    print('wrote', os.environ['LEVEL_JSON'])
 print('%s, %s end, %d frames used' % (cls, end, used))
 for name, hv in LEVELS:
     if acc[name] is None:

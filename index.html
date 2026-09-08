@@ -2449,6 +2449,22 @@ function buildWallDetails(root){
 // cameras stood at u 47.81-48.64 (median 48.15) on the east gallery, a rail's width behind its edge,
 // so the east face is 48.0 +-0.2; 3.85 satisfies both. The lit doorway in the west top gallery's back
 // wall (an exit sign over it in d4_000049) sits against the south wall: d 13.4-14.2 (+-0.3).
+// THE ENDS, AND WHAT SIX CAPTURES CAN SETTLE (2026-09-09, tools/end_levels.py and tools/level_pool.py).
+// Every horizontal level here was measured from each capture that can see it and then POOLED across
+// captures, because one capture's own quartiles say how well its consecutive frames agree, not how well
+// the level is known. Coverage: the west end is seen by the day walk, the night walk, the 4K balcony set,
+// b3 and the six posed frames of clip 153148; the east end by the day walk, the night walk and b1.
+// Against the values below the pooled medians are:
+//   top parapet top 9.02   west +0.000 (3 captures, range 0.181)   east +0.073 (3, range 0.129)
+//   head 11.10             west -0.059 (4, range 0.163)            east -0.024 (3, range 0.188)
+//   end-wall top 13.50     west -0.009 (5, range 0.134)            east -0.017 (3, range 0.360)
+// So the upstand's move from 0.56 to 0.68 earlier today is CONFIRMED at the west end, where the pooled
+// residual is now exactly zero against +0.12 before it. The east still reads 0.073 high, and its two
+// floor captures agree with each other closely (+0.070 night, +0.073 walk) while b1, a balcony clip
+// looking at that end from inside a north opening, is the outlier at +0.199. That is inside this method's
+// own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
+// The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
+// contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
 const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.68, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.1, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
