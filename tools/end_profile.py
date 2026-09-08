@@ -1,12 +1,12 @@
 # Brightness up an end face plane (u = face) at given d stations, h 3..12 step 0.05, through posed
 # frames; prints the profile (every 0.2) and the strongest brightness steps (h, sign, size).
 #   python tools/end_profile.py <east|west> <d_csv> class:frame ...
-import sys, cv2, numpy as np
+import sys, os, cv2, numpy as np
 sys.path.insert(0, 'tools'); import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 def world(u, d, h): return O + u * HU + d * HD + np.array([0, h, 0])
 side = sys.argv[1]; uF = 48.056 if side == 'east' else 4.194; ds = [float(a) for a in sys.argv[2].split(',')]
-hs = np.arange(3.0, 12.01, 0.05)
+hs = np.arange(float(os.environ.get('HMIN', 3.0)), float(os.environ.get('HMAX', 12.0)) + 0.01, 0.05)
 for spec in sys.argv[3:]:
     parts = spec.split(':'); cls, k = parts[0], parts[1]; cam, p = U.load_class(cls)[k]
     rot = None

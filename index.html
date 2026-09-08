@@ -2274,7 +2274,7 @@ function buildWallDetails(root){
 // so the east face is 48.0 +-0.2; 3.85 satisfies both. The lit doorway in the west top gallery's back
 // wall (an exit sign over it in d4_000049) sits against the south wall: d 13.4-14.2 (+-0.3).
 const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.56, apron:5.4, groundTop:5.3, head:10.3, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.4,14.2,10.0],
- doors:{west:[[11.5,12.7,'port'],[12.9,14.6,'lit']], east:[[5.7,8.0,'dark'],[9.8,11.1,'port']]}};
+ doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[6.28,7.42]],[9.8,11.1,'port']]}};   /* port2: a double door, a round window per leaf at the listed d (west measured, east the leaf centres) */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
  const hp=(u,d,y)=>new THREE.Vector3().copy(O).addScaledVector(HU,u).addScaledVector(HN,d).setY(O.y+y);
@@ -2328,11 +2328,11 @@ function buildEndWalls(root){
   const uF=uB-s*W.face, fl=W.floors, top=W.top, uD=uF+s*0.01;   /* uD: a hair in front of the face, for the doors */
   // the ground wall and its doors
   quad([[uF,0,0],[uF,D,0],[uF,D,W.groundTop],[uF,0,W.groundTop]],stone,'end-ground-wall');
-  for(const [d0,d1,kind] of W.doors[side]){
+  for(const [d0,d1,kind,ports] of W.doors[side]){
    if(kind==='lit')quad([[uD,d0,0],[uD,d1,0],[uD,d1,2.4],[uD,d0,2.4]],litMat,'gallery-door');
    else { quad([[uD,d0,0],[uD,d1,0],[uD,d1,2.4],[uD,d0,2.4]],doorMat,'gallery-door-leaf');
-    if(kind==='port'){ const dm=(d0+d1)/2, r=0.18, uP=uD-s*0.005;
-     quad([[uP,dm-r,1.5-r],[uP,dm+r,1.5-r],[uP,dm+r,1.5+r],[uP,dm-r,1.5+r]],portMat,'gallery-porthole'); } } }
+    const pd=kind==='port2'?ports:kind==='port'?[(d0+d1)/2]:[]; const r=0.2, uP=uD-s*0.005;   /* the round windows, 0.4 across at h 1.5 */
+    for(const dm of pd)quad([[uP,dm-r,1.5-r],[uP,dm+r,1.5-r],[uP,dm+r,1.5+r],[uP,dm-r,1.5+r]],portMat,'gallery-porthole'); } }
   // the ground's soffit (the lobby ceiling) and back wall
   quad([[uF,0,W.groundTop],[uB,0,W.groundTop],[uB,D,W.groundTop],[uF,D,W.groundTop]],darkMat,'ground-soffit');
   quad([[uB,0,0],[uB,D,0],[uB,D,W.groundTop],[uB,0,W.groundTop]],backMat,'gallery-back');
