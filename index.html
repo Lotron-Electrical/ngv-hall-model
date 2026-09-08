@@ -1244,7 +1244,11 @@ function photoMaterial(src){
     // a narrow bell in the middle of the fade, about 8 cm wide (Lloyd: the line was too thick)
     float lipW=exp(-pow((holeA-0.5)/0.13,2.0));
     vec3 lit=mix(albedo*E,vec3(0.66,0.68,0.72)*max(E,vec3(0.4)),frost);
-    gl_FragColor=vec4(lit+vec3(0.55,0.2,1.0)*lipW*0.28,mix(alpha,1.0,frost)*holeA);
+    float alphaG=alpha;
+    ${/glazing-south-glass/i.test(src.name||'')?`{ // glass at a grazing angle mirrors the hall (Fresnel, Schlick F0 0.04), so the court does not show through it edge-on
+     vec3 Vg=normalize(cameraPosition-vPos); float Fg=0.04+0.96*pow(1.0-abs(dot(N,Vg)),5.0);
+     lit=mix(lit,vec3(0.05,0.052,0.056)*max(E,vec3(0.25)),Fg); alphaG=mix(alpha,1.0,Fg); }`:''}
+    gl_FragColor=vec4(lit+vec3(0.55,0.2,1.0)*lipW*0.28,mix(alphaG,1.0,frost)*holeA);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
    }`,
@@ -2255,7 +2259,9 @@ function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
  const hp=(u,d,y)=>new THREE.Vector3().copy(O).addScaledVector(HU,u).addScaledVector(HN,d).setY(O.y+y);
  // a 1 x 1 white map: the stone shader reads the bake only as a recess mask, and a built quad has no recesses
- const white=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); white.needsUpdate=true; white.colorSpace=THREE.SRGBColorSpace;
+ // a 1 x 1 map at the scan wall's own bake level (13/255: the recess mask reads 0.58, the albedo 0.63), so the
+ // built stone matches the scan's tone; white left the extensions a third brighter (pose check, d4_000049)
+ const white=new THREE.DataTexture(new Uint8Array([13,13,13,255]),1,1); white.needsUpdate=true; white.colorSpace=THREE.SRGBColorSpace;
  const stone=photoMaterial({map:white, name:'walls'}); stone.side=THREE.DoubleSide; photoMats.push(stone);
  // the carpet beyond the scan's floor: the carpet's own measured albedo (FLOOR_ALB), lit like the floor
  const carpet=photoMaterial({color:0x854449, name:'floor-extension'}); carpet.side=THREE.DoubleSide; photoMats.push(carpet);
@@ -2265,7 +2271,8 @@ function buildEndWalls(root){
  const backMat=new THREE.MeshLambertMaterial({color:0x7d776e, side:THREE.DoubleSide, name:'gallery-back'});
  const lobbyMat=new THREE.MeshBasicMaterial({color:0xb9b3a8, side:THREE.DoubleSide, name:'lobby-ceiling'});
  const lobbyBack=new THREE.MeshBasicMaterial({color:0xcfc9be, side:THREE.DoubleSide, name:'lobby-back'});
- const railMat=new THREE.MeshBasicMaterial({color:0x0c1014, side:THREE.DoubleSide, transparent:true, opacity:0.62, name:'gallery-rail'});
+ const railMat=new THREE.MeshBasicMaterial({color:0x0c1014, side:THREE.DoubleSide, transparent:true, opacity:0.28, name:'gallery-rail'});
+ const handMat=new THREE.MeshLambertMaterial({color:0x1a1714, side:THREE.DoubleSide, name:'gallery-handrail'});
  const quad=(pts,mat,name)=>{ const pos=new Float32Array(12); pts.forEach((p,i)=>{ const v=hp(...p); pos.set([v.x,v.y,v.z],3*i); });
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
   geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array([0,0,1,0,1,1,0,1]),2)); geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
@@ -2292,6 +2299,7 @@ function buildEndWalls(root){
    // the fascia under the floor edge, the glass balustrade on it, the floor back to the wall
    quad([[uF,0,y-W.slab],[uF,D,y-W.slab],[uF,D,y],[uF,0,y]],darkMat,'gallery-fascia');
    quad([[uF,0,y],[uF,D,y],[uF,D,y+W.rails[i]],[uF,0,y+W.rails[i]]],railMat,'gallery-rail');
+   quad([[uF,0,y+W.rails[i]-0.06],[uF,D,y+W.rails[i]-0.06],[uF,D,y+W.rails[i]],[uF,0,y+W.rails[i]]],handMat,'gallery-handrail');
    quad([[uF,0,y],[uB,0,y],[uB,D,y],[uF,D,y]],floorMat,'gallery-floor');
    if(i+1<fl.length){
     // a lit ceiling under the next floor and a back wall on the plate end

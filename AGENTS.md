@@ -1269,6 +1269,22 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   material. The courtyard balcony photo (lloyd-01) was also tried (tools/court_lines.py: vanishing
   points give a 95 deg lens of unknown distortion, six pale bands where five fins were expected)
   and judged unfit for a depth solve.
+- POSE-MATCHED PROOF (2026-09-08): tools/pose_of.py reads a posed frame's hall-frame pose (u, d, h,
+  forward, pitch, vertical fov) and tools/pose-shot.mjs puts the sim's camera on it (install mode,
+  the stage immersive, collision off, the eye on the frame's height through player.eye, the fov
+  through fx.baseFov), so the render and the photograph sit side by side with the same framing
+  (shots/pose-d4_000049-pair*.jpg). Read against the 4K west-end frame d4_000049: the three tiers,
+  the top doorway and the north wall's three far openings line up; the balustrades had read as
+  solid dark bands where the frame shows people through glass under a thin rail, so gallery-rail
+  went from 0.62 to 0.28 opaque with a solid 60 mm handrail on top; the built stone quads (the end
+  walls, the wall extensions past the scan) carried a white bake so the recess mask read them a
+  third brighter than the scan's wall (117 against 90 in the same shot), now a 13/255 bake, the
+  scan's own level. The pale vertical band right of the far end in that view is the glazing's fin
+  sides seen through the panes six degrees off the wall (tools/pose-find.mjs bisects the scene per
+  mesh to name what paints a pixel); Lloyd's daylight photo lloyd-02 shows the fins pale from
+  inside, so they stay, and the panes got a Fresnel term (Schlick, F0 0.04) so glass seen edge-on
+  mirrors the hall instead of showing the court. tools/pose-pick.mjs raycasts a pixel and lists the
+  meshes near a hall-frame box.
 - TAPESTRIES (2026-09-08): all four identified by NCC on the 4 mm orthos against the collection
   images at true size (tools/tap_id.py): south-A Organic form 0.545, south-B Evolving forms 0.394,
   north-A Abstract sequence 0.339 (mirrored, as the north wall reads in u), north-B Piano movement
