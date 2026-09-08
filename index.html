@@ -2323,7 +2323,7 @@ function buildEndWalls(root){
  // day, three times the stone, with downlights; the recess under the lower floor is near black; the lower
  // tier's interior about the stone. Unlit materials, so the day frames' ratios hold whatever the house does.
  const topBackMat=dnm(0x110e0b,0x8a7660,'gallery-back-lit');
- const topSoffitMat=dnm(0x13100d,0x9c8a70,'gallery-soffit');
+ const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  const lowBackMat=dnm(0x0a0908,0x4e4841,'gallery-back-low');
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
  const lampMat=dnm(0x2a2620,0xfff4e0,'gallery-downlight');
@@ -2412,9 +2412,7 @@ function buildEndWalls(root){
   // blob whose ray meets the back wall there, not the soffit), a lit 0.15 disc a hair off the wall
   for(const [ld,lh] of ((W.wallLamps||{})[s<0?'west':'east']||[])){ const uL=uB-s*0.02, r=0.075;
    quad([[uL,ld-r,lh-r],[uL,ld+r,lh-r],[uL,ld+r,lh+r],[uL,ld-r,lh+r]],lampMat,'gallery-wall-lamp'); }
-  // the downlights in the top gallery's soffit (the day frames show a row of them, about 3 m apart)
-  for(let dl=1.9; dl<D-0.5; dl+=2.8){ const uL=uF+s*0.7, hL=W.head-0.02, r=0.14;
-   quad([[uL-s*r,dl-r,hL],[uL+s*r,dl-r,hL],[uL+s*r,dl+r,hL],[uL-s*r,dl+r,hL]],lampMat,'gallery-downlight'); }
+  // (a row of soffit downlights was built here by estimate until 2026-09-09: no floor frame shows one, removed)
  }
 }
 

@@ -1311,7 +1311,8 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               with the h 9.40 plane runs straight (u 47.53-47.59), the phone 0.26 m behind it; the
               d4_000232 chain put the same edge under the phone, the anchors differ 0.27 in u, so the
               face is +-0.3 and the built 48.056 stays
-    11.1      the head: a 2.1 m deep FRONT soffit with its downlights, the back wall running on
+    11.1      the head: a 2.1 m deep FRONT soffit (its underside dark, 0.37x the lit back wall; the
+              row of downlights once built in it showed in no floor frame and is gone), the back wall running on
               to the canopy behind it (`ENDW.head`, `soffitDepth`, 2026-09-09). The west floor
               frame w2_000252 has a lit fascia edge on 11.1, a dark underside spanning u 4.2-2.07
               on that plane, then the lit back wall beyond; the 4K deck frame d4_000049 has the
