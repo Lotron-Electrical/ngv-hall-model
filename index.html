@@ -2228,9 +2228,9 @@ function buildWallDetails(root){
    quad([[u0,d0,h],[u1,d0,h],[u1,d1,h],[u0,d1,h]],top,'door-head'); quad([[u0,d0,0],[u1,d0,0],[u1,d1,0],[u0,d1,0]],floor,'door-floor');
    quad([[u0,d1,0],[u1,d1,0],[u1,d1,h],[u0,d1,h]],back,'door-back'); }
   if(!w.north)continue;
-  // the hall's name over the north doorway (F.sign, measured in w1_000446): dark letters on a clear canvas, 20 mm proud of the stone
+  // the hall's name over the north doorway (F.sign, measured in w1_000446): pale letters on a clear canvas, 20 mm proud of the stone
   if(F.sign){ const S=F.sign, cv=document.createElement('canvas'); cv.width=1024; cv.height=Math.round(1024*(S.h1-S.h0)/(S.u1-S.u0));
-   const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height); g.fillStyle='#2b2723'; g.textBaseline='middle'; g.textAlign='center';
+   const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height); g.fillStyle='#a39d95'; g.textBaseline='middle';   /* pale letters: 50 against the stone's 34 in w1_000446, 1.5x */ g.textAlign='center';
    g.font='bold '+Math.round(cv.height*0.8)+'px Arial'; try{ g.letterSpacing='12px'; }catch(e){} g.fillText(S.text,cv.width/2,cv.height*0.54);
    const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=8;
    const m=new THREE.MeshBasicMaterial({map:tx, transparent:true, side:THREE.DoubleSide, name:'hall-sign'});
