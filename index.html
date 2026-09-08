@@ -1146,6 +1146,8 @@ function photoMaterial(src){
      // the openings and the foyer door are holes in the bake mesh (WALLF); the reveals sit behind
      if(longWall&&sd<7.0&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`).join('||')}))discard;
      ${WALLF.doors.map(D=>`if(longWall&&${D.north?'sd<7.0':'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})discard;`).join('\n     ')}
+     // the scan's own reveal faces inside the north openings (dark in the bake, so the recess gate crushed them to a brown slab: b1_000105, 2026-09-09) go too: the built stone reveals stand there
+     if(!longWall&&sd<0.05&&sd>-1.2&&sy>${(WALLF.openY[0]-0.1).toFixed(3)}&&sy<${(WALLF.openY[1]+0.1).toFixed(3)})discard;
      if(abs(N.y)<0.5){
       // the measured courses of the wall this face belongs to (an end wall takes the north's)
       bool northSide=!longWall||sd<7.0;

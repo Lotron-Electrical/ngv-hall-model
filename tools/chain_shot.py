@@ -18,6 +18,7 @@ if abs(down[1]) >= abs(right[1]):
 else:
     rot = cv2.ROTATE_90_CLOCKWISE if right[1] < 0 else cv2.ROTATE_90_COUNTERCLOCKWISE; W, H = cam.h, cam.w
 vfov = 2 * np.degrees(np.arctan(H / 2 / fx))
+while W > 1080 or H > 1920: W, H = W // 2, H // 2   # the page renders 1080 wide at most: a 4K frame's sim came out half-width and clipped (2026-09-09)
 sim = S + pref + '-sim.jpg'
 cmd = ['node', 'tools/pose-shot.mjs', sim, str(W), str(H), '%.2f' % vfov, '%.3f' % u, '%.3f' % d, '%.3f' % h, '%.4f' % (fu / hor), '%.4f' % (fd / hor), '%.2f' % pitch, hour, house]
 print(' '.join(cmd[2:]))

@@ -19,11 +19,14 @@ if abs(down[1]) >= abs(right[1]):           # upright (or upside down)
 else:                                       # on its side: the image's right axis is the world's up or down
     rot = cv2.ROTATE_90_CLOCKWISE if right[1] < 0 else cv2.ROTATE_90_COUNTERCLOCKWISE; W, H = cam.h, cam.w
 vfov = 2 * np.degrees(np.arctan(H / 2 / fx))
+while W > 1080 or H > 1920: W, H = W // 2, H // 2   # the page renders 1080 wide at most: a 4K frame's sim came out half-width and clipped (2026-09-09)
 sim = S + pref + '-sim.jpg'
 cmd = ['node', 'tools/pose-shot.mjs', sim, str(W), str(H), '%.2f' % vfov, '%.3f' % u, '%.3f' % d, '%.3f' % h, '%.4f' % (fu / hor), '%.4f' % (fd / hor), '%.2f' % pitch, hour, house]
 print(' '.join(cmd[2:]))
 env = dict(os.environ, CDP_PORT=os.environ.get('CDP_PORT', '9334'))
 r = subprocess.run(cmd, capture_output=True, text=True, env=env); print(r.stdout.strip()[-200:], r.stderr.strip()[-300:])
+for ln in r.stdout.splitlines():
+    if ln.startswith('pick'): print(ln)   # PICK=x,y;... names the mesh under a pixel of the sim
 a = cv2.imread(p); a = cv2.rotate(a, rot) if rot is not None else a
 b = cv2.imread(sim); a = cv2.resize(a, (b.shape[1], b.shape[0]))
 for im, t in [(a, '%s %s (real)' % (cls, k)), (b, 'sim, same pose')]: cv2.putText(im, t, (12, 34), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
