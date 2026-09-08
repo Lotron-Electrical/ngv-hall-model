@@ -1269,6 +1269,16 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   material. The courtyard balcony photo (lloyd-01) was also tried (tools/court_lines.py: vanishing
   points give a 95 deg lens of unknown distortion, six pale bands where five fins were expected)
   and judged unfit for a depth solve.
+- THE GALLERIES' HEAD (2026-09-08, tools/pose_frames_for.py found the sharpest posed frames that hold
+  each end: night w5_000240 and day w1_000356 look at the EAST end from 36-38 m, the first frames of
+  it from inside; tools/end_overlay2.py draws ENDW into any of them, upright). Both ends read the
+  same: from about h 10 up the stone is lit and FLUSH with the gallery face, a row of lights along
+  its foot, the three tiers dark under it. So ENDW.head 10.0 (endwalls.json had the face-plane edge
+  on h 9.96-10.04): the stone over the galleries stands on the face plane from the head up, a lit
+  soffit (gallery-soffit) closes the top tier on the head, a back wall sits behind it on the plate
+  end, the west doorway is clipped to the head, and the lower tiers' ceilings are dim (0x5a554e):
+  the frames show them unlit by day. The east is no longer a copy of the west by assumption: its
+  tiers and head match the west's in its own frames (shots/pose/east-day-pair.jpg).
 - POSE-MATCHED PROOF (2026-09-08): tools/pose_of.py reads a posed frame's hall-frame pose (u, d, h,
   forward, pitch, vertical fov) and tools/pose-shot.mjs puts the sim's camera on it (install mode,
   the stage immersive, collision off, the eye on the frame's height through player.eye, the fov
