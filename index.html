@@ -2236,7 +2236,14 @@ function buildWallDetails(root){
   // with the module's fold). It read 11.4 from a lamp seen through an opening, and that same footage shows
   // those lamps are spotlights mounted ON the canopy's steel. From the hall this changes nothing: the
   // opening's head soffit (11.35) hides everything above it, which is why the roof was never observed.
-  // The WIDTH is still the plan's 2.0 and still unmeasured; the b6 gallery poses settle it.
+  // NOT SETTLED (2026-09-09, later): five independent attempts to read that clip (the opening as a
+  // ruler, the 0.306 m courses, human scale, the canopy module, the vitrines) each returned no number,
+  // and they disagree about where the camera stands: inside this room, or on the hall side of the wall.
+  // Every frame has the canopy sweeping overhead with no flat ceiling, which cannot happen from inside
+  // if this wall runs solid from the opening heads to the canopy. So either the clip is not in here, or
+  // the canopy roofs this room too, or the wall stops short. 13.55 takes the middle reading; 11.4 was a
+  // lamp inference. BOTH ARE UNMEASURED. The WIDTH likewise stays the plan's 2.0 and unmeasured. The b6
+  // register places those cameras, and that comes before anything the clip appears to show.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
