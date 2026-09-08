@@ -1248,8 +1248,13 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   measured h 3.99 / 6.33 / 8.34 (endwalls.json), face u 4.05 / 48.2, back wall on the plate end
   (0.344 / 51.906, the face-plane edge h 9.96-10.04). The scan's closures, u -4.65 and 49.06, are
   the real ground-level walls (the lobby's back, the kitchen wall) and are KEPT below the first
-  fascia (the shader cut is h > 3.54 only). Unmeasured, taken as: fascia 0.45, balustrade 1.1,
-  ceilings 0.45 under the floor above; the east's tiers repeat the west's (its frames stand 13 m out).
+  fascia (the shader cut is h > 3.73 only). Read off the posed 4K frame d4_000049 with
+  tools/endwall_overlay.py (the geometry drawn into the frame) and tools/endwall_rows.py (an image
+  row cast onto the face plane): the top parapet's top h 9.41 (rail 1.07), the ceiling under the
+  top slab h 8.08 (slab 0.26), the middle fascia top h 6.32 (the 6.33 floor confirmed), the middle
+  parapet top h 7.22 (endwalls.json F3, rail 0.89). Unmeasured: the lower level's rail (the truss
+  hides it, takes the middle one's), the lobby ceiling (the truss again; the first slab's underside
+  is used), the east's own tiers (its frames stand 13 m out; it repeats the west).
 - TAPESTRIES (2026-09-08): all four identified by NCC on the 4 mm orthos against the collection
   images at true size (tools/tap_id.py): south-A Organic form 0.545, south-B Evolving forms 0.394,
   north-A Abstract sequence 0.339 (mirrored, as the north wall reads in u), north-B Piano movement
