@@ -7,13 +7,20 @@
 # line in the image, takes the strongest brightness gradient as the real edge, and reports the offset in
 # metres. A positive offset means the real edge sits HIGHER than the model draws it.
 #   python tools/end_levels.py <class> <west|east> [max_frames]
-import sys, cv2, numpy as np
-sys.path.insert(0, 'tools'); import underside_geom as U
+import sys, os, cv2, numpy as np
+sys.path.insert(0, 'tools'); import underside_geom as U; import edge_refine as ER
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 FACE = {'west': 4.194, 'east': 48.056}
 # every horizontal line the model draws across the end face, from ENDW in index.html
 LEVELS = [('ground-wall top', 5.30), ('apron top', 5.40), ('lower deck', 6.33), ('lower parapet top', 6.85),
           ('top slab soffit', 8.08), ('top deck', 8.34), ('top parapet top', 9.02), ('head', 11.10), ('end-wall top', 13.50)]
+# LEVELS_SET lets a caller redraw one level without editing this file, which is how the follow bias is
+# tested: measure the same physical edge with the model putting it in two different places and see whether
+# the absolute height comes back the same. tools/follow_test.py does exactly that.
+import os as _os
+if _os.environ.get('LEVELS_SET'):
+    _o = dict(kv.split('=') for kv in _os.environ['LEVELS_SET'].split(','))
+    LEVELS = [(n, float(_o.get(n, h))) for n, h in LEVELS]
 cls, end = sys.argv[1], sys.argv[2]
 maxf = int(sys.argv[3]) if len(sys.argv) > 3 else 40
 uF = float(sys.argv[4]) if len(sys.argv) > 4 else FACE[end]   # a 4th argument overrides the face, so the
@@ -26,10 +33,18 @@ uF = float(sys.argv[4]) if len(sys.argv) > 4 else FACE[end]   # a 4th argument o
 # because from the floor the deck and the soffit are hidden behind the parapet and only its top is
 # ever in view. A level whose window closes below 0.12 m cannot be told from its neighbour and is
 # reported as not separable rather than given a number.
+# THE WINDOW IS A CONSTANT, and that is the second half of the follow fix (2026-09-09). It used to be
+# 0.45 x the gap to the nearest modelled level, which sounds careful and is circular: the level under test
+# sets its own search width, so redrawing it changed both where the search starts AND how far it may go.
+# Measured, that alone carried a large part of the follow gain. The width is now the same for every level
+# and every draw. Separability is still checked against the neighbours, because a level whose neighbour is
+# inside the window genuinely cannot be told apart from it, but that check only refuses a level, it never
+# changes the search.
 HS = sorted(h for _, h in LEVELS)
+WINC = float(os.environ.get('WINDOW', 0.25))
 def window(hv):
     near = min((abs(hv - o) for o in HS if abs(o - hv) > 1e-6), default=1.0)
-    return min(0.35, 0.45 * near)
+    return WINC if near > 2.2 * WINC else 0.0     # 0.0 means: its neighbour is inside the window
 frames = U.load_class(cls)
 # A level 0.15 m out reads as about 10 px from the far side of the hall through these lenses, and a
 # hand-held walking frame can carry that much motion blur on its own. So the frames are ranked by sharpness
@@ -62,7 +77,7 @@ for fr in order:
         up = np.array([O + uF * HU + dd * HD + np.array([0, hv + 0.25, 0]) for dd in ds])
         x, y, z = cam.project(pts); xu, yu, zu = cam.project(up)
         win = window(hv)
-        if win < 0.12:
+        if win <= 0.0:
             acc[name] = None; continue                    # its neighbour is too close to separate
         ok = (z > 0.5) * (zu > 0.5) * (x > 40) * (x < cam.w - 40) * (y > 40) * (y < cam.h - 40)
         if ok.sum() < 8: continue
@@ -78,16 +93,13 @@ for fr in order:
             if L < 6: continue                            # too foreshortened to resolve a level
             mpp = 0.25 / L                                # metres per pixel along that direction
             ux, uy = vx / L, vy / L
-            R = int(round(win / mpp))
-            if R < 5 or R > 90: continue                   # unresolvable, or so close the window is huge
-            t = np.arange(-R, R + 1)
-            sx = np.clip(np.round(x[i] + ux * t).astype(int), 0, img.shape[1] - 1)
-            sy = np.clip(np.round(y[i] + uy * t).astype(int), 0, img.shape[0] - 1)
-            prof = img[sy, sx].astype(np.float32)
-            if prof.max() - prof.min() < 12: continue     # no edge here, only noise
-            g = np.abs(np.gradient(prof))
-            j = int(np.argmax(g[3:-3])) + 3
-            offs.append(float(t[j]) * mpp)
+            # tools/edge_refine.py, not a single look: search, re-centre on what was found, search again
+            # until it stops moving. An audit showed the single look FOLLOWED the drawn line, returning a
+            # different height for the same physical edge depending on where the model put it (drawn 8.90
+            # gave h 9.057, drawn 9.02 gave h 9.093 from the same 25 frames). The fixed point does not.
+            e = ER.find_edge(img, x[i], y[i], ux, uy, mpp, win, min_contrast=12.0)
+            if e is None: continue
+            offs.append(e)
         if len(offs) >= 6:
             q = cam.center - O; du = abs(float(q @ HU) - uF)      # how far down the hall this camera stands
             acc[name].append((float(np.median(offs)), du))
