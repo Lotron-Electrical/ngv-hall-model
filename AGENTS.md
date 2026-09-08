@@ -1524,6 +1524,17 @@ neighbours and the steel), but for the saturated slabs the hue agrees to 16 to 1
 median against the walk and the combined sheet, so the panorama's colours are not corrected:
 a correction fitted to blur would be fabrication. Scratch: `colour_check.json`.
 
+**Online video and photographs (2026-09-08, agent-ref-walls/online/).** Two research agents harvested YouTube
+and Wikimedia Commons for the hall's interior. Useful: `video/qXnaPNrQAsI.webm` ("[4K] NGV Tour", 2022, 1080p),
+258-275 s shot FROM the east top gallery looking west: it confirms the north wall's six top openings as deep dark
+recesses, the lit ground doorway (u 23.1-29.4), the west double door with two round windows on the south side of
+the end, and the south glazing's fins (the pale full-height "pier" in that footage is fin 0 and its daylit bay).
+The 2022 footage shows the west lower tier as a black drape and the top tier dark: temporal, the 2026 day frames rule.
+`video/bigcujP2hQg.mp4` (2022 walkthrough) 84-114 s: the east end by day, qualitative. `commons-great-hall-ngv-2014.jpg`
+and the 1968 Leonard French photograph: the hall from the floor. Nothing online shows the corridor behind the north
+wall; its width, floor and ceiling stay on the 1968 plan. Pose pairs in shots/pose/q4k-*-pair.jpg, log in
+PLAN-20260908-walls.md 22:50.
+
 **Every other source, weighed.** The harvest (124 files, `online/catalogue.json`) holds one other
 straight-up photograph, Rennie Ellis's c.1980s slide (SLV IE7153100, 4790 x 7000): its member
 lines run 670 to 1000 px apart for a 3.7 m sub-square, so it is about 4 mm/px with strong
