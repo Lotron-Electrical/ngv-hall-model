@@ -1258,6 +1258,9 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   door-d80 in agent-ref-walls/shots/pose/. Over that doorway the hall's name, "GANDEL HALL" in pale
   letters (1.5x the stone): walk w1_000446 met with the wall plane (tools/wall_pixel.py) puts it on
   u 24.5-27.1, h 2.65-3.0, letters 0.35 tall; built as `WALLF.sign`, a canvas 20 mm proud (2026-09-08).
+  REMOVED 2026-09-09 (Lloyd: "that should never have been there"); and the lit vestibule is a CLOSED panelled
+  door now, as is the south lit door u 37.962-39.662 (`closed:true`, tools/patch_doors2.py): Lloyd, the same night,
+  "in the real world those are just doors, closed for our purposes".
   The inscription (7aad8857 only, not resolved by the scan),
   proud bands from the scan (plinth +150 mm to h 0.74, band +205 mm at h 7.28-8.99, already in the
   mesh). Tapestries measured at u 8.13-14.03 and 37.51-42.64 (+- 0.4): tools/tapestries.json agrees.
