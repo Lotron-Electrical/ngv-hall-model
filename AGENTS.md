@@ -1290,6 +1290,13 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   upstand and the lower ceiling about the stone, the recess near black, each with a night colour
   (dnm(), endLitMats) lerped by lit.day in applyDay; the night values sit under the night
   auto-exposure (a 0x2e2a26 back rendered pale in the 22:00 pair; 0x110e0b reads right).
+  THE PLANS AT FULL RESOLUTION (2026-09-08, the zoomify scans, 25.8 px/m from the column pitch):
+  the ground floor's RECEPTION HALL runs 1330 px = 51.5 m (the plate line, 51.56 built); the
+  first floor's balcony strips are 82 px (west) / 80 px (east) = 3.2 / 3.1 m deep, their faces
+  100 / 105 px = 3.9 / 4.1 m past the outer columns (built 3.5: the certified 4K cameras that
+  leaned on the east parapet at u 48.1-48.2 fix that face, the plan is 0.3 coarse), their back
+  walls 0.6 (west) and 0.2 (east) inside the plate line, so the backs on the plate line stand
+  (+-0.3). shots/pose/plan0-hall.jpg, plan1-hall.jpg, plan2-hall.jpg.
   The 3.99 "floor" of the previous build was the ground's soffit line (endwalls.json's face-plane
   edges 3.80 / 3.91, the 2014 dark strip to 4.17), never a balcony: gone. Back walls on the plate
   line. The scan's closures (u -4.65, 49.06) are the lobbies' back walls, hidden behind the ground
