@@ -139,6 +139,10 @@ export function photoMaterial(src, hall) {
          // them (dark recesses, a lit doorway), same numbers as index.html WALLF
          bool northSide=!longWall||sd<7.0;
          bool opening=longWall&&northSide&&sy>${WALLF.openY[0].toFixed(3)}&&sy<${WALLF.openY[1].toFixed(3)}&&(${glslOr(WALLF.openings, ([a, b]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`)});
+         // the scan's caps behind the openings (its junk 1.2 m in, which painted black and hid the built
+         // corridor): they give way, the corridor shows lit through the openings as the 4K deck frame
+         // d4_000120 sees it (2026-09-09)
+         if(opening&&sd<-0.3)discard;
          bool doorway=longWall&&(${glslOr(WALLF.doors.filter(D => D.lit), D => `(${D.north ? 'sd<7.0' : 'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})`)});
          bool darkDoor=longWall&&(${glslOr(WALLF.doors.filter(D => !D.lit), D => `(${D.north ? 'sd<7.0' : 'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})`)});
          bool grille=longWall&&((sd<7.0&&(${glslOr(WALLF.grilles.north, ([a, b, c, d]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)}&&sy>${c.toFixed(3)}&&sy<${d.toFixed(3)})`)}))||(sd>7.0&&(${glslOr(WALLF.grilles.south, ([a, b, c, d]) => `(su>${a.toFixed(3)}&&su<${b.toFixed(3)}&&sy>${c.toFixed(3)}&&sy<${d.toFixed(3)})`)})));

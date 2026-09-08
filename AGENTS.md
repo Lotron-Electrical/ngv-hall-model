@@ -1236,7 +1236,11 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
   it (the hall's void runs to the outer wall there), so the gallery is the top storey on that
   side and its ceiling is not another floor; its floor the second floor h 8.34; its ceiling
   (11.8) and back wall are UNMEASURED (no frame or cloud point sees them), so it is one dark Lambert
-  volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'). 6 grilles
+  volume u 3-47, open only at the twelve openings ('corridor-back/floor/ceiling/near'); the scan
+  closes each opening with a black cap about 1.2 m in, so photoMaterial and game/hallmat.js
+  discard scan fragments 0.3-3.5 m behind the face inside an opening (tools/patch_open_caps.py)
+  and the install seal box sits behind the corridor-back (d -4.3), so the corridor shows through
+  in both modes (checked on the chained deck frame d4_000120, 2026-09-09). 6 grilles
   (about 0.9 x 0.33 m at h 2.6-3.0; u 10-30 is a stage in every frame, unmeasured there), a dark
   door at u 45.97-47.79 head 2.97, and the LIT GLAZED DOORWAY at u 23.1-29.4, head 2.3 (+-0.2):
   the brightness along the wall face at h 1.2 through seven posed day-walk frames

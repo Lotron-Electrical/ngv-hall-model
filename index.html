@@ -1125,6 +1125,10 @@ function photoMaterial(src){
     if(door.x>0.5){ vec3 dr=vPos-doorC; if(abs(dot(dr,doorU))<door.y&&dr.y>-0.5&&dr.y<door.z&&abs(dot(dr,doorN))<door.w)discard; }
     float holeA=hole.w>0.5?smoothstep(hole.z-0.4,hole.z,hd):1.0;
     vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
+    { // the scan's caps behind the north wall's openings (about 1.2 m in, black): the openings are open into
+      // the built corridor, seen lit through them from the east top gallery (d4_000120, 2026-09-09)
+      vec3 oq=vPos-vec3(-54.907447,-1.43545,3.040286); float ou=dot(oq,vec3(0.975681,0.0,0.219196)), od=dot(oq,vec3(0.219186,0.0,-0.975639)), oy=oq.y;
+      if(od<-0.3&&od>-3.5&&oy>${(WALLF.openY[0]).toFixed(3)}&&oy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(ou>${a.toFixed(3)}&&ou<${b.toFixed(3)})`).join('||')}))discard; }
     vec3 albedo=texture2D(map,vUv).rgb*tint;
     ${(src.name||'')==='walls'?`{
      // the ashlar, drawn in the hall frame (see STONE): courses up from the carpet, blocks along
@@ -2194,7 +2198,13 @@ function buildWallDetails(root){
  const voidMat=new THREE.MeshBasicMaterial({color:0x07070a, side:THREE.DoubleSide, name:'wall-opening'});
  const grilleMat=new THREE.MeshBasicMaterial({color:0x0b0b0c, side:THREE.DoubleSide, name:'wall-grille'});
  const walls=[{d:F.dNorth, s:-1, north:true},{d:F.dSouth, s:1, north:false}];   /* s: into the wall */
- const corridorMat=new THREE.MeshLambertMaterial({color:0x2a2724, side:THREE.DoubleSide, name:'corridor-back'});
+ // the corridor's tones by day and night (night -> day by lit.day, like the galleries'): seen level through the
+ // openings from the east top gallery (4K d4_000120, chained), its back wall reads 0.4-0.55x the stone beside
+ // the opening (33 and 26 against 60 and 65) with a lamp on its ceiling by the nearest one; from the floor
+ // only its dark ceiling shows. Night captures: unlit.
+ const cnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:day, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); endLitMats.push(m); return m; };   /* applyDay lerps it each frame */
+ const corridorMat=cnm(0x0a0908,0x2a2724,'corridor');   /* its ceiling, floor and near faces */
+ const corridorBackMat=cnm(0x0c0b0a,0x4b4844,'corridor-back');   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
  const litBack=new THREE.MeshBasicMaterial({color:0xe6e0d6, side:THREE.DoubleSide, name:'vestibule-back'});
@@ -2211,7 +2221,7 @@ function buildWallDetails(root){
   // the circulation gallery behind the openings (the 1968 second-floor plan): a dark corridor W wide
   // past the reveals, its floor the second floor, seen only through the openings
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
-   quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-back');
+   quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
    quad([[ua,dR,C.ceil],[ub,dR,C.ceil],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-ceiling');
    // the wall's own back face BETWEEN the openings (each opening stays open into the corridor)
@@ -6625,7 +6635,7 @@ async function buildInstall(){
  // inside out round the hall and the corridor, so nothing looks out on anything. Measured by
  // tools/game-sealed.mjs (a cube map from a grid of standing points with the sky painted magenta)
  { const top=Math.max(CEIL_Y,FLOOR_Y+12)+6, bot=FLOOR_Y-1.5;
-   const seal=W.makeHallBox(G.group,38,7.7,(top+bot)/2,82,20,top-bot,new THREE.MeshBasicMaterial({color:0x07080a,side:THREE.BackSide})); seal.name='seal'; }   // (2026-09-06) 8 m longer: the storage corridor grew a back bay for the ply and the skip went east with it
+   const seal=W.makeHallBox(G.group,38,6.7,(top+bot)/2,82,22,top-bot,new THREE.MeshBasicMaterial({color:0x07080a,side:THREE.BackSide})); seal.name='seal'; }   // 2 m wider to the north (d -4.3): the corridor's back wall (d -2.9) stood outside it and the seal hid it (2026-09-09)   // (2026-09-06) 8 m longer: the storage corridor grew a back bay for the ply and the skip went east with it
  const saved=CLKm.loadSave();
  const install=new INSTm.Install(G.group,RUNS,saved);
  const player=new PLm.Player(cam,cv);
