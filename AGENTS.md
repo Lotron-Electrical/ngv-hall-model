@@ -1287,8 +1287,11 @@ pixel box, photo and +- in `agent-ref-walls/measure/{walls,courses,endwalls,glaz
               the top gallery's lit interior shows from h 8.85-8.95 on both ends (the 2014
               "solid parapet 8.33-9.43" was the upstand plus the glass's dark reflection), and
               the 4k frame d4_000198, shot leaning on it, looks down through glass
-    10.3      the head (the lit band ends 10.2 east / 10.65 west, +-0.3), the lit soffit, and
-              stone from there to the top, on the face plane
+    10.65     the head (the west's measured head; the east's 10.2 is where the lit back ends, not
+              the head: Lloyd's own 4K deck frames d4_000031 (u 48.34, h 10.05, pitched 18 up) and
+              d4_000169 (h 10.29) stand 0.3 m behind the glass and see canopy, not soffit, above
+              the face, so the head clears 10.62; pose pairs bal-d31, bal-d168), the soffit with
+              its downlights, and stone from there to the top, on the face plane
   TONES (tools/end_profile.py class:frame:PAIR samples the sim half of a pose pair on the real
   pose, so real and sim profiles compare number for number): by day the top gallery reads THREE
   times the stone with a row of downlights about 3 m apart (w2_000252 150-180 against 50;
@@ -1529,8 +1532,8 @@ a correction fitted to blur would be fabrication. Scratch: `colour_check.json`.
 
 **The ends in numbers (2026-09-08, tools/end_residual.py).** Six pose pairs on the current build (three a side,
 day, night and 4K), the brightness profile up each end face stepped real against sim at four d stations, each sim
-step matched to the nearest real step of its sign within 0.45 m: east 11 matched, mean 0.00 m, |median| 0.30, 90 %
-within 0.45; west 11 matched, mean 0.00, |median| 0.20, 90 % within 0.35. No bias; the scatter is blur against
+step matched to the nearest real step of its sign within 0.45 m (after the head went to 10.65): east 11 matched, mean +0.05 m, |median| 0.25, 90 %
+within 0.30; west 9 matched, mean +0.09, |median| 0.20, 90 % within 0.37. No bias; the scatter is blur against
 hard sim edges. Unmeasured still: the glass rails' heights (0.89 / 1.06 kept), the corridor's ceiling and back wall
 (1968 plan), the east door windows' positions, the tapestries' +-0.4. Log: PLAN-20260908-walls.md 23:55.
 
