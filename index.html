@@ -3151,6 +3151,39 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // A NEAR-FAR SPLIT AND A NULL BOTH TEST WHETHER AN ANSWER IS STABLE. NEITHER TESTS WHETHER IT IS
+  // RIGHT (2026-09-10, tools/fin_v.py). The south wall was attacked a second time, with the instrument
+  // named at the end of the cloud run, and it produced the most convincing wrong answer in this file.
+  // THE FEATURE IS GOOD AND THE MATHS IS RIGHT. Each south glazing fin stands on a known u and is 0.40 m
+  // wide, so both vertical edges of its hall-side face are lines on KNOWN u and UNKNOWN d. A ray to one
+  // carries exactly ONE unknown. Detection happens ONCE in a window fixed around the drawn d and the
+  // answer is solved afterwards from recorded pixels, so the sweep cannot drag the detector after it,
+  // which is the bias tools/follow_test.py measured as 45 per cent of an answer. It is rotation-proof
+  // too: these are portrait clips, so a vertical fin is a near-horizontal line in the stored frame, and
+  // the profile is taken along the normal to the projected polyline rather than along any image axis.
+  // THE OUTSIDE CONTROL CAUGHT THE FIRST VERSION IMMEDIATELY. Run with a window fixed in PIXELS, the
+  // north jambs came back on d -0.285 against a station known to -0.030. A pixel window covers 60 mm of
+  // depth from three metres and 300 mm from fourteen, so it asks a different question of every frame.
+  // Fixed in METRES instead, with a gradient bar and a rule that the winning edge must beat every rival
+  // in its window, the north control goes silent: only 13 readings survive, because those openings are
+  // 100 to 150 px wide carrying under 20 grey levels and a strict detector finds nothing in them.
+  // AND THEN THE SOUTH ANSWER LOOKED BETTER THAN ANYTHING ELSE TODAY. Pooled d 15.105, which is 135 mm
+  // in front of the drawn 15.240. Near half 15.115 against far half 15.130, fifteen millimetres. A null
+  // of 10 mm. A median residual of 4.66 px. Swept across four detector settings from 172 readings to 950
+  // it moved 10 mm in total: 15.105, 15.115, 15.115, 15.115. Every test this file owns said yes.
+  // THE FINS THEMSELVES SAID NO. Five fins stand in five places on one plane and each has two edges 0.40
+  // m apart, so a detector on the fin faces must return one d for all ten. It does not. The five fins
+  // scatter 15.120 to 15.365, a spread of 0.245 m, and inside a single fin the two edges land 15.130 and
+  // 15.300, or 15.325 and 15.115, or 15.105 and 15.395. Two edges of the SAME fin cannot be 0.29 m apart
+  // in depth. The detector is not on the fin face.
+  // SO WHAT WAS THE 15 mm NEAR-FAR AGREEMENT MEASURING. The median of a wide scatter is stable. The
+  // near-far split, the odd-even null and the settings sweep all test the STABILITY of that median, and
+  // a scatter spread evenly enough is perfectly stable while being perfectly wrong. Only a control asks
+  // the other question, and when the outside control went silent the target's own redundancy supplied
+  // one for nothing.
+  // dSouth STAYS ON 15.364 FOR THE SECOND TIME TODAY, refused now by a sharper instrument and for a
+  // sharper reason: no detector in this archive can find a south fin edge well enough for two edges of
+  // one fin to agree inside 0.29 m. That is a statement about the capture and not about the wall.
   // THE HALL'S OWN WIDTH WAS PUT TO THE CLOUD AND THE CONTROL FAILED, SO THE ANSWER WAS THROWN AWAY
   // (2026-09-10, tools/wall_plane.py). This is a negative result and it is the useful kind: it retires a
   // whole class of future attempts, and it stopped an 89 mm move that would have been wrong.
@@ -4170,7 +4203,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 144 bounds, all satisfied.
+  // 147 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

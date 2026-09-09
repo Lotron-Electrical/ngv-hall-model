@@ -637,6 +637,48 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# A SPLIT AND A NULL TEST STABILITY, NOT CORRECTNESS (2026-09-10, tools/fin_v.py).
+FINV = {'pooled': 15.105, 'drawn': 15.240, 'near': 15.115, 'far': 15.130, 'nullo': 15.095,
+        'nulle': 15.105, 'resid': 4.66, 'settings': [15.105, 15.115, 15.115, 15.115],
+        'reads': [318, 645, 172, 950], 'fins': [15.145, 15.125, 15.135, 15.120, 15.365],
+        'pairs': [(15.130, 15.300), (15.325, 15.115), (15.105, 15.395)], 'fin_gap': 0.40,
+        'n_pixwin': -0.285, 'n_known': -0.030, 'n_strict': 13}
+check('the fin test passed every stability check this file owns',
+      abs(FINV['near'] - FINV['far']) < 0.02 and max(FINV['settings']) - min(FINV['settings']) < 0.02,
+      'each south fin is 0.40 m wide on a known u, so both vertical edges of its hall-side face are lines '
+      'on known u and UNKNOWN d, and a ray to one carries exactly ONE unknown. Detection happens once in a '
+      'window fixed around the drawn d and the answer is solved afterwards from recorded pixels, so the '
+      'sweep cannot drag the detector after it. It came back d %.3f, %.0f mm in front of the drawn %.3f, '
+      'near half %.3f against far half %.3f, a null of %.0f mm, a median residual of %.2f px, and across '
+      'four detector settings from %d to %d readings it moved %.0f mm in total.'
+      % (FINV['pooled'], 1000 * (FINV['drawn'] - FINV['pooled']), FINV['drawn'], FINV['near'],
+         FINV['far'], 1000 * abs(FINV['nullo'] - FINV['nulle']), FINV['resid'], min(FINV['reads']),
+         max(FINV['reads']), 1000 * (max(FINV['settings']) - min(FINV['settings']))),
+      'tools/fin_v.py')
+check('and the fins themselves refused it, which is what a control is for',
+      max(FINV['fins']) - min(FINV['fins']) > 0.15,
+      'five fins stand in five places on ONE plane and each has two edges %.2f m apart, so a detector on '
+      'the fin faces must return one d for all ten. It does not. The five scatter %.3f to %.3f, a spread '
+      'of %.3f m, and inside a single fin the two edges land %s. Two edges of the SAME fin cannot be '
+      '0.29 m apart in depth. The outside control had already gone silent: with a window fixed in PIXELS '
+      'the north jambs read %+.3f against a station known to %+.3f, and tightened to metres only %d '
+      'readings survive, because those openings are 100 to 150 px wide carrying under 20 grey levels.'
+      % (FINV['fin_gap'], min(FINV['fins']), max(FINV['fins']),
+         max(FINV['fins']) - min(FINV['fins']),
+         ', '.join('%.3f and %.3f' % pr for pr in FINV['pairs']),
+         FINV['n_pixwin'], FINV['n_known'], FINV['n_strict']),
+      'tools/fin_v.py')
+check('so dSouth stays, and what the 15 mm agreement was measuring is now written down',
+      abs(G['dSouth'] - 15.364) < 1e-6,
+      'the median of a wide scatter is stable. The near-far split, the odd-even null and the settings '
+      'sweep all test the STABILITY of that median, and a scatter spread evenly enough is perfectly '
+      'stable while being perfectly wrong. Only a control asks the other question, and when the outside '
+      'control went silent the redundancy of the fins supplied one for nothing. dSouth stays on %.3f for '
+      'the second time today, refused by a sharper instrument and for a sharper reason: no detector in '
+      'this archive can find a south fin edge well enough for two edges of one fin to agree inside '
+      '0.29 m. That is a statement about the capture and not about the wall.'
+      % G['dSouth'],
+      'tools/fin_v.py')
 # THE HALL WIDTH PUT TO THE CLOUD, AND THE CONTROL THAT FAILED (2026-09-10, tools/wall_plane.py).
 WPL = {'n_lo': -0.178, 'n_hi': -0.017, 'n_known': -0.030, 'n_spread': 0.361, 'n_halves': 0.531,
        'n_clean': 0, 's_clean': 5, 's_fit': 15.275, 's_lean': 0.0197, 's_leanmm': 79,
