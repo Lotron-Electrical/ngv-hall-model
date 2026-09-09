@@ -1113,6 +1113,30 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // across captures (108, 178 and 192 mm) and opening 2 has only one capture; none of those is moved.
 // Every shift is a LOWER bound, because a follow gain of 0.37 remains and a following instrument
 // understates. Do not read a small residual on the next re-measure as confirmation: part of it is the echo.
+// THE GAIN IS NOW FITTED PER JAMB INSTEAD OF ASSUMED, AND THE TABLE ABOVE SURVIVES IT (2026-09-09,
+// tools/wall_gainfit.py, OPEN_SHIFT in tools/wall_edges.py). Everything above rests on one measured gain,
+// 0.37, applied to every jamb in every capture. That is an assumption, and on the end galleries the same
+// assumption turned out to be hiding the fact that four captures were agreeing about the DRAWING rather
+// than about the edge. So it was removed here too. A following instrument is linear in the drawn position,
+// A(d) = truth + g(d - truth), so reading the SAME physical jamb against three tables slid along the wall
+// by -0.10, 0 and +0.10 m gives the gain as the slope and the truth as the intercept, per jamb, per
+// capture, with nothing assumed. Sliding the WHOLE table keeps every spacing, so the separability test and
+// the search window never move and the only thing that changes is where the search starts.
+// Eight captures, three draws each, 24 runs. The offsets below are against the table AS IT STANDS:
+//   opening  4   +0.012   (walk 0.000, night +0.024, range 0.024)   the tightest reading in the set
+//   opening  8   -0.016   (walk -0.016, night +0.019, b3 -0.041, range 0.060)
+//   opening 12   +0.008   (walk -0.024, night +0.040, range 0.064)
+// Where the captures agree at all, NO OPENING IS MORE THAN 16 mm FROM WHERE IT IS DRAWN. Opening 4 is one
+// of the four that was moved this morning, and the best-conditioned reading available says the moved
+// position is right to 12 mm. Openings 8 and 12 were never moved and read as unmoved, which is the
+// positive control this estimator needs: it returns zero where zero is the answer.
+// The rest are NOT RESOLVED and nothing is done to them: openings 1, 3, 6, 7, 9, 10 and 11 spread 0.09 to
+// 0.30 m across captures, and openings 2 and 5 have a single capture each. Fitting the gain costs
+// precision, because the slope divides by the 0.20 m draw separation, so this estimator refuses more than
+// it answers. That is the correct trade: it answers about the wall instead of about the table.
+// THE FITTED GAINS THEMSELVES ARE THE WARNING. Per jamb they run from 0.00 to 0.81 with a median near 0.3.
+// A single global 0.37 was never safe, because the jambs where it is worst (0.75 and 0.81, both opening 6
+// read from b1 and b1p) are exactly the ones a lower bound would have been quoted for.
 const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
  // THE SILL AND THE HEAD, tested for the first time (2026-09-09, tools/open_levels.py, open_pool.py).
  // Every wall measurement until today was horizontal: where the jambs stand along the hall. The openings

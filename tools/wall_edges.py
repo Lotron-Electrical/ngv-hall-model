@@ -21,6 +21,15 @@ DFACE = -0.09
 if os.environ.get('OPEN_WIDTH'):
     _w = float(os.environ['OPEN_WIDTH'])
     OPEN = [[(a + b) / 2 - _w / 2, (a + b) / 2 + _w / 2] for a, b in OPEN]
+# OPEN_SHIFT slides every opening along the wall by the same amount, which is what makes the follow gain
+# FITTABLE rather than merely testable. A following instrument is linear in the drawn position,
+# A(d) = truth + g(d - truth), so reading the same physical jamb against three shifted tables gives the
+# gain as the slope and the truth as the intercept, with nothing assumed about either. Shifting the whole
+# table keeps every spacing, so the separability test and the search window are untouched and the only
+# thing that changes between runs is where the search starts. tools/wall_gainfit.py drives it.
+if os.environ.get('OPEN_SHIFT'):
+    _s = float(os.environ['OPEN_SHIFT'])
+    OPEN = [[a + _s, b + _s] for a, b in OPEN]
 cls = sys.argv[1]
 maxf = int(sys.argv[2]) if len(sys.argv) > 2 else 40
 JAMBS = []
