@@ -358,6 +358,25 @@ for _t in ("b1", "b3", "b4", "b5", "b6s", "b7s", "b6g"):
                    "img": B2 + "-register/images-colour-%s-accepted/" % _t, "frames": B2 + "/%s/images/" % _t,
                    "factor": 1.0, "note": "20260809 4K balcony/gallery clip %s, registered 2026-09-09" % _t}
 
+# THE PAN CLASSES, 2026-09-09, and how they differ from the withdrawn re-gated ones above. Lloyd: "those
+# frames are me looking at the hall. but they should be more frames when I look around the actual balcony
+# area." He is right: the accepted sets are the frames aimed DOWN THE HALL, because the site model those
+# frames were solved against is the hall and carries almost no surface on the balconies, so a frame turned
+# toward the parapet has nothing to match. tools/pan_poses.py builds the missing poses from the clip's own
+# frame-to-frame matches, which tools/clip_selfmatch.py added.
+# WHAT MAKES THESE LEGITIMATE WHERE THE RE-GATED SETS WERE NOT. The re-gated models subsetted work/reg-*,
+# the register's RAW output, and inherited its unrefined poses. These are anchored on model-<t>-accepted,
+# the SAME refined model every accepted measurement already uses, and add only a rotation measured from
+# image correspondences plus a position interpolated between two of those refined poses. Nothing raw enters.
+# WHAT THEY COST. Every frame carries its own error in pan-quality.json beside the model: the leave-one-out
+# position error per clip is 0.024 to 0.100 m and the rotation hold-out is 0.17 to 0.58 deg. That is fine
+# for something a few metres away, which is the balcony the operator is standing on, and poor for the far
+# end of the hall, which the accepted frames already measure better. Use these for what is NEAR the camera.
+for _t in ("b1", "b3", "b5", "b7s", "b6g"):
+    CLASSES[_t + "p"] = {"prefixes": None, "model": B2 + "-register/work/model-%s-pan" % _t,
+                         "img": B2 + "/%s/images/" % _t, "frames": B2 + "/%s/images/" % _t, "factor": 1.0,
+                         "note": "clip %s, anchors from model-%s-accepted plus pan-chained frames" % (_t, _t)}
+
 
 def load_class(name, plate_y=13.0):
     """{frame: (Cam, image path)} for one source class, hall frame, cameras below the glass only."""

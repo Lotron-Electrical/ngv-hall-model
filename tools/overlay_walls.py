@@ -15,6 +15,10 @@ def P(u, d, h):
 def poly(pts, col, w=3, closed=True):
     q = [P(*p) for p in pts]
     if any(v is None for v in q): return
+    # A camera standing IN a wall opening sees geometry almost edge-on, and a point a few degrees off the
+    # principal plane projects millions of pixels away. That overflows the int32 conversion below. Anything
+    # that far outside the frame carries no information anyway, so the whole shape is dropped.
+    if any(abs(a) > 20000 or abs(b) > 20000 for a, b in q): return
     q = np.int32([[round(a), round(b)] for a, b in q]).reshape(-1, 1, 2); cv2.polylines(im, [q], closed, col, w, cv2.LINE_AA)
 OPEN = [[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]]
 OY = [8.99, 11.35]; DN = -0.09; DS = 15.364

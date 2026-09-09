@@ -165,6 +165,9 @@ for name, hv in LEVELS:
     near, far = v[o[:k]], v[o[-k:]]
     # A wrong FACE position looks bigger from close up and smaller from far away; a wrong HEIGHT does not
     # care where the camera stands. The near/far split is what tells those two apart.
-    print('  %-18s h %5.2f   n %3d   offset median %+.3f m  p25 %+.3f  p75 %+.3f   near %.0f m %+.3f | far %.0f m %+.3f'
-          % (name, hv, len(v), np.median(v), np.percentile(v, 25), np.percentile(v, 75),
+    lv, _ = by_look(acc[name])
+    # The headline is the look-grouped number, because that is what the capture actually says. The per-frame
+    # median is printed beside it so any earlier figure can be recognised for what it was.
+    print('  %-18s h %5.2f  %2d looks (%3d frames)  offset median %+.3f m  [per frame %+.3f]  p25 %+.3f  p75 %+.3f   near %.0f m %+.3f | far %.0f m %+.3f'
+          % (name, hv, len(lv), len(v), np.median(lv), np.median(v), np.percentile(v, 25), np.percentile(v, 75),
              np.median(du[o[:k]]), np.median(near), np.median(du[o[-k:]]), np.median(far)))
