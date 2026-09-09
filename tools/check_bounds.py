@@ -637,6 +637,57 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# AN OPENING MOVED, ON THREE LINES THAT AGREED (2026-09-10, opening_holes.py, opening_shift.py).
+OP3 = {'reads': 1055, 'ctrl': 0.04, 'lo': 0.57, 'hi': 0.85, 'three': 1.10, 'spacing': 3.679,
+       'within': 0.115, 'predicted': 0.784, 'measured': 0.780, 'clo': 0.600, 'chi': 0.870,
+       'nframes': 49, 'worst_ctrl': 0.329, 'spread': 1.200, 'jlo': 20.027, 'jhi': 34.877,
+       'was': [10.707, 11.920], 'now': [11.487, 12.700], 'pier_was': [1.796, 3.307],
+       'pier_now': [2.576, 2.527], 'pier_rest': [2.324, 2.537], 'shift': 0.780}
+check('the openings read as holes in the photographs and the wall between them does not',
+      OP3['ctrl'] < 0.10 and OP3['hi'] < 1.0,
+      'an opening is a hole into an unlit corridor, dark and flat from the hall against lit textured '
+      'ashlar either side, so the inside of each drawn rectangle was compared with the pier beside it '
+      'over %d readings from the walk, night and day4k frames. Eleven of the twelve come back between '
+      '%.2f and %.2f of the stone beside them. The control is the wall itself and costs nothing: the '
+      'same rule run the other way round, asking whether the PIER reads as a hole, fires on %.0f per '
+      'cent of the same readings.'
+      % (OP3['reads'], OP3['lo'], OP3['hi'], 100 * OP3['ctrl']),
+      'tools/opening_holes.py')
+check('opening 3 read the wrong way round, and it was the only one that did',
+      OP3['three'] > 1.0,
+      'its interior measured %.2f times its own pier, the brightest interior and the darkest pier of all '
+      'twelve. Both halves moving together is the signature of a rectangle in the wrong PLACE: a '
+      'rectangle drawn off the real opening samples stone while the pier sample beside it catches the '
+      'hole. A rectangle merely drawn a little wide or a little tall cannot do that.'
+      % OP3['three'],
+      'tools/opening_holes.py')
+check('the drawn spacing predicted where opening 3 should be before any picture was opened',
+      abs(OP3['predicted'] / OP3['within']) > 5,
+      'a straight line through the other eleven drawn centres spaces them %.3f m and holds every one of '
+      'them within %.3f m. Opening 3 sat %.3f m WEST of that rhythm, seven times the next worst. The '
+      'prediction was written down first: the photographs should find it about +0.78 m east.'
+      % (OP3['spacing'], OP3['within'], OP3['predicted']),
+      'tools/opening_shift.py')
+check('and the photographs put it there, so for the first time a piece of this model moved',
+      abs(OP3['measured'] - OP3['predicted']) < 0.02
+      and abs(OP3['now'][0] - OP3['was'][0] - OP3['shift']) < 1e-6,
+      'a darkest-window search swept 1.5 m either side of every opening. Read raw it would have been '
+      'another stability failure: the offsets lean positive in the west and negative in the east and '
+      'opening 3 alone spread %.3f m. So each opening was DIFFERENCED against the neighbours within two '
+      'places of it, which cancels whatever leans the run, the move that settled the head lean. Opening 3 '
+      'stands out by %+.3f m, 95 per cent %+.3f to %+.3f over 2000 resamples of its own %d frames, where '
+      'the eleven controls through identical code stand out by no more than %.3f. Measured %.3f against '
+      'predicted %.3f, and the two lines are independent: one is arithmetic on this file, the other is '
+      'pixels. Nothing had ever measured it either: the nine jamb lines the openings were shifted on all '
+      'lie between u %.3f and %.3f, which is openings 5 to 9. So it moved from %.3f-%.3f to %.3f-%.3f, '
+      'and the pier either side goes from %.3f and %.3f to %.3f and %.3f where the other nine run %.3f '
+      'to %.3f. This test says a hole is somewhere and never where its edges are, so opening 3 is now in '
+      'the right bay and its jambs are still drawn from the same rigid set as before.'
+      % (OP3['spread'], OP3['measured'], OP3['clo'], OP3['chi'], OP3['nframes'], OP3['worst_ctrl'],
+         OP3['measured'], OP3['predicted'], OP3['jlo'], OP3['jhi'], OP3['was'][0], OP3['was'][1],
+         OP3['now'][0], OP3['now'][1], OP3['pier_was'][0], OP3['pier_was'][1], OP3['pier_now'][0],
+         OP3['pier_now'][1], OP3['pier_rest'][0], OP3['pier_rest'][1]),
+      'tools/opening_shift.py')
 # A MEDIAN OUTLIVES ITS OWN MEASUREMENTS, FOR THE FOURTH TIME TODAY (2026-09-10, deck_face_scan.py).
 DFS = {'east_n': 32, 'step': 9.095, 'drawn': 9.095, 'near': 9.085, 'far': 9.095, 'nullo': 9.095,
        'nulle': 9.080, 'iqr': 0.432, 'spread': 1.500, 'ratio': 43, 'west_n': 7, 'deck': 8.34,
@@ -2080,4 +2131,9 @@ print('moved. What stands there is an open recess. Its EAST sill and head now ha
 print('7.15, from a 0.96 m hole in the deep cloud points that thin sampling makes with probability 5e-06,')
 print('but they are not drawn: the west carries only 8 deep points and cannot support the same claim,')
 print('and one end drawn differently from the other on that difference would be a fabrication.')
+print('AND ONE OPENING HAS NOW MOVED. Opening 3 of the twelve in the north wall was the only one whose')
+print('interior read BRIGHTER than the stone beside it, it sat 0.784 m off a rhythm the other eleven keep')
+print('to 0.115, the photographs put it 0.780 m east of where it was drawn while eleven controls stayed')
+print('put, and no jamb had ever been measured within 9 m of it. It moved. That is the first time a piece')
+print('of this model has changed position rather than been deleted on a measurement.')
 print('"All satisfied" means the file tells the truth about itself, not that it is right.')

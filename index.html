@@ -1170,7 +1170,7 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // THE FITTED GAINS THEMSELVES ARE THE WARNING. Per jamb they run from 0.00 to 0.81 with a median near 0.3.
 // A single global 0.37 was never safe, because the jambs where it is worst (0.75 and 0.81, both opening 6
 // read from b1 and b1p) are exactly the ones a lower bound would have been quoted for.
-const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.917,20.130],[22.565,23.778],[26.213,27.426],[29.963,31.175],[33.642,34.853],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
+const WALLF={openings:[[4.098,5.310],[7.697,8.911],[11.487,12.700],[15.227,16.440],[18.917,20.130],[22.565,23.778],[26.213,27.426],[29.963,31.175],[33.642,34.853],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
  // THE SILL AND THE HEAD, tested for the first time (2026-09-09, tools/open_levels.py, open_pool.py).
  // Every wall measurement until today was horizontal: where the jambs stand along the hall. The openings
  // also have a top and a bottom and nobody had ever put a photograph against them. Two protections were
@@ -3151,6 +3151,45 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // AN OPENING MOVED 0.78 M, AND THREE LINES HAD TO AGREE BEFORE IT DID (2026-09-10,
+  // tools/opening_holes.py and tools/opening_shift.py).
+  // THE FIRST TEST WAS AN OCCLUSION TEST, WHICH IS THE ONLY CLASS THAT HAS HELD UP ALL DAY. An opening
+  // is a hole into an unlit corridor: dark and flat seen from the hall, against ashlar either side that
+  // is lit and textured. So the inside of each drawn rectangle was compared with the pier beside it,
+  // 1055 readings from the walk, night and day4k frames. THE CONTROL IS THE WALL ITSELF and it costs
+  // nothing: the same rule run the other way round, asking whether the PIER reads as a hole, fires on
+  // 4 per cent.
+  // ELEVEN OF THE TWELVE READ AS HOLES, between 0.57 and 0.85 of the stone beside them. OPENING 3 READS
+  // THE WRONG WAY ROUND: 1.10, the brightest interior and the darkest pier of all twelve. Both halves
+  // moving together is the signature of a rectangle in the wrong PLACE, because a rectangle drawn off
+  // the real opening samples stone while the pier sample beside it catches the hole.
+  // THEN THIS FILE PREDICTED THE ANSWER BEFORE ANY PICTURE WAS OPENED. A straight line through the other
+  // eleven drawn centres spaces them 3.679 m and holds every one of them within 0.115 m. Opening 3 sat
+  // 0.784 m WEST of that rhythm, seven times the next worst. So the prediction went down first: the
+  // photographs should find it about +0.78 m east of where it is drawn.
+  // THE PHOTOGRAPHS FOUND +0.780. A darkest-window search swept 1.5 m either side of every opening.
+  // Read raw it would have been another stability failure: the offsets lean positive in the west and
+  // negative in the east, and opening 3 alone spread 1.200 m. So each opening was DIFFERENCED against
+  // the neighbours within two places of it, which cancels whatever leans the run, the move that settled
+  // the head lean. Opening 3 stands out by +0.780 m, 95 per cent +0.600 to +0.870 over 2000 resamples of
+  // its own 49 frames; the eleven controls, through identical code, stand out by no more than 0.329.
+  // Measured 0.780 against predicted 0.784, and the two are independent: one is arithmetic on this file,
+  // the other is pixels.
+  // AND NOTHING HAD EVER MEASURED IT. The nine jamb lines the twelve openings were shifted on all lie
+  // between u 20.0 and 34.9, which is openings 5 to 9. Opening 3 was carried along by a rigid move with
+  // no local evidence under it, and the openings that DO carry jambs are the ones this new test leaves
+  // alone, standing out by 0.03 to 0.17 m.
+  // SO IT MOVED, from 10.707-11.920 to 11.487-12.700. The pier either side of it goes from 1.796 and
+  // 3.307 m to 2.576 and 2.527, where the other nine piers run 2.324 to 2.537. Two gaps regularise on a
+  // shift that was fitted to neither of them.
+  // THIS IS THE SECOND TIME THIS MODEL HAS CHANGED SHAPE ON A MEASUREMENT and the first time a piece of
+  // it has MOVED rather than been deleted. It is also the narrowest kind of claim this test can make: it
+  // says a hole is somewhere, never where its edges are, so opening 3 is now in the right bay and its
+  // jambs are still drawn from the same rigid set as before.
+  // THE ANALYSIS TOOLS STILL CARRY THE OLD ARRAY, and that is a hazard rather than a virtue. Two dozen
+  // of them hard-code the pre-move openings and their printed results were computed against it, so the
+  // constants were not rewritten under them; anything re-run against opening 3 must read the array out
+  // of this file the way tools/corridor_lamps.py now does.
   // A SPLIT AND A NULL ARE TESTS OF A MEDIAN, AND A MEDIAN OUTLIVES ITS OWN MEASUREMENTS. Four times in
   // one day now (2026-09-10, tools/deck_face_scan.py). This one caught itself.
   // THE IDEA WAS GOOD AND THE LEVERAGE IS REAL. Every scan of an end face here has been made from the
@@ -4341,7 +4380,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 163 bounds, all satisfied.
+  // 167 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
