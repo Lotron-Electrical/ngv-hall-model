@@ -637,6 +637,31 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+CRS = {'course': 0.306, 'strips': 7, 'agree': [60.0, 60.5, 61.0, 61.5], 'counted': 16.8,
+       'metres': 5.15, 'frame_w': 2160, 'frame_h': 3840, 'endtop_captures': 5, 'endtop_resid': -0.009}
+check('the end wall stack is confirmed by counting stone, and it has no room left in it',
+      abs(13.5 - G['deck'] - CRS['metres']) < 0.15,
+      'the frames that stand ON a balcony are the ones the registrar could not solve, because it solves '
+      'against a model of the HALL and a frame aimed at the wall beside the operator has nothing to match. '
+      'So the best views here carry no pose, and the ashlar is a ruler that does not need one: it was '
+      'coursed off the 4 mm orthophotos of 1,026 posed frames on %.3f m. In b7_000810, %d by %d and sharp, '
+      'four of %d strips agree on a joint pitch of %s px, 2.5 per cent apart, and from the canopy junction '
+      'down to the BOTTOM EDGE OF THE FRAME is %.1f courses, %.2f m of continuous ashlar, with the deck '
+      'still below it. This file draws 13.5 less %.2f = %.2f m. The stone says at least %.2f and the frame '
+      'ran out before the floor did, so any further course means the deck is lower than drawn or the wall '
+      'top higher, and the wall top is pooled across %d captures with a residual of %+.3f m at this end.'
+      % (CRS['course'], CRS['frame_w'], CRS['frame_h'], CRS['strips'],
+         ', '.join('%.1f' % v for v in CRS['agree']), CRS['counted'], CRS['metres'], G['deck'],
+         13.5 - G['deck'], CRS['metres'], CRS['endtop_captures'], CRS['endtop_resid']),
+      'tools/wall_courses.py')
+check('a count is a separation and never a height, and it is said before it is used',
+      CRS['metres'] > 0,
+      'this measures the distance between two things in one picture. It cannot say where either of them '
+      'sits, so it can test whether the drawn stack is the right SIZE and can never place it. It also '
+      'assumes the end wall courses with the long walls it was calibrated on, which is likely in one build '
+      'and is not proved here. Counting more carefully repairs neither.',
+      'tools/wall_courses.py')
 # WHAT LLOYD'S OWN VIDEO SHOWS ON THE BALCONY, looked at rather than fed to a detector (2026-09-09,
 # tools/balcony_sheet.py + balcony_chunks.py + balcony_look.py + frame_out.py + parapet_top.py).
 CLIPS = {'clips': 7, 'frames': 5300, 'vitrine_a': 1240, 'vitrine_b': 1324, 'ceiling_frame': 1312,
@@ -654,14 +679,16 @@ check('the end balcony is a furnished gallery and this model draws an empty slab
       "balcony is the wrong shape, because nobody asked it that."
       % (CLIPS['frames'], CLIPS['vitrine_a'], CLIPS['vitrine_b']),
       'tools/balcony_chunks.py')
-check('the stained glass comes down onto the balcony back wall where this file draws stone',
+check('a claim I shipped an hour earlier was withdrawn by a sharper frame of the same junction',
       CLIPS['endtop'] > G['gHead'],
       'in b6_%06d the balcony back wall is ashlar that stops on a clean horizontal line and the Leonard '
       'French canopy meets it there, with no stone above and no separate flat ceiling over the deck. This '
       'file draws the end walls as stone to h %.1f with a %.1f m soffit on %.2f over the front of each '
-      'balcony and an open void behind it. The photograph shows glass where this file draws stone. The '
-      'height of that junction is not read here because the frame is not posed; what is recorded is that '
-      'the KIND of thing drawn there is contradicted.'
+      'balcony and an open void behind it. I WROTE THAT THIS CONTRADICTED THE MODEL AND IT DOES NOT. To '
+      'get there I turned an angle into a height by guessing the range, in a clip stored 1520 by 2032 and '
+      'heavily compressed. b7_000806 and b7_000810 hold the same junction at the west end in sharp 4K and '
+      'show ashlar running UP to the canopy with doorways and a vent below it, which is what this file '
+      'draws. An angle is not a height until something fixes the range, and nothing did.'
       % (CLIPS['ceiling_frame'], CLIPS['endtop'], CLIPS['soffit'], G['gHead']),
       'tools/balcony_look.py')
 check('a contested pose is settled by what is overhead in the picture rather than by the registration',
