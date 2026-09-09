@@ -1409,6 +1409,52 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# A BODY CANNOT BE INSIDE A BRICK WALL (2026-09-10, tools/body_in_wall.py, tools/eye_height.py).
+BW = {'inwall': 250, 'inopen': 248, 'captures': 5, 'null': 2.8, 'nullspread': 8.8, 'cover': 34.1,
+      'pitch': 3.675, 'miss': 1, 'missmm': 15, 'poserr': [24, 100],
+      'visited': [4, 5, 10], 'visits': [146, 73, 29],
+      'spans': [0.805, 0.491, 0.811], 'widths': [1.213, 1.213, 1.212],
+      'walkeye': 1.789, 'nighteye': 1.600, 'walkn': 789, 'nightn': 99, 'nofloor': 67}
+check('the operator carry height is NOT one constant, so that route is closed before it is rebuilt',
+      abs(BW['walkeye'] - BW['nighteye']) > 0.15,
+      'one man shot every clip with one phone, so the height he carries the camera above the floor should '
+      'be ONE CONSTANT and it should cancel out of any comparison between two floors. It is not one '
+      'constant. The two hall-floor captures, standing on the same floor, put the camera %.3f m up over '
+      '%d frames and %.3f m up over %d, %.0f mm apart and many times the uncertainty of either median. '
+      'Every deck height in this file is safe from that instrument and no future attempt should spend a '
+      'turn rebuilding it. What the same table did show is %d posed frames sitting between 9.6 and 10.0 m '
+      'with NO modelled floor beneath them, just south of the wall plane: a man leaning out through an '
+      'opening with the phone in front of him.'
+      % (BW['walkeye'], BW['walkn'], BW['nighteye'], BW['nightn'],
+         1000 * abs(BW['walkeye'] - BW['nighteye']), BW['nofloor']),
+      'tools/eye_height.py')
+check('250 bodies stood inside the thickness of this wall and 248 of them were inside a drawn opening',
+      BW['inopen'] * 100.0 / BW['inwall'] > 99.0,
+      'every posed camera standing inside the THICKNESS of the north wall, between the back of the reveal '
+      'and the face and between the sill and the head, must be inside one of the twelve openings, because '
+      'the wall is solid brick everywhere else. %d cameras from %d captures stand in there and %d of them, '
+      '%.1f per cent, are inside an opening this file draws. THE NULL IS WHAT MAKES THAT MEAN ANYTHING: '
+      'the same twelve widths on the same %.3f m pitch, shifted so they land on the modelled piers, cover '
+      'the same %.1f per cent of the wall and are hit %.1f per cent of the time with a spread of %.1f over '
+      'five shifts. The real openings beat them by %.1f points. The two that miss are ONE frame counted '
+      'twice, b1_000190 in both its accepted and its pan set, standing %d mm outside a jamb against a '
+      'solver that quotes its own position error as %d to %d mm. That is the pose, not the wall.'
+      % (BW['inwall'], BW['captures'], BW['inopen'], BW['inopen'] * 100.0 / BW['inwall'], BW['pitch'],
+         BW['cover'], BW['null'], BW['nullspread'],
+         BW['inopen'] * 100.0 / BW['inwall'] - BW['null'], BW['missmm'],
+         BW['poserr'][0], BW['poserr'][1]),
+      'tools/body_in_wall.py')
+check('and every jamb holds against the bodies, which is a one-sided result and is written as one',
+      all(s < w for s, w in zip(BW['spans'], BW['widths'])),
+      'a camera inside this wall is inside a REAL hole whatever the model says, so the hole reaches at '
+      'least as far as the camera does. The bodies span %.3f m, %.3f m and %.3f m inside openings drawn '
+      '%.3f, %.3f and %.3f m wide, so not one body reached past a modelled jamb by more than the pose '
+      'error and nothing here asks for a millimetre of change. THIS CAN SHOW AN OPENING IS TOO NARROW AND '
+      'CAN NEVER SHOW ONE IS TOO WIDE. And it speaks only for openings %s, entered by %s cameras; the '
+      'other nine are corroborated by nothing here and are not called right by this.'
+      % (BW['spans'][0], BW['spans'][1], BW['spans'][2], BW['widths'][0], BW['widths'][1], BW['widths'][2],
+         ', '.join(str(v) for v in BW['visited']), ', '.join(str(v) for v in BW['visits'])),
+      'tools/body_in_wall.py')
 # THE SCAN CANNOT ADJUDICATE THIS MODEL (2026-09-10, tools/bake_vs_model.mjs + tools/bake_distance.py).
 BK = {'verts': 112764, 'distinct': 18946, 'spacing': 0.015, 'chunks': 56, 'surfaces': 52,
       'unscanned': 52, 'tested': 0, 'ctrl': 'canopy-procedural', 'ctrlarea': 869.5,

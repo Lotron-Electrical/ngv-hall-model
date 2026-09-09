@@ -3199,6 +3199,38 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // A BODY CANNOT BE INSIDE A BRICK WALL, AND 250 OF THEM WERE (2026-09-10, tools/body_in_wall.py,
+  // after tools/eye_height.py closed a route on the way).
+  // THE ROUTE THAT DIED FIRST, because it is worth knowing it is dead. One man shot every clip with one
+  // phone, so the height he carries the camera above the floor he stands on should be ONE CONSTANT, and
+  // that constant cancels out of any comparison between two floors. It is not one constant. The two
+  // hall-floor captures, standing on the same floor, put the camera 1.789 m up over 789 frames and
+  // 1.600 m up over 99, which is 189 mm apart and many times the uncertainty of either median. He did not
+  // hold the phone the same way on the two days. Every deck height in this file is safe from that
+  // instrument and no future attempt should spend a turn rebuilding it.
+  // BUT THE SAME TABLE SHOWED SOMETHING BETTER. Sixty-seven posed frames sat between 9.6 and 10.0 m with
+  // NO modelled floor beneath them, just south of the wall plane. That is a man leaning out through an
+  // opening with the phone in front of him, and it turns the archive into an occlusion argument, which
+  // this project has learnt is the only class of test that has ever held up here.
+  // THE TEST. Every posed camera standing inside the THICKNESS of this wall, between the back of the
+  // reveal and the face and between the sill and the head, must be inside one of the twelve openings,
+  // because the wall is solid brick everywhere else. 250 cameras from five captures stand in there.
+  // 248 OF THEM, 99.2 PER CENT, ARE INSIDE AN OPENING THIS FILE DRAWS.
+  // AND THE NULL IS WHAT MAKES THAT MEAN ANYTHING. The same twelve widths on the same 3.675 m pitch,
+  // shifted along the wall so they land on the modelled piers, cover exactly the same 34 per cent of the
+  // wall. Those invented openings are hit 2.8 per cent of the time, spread 8.8 over five shifts. The real
+  // ones beat them by 96.4 points. This is not a pattern that fits; it is where a man physically was.
+  // THE TWO THAT MISS ARE ONE FRAME COUNTED TWICE, b1_000190 in both its accepted and its pan set, and it
+  // stands 15 mm outside a jamb against a solver that quotes its own position error as 24 to 100 mm. That
+  // is the pose, not the wall, and it is named here rather than rounded away.
+  // WHAT IT CAN AND CANNOT SPEAK FOR. Only openings 4, 5 and 10 were ever entered, by 146, 73 and 29
+  // cameras. The other nine are corroborated by nothing here and are not being called right by this.
+  // AND THE JAMBS, WHICH IS THE PART THAT COULD HAVE MOVED GEOMETRY. A camera inside this wall is inside
+  // a REAL hole whatever the model says, so the hole reaches at least as far as the camera does. The
+  // bodies span 0.805 m, 0.491 m and 0.811 m inside openings drawn 1.213, 1.213 and 1.212 m wide. EVERY
+  // JAMB HOLDS: not one body reached past a modelled jamb by more than the pose error, so nothing here
+  // asks for a millimetre of change. That is a ONE-SIDED result and it is worth saying plainly: this can
+  // show an opening is too narrow and can never show one is too wide.
   // THE ROUTE THAT LOOKED BEST OF ALL, AND IS CLOSED (2026-09-10, tools/bake_vs_model.mjs,
   // tools/bake_distance.py). THE SCAN CANNOT ADJUDICATE THIS MODEL, ANYWHERE.
   // WHY IT LOOKED SO GOOD. This project has learnt that only three things ever catch an error, and the
@@ -5105,7 +5137,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 237 bounds, all satisfied.
+  // 240 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
