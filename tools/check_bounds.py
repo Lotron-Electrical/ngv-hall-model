@@ -633,6 +633,47 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE JAMB PLANE, ASKED AS ONE UNKNOWN PER RAY (2026-09-09, tools/jamb_depth.py).
+JD = {'lines': 8, 'pass': 6, 'span': 0.018, 'median': -0.208, 'spread_lo': 0.001, 'spread_hi': 0.078,
+      'spread_med': 0.014, 'null_lo': 0.001, 'null_hi': 0.014, 'lev_a': 42.5, 'lev_b': 88.7,
+      'agree_a': 0.001, 'agree_b': 0.005, 'fail_a': 20.029, 'fail_b': 23.751, 'gate2': 0.60,
+      'cap': 0.362}
+check('the plane the jamb lines stand on is measured, not assumed',
+      JD['pass'] >= JD['lines'] * 0.7 and JD['spread_med'] < 3.0 * JD['null_hi'],
+      'eight lines agreed on a depth to %.0f mm while each line own camera halves scattered by up to '
+      '500, and a population tighter than its members is what a shared BIAS looks like as well as a '
+      'shared FEATURE. Asked as ONE unknown per ray, with the rays split by how far ALONG the hall the '
+      'camera stood, %d of %d lines keep their near-far spread inside three times their own null. Spread '
+      'runs %.0f to %.0f mm against nulls of %.0f to %.0f; the two best-conditioned lines carry leverages '
+      'of %.0f and %.0f and their halves agree to %.0f mm and %.0f mm. Two lines fail and are named: '
+      'u %.3f on a leverage of 3.7, and u %.3f which spreads 19 mm against a 1 mm null. Doubling the '
+      'peel depth gate to %.2f returns the same lines to the millimetre, so this is not the gate.'
+      % (1000 * JD['span'], JD['pass'], JD['lines'], 1000 * JD['spread_lo'], 1000 * JD['spread_hi'],
+         1000 * JD['null_lo'], 1000 * JD['null_hi'], JD['lev_a'], JD['lev_b'], 1000 * JD['agree_a'],
+         1000 * JD['agree_b'], JD['fail_a'], JD['fail_b'], JD['gate2']),
+      'tools/jamb_depth.py')
+check('the measured jamb edge is not the back of the reveal, and the bound that says so came first',
+      abs(JD['median'] - G['dNorth']) < JD['cap'],
+      'the peel finds no vertical edge on the face plane at any support level, which invites reading its '
+      'one plane as the back of a shallow reveal and cutting openDepth from %.2f to %.3f. A bound this '
+      'model already carries forbids it: the arrival cap puts a lens %.3f m inside an opening, so a '
+      'rebate %.3f m in would have that lens standing %.3f m inside solid stone. The two measurements do '
+      'not compete, the earlier one settles what the later one is looking at. So the openings carry a '
+      'step, a rebate or a frame line %.3f m in, the model draws nothing there, and openDepth is '
+      'untouched because nothing here bears on where the reveal ENDS.'
+      % (G['openDepth'], abs(JD['median'] - G['dNorth']), JD['cap'], abs(JD['median'] - G['dNorth']),
+         JD['cap'] - abs(JD['median'] - G['dNorth']), abs(JD['median'] - G['dNorth'])),
+      'tools/jamb_depth.py')
+check('the rebate is recorded and not built, because its projection is smaller than its scatter',
+      abs(1.212 - 1.189) < 0.054,
+      'a rebate needs a depth AND a projection, and the projection is the one number this cannot give. '
+      'The two peels width test reads %.3f m west and %.3f m east where the face opening is drawn %.3f, '
+      'a %.0f mm step, against per-peel spreads of 54 and 17 mm. The step is smaller than the scatter it '
+      'would have to be measured against. What this DOES harden is the opening shift: five of the twelve '
+      'openings were moved 0.147 m east on these lines, and the plane those lines stand on was an '
+      'assumption until tonight.'
+      % (1.189, 1.190, 1.212, 1000 * abs(1.212 - 1.189)),
+      'tools/jamb_lines.py')
 # THE STALE CONSTANTS SORTED BY WHAT THEY DO (2026-09-09, tools/mask_audit.py), AND WHAT THAT FOUND.
 MASKAUDIT = {'tools': 313, 'masks': 26, 'drift': 112, 'bom': 1}
 JAMB = {'gate': 0.30, 'old_face': -0.090, 'rejected': 0.217, 'margin': 0.007, 'face_err': 0.060,

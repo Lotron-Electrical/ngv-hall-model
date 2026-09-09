@@ -3140,6 +3140,49 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE EDGE 0.178 m INSIDE THE NORTH OPENINGS IS MEASURED, AND IT IS NOT THE BACK OF THE REVEAL
+  // (2026-09-09, tools/jamb_depth.py). Eight jamb lines agree on a depth to 18 mm while each line's own
+  // camera halves scattered by up to 500. A population tighter than its members is what a shared BIAS
+  // looks like as well as what a shared FEATURE looks like, and tonight has already produced one of each,
+  // so it was not safe to assume which.
+  // AND THE PEEL FINDS NO VERTICAL EDGE ON THE FACE PLANE AT ALL. If these openings were reveals 0.9 m
+  // deep, the face arris is the strongest brightness step on that wall and would be peeled first. It is
+  // not peeled at any support level. So either the model's reveal is wrong by 0.7 m or this depth is not
+  // a depth, and those two possibilities needed separating before anything moved.
+  // THE PEEL'S OWN SIDE SPLIT PREDICTS ITS ANSWER AND GETS IT BACKWARDS, TWICE. Its header argues that a
+  // camera west of an opening sees the west jamb's face arris while one east of it sees the same jamb's
+  // reveal arris, so the face side should read shallower. Across the four west jambs the west cameras
+  // read a median 0.240 and the east 0.201; across the four east jambs the east cameras read 0.200 and
+  // the west 0.146. Both parities have the face side reading DEEPER. Those splits refit BOTH unknowns on
+  // half the rays each, so they are two-unknown fits on short baselines and they scatter for reasons that
+  // have nothing to do with the wall.
+  // SO THE ONE-UNKNOWN QUESTION WAS ASKED INSTEAD, which is the move that has worked all night. Fix the
+  // station and every ray gives the depth on its own, nothing to slide along. Split the rays the way this
+  // geometry is really separated, by how far ALONG the hall the camera stood, because a lens square in
+  // front of a jamb cannot tell a face arris from a reveal arris and one far down the hall can. Run the
+  // odd-against-even null beside it.
+  // SIX OF EIGHT LINES PASS. Near-far spread per line runs 1 to 78 mm against nulls of 1 to 14, median
+  // spread 14 mm. The two best-conditioned lines carry leverages of 42 and 89 and their two halves agree
+  // to 1 mm and 5 mm. The population median is d -0.208, which is 0.178 m behind the face measured on
+  // -0.030. TWO LINES FAIL and are named rather than dropped: u 20.029 spreads 78 mm on a leverage of
+  // only 3.7, and u 23.751 spreads 19 mm against a 1 mm null, which is a real failure and not a weak one.
+  // THE GATE WAS CLEARED FIRST. Doubling the peel's depth gate to 0.60 returns the same four west lines
+  // with the same depths to the millimetre, so the -0.21 is not the gate speaking, and that is the same
+  // ladder test the corridor answered an hour ago.
+  // AND THEN THE INTERESTING PART: IT CANNOT BE THE BACK OF THE REVEAL. A bound this model already
+  // carries forbids it. The arrival cap puts a lens 0.362 m inside an opening, so the reveal is at least
+  // that deep, and a rebate 0.178 m in would have a lens standing 0.184 m inside solid stone. The two
+  // measurements do not compete; the one that came first settles what the second one is looking at.
+  // SO THE NORTH OPENINGS CARRY A STEP, A REBATE OR A FRAME LINE 0.178 m INSIDE THEM, this model draws
+  // nothing there, and openDepth stays 0.9 because nothing here bears on where the reveal ENDS.
+  // NOTHING IS DRAWN ON IT, and the reason is specific rather than cautious. A rebate needs a depth AND a
+  // projection, and the projection is the one number this cannot give: the two peels' width test reads
+  // 1.189 m west and 1.190 m east where the face opening is drawn 1.212, a 22 mm step, against per-peel
+  // spreads of 54 and 17 mm. The step is smaller than the scatter it would have to be measured against,
+  // so it is recorded and not built.
+  // WHAT THIS DOES HARDEN is the opening shift itself. Five of the twelve openings were moved 0.147 m
+  // east on these lines, and until tonight the plane those lines stand on was an assumption. It is now a
+  // measurement on eight lines, two of them to a millimetre.
   // SORTING THE STALE CONSTANTS BY WHAT THEY DO, AND FINDING A SHIPPED ARITHMETIC ERROR OF MY OWN
   // (2026-09-09, tools/mask_audit.py). Two stale-constant faults tonight had opposite consequences. The
   // lamp aperture manufactured two reveal points and both were withdrawn. The corridor ray gate carried
@@ -3650,7 +3693,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 92 bounds, all satisfied.
+  // 95 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
