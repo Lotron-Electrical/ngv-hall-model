@@ -3199,6 +3199,32 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE SOFFIT DEPTH PUT UNDER THE SAME RULER, AND THE CONTROL KILLED IT AT BOTH ENDS (2026-09-10,
+  // tools/soffit_ruler.py).
+  // FIRST, WHAT THIS TURN SET OUT TO DO AND COULD NOT. The corridor behind the north wall was to be read
+  // pose-free from the b6 frames 1056 to 1330, the width-to-height ratio a long room gives through its
+  // converging edges. A contact sheet of those frames shows the hall, the stained glass overhead and a
+  // gallery of glass cabinets with visitors in it: the east upper balcony, exactly where b6g_where.py had
+  // already placed the six of them that registered. No frame in the archive was shot inside the corridor,
+  // so that instrument has nothing to run on and the corridor cross-section stays where corridor_floor.py
+  // left it. That is recorded so the next turn does not start from the same wrong premise.
+  // THEN THE SOFFIT. ENDW.soffitDepth 2.1 has had four instruments on it and none has produced a number:
+  // three looked for a boundary in one picture at a time and soffit_back.py peeled five lines at each end
+  // that all sat within 0.9 m of the face. This one sweeps ON the soffit plane, face to bay, in every
+  // posed frame standing 20 m or more out from the face, so the rail cannot reach into the sweep, and
+  // stacks the profiles. The sweep carries the front edge and the back edge together and the number read
+  // is their SEPARATION, so a common error in head, face, height or pointing cancels. The tolerance was
+  // set BEFORE the run to what the instrument can do, 0.10 m, after the slab ruler asked for 20 mm from
+  // cameras 30 m away and could never have been satisfied.
+  // THE RESULT. West, 348 frames: front edge 0.150 m in front of the face, back edge 2.470 m in. East,
+  // 242 frames: front 0.190 m in front, back 2.770 m in. The invented plane on h 12.20, a metre above the
+  // soffit where the bay is open, peaks on 0.172 west and 0.204 east inside the same band against the
+  // real plane's 0.144 and 0.202. NEITHER END BEATS ITS CONTROL, so by the rule written before the
+  // numbers were opened nothing is read from either, and the drawn 2.1 m stands exactly as untested as
+  // it was. Two things are worth keeping from the run without claiming them: both back edges landed in
+  // the outer third of their band, and both front edges fell in front of the face, the same way at both
+  // ends. Those are unmeasured hints, not results, and the next instrument on this depth should not be a
+  // fifth gradient search from the hall floor.
   // THE CORRIDOR FLOOR, CHECKED BY THE MEN WHO STOOD ON IT (2026-09-10, tools/corridor_floor.py).
   // WHAT WAS KNOWN FIRST. The corridor floor is drawn on 8.340 because the end gallery deck is 8.340,
   // and model_consistency.py records that moving one moves the other. That is an assumption written as
@@ -5217,7 +5243,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 249 bounds, all satisfied.
+  // 252 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

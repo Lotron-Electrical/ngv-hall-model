@@ -1409,6 +1409,44 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE SOFFIT DEPTH UNDER THE SAME RULER, KILLED BY ITS CONTROL AT BOTH ENDS (2026-09-10,
+# tools/soffit_ruler.py).
+SR = {'drawn': 2.1, 'head': 11.090, 'minout': 20.0, 'band': 0.75, 'front': 0.25, 'tol': 0.10,
+      'rail': 9.865, 'carry': 1.6,
+      'west': {'frames': 348, 'xf': -0.150, 'xb': 2.470, 'gb': 0.144, 'nb': 0.172},
+      'east': {'frames': 242, 'xf': -0.190, 'xb': 2.770, 'gb': 0.202, 'nb': 0.204}}
+check('the soffit ruler only used cameras far enough out that the rail cannot enter the sweep',
+      SR['minout'] >= (SR['rail'] - SR['carry']) / (SR['head'] - SR['rail']) * (SR['drawn'] + SR['band']),
+      'ENDW.soffitDepth %.1f has had four instruments on it and none produced a number. This one sweeps ON '
+      'the soffit plane from the face into the bay and reads the SEPARATION of the front edge and the '
+      'back edge, so a common error in head, face, height or pointing cancels. A camera %.1f m up needs '
+      'to stand %.1f m out for the ray to the far end of the search band to clear the rail on %.3f, so '
+      'only cameras %.0f m or more out are used: %d west, %d east.'
+      % (SR['drawn'], SR['carry'],
+         (SR['rail'] - SR['carry']) / (SR['head'] - SR['rail']) * (SR['drawn'] + SR['band']),
+         SR['rail'], SR['minout'], SR['west']['frames'], SR['east']['frames']),
+      'tools/soffit_ruler.py')
+check('and the pre-registered control fired at both ends, so nothing was read from either',
+      SR['west']['gb'] <= SR['west']['nb'] and SR['east']['gb'] <= SR['east']['nb'],
+      'the invented plane on h 12.20, a metre above the soffit where the bay is open, peaks on %.3f west '
+      'and %.3f east inside the same band against the real plane%s %.3f and %.3f. Neither end beats its '
+      'control, so by the rule written before the numbers were opened the back band holds the picture and '
+      'not the building. The west reading would have been a depth of %.3f m and the east %.3f m; they are '
+      'not claimed, and the tolerance of %.2f m they would have had to meet was itself set before the run.'
+      % (SR['west']['nb'], SR['east']['nb'], "'s", SR['west']['gb'], SR['east']['gb'],
+         SR['west']['xb'] - SR['west']['xf'], SR['east']['xb'] - SR['east']['xf'], SR['tol']),
+      'tools/soffit_ruler.py')
+check('the drawn soffit depth is unchanged, and the b6 corridor premise is closed',
+      abs(grab(r'soffitDepth:([0-9.]+)') - SR['drawn']) < 1e-9,
+      'the file carries %.1f m exactly as untested as it was. Kept without being claimed: both back edges '
+      'landed in the outer third of their band (%.3f and %.3f of a band ending on %.2f) and both front '
+      'edges fell in front of the face (%.3f and %.3f), the same way at both ends. And the pose-free '
+      'corridor cross-section this turn set out to read from the b6 frames 1056 to 1330 has nothing to run '
+      'on: a contact sheet of those frames shows the east upper balcony and its glass cabinets, where '
+      'b6g_where.py had already put them, and no frame in the archive was shot inside the corridor.'
+      % (SR['drawn'], SR['west']['xb'], SR['east']['xb'], SR['drawn'] + SR['band'],
+         SR['west']['xf'], SR['east']['xf']),
+      'tools/soffit_ruler.py')
 # THE CORRIDOR FLOOR, CHECKED BY THE MEN WHO STOOD ON IT (2026-09-10, tools/corridor_floor.py).
 CF = {'drawn': 8.340, 'inwall': 315, 'north': 0, 'carry': [1.521, 1.966], 'carryn': 888,
       'walk': 1.789, 'night': 1.600,
