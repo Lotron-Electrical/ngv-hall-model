@@ -50,6 +50,10 @@ G = {
     'gHead': grab(r'head:([0-9.]+), soffitDepth'),
     'upWest': grab(r'upstands:\{west:([0-9.]+)'),
     'upEast': grab(r'upstands:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
+    'setWest': grab(r'upstandSet:\{west:([0-9.]+)'),
+    'setEast': grab(r'upstandSet:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
+    'endFace': grab(r'top:13.5, face:([0-9.]+)'),
+    'endWest': grab(r'const ENDW=\{west:([0-9.]+)'),
     'railWest': grab(r'railTops:\{west:([0-9.]+)'),
     'railEast': grab(r'railTops:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
 }
@@ -408,7 +412,14 @@ CAP = {
              (48.056, 9.078), (48.256, 9.183), (48.456, 9.289), (48.656, 9.401), (48.856, 9.502)),
 }
 # where the upstand-top line fit puts each end: face station, height, inliers, median residual
+# superseded as a STATION by tools/end_face_scan.py, which measures the plane one unknown at a
+# time and checks itself against a null split. Kept here as the free two-unknown fit it was.
 TOPFIT = {'west': (3.760, 9.082, 3545, 0.017), 'east': (48.005, 9.067, 3973, 0.011)}
+# station, height, near-far spread at the minimum, worst near-far on the sweep, worst null
+SCAN = {('west', 'solid'): (3.710, 9.097, 0.005, 0.063, 0.004),
+        ('west', 'rail'): (4.210, 9.796, 0.001, 0.021, 0.014),
+        ('east', 'solid'): (48.055, 9.095, 0.005, 0.175, 0.038),
+        ('east', 'rail'): (48.047, 9.798, 0.001, 0.049, 0.004)}
 
 
 def cap_at(side, uf):
@@ -425,6 +436,69 @@ def cap_at(side, uf):
     return ys[-1]
 
 
+DRAWNFACE = {'west': 4.194, 'east': 48.056}
+check('the east end is the control for the station scan, and it passed',
+      abs(SCAN[('east', 'solid')][0] - DRAWNFACE['east']) <= 0.02
+      and abs(SCAN[('east', 'rail')][0] - DRAWNFACE['east']) <= 0.02,
+      'the one-unknown station scan was run on both ends without being told where the answer should be. '
+      'At the east it puts the solid upstand top on u %.3f and the rail top on %.3f, %.0f mm apart, from '
+      'separate ray sets and separate ladders, against a face the model draws on %.3f. An instrument that '
+      'lands on an independently drawn plane to a millimetre at the end it was not aimed at is entitled to '
+      'be believed at the end it was.'
+      % (SCAN[('east', 'solid')][0], SCAN[('east', 'rail')][0],
+         1000 * abs(SCAN[('east', 'solid')][0] - SCAN[('east', 'rail')][0]), DRAWNFACE['east']),
+      'tools/end_face_scan.py')
+for side, feat in (('west', 'solid'), ('east', 'solid'), ('east', 'rail')):
+    st, ht, mn, mx, nl = SCAN[(side, feat)]
+    check('the %s %s station beats its own null split' % (side, feat),
+          mx > 3.0 * nl,
+          'near and far cameras agree to %.0f mm on u %.3f and disagree by %.0f mm at the far end of the '
+          'sweep. The null split, odd rays against even, never exceeds %.0f mm over the same sweep, so the '
+          'V is a fact about the building and not about the tracker recentring. Ratio %.1f against a bar '
+          'of 3.' % (1000 * mn, st, 1000 * mx, 1000 * nl, mx / nl),
+          'tools/end_face_scan.py')
+check('the west rail station is measured but NOT shipped, because it failed its null',
+      True,
+      'its minimum sits on u %.3f beside a drawn %.3f, which is agreement, but its near-far spread only '
+      'reaches %.0f mm against a null of %.0f, a ratio of %.1f under the bar of 3. A number a null could '
+      'have produced is not a measurement, so the west rail stays where it was drawn and this is recorded '
+      'as the reason rather than as a result.'
+      % (SCAN[('west', 'rail')][0], DRAWNFACE['west'], 1000 * SCAN[('west', 'rail')][3],
+         1000 * SCAN[('west', 'rail')][4], SCAN[('west', 'rail')][3] / SCAN[('west', 'rail')][4]),
+      'tools/end_face_scan.py')
+FACEU = {'west': G['endWest'] + G['endFace'], 'east': 51.906 - G['endFace']}
+for side, sk in (('west', 'setWest'), ('east', 'setEast')):
+    drawn_solid = FACEU[side] - (1 if side == 'west' else -1) * G[sk]
+    check('the %s solid upstand is drawn on the station that was measured' % side,
+          abs(drawn_solid - SCAN[(side, 'solid')][0]) <= 0.02,
+          'the model now stands it on u %.3f, face %.3f set back %.3f, against a measured %.3f.'
+          % (drawn_solid, FACEU[side], G[sk], SCAN[(side, 'solid')][0]),
+          'tools/end_face_scan.py')
+check('a solid parapet is not drawn where the light got past it',
+      cap_at('west', SCAN[('west', 'solid')][0]) >= SCAN[('west', 'solid')][1] - 1.5 * POSE_MISS,
+      'the arrival cap is a curve in the assumed station, and on the west face it reads %.3f while the '
+      'locus there is %.3f, so a solid on the drawn face stands %.3f m into light that reached a camera '
+      'on the deck. Moved back to the measured %.3f the cap reads %.3f and the top %.3f, clear by %.3f. '
+      'The cap and the near-far V are different instruments that share no assumption, and they agree the '
+      'west solid is not on its face.'
+      % (cap_at('west', DRAWNFACE['west']), 8.955, 8.955 - cap_at('west', DRAWNFACE['west']),
+         SCAN[('west', 'solid')][0], cap_at('west', SCAN[('west', 'solid')][0]),
+         SCAN[('west', 'solid')][1],
+         cap_at('west', SCAN[('west', 'solid')][0]) - SCAN[('west', 'solid')][1]),
+      'tools/end_face_scan.py + tools/gallery_arrival.py')
+check('read at their own measured stations the two ends agree on the solid parapet height',
+      abs(SCAN[('west', 'solid')][1] - SCAN[('east', 'solid')][1]) <= 0.02,
+      'west %.3f and east %.3f, %.0f mm apart, where the free fits left %.0f mm. The model draws %.3f and '
+      '%.3f over a deck of %.3f.'
+      % (SCAN[('west', 'solid')][1], SCAN[('east', 'solid')][1],
+         1000 * abs(SCAN[('west', 'solid')][1] - SCAN[('east', 'solid')][1]),
+         1000 * abs(TOPFIT['west'][1] - TOPFIT['east'][1]), G['upWest'], G['upEast'], G['deck']),
+      'tools/end_face_scan.py')
+for side, upk in (('west', 'upWest'), ('east', 'upEast')):
+    check('the %s upstand height is drawn on its own measured station value' % side,
+          abs((G['deck'] + G[upk]) - SCAN[(side, 'solid')][1]) <= 0.01,
+          'drawn %.3f against a measured %.3f.' % (G['deck'] + G[upk], SCAN[(side, 'solid')][1]),
+          'tools/end_face_scan.py')
 for side, upk, npts in (('east', 'upEast', 1941), ('west', 'upWest', 3371)):
     uf, htop, ninl, med = TOPFIT[side]
     cap = cap_at(side, uf)
@@ -450,11 +524,19 @@ check('the two ends agree on how tall the solid upstand is',
          1000 * abs(TOPFIT['west'][1] - TOPFIT['east'][1]), G['upWest'], G['upEast']),
       'tools/west_far.py')
 for side, upk in (('west', 'upWest'), ('east', 'upEast')):
-    check('the %s upstand is drawn on the height that was measured' % side,
-          abs((G['deck'] + G[upk]) - TOPFIT[side][1]) <= 0.02,
-          'drawn top %.3f against a measured %.3f, %+.3f m out.'
-          % (G['deck'] + G[upk], TOPFIT[side][1], (G['deck'] + G[upk]) - TOPFIT[side][1]),
-          'tools/west_far.py')
+    # SUPERSEDED, and the failure is the point. This compared the drawn height against the FREE fit, whose
+    # height was read at a station the station scan has since shown to be wrong by 50 mm at both ends. Read
+    # at the measured station the same rays give 9.097 and 9.095, and the model was moved onto those, so
+    # the old form now fails by 15 and 28 mm. The bar is widened to the height the station shift is worth,
+    # and the tight check lives in the scan bound above.
+    check('the %s upstand height agrees with the older free fit within the station shift' % side,
+          abs((G['deck'] + G[upk]) - TOPFIT[side][1]) <= 0.04,
+          'drawn top %.3f against the free fit %.3f, %+.3f m out. The free fit read its height on u %.3f '
+          'and the scan reads the same rays on %.3f, and the locus carries about 0.25 m of height per '
+          'metre of station, so a shift of that size is expected and is not a disagreement.'
+          % (G['deck'] + G[upk], TOPFIT[side][1], (G['deck'] + G[upk]) - TOPFIT[side][1],
+             TOPFIT[side][0], SCAN[(side, 'solid')][0]),
+          'tools/west_far.py superseded by tools/end_face_scan.py')
 # THE EDGE BOTH ENDS SEE, NOW WITH A RANGE, so it is a bound after all (tools/far_edge_range.py).
 # It was withdrawn this evening because a crossing height is an occlusion bound only if the feature lies
 # BEYOND the face plane, and the detector never tested that. The fit already contained the answer: an edge
@@ -573,9 +655,15 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' west instruments, and it is now drawn AND measured rather than proposed. The upstand top'
              ' is a line of its own, dark below and lit above, and it fits on 0.742 m west and 0.727 m'
              ' east of the deck, the two ends agreeing to 15 mm, tools/west_far.py',
-             'STILL OPEN at the west end: two of my own fits on the same face disagree in u. The balcony'
-             ' front puts it on 4.160 and the upstand top on 3.760, and u is the weak direction in both,'
-             ' so 0.40 m between them is not a measurement and the face is NOT moved on it',
+             'ANSWERED, and it was a shape and not a slide: the west solid upstand really does stand'
+             ' behind the west rail. Fixing the station and splitting the rays by camera distance gives'
+             ' a sharp minimum on u 3.710 for the solid, 5 mm of near-far agreement there against 63 mm'
+             ' at the far end of the sweep, on a null split that never exceeds 4 mm. The arrival cap,'
+             ' which shares no assumption with it, independently forbids a solid past u 4.010. The solid'
+             ' moved back 0.484 m and the face is glazed to the deck. THE EAST IS THE CONTROL AND IT'
+             ' PASSED: its two edges land on u 48.055 and 48.047 against a face drawn on 48.056, so the'
+             ' instrument was not aimed at its answer. The WEST RAIL station is withheld, because it'
+             ' fails its own null: 21 mm of near-far against 14 mm of null, tools/end_face_scan.py',
              'and whether the front the hall floor measures is glass, balusters or a solid with a deep'
              ' recess behind it. All three pass light the same way from where the cameras stood',
              'WITHDRAWN within the hour: the third line reported 0.2 m above each front top is a GRADIENT'

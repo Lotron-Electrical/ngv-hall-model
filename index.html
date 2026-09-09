@@ -2757,7 +2757,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.742, east:0.727}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -3106,6 +3106,41 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE MODEL PUT EVERY EDGE OF AN END WALL ON ONE PLANE AND NOBODY HAD EVER CHECKED (2026-09-09,
+  // tools/end_face_scan.py). The apron, the lower upstand, the rail, the fascia, the solid upstand and the
+  // stone over the head are all drawn on a single station uF. Two free line fits made today put two edges
+  // of the SAME parapet 0.40 m apart, and did it at both ends, which looked like a shape until the sill
+  // taught that a difference surviving at both ends is also exactly what a shared slide looks like.
+  // SO THE STATION WAS ASKED THE ONE-UNKNOWN WAY, WITH A TEST THAT CAN COME BACK NEGATIVE. Fix the plane
+  // and every ray gives its own height with nothing to slide along. Then split the rays by how far the
+  // camera stood from the end. If the plane is really measured, near and far cameras agree only where it
+  // is and diverge either side, because a wrong plane costs a shallow ray a different amount of height
+  // than a steep one. If it is degenerate they agree everywhere. AND A NULL SPLIT RUNS BESIDE IT: odd
+  // rays against even, same cameras, same ladder, same feature, nothing that could know where the plane
+  // is. Whatever the null does is what the tracker does on its own.
+  // THE EAST END IS THE CONTROL AND IT PASSED WITHOUT BEING ASKED TO. Its solid upstand top lands on
+  // u 48.055 and its rail top on 48.047, eight millimetres apart, from separate ray sets and separate
+  // ladders, and the model draws that face on 48.056. Near and far agree to 1 and 5 mm there against 49
+  // and 175 mm at the ends of the sweep, on nulls of 4 and 38. So the instrument works, the east parapet
+  // is flush, and the free fits that put its two edges 0.392 m apart were the slide.
+  // THE WEST SOLID IS NOT ON ITS FACE. Its top lands on u 3.710, where near and far agree to 5 mm against
+  // 63 at the sweep's end on a null that never exceeds 4. That is 0.484 m BEHIND the face plane, and
+  // behind the west rail top, which minimises on 4.210 beside a drawn 4.194.
+  // A SECOND INSTRUMENT, WHICH KNOWS NOTHING ABOUT EDGES, SAYS THE SAME THING. The arrival cap forbids a
+  // SOLID anywhere the light got past, and on the west face that cap is 8.818 while the locus there is
+  // 8.955. Light that reached a camera on the deck crossed the west face above where the model was
+  // drawing solid stone. The cap allows a solid only from u 3.110 to 4.010, and the measured 3.710 sits
+  // inside that band while the drawn 4.194 does not.
+  // SO THE WEST SOLID MOVES BACK 0.484 AND THE FACE IS GLAZED TO THE DECK, which is what the arrivals
+  // were saying all along. The height does not move: 0.742 above the deck is what it measured and what it
+  // still measures. The east is untouched, because its own control says it is already right.
+  // AND THE TWO ENDS NOW AGREE ON HOW TALL THE SOLID IS, which they did not before. Read at each end's
+  // own measured station the solid top is 9.097 west and 9.095 east, so 0.757 and 0.755 over the deck,
+  // two millimetres apart where the free fits left fifteen. The upstands move from 0.742 and 0.727.
+  // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
+  // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
+  // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
+  // 52 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -3575,8 +3610,12 @@ function buildEndWalls(root){
   // low as h 8.70, which is 0.86 m below the lens itself.
   const ups=(W.upstands&&W.upstands[side]!==undefined)?W.upstands[side]:W.upstand;
   const rTop=(W.railTops&&W.railTops[side]!==undefined)?W.railTops[side]:W.rails[1];
-  quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+ups],[uF,0,fl[1]+ups]],upstandMat,'gallery-parapet');
-  quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],railMat,'gallery-rail');
+  // THE SOLID IS NOT ON THE FACE AT THE WEST END, and the east is the control that says so, see the block
+  // above (tools/end_face_scan.py). uS is the plane the solid stands on; the glass runs down to the deck
+  // wherever it is set back, because the arrivals prove the face is open there.
+  const setb=(W.upstandSet&&W.upstandSet[side]!==undefined)?W.upstandSet[side]:0, uS=uF+s*setb;
+  quad([[uS,0,fl[1]],[uS,D,fl[1]],[uS,D,fl[1]+ups],[uS,0,fl[1]+ups]],upstandMat,'gallery-parapet');
+  quad([[uF,0,fl[1]+(setb>0.02?0:ups)],[uF,D,fl[1]+(setb>0.02?0:ups)],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],railMat,'gallery-rail');
   quad([[uF,0,fl[1]+rTop-0.06],[uF,D,fl[1]+rTop-0.06],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],handMat,'gallery-handrail');
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
   // THREE WAYS TO MEASURE THIS CEILING, ALL THREE REFUSED (2026-09-09, tools/soffit_edge.py,
