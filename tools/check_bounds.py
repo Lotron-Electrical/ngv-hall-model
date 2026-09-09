@@ -1409,6 +1409,54 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE RAIL TOP, ASKED OF EACH CAPTURE, AND CLOSED (2026-09-10, tools/rail_percapture.py).
+RP = {'minvotes': 3, 'maxspan': 0.15, 'vstep': 0.05, 'bar': 1.25,
+      'west_votes': [2.30, 1.15, 1.80, 1.35, 1.70, 1.15], 'east_votes': [1.05, 1.10],
+      'west_drawn': [0.68, 0.57, 0.22, 0.89, 0.71, 0.54], 'east_drawn': [0.84, 0.78, 0.39],
+      'ctl_lo': 1.15, 'ctl_hi': 13.59, 'pooled_cand': 1.10,
+      'rt_west': 1.459, 'rt_east': 1.525, 'bar_frames': 29, 'bar_none': 28}
+check('the rail top was asked of each capture with the rule fixed before the run, and neither face met it',
+      len(RP['east_votes']) < RP['minvotes'] and
+      (max(RP['west_votes']) - min(RP['west_votes'])) > RP['maxspan'],
+      'a face moves only if at least %d captures vote, their votes span under %.2f m, and the median '
+      'differs from the drawn value by more than the %.2f m step. A capture votes only if its OWN control, '
+      'the solid upstand top, fires above %.2f times its own sweep median. West: six captures voted and '
+      'they span %.0f mm where the rule allows %.0f, on %s above the deck. East: only %d captures could '
+      'vote. So the pooled peak on deck plus %.2f that rail_sweep.py reported was ONE CAPTURE SHOUTING, '
+      'which is what pooling hides and why this project reads captures one at a time before moving a level.'
+      % (RP['minvotes'], RP['maxspan'], RP['vstep'], RP['bar'],
+         1000 * (max(RP['west_votes']) - min(RP['west_votes'])), 1000 * RP['maxspan'],
+         ', '.join('%.2f' % v for v in RP['west_votes']), len(RP['east_votes']), RP['pooled_cand']),
+      'tools/rail_percapture.py')
+check('and it produced something stronger than the candidate it killed: nine captures, no step anywhere',
+      max(RP['west_drawn']) < 1.0 and max(RP['east_drawn']) < 1.0,
+      'the DRAWN rail top was scored separately in every capture that could look at a face and comes out '
+      'BELOW 1.0 in all %d of them: west %s and east %s. Not one capture in this archive finds a step in '
+      'brightness where this file draws the top of the glass, while the same captures find the solid '
+      'upstand top on controls of %.2f to %.2f. That is %d independent readings rather than a pooled '
+      'statistic. The two east votes DO agree with each other, b1 on deck plus %.2f and b7s on %.2f, 50 '
+      'mm apart from clips shot in completely different places, and that is recorded without being acted '
+      'on because it is one capture short of the threshold this run set for itself.'
+      % (len(RP['west_drawn']) + len(RP['east_drawn']),
+         ', '.join('%.2f' % v for v in RP['west_drawn']),
+         ', '.join('%.2f' % v for v in RP['east_drawn']),
+         RP['ctl_lo'], RP['ctl_hi'], len(RP['west_drawn']) + len(RP['east_drawn']),
+         RP['east_votes'][0], RP['east_votes'][1]),
+      'tools/rail_percapture.py')
+check('so railTops is not a suspect but a number this archive cannot measure, and the route closes',
+      RP['bar_none'] == RP['bar_frames'] - 1,
+      'glass has no tone of its own, so its top edge leaves nothing for a brightness step to find, and '
+      'candidate heights scattering over 1.15 m on the west face is what searching for an edge that is '
+      'not there looks like. The one opaque element that could have been measured instead is already '
+      'gone: the 60 mm handrail bar was deleted because %d of %d photographs taken from behind it showed '
+      'no such bar. With no opaque cap and no tone there is nothing on top of this barrier for any '
+      'photometric instrument to register, and occlusion cannot help because glass blocks nothing. Three '
+      'instruments have now tried: the audit ranked it last of twenty lines, the pooled sweep found a '
+      'candidate, the per-capture run showed that candidate was one capture. %.3f west and %.3f east stay '
+      'as what they have always been, a design figure with no photograph behind it, and that is written '
+      'down so a fourth instrument is not built for it.'
+      % (RP['bar_none'], RP['bar_frames'], RP['rt_west'], RP['rt_east']),
+      'tools/rail_percapture.py')
 # EVERY DRAWN LINE AUDITED AT ONCE (2026-09-10, tools/line_audit.py, tools/rail_sweep.py).
 LA = {'segments': 82, 'named': 26, 'step': 0.06,
       'inv_lo': 0.83, 'inv_hi': 0.97, 'inv_med': 0.94, 'inv_n': 6,
