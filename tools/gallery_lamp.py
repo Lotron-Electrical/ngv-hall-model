@@ -19,6 +19,7 @@
 # the search repeats until fewer than four rays agree on anything. The alternative, one point per opening,
 # would report the brightest fitting and silently hide the rest.
 #   python tools/gallery_lamp.py [west|east|both]
+import io
 import os
 import sys
 
@@ -199,6 +200,14 @@ def run(end, cams):
         else:
             print('        one-sided in d as well (%d against %d), so its depth is not tested'
                   % (len(lo), len(hi2)))
+        if inside and os.environ.get('DUMP'):
+            # the kept fitting AND the rays that found it, so a second tool can sweep the space those rays
+            # crossed. A bound that lives only in a printout cannot be checked by the suite.
+            import json
+            rec = {'end': end, 'u': pu, 'd': pd, 'h': ph, 'rms': rms, 'spread': spread, 'uF': uF,
+                   'uB': uB, 'rays': [[list(r[1]), list(r[2]), r[0]] for r in inl]}
+            with io.open(os.environ['DUMP'], 'a', encoding='utf-8') as fh:
+                fh.write(json.dumps(rec) + '\n')
         if inside:
             # AND THE OCCLUSION BOUND, which is the part that finally constrains the soffit. Every one of
             # these rays reached a fitting standing INSIDE the gallery, so nothing blocked it, so the

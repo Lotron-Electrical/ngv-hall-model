@@ -637,6 +637,43 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE SWEPT VOID, AND THE FOUR SURFACES IT DELETED (2026-09-10, tools/lamp_void.py).
+VOID = {'planes': [(0.000, 5.458, 6.842), (0.509, 5.871, 6.926), (1.019, 6.284, 7.010),
+                   (1.528, 6.697, 7.094), (2.003, 7.002, 7.173)],
+        'rays': 33, 'apron_ov': 0.872, 'upstand_ov': 0.512, 'slab': 6.33, 'deleted': 4,
+        'd_lo': 6.2, 'd_hi': 8.2, 'recess_lo': 5.30, 'recess_hi': 8.08}
+check('the emptiness is swept in world coordinates, not sampled on one plane',
+      len(VOID['planes']) >= 5 and VOID['planes'][-1][0] > 1.9,
+      'a bound on ONE plane can be dodged by moving the surface off it, and this file has done that '
+      'before: the corridor width absorbed a face move rather than admitting one. A lower front pushed '
+      'back a few centimetres would satisfy a face-plane bound and go on blocking the same light. Each of '
+      'the %d rays ran from a camera in the hall all the way to the fitting, so every point on it is '
+      'empty. Plane by plane behind the face the band that must be empty is %s. All %d rays reach every '
+      'plane, and anything drawn inside that is refuted wherever it sits.'
+      % (VOID['rays'], '; '.join('%.2f m back, h %.3f to %.3f' % pl for pl in VOID['planes']),
+         VOID['rays']),
+      'tools/lamp_void.py')
+check('four surfaces were deleted, and the one that matters is the deck and not the front',
+      VOID['deleted'] == 4,
+      'the apron overlapped the void by %.3f m, the lower parapet upstand by %.3f m, the glass rail stood '
+      'on the same refuted front, and the lower gallery FLOOR, a slab on %.2f running from the face back '
+      'to the plate end, is struck at the face itself. They are deleted and NOT moved, because a sweep '
+      'says where the emptiness is and can never say where a surface went. What is drawn in their place '
+      'is what remains: an open recess from the ground wall soffit on %.2f up to the top slab on %.2f '
+      'with the back wall behind it, which is what b4 232-246, b5 136-190 and b1 208-286 all describe.'
+      % (VOID['apron_ov'], VOID['upstand_ov'], VOID['slab'], VOID['recess_lo'], VOID['recess_hi']),
+      'tools/lamp_void.py')
+check('the proof is west-only, the change is both ends, and most of the recess is still unknown',
+      VOID['d_hi'] - VOID['d_lo'] < 4.0,
+      'the rays are the west end near d %.1f to %.1f and say nothing about the rest of the 15.4 m width; '
+      'the two east candidates failed their own split by 0.481 and 2.015 m. The clips read the same '
+      'recess at both ends, and drawing the ends differently on no east evidence would be worse than '
+      'drawing them alike, so both changed. The recess has a real sill, a real head and a real depth and '
+      'none of the three is measured. 6.33, 6.85 and 7.16 stay in ENDW as the record of what was refuted '
+      'and no geometry reads them now. The 1.75 m clear height is not repaired but WITHDRAWN: there is no '
+      'lower deck in this file any more to be 1.75 m under anything.'
+      % (VOID['d_lo'], VOID['d_hi']),
+      'tools/lamp_void.py')
 # LIGHT WENT THROUGH A WALL THIS FILE DRAWS SOLID (2026-09-10, tools/gallery_lamp.py, lower band).
 LAMP = {'u': 2.191, 'd': 7.858, 'h': 7.083, 'rays': 33, 'rms': 0.047, 'base': 28.9, 'du': 0.066,
         'dh': 0.035, 'x_lo': 5.458, 'x_hi': 6.842, 'face': 4.194, 'back': 0.344,
@@ -833,8 +870,12 @@ check('the lower balcony as drawn is too low inside to be the gallery it is draw
       'difference is %.2f m of clear height over a floor %.2f m deep with a balustrade drawn on its edge. '
       'A balustrade says people stand there; %.2f m says they cannot, being under every habitable minimum '
       '(%.1f m) and under the standing height of a large share of adults. Two readings that cannot both '
-      'mean what they were taken for. This check states the contradiction rather than resolving it.'
-      % (_clear, TIER['depth'], _clear, TIER['habitable']),
+      'mean what they were taken for. RESOLVED 2026-09-10, and not the way this line expected: the deck '
+      'and the front it stood on were both deleted (tools/lamp_void.py), because 33 rays crossed the space '
+      'they occupied. There is no lower deck in this file any more to be %.2f m under anything, so the '
+      'contradiction is withdrawn rather than repaired. The wording above is kept as the record of the '
+      'question that led to the sweep.'
+      % (_clear, TIER['depth'], _clear, TIER['habitable'], _clear),
       'tools/check_bounds.py')
 check('and no camera in the archive has ever stood on the lower deck',
       TIER['lenses_lower'] == 0 and TIER['lenses_upper'] > 100,
@@ -1712,7 +1753,8 @@ print('%d bounds, all satisfied.' % len(notes))
 # fitting 2.0 m behind the face. A suite whose closing sentence outlives the evidence is worse than no
 # closing sentence, so it now says what is actually the case: every bound here holds, and one of the bounds
 # is that a drawn surface is refuted.
-print('Every bound above holds, INCLUDING the ones that record where the sim is now known to be wrong:')
-print('the west lower front passes light between h 5.458 and 6.842 where this file draws a solid apron and')
-print('deck front, and the lower tier is drawn as a deck on the end face where the clips read a recess set')
-print('back behind it. "All satisfied" means the file tells the truth about itself, not that it is right.')
+print('Every bound above holds, and some of them record where the sim WAS wrong and has been corrected:')
+print('33 rays crossed a face the sim drew solid, the void they swept refuted the apron, the lower')
+print('upstand, the glass rail and the lower deck slab itself, and all four are now deleted rather than')
+print('moved. What stands there is an open recess whose sill, head and depth are all still unmeasured.')
+print('"All satisfied" means the file tells the truth about itself, not that it is right.')

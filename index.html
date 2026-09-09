@@ -2833,17 +2833,27 @@ function buildEndWalls(root){
    quad([[du,p0,fl[1]],[du,p1,fl[1]],[du,p1,10.65],[du,p0,10.65]],panelMat,'gallery-panel');   /* its top on 10.65 (d4_000049), under the 11.1 head */
    quad([[du-s*0.005,d0,fl[1]],[du-s*0.005,d1,fl[1]],[du-s*0.005,d1,hd],[du-s*0.005,d0,hd]],topDoorMat,'gallery-door');
    quad([[du-s*0.02,e0,10.97],[du-s*0.02,e1,10.97],[du-s*0.02,e1,11.17],[du-s*0.02,e0,11.17]],exitLitMat,'exit-sign'); }
-  // the lower floor: the apron under it, the glass balustrade on it, the floor and its ceiling back to the plate end
-  quad([[uF,0,W.apron],[uF,D,W.apron],[uF,D,fl[0]],[uF,0,fl[0]]],apronMat,'gallery-apron');
-  // the lower tier's front: a solid dark upstand, then glass to the rail (the 2009 Commons frame from the east
-  // gallery shows the bar stools through glass over a dark panel that ends 0.5 above the floor; the 2026 profiles
-  // step up out of the dark 6.8-7.3 on both ends)
-  quad([[uF,0,fl[0]],[uF,D,fl[0]],[uF,D,fl[0]+W.lowUpstand],[uF,0,fl[0]+W.lowUpstand]],upstandMat,'gallery-parapet');
-  quad([[uF,0,fl[0]+W.lowUpstand],[uF,D,fl[0]+W.lowUpstand],[uF,D,fl[0]+W.rails[0]],[uF,0,fl[0]+W.rails[0]]],railMat,'gallery-rail');
-  quad([[uF,0,fl[0]+W.rails[0]-0.06],[uF,D,fl[0]+W.rails[0]-0.06],[uF,D,fl[0]+W.rails[0]],[uF,0,fl[0]+W.rails[0]]],handMat,'gallery-handrail');
-  quad([[uF,0,fl[0]],[uB,0,fl[0]],[uB,D,fl[0]],[uF,D,fl[0]]],floorMat,'gallery-floor');
+  // THE LOWER TIER IS AN OPEN RECESS, AND FOUR SURFACES CAME OUT OF THIS FILE ON 2026-09-10.
+  // It used to draw, on the end FACE plane, an apron 5.40-6.33, a solid upstand 6.33-6.85, glass to a
+  // rail on 7.16, and a floor slab on 6.33 running from the face back to the plate end. tools/lamp_void.py
+  // swept the space 33 triangulated rays crossed to reach a fitting on u 2.191 d 7.858 h 7.083 and every
+  // one of those four is inside it: on the face the void runs h 5.458 to 6.842, a metre back it runs
+  // 6.284 to 7.010, two metres back 7.002 to 7.173, and the 6.33 slab is struck at the face itself.
+  // Light travelled through all of it, so none of it is there. THE SURFACES ARE DELETED AND NOT MOVED,
+  // because the sweep is a bound: it says where the emptiness is and can never say where a surface went.
+  // What is drawn instead is what is left when the refuted parts go: an open dark recess from the ground
+  // wall's soffit up to the top slab, with the back wall standing on the plate end behind it. That is
+  // also what the clips show from three separate standpoints (b4 232-246, b5 136-190, b1 208-286): a deep
+  // unlit recess set back behind the parapet, with a head, a sill, a back wall, a doorway with two round
+  // downlights over it, and no balustrade and nobody on it.
+  // THE PROOF IS WEST-ONLY AND THE SHAPE IS BOTH ENDS. The rays are the west end near d 6.2 to 8.2; the
+  // two east candidates failed their own split by 0.481 and 2.015 m and were dropped. Drawing the two
+  // ends differently on no east evidence would be worse than drawing them alike, so both change, and the
+  // difference in what is proved is recorded rather than hidden.
+  // W.apron, W.lowUpstand and W.rails[0] stay in ENDW as the record of what was refuted; nothing reads
+  // them for geometry any more.
+  quad([[uB,0,W.groundTop],[uB,D,W.groundTop],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackMat,'gallery-back');
   quad([[uF,0,fl[1]-W.slab],[uB,0,fl[1]-W.slab],[uB,D,fl[1]-W.slab],[uF,D,fl[1]-W.slab]],ceilMat,'gallery-ceiling');
-  quad([[uB,0,fl[0]],[uB,D,fl[0]],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackMat,'gallery-back');
   // the top floor: the fascia, a solid dark parapet, the floor, the lit soffit on the head, the back wall
   quad([[uF,0,fl[1]-W.slab],[uF,D,fl[1]-W.slab],[uF,D,fl[1]],[uF,0,fl[1]]],upstandMat,'gallery-fascia');
   // a 0.68 m solid upstand with glass over it. The top of the solid part is the one balcony line the floor
@@ -3141,6 +3151,33 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // AND THEN FOUR SURFACES WERE DELETED, WHICH IS THE FIRST TIME THIS MODEL HAS LOST GEOMETRY TO A
+  // MEASUREMENT RATHER THAN GAINED A NUMBER FROM ONE (2026-09-10, tools/lamp_void.py).
+  // WHY THE FACE-PLANE BOUND WAS NOT ENOUGH. A bound on one plane can always be dodged by moving the
+  // surface off that plane, and this file has done exactly that before: the corridor width absorbed a
+  // face move rather than admitting one. A lower front pushed back a few centimetres would satisfy a
+  // face-plane bound and go on blocking the same light. So the rays were swept instead of sampled.
+  // THE SWEPT VOID. Each of the 33 rays ran from a camera out in the hall all the way to the fitting, so
+  // every point on every ray is empty. Plane by plane from the face back to the fitting the band that
+  // must be empty is: on the face h 5.458 to 6.842; 0.51 m back 5.871 to 6.926; 1.02 m back 6.284 to
+  // 7.010; 1.53 m back 6.697 to 7.094; 2.00 m back 7.002 to 7.173. All 33 rays reach every plane. This
+  // is emptiness in world coordinates, so anything drawn inside it is refuted wherever it sits.
+  // FOUR THINGS THIS FILE DREW ARE INSIDE IT. The apron overlapped it by 0.872 m, the lower parapet
+  // upstand by 0.512 m, the glass rail sat on the same refuted front, and the lower gallery FLOOR, a slab
+  // on 6.33 running from the face back to the plate end, is struck at the face itself. That last one
+  // matters most: it is not the front that is wrong, it is the deck.
+  // SO THEY ARE GONE. Not moved, because a sweep says where the emptiness is and can never say where a
+  // surface went. What is drawn in their place is what remains: an open dark recess from the ground
+  // wall's soffit on 5.30 up to the top slab on 8.08, with the back wall standing on the plate end
+  // behind it. That is also what the clips show from three separate standpoints.
+  // THE PROOF IS WEST-ONLY AND THE CHANGE IS BOTH ENDS, said plainly rather than hidden. The rays are the
+  // west end near d 6.2 to 8.2; the two east candidates failed their own split by 0.481 and 2.015 m. The
+  // clips read the same recess at both ends, and drawing the two ends differently on no east evidence
+  // would be worse than drawing them alike.
+  // WHAT IS STILL NOT KNOWN, and it is most of it. The recess has a real sill, a real head and a real
+  // depth and none of the three is measured. 6.33, 6.85 and 7.16 stay in ENDW only as the record of what
+  // was refuted; no geometry reads them now. The 1.75 m clear height that started this is not repaired,
+  // it is withdrawn: there is no lower deck in this file any more to be 1.75 m under anything.
   // LIGHT WENT THROUGH A WALL THIS FILE DRAWS SOLID: 33 RAYS, AND THE WEST LOWER FRONT IS OPEN
   // (2026-09-10, tools/gallery_lamp.py aimed at the lower band for the first time).
   // WHY A LAMP AND NOT ANOTHER SURFACE. Every instrument aimed at the lower tier today failed the same
@@ -4067,7 +4104,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 134 bounds, all satisfied.
+  // 137 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
