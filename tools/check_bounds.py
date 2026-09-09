@@ -82,12 +82,16 @@ OLD_LAMPS = [[30.642, -1.093, 10.374], [34.139, -2.144, 10.990], [42.043, -1.824
 # leverage (tools/lamp_v.py)
 LAMPV = {8: (True, -2.322, 11.090, 6.5, 5.71), 9: (False, -2.047, 10.945, 2.9, 12.59)}
 
-southtap = []
+# BOTH WALLS NOW, 2026-09-09. This gathered only the SOUTH tapestries, because the only textile fault
+# anyone had found was on the south wall. The north pair went unchecked and duly acquired the identical
+# fault the moment the north face moved: they are stored as absolute world corners in a JSON file, so a
+# face that moves leaves them behind. A bound written for the wall where the bug was found does not
+# protect the wall where it had not been found yet.
+southtap, northtap = [], []
 for t in tap['tapestries']:
     ds = [sum((c[k] - O[k]) * HD[k] for k in range(3)) for c in t['corners']]
     d = sum(ds) / len(ds)
-    if d > 8.0:
-        southtap.append(d)
+    (southtap if d > 8.0 else northtap).append(d)
 
 fails, notes = [], []
 
@@ -633,6 +637,36 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE NORTH TAPESTRIES, BURIED BY A CHANGE I SHIPPED THIS AFTERNOON (2026-09-09).
+TAPN = {'old_face': -0.090, 'drawn': -0.053, 'standoff': 0.037, 'south_standoff': 0.102,
+        'shift': 0.060}
+check('no hanging textile is inside the wall it hangs on',
+      all(d > G['dNorth'] for d in northtap) and all(d < G['dSouth'] for d in southtap),
+      'the north pair is drawn on %s against a face on %.3f, and the south pair on %s against %.3f. This '
+      'model already diagnosed exactly this on the south wall, where a textile was drawn 19 mm behind the '
+      'stone it hangs on and was moved; the north pair was left alone because the cloud could not measure '
+      'it. Then the north FACE moved %.3f to %.3f this afternoon and this file stores ABSOLUTE world '
+      'corners, so the tapestries did not follow and ended up %.0f mm inside the masonry.'
+      % (', '.join('%+.4f' % d for d in northtap), G['dNorth'],
+         ', '.join('%.3f' % d for d in southtap), G['dSouth'], TAPN['old_face'], G['dNorth'],
+         1000 * abs(TAPN['drawn'] - G['dNorth'])),
+      'tools/tapestries.json')
+check('the north tapestries followed their face without acquiring a new opinion',
+      all(abs((d - G['dNorth']) - TAPN['standoff']) < 0.002 for d in northtap),
+      'the fix is the smallest one that removes the impossibility: shift both sheets by the %+.3f m the '
+      'face moved, which preserves the drawn standoff of %.3f m exactly and changes nothing else. It is '
+      'not a measurement. Worth recording beside it: the only MEASURED standoff in this building is the '
+      'south pair, %.3f m, so %.3f is thin and that is a separate open question from this one.'
+      % (TAPN['shift'], TAPN['standoff'], TAPN['south_standoff'], TAPN['standoff']),
+      'tools/tapestries.json')
+check('geometry stored in world coordinates does not follow a plane that moves',
+      True,
+      'the grilles, doors and openings on this wall are all drawn as offsets from the face in the page '
+      'itself, so they followed it when it moved. The tapestries are absolute corners in a separate JSON '
+      'and could not. That is the general shape of this fault and it is worth naming: a change to a '
+      'reference plane silently splits the model into the part that follows and the part that does not, '
+      'and the part that does not is whatever lives outside the formula.',
+      'tools/check_bounds.py')
 # WHERE PEOPLE ACTUALLY STOOD BEHIND THAT WALL (2026-09-09, tools/corridor_occupancy.py). No detector,
 # no window, no polarity, no threshold: a lens is a point that was not inside stone.
 OCC = {'lenses': 1568, 'classes': 15, 'behind': 196, 'inreveal': 196, 'inroom': 0,

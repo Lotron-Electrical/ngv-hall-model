@@ -21,24 +21,24 @@
    "confidence": "high",
    "corners": [
     [
-     -46.9186,
+     -46.90544824,
      1.9146,
-     4.8897
+     4.8311591400000005
     ],
     [
-     -41.2108,
+     -41.19764824,
      1.9146,
-     6.172
+     6.11345914
     ],
     [
-     -41.2108,
+     -41.19764824,
      6.9046,
-     6.172
+     6.11345914
     ],
     [
-     -46.9186,
+     -46.90544824,
      6.9046,
-     4.8897
+     4.8311591400000005
     ]
    ],
    "identification": "medium: NCC winner on 11 of 12 frames",
@@ -63,24 +63,24 @@
    "confidence": "high",
    "corners": [
     [
-     -17.9992,
+     -17.98604824,
      1.9146,
-     11.386
+     11.327459139999998
     ],
     [
-     -12.6622,
+     -12.64904824,
      1.9146,
-     12.585
+     12.52645914
     ],
     [
-     -12.6622,
+     -12.64904824,
      6.8746,
-     12.585
+     12.52645914
     ],
     [
-     -17.9992,
+     -17.98604824,
      6.8746,
-     11.386
+     11.327459139999998
     ]
    ],
    "identification": "high: NCC 0.62-0.69 vs 0.21-0.23",
@@ -172,5 +172,6 @@
   }
  ],
  "identified": "2026-09-07, bandpass NCC of rectified day-4K balcony frames against the NGV collection images (scratchpad kemp/identification.json)",
- "south_face_note": "2026-09-09: the two south tapestries were drawn on d 15.383, which is 19 mm BEHIND the stone face 15.364, i.e. inside the wall. 30,207 points triangulated from the walk clips (tools/wall_planes.py) put their visible surface on d 15.257 and 15.267 in the two bays at h 6, so both corners are moved to 15.262. The two bays agree on the offset to 10 mm and DISAGREE on the lean (-0.002 against -0.015 m per metre of height), so no lean is applied."
+ "south_face_note": "2026-09-09: the two south tapestries were drawn on d 15.383, which is 19 mm BEHIND the stone face 15.364, i.e. inside the wall. 30,207 points triangulated from the walk clips (tools/wall_planes.py) put their visible surface on d 15.257 and 15.267 in the two bays at h 6, so both corners are moved to 15.262. The two bays agree on the offset to 10 mm and DISAGREE on the lean (-0.002 against -0.015 m per metre of height), so no lean is applied.",
+ "north_tapestry_note": "MOVED 2026-09-09 by +0.060 m along d, from -0.053 to 0.007. Not a measurement and not a new opinion about where these hang: the north wall FACE moved from -0.090 to -0.030 this afternoon and this file stores absolute world corners, so it did not follow. That left both north tapestries 23 mm BEHIND the stone they hang on, which is the exact defect this model already diagnosed on the south pair (\"a hanging textile was buried in the masonry it hangs on\") and fixed there while leaving the north pair alone. The drawn standoff of 0.037 m is preserved and nothing else changes. Worth knowing: the only MEASURED standoff in this building is the south pair, 0.102 m, so 0.037 is thin, and that is a separate question from this one."
 }

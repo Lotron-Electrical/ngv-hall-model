@@ -2570,7 +2570,8 @@ function buildWallDetails(root){
   //   the NORTH face gives 1,941 to 4,232 points with an interquartile spread of 0.43 m, and the sheet
   //   itself moves from d +0.005 to -0.115 when the frame selection is tightened. A number that swings
   //   0.12 m with the selection is not a measurement, so dNorth -0.090 is NEITHER confirmed NOR refuted
-  //   here, and the north tapestries keep their drawn d -0.053 while the south pair moved 0.121 m.
+  //   here, and the north tapestries kept their drawn d -0.053 while the south pair moved 0.121 m.
+  //   THAT SENTENCE EXPIRED when the face moved to -0.030 and buried them; they now hang on +0.007.
   // THE CAUSE IS THE ARCHIVE, AND IT IS NOW A NUMBER. Of 1,249 cameras standing out in the hall, 282 face
   // this wall within 72 degrees, 149 within 53 degrees and 50 within 26 degrees. The closest of the square
   // ones stands 5.93 m away, the median 12.92 m, and nothing squarer than 26 degrees is closer than
@@ -3140,6 +3141,27 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // I BURIED BOTH NORTH TAPESTRIES IN THE WALL THIS AFTERNOON AND NOTHING CAUGHT IT (2026-09-09,
+  // tools/tapestries.json). Moving the north wall face from -0.090 to -0.030 was a measurement and it
+  // stands. What went with it was a defect: the two north tapestries hang on d -0.053, and once the face
+  // reached -0.030 that put both sheets 23 mm BEHIND the stone they hang on.
+  // THIS MODEL HAD ALREADY DIAGNOSED THE IDENTICAL FAULT, IN ITS OWN WORDS, ON THE OTHER WALL. The south
+  // pair was drawn on 15.383 against a face on 15.364, and the note written then reads "a hanging textile
+  // was buried in the masonry it hangs on". That pair was measured and moved to 15.262. The north pair was
+  // left alone because the cloud could not measure it, and the BOUND written that day checked the south
+  // wall only. A bound written for the wall where a bug was found does not protect the wall where it had
+  // not been found yet.
+  // THE CAUSE IS STRUCTURAL AND WORTH NAMING. The grilles, the doors and the openings on this wall are
+  // drawn as offsets from the face in the page itself, so they followed it when it moved. The tapestries
+  // are absolute world corners in a separate JSON file, so they could not. A change to a reference plane
+  // silently splits the model into the part that follows and the part that does not, and the part that
+  // does not is whatever lives outside the formula.
+  // THE FIX IS THE SMALLEST ONE THAT REMOVES THE IMPOSSIBILITY: both sheets shift by the +0.060 m the
+  // face moved, from -0.053 to +0.007, which preserves the drawn standoff of 0.037 m exactly and changes
+  // nothing else. It is not a measurement and it is not a new opinion about where these hang.
+  // AND THE THING TO KNOW BESIDE IT: the only MEASURED standoff in this building is the south pair, 0.102
+  // m proud of its stone. 0.037 is thin against that. Whether the north sheets hang further out than
+  // drawn is a real open question, and it is a different question from whether they are inside the wall.
   // WHERE PEOPLE ACTUALLY STOOD BEHIND THAT WALL, WITH NO DETECTOR IN THE ARGUMENT AT ALL
   // (2026-09-09, tools/corridor_occupancy.py). Every corridor number here comes from photometry, and the
   // last three hours were a long lesson in what photometry does wrong: a stale mask manufactured two
@@ -3831,7 +3853,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 111 bounds, all satisfied.
+  // 114 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
