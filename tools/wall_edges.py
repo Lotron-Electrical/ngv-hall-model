@@ -13,7 +13,10 @@
 import sys, os, cv2, numpy as np
 sys.path.insert(0, 'tools'); import underside_geom as U; import edge_refine as ER
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
-OPEN = [[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]]
+OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
+        [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
+        [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
+        [37.177, 38.383], [40.906, 42.118], [44.526, 45.739]]
 DFACE = -0.09
 # OPEN_WIDTH redraws every opening to a given width about its own centre without editing this file. That is
 # how the follow bias is tested on the wall: measure the SAME twelve physical openings with the model

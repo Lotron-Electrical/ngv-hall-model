@@ -19,7 +19,10 @@ import numpy as np
 d = sys.argv[1] if len(sys.argv) > 1 else 'E:/sitecapture-captures/ngv-site/agent-ref-walls/walljson'
 minc = int(sys.argv[2]) if len(sys.argv) > 2 else 2
 minm = float(sys.argv[3]) if len(sys.argv) > 3 else 0.05
-OPEN = [[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]]
+OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
+        [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
+        [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
+        [37.177, 38.383], [40.906, 42.118], [44.526, 45.739]]
 caps = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(d, '*.json')))]
 print('%d captures: %s' % (len(caps), ', '.join(c['class'] for c in caps)))
 # THE ESTIMATOR IS THE SHIFT ITSELF, pooled. Reading each jamb separately and combining the pooled results

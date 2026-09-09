@@ -8,7 +8,10 @@ import sys, cv2, numpy as np
 sim, W, H, vfov, u, d, h, fu, fd, pitch, oi = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5]), float(sys.argv[6]), float(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9]), float(sys.argv[10]), int(sys.argv[11])
 mark = sys.argv[12] if len(sys.argv) > 12 else None
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
-OPEN = [[4.076,5.332],[7.676,8.932],[10.764,12.020],[15.132,16.388],[18.628,19.876],[22.336,23.592],[26.044,27.300],[29.948,31.196],[33.588,34.836],[37.348,38.596],[40.884,42.140],[44.508,45.756]]
+OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
+        [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
+        [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
+        [37.177, 38.383], [40.906, 42.118], [44.526, 45.739]]
 cam = O + u * HU + d * HD + np.array([0.0, h, 0.0])          # the eye, exactly where the page put it
 fwd_h = fu * HU + fd * HD                                    # the page's yaw comes from this horizontal aim
 yaw = np.arctan2(-fwd_h[0], -fwd_h[2]); pr = np.radians(pitch)

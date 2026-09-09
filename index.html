@@ -1170,7 +1170,7 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // THE FITTED GAINS THEMSELVES ARE THE WARNING. Per jamb they run from 0.00 to 0.81 with a median near 0.3.
 // A single global 0.37 was never safe, because the jambs where it is worst (0.75 and 0.81, both opening 6
 // read from b1 and b1p) are exactly the ones a lower bound would have been quoted for.
-const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
+const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.917,20.130],[22.565,23.778],[26.213,27.426],[29.963,31.175],[33.642,34.853],[37.177,38.383],[40.906,42.118],[44.526,45.739]],
  // THE SILL AND THE HEAD, tested for the first time (2026-09-09, tools/open_levels.py, open_pool.py).
  // Every wall measurement until today was horizontal: where the jambs stand along the hall. The openings
  // also have a top and a bottom and nobody had ever put a photograph against them. Two protections were
@@ -3106,6 +3106,41 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE JAMBS, WHICH WERE THE LAST THING ON THESE WALLS NOBODY HAD CHECKED (2026-09-09,
+  // tools/jamb_lines.py, tools/apply_jamb_shift.py, tools/sync_openings.py). The sill, the head and the
+  // wall face are all measured. Where along the wall the twelve openings actually sit was still purely a
+  // plan, and twenty-four numbers of it were being used as truth by every tool in the repo, including the
+  // aperture test that decided the corridor an hour earlier.
+  // A JAMB IS THE SAME TWO-UNKNOWN LINE WITH ITS THIRD PAIR OF COLUMNS. A balcony front is a line at
+  // constant (u, h) spanning d; a sill is a line at constant (d, h) spanning u; a jamb is a VERTICAL line
+  // at constant (u, d) spanning h, and a ray meets one when vd*(u* - cu) - vu*(d* - cd) = 0. Same algebra,
+  // same metric residual, same fit. The conditioning is the best of the three, because it comes from
+  // cameras standing at different points ALONG the hall: a 35 m baseline against the 9 m the sill had.
+  // NOTHING DRAWN WAS SEARCHED FOR, which mattered more here than anywhere, because the drawn jambs were
+  // exactly what was on trial. Every brightness step above the bar anywhere on the wall became a ray, and
+  // the lines were PEELED off strongest first until nothing had support left. Nine survived: four of one
+  // polarity, five of the other, 36 to 76 rays each, agreeing with their own rays to between 9 and 18 mm.
+  // FOUR MORE WERE THROWN OUT BY THEIR OWN DEPTH. Relaxing the support bar pulled in lines fitted to
+  // d +0.217, -0.567, +1.020 and +0.635, up to a metre out in the hall, while all nine real ones landed
+  // between d -0.203 and -0.216, a 13 mm band. So depth is the discriminator, and it is not a fit to the
+  // plan: the wall face was measured independently today from the sill and the head.
+  // EVERY ONE OF THE NINE SAT EAST OF ITS DRAWN JAMB, by 0.044 to 0.227 m, median 0.147. That is a
+  // position and not a detector bias, and the two polarities are what prove it: a brightness step is
+  // biased INTO the dark side, so a bias pushes a west jamb east and an east jamb west, narrowing every
+  // opening while leaving its centre alone. Both polarities moved the same way. The narrowing a bias
+  // would cause is visible too and it is small, the four openings caught end to end measuring 1.191 m
+  // against a drawn 1.212, about 10 mm an edge, and THAT part is not applied.
+  // THE FIRST VERSION MOVED ALL TWELVE AND A HARD BOUND CAUGHT IT WITHIN THE MINUTE. Reasoning that the
+  // openings are one rigid set, it applied the median to every one. Opening 11 then failed a check that
+  // predates today: rays measured passing THROUGH that opening occupy u 40.948 to 41.674, and a ray that
+  // arrived is not an estimate, so that jamb cannot stand east of 40.948. The uniform move put it on
+  // 41.053. All nine measured lines lie between u 20.0 and 34.9, so opening 11 was never measured, it was
+  // extrapolated, and the extrapolation was refuted by an arrival.
+  // SO FIVE OPENINGS MOVED AND SEVEN DID NOT. Openings 5 to 9 carry the nine lines and are moved +0.147 m
+  // east; the rest stay exactly as drawn. The step that leaves in the rhythm is not a claim about the
+  // building, it is the edge of what has been measured. Twenty tools carried their own stale copy of the
+  // table and were re-pointed at the model's, because in several of them it is a GATE and not a label.
+  // The bounds file grows to 28 checks, 27 satisfied, the same single failure as before.
   // THE OPENING IS A COLLIMATOR, WHICH IS WHY NOTHING HAS EVER MEASURED THAT CORRIDOR (2026-09-09,
   // tools/corridor_lines.py). The room behind the brick wall was the last part of the goal resting on a
   // plan. Its floor 8.34, its back wall d -2.09 and its ceiling 11.4 have never been measured; the only
