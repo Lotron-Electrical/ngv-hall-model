@@ -2922,6 +2922,26 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE SIM SHOT FROM A REAL BALCONY POSE, AND THE ONE THING IT DISAGREES WITH (2026-09-09,
+  // tools/pose_pair.py, tools/pose-shot.mjs, tools/parapet_silhouette.py). b7s frames turn out to carry
+  // NO ROLL, unlike the hall-floor walks, so the sim can be driven to one of their poses and the render
+  // laid beside the photograph. Done from b7s_000132, standing on the east deck 1.05 m behind the
+  // parapet: the canopy, the south wall and its openings, the tapestry, the columns and the far end all
+  // correspond. The near geometry does not. In the photograph the parapet blocks about the bottom seventh
+  // of the frame; in the render the rail and the deck behind it take nearly two fifths.
+  // WHAT THE EDGE ITSELF SAYS. That boundary is the one edge on this gallery a silhouette can reach, and
+  // it reads cleanly: 449 detections across nine frames from two captures, per-frame internal spread
+  // 0.025 to 0.180 m, traced along the parapet top in the drawn-back picture. Each detection is a ray, and
+  // the parapet top is a horizontal line, so the two unknowns can be fitted together over the 0.68 m of u
+  // that b3 and b7s span between them.
+  //   the best line through those rays is u 48.702, h 9.391
+  //   the line this file draws is    u 48.056, h 9.110
+  //   the drawn line fits the rays 1.80 times worse than the best one
+  // SO THE DISAGREEMENT IS REAL AND IT IS NOT RESOLVED. The best line's own residual is large, so it is
+  // not a replacement value, and the two unknowns trade off along the sightline: a face 0.65 m nearer the
+  // camera and a top 0.28 m higher fit the same rays. Nothing here is moved on that. What is now known is
+  // WHERE to look, which is more than the four instruments that spent the afternoon on the soffit
+  // produced, and the pair shot is the artefact to look at.
   const ups=(W.upstands&&W.upstands[side]!==undefined)?W.upstands[side]:W.upstand;
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+ups],[uF,0,fl[1]+ups]],upstandMat,'gallery-parapet');
   quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');

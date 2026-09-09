@@ -165,7 +165,9 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              'dNorth -0.090: the cloud swings 0.12 m with frame selection, tools/north_face.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the west gallery upstand 0.68, and the opening head lean of 40 to 205 mm',
-             'ENDW soffitDepth 2.1: nothing has ever seen the back edge of that soffit'):
+             'ENDW soffitDepth 2.1: nothing has ever seen the back edge of that soffit',
+             'the east parapet: 449 silhouette rays fit the drawn (48.056, 9.110) 1.80 times worse'
+             ' than (48.702, 9.391), and neither line is clean enough to ship, tools/parapet_silhouette.py'):
     print('   ' + line)
 print('')
 if fails:
