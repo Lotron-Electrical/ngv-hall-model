@@ -117,6 +117,41 @@ check('the reveal is at least as deep as the point measured inside it',
          1000 * REVEALPT['gapmax'], 1000 * REVEALPT['null'], REVEALPT['ratio'],
          G['dNorth'] - REVEALPT['d'], G['openDepth']),
       'tools/point_v.py')
+# THE PEEL (2026-09-09, tools/corridor_cloud.py): sixteen candidate points where the finder had returned
+# eight, each then made to survive the parallax split with its own null.
+CLOUD = {'kept': 5, 'refused': 11, 'blobs': 133,
+         'reveal': ((26.483, -0.659, 11.359, 23, 88.3), (26.702, -0.320, 11.340, 11, 23.5)),
+         'hallside': (27.967, 0.347, 9.051, 18, 6.9), 'corridor': 2}
+check('a splay in the opening head is refuted by two points, not assumed away',
+      abs(CLOUD['reveal'][0][2] - CLOUD['reveal'][1][2]) <= 0.03,
+      'one point could not tell a splayed head, which rises going back, from a recess at a constant '
+      'level. The peel finds a second point in the same reveal: h %.3f against %.3f, %.0f mm apart, at '
+      'depths %.3f and %.3f m behind the face. Twice the depth, the same height, so whatever is up there '
+      'is level. Ratios %.1f and %.1f, on %d and %d rays.'
+      % (CLOUD['reveal'][0][2], CLOUD['reveal'][1][2],
+         1000 * abs(CLOUD['reveal'][0][2] - CLOUD['reveal'][1][2]),
+         -CLOUD['reveal'][0][1] + G['dNorth'], -CLOUD['reveal'][1][1] + G['dNorth'],
+         CLOUD['reveal'][0][4], CLOUD['reveal'][1][4],
+         CLOUD['reveal'][0][3], CLOUD['reveal'][1][3]),
+      'tools/corridor_cloud.py')
+check('something is mounted on the hall face of the north wall and is not drawn',
+      CLOUD['hallside'][4] > 3.0,
+      'the peel returns a point %.3f m in FRONT of the wall face on u %.3f, h %.3f, from %d rays with a '
+      'ratio of %.1f. It is out in the hall at chest height above the sill and this model draws nothing '
+      'there. One point at one opening, so nothing is added, but it is on the record now rather than '
+      'discarded for being on the wrong side of the wall.'
+      % (CLOUD['hallside'][1] - G['dNorth'], CLOUD['hallside'][0], CLOUD['hallside'][2],
+         CLOUD['hallside'][3], CLOUD['hallside'][4]),
+      'tools/corridor_cloud.py')
+check('the peel did not add a single point inside the corridor, and that is the honest headline',
+      CLOUD['corridor'] == 2,
+      '%d blobs were gathered through the twelve apertures and peeled into 16 candidate points. %d '
+      'survive the parallax split and %d are refused with their leverage recorded. Of the survivors '
+      'exactly %d lie past the reveal, and they are the same two lamps already known. Asking the finder '
+      'for every answer instead of one answer added nothing at all to the corridor, which is the '
+      'clearest measure yet of how little of that room any camera has seen.'
+      % (CLOUD['blobs'], CLOUD['kept'], CLOUD['refused'], CLOUD['corridor']),
+      'tools/corridor_cloud.py')
 check('the flat reveal soffit is recorded as contradicted, not assumed',
       REVEALPT['h'] > G['head'],
       'the same point stands %.3f m ABOVE the measured opening head, inside the volume the model draws as '

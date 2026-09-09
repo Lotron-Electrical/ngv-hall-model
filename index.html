@@ -3112,6 +3112,33 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // THE SEARCH BEHIND THIS WALL WAS ONLY EVER ALLOWED TO FIND ONE THING PER OPENING (2026-09-09,
+  // tools/corridor_cloud.py). The corridor finder gathers every bright blob visible through an aperture,
+  // keeps the single point the most rays agree on, and stops. That is why this archive's entire knowledge
+  // of the room behind the brick wall was eight points, one per opening that answered. Nothing was wrong
+  // with the method. It was never asked for a second answer.
+  // SO PEEL IT, the same way nine jamb lines came off this wall this afternoon: take the strongest point,
+  // remove the rays that voted for it, and search what is left. Sixteen candidate points came out where
+  // there had been eight, and every one of them then had to survive the parallax split with its own
+  // odd-against-even null. FIVE SURVIVE AND ELEVEN ARE REFUSED, and the refusals are kept with their
+  // leverage numbers because a refused point still says where this archive cannot see.
+  // AND THE SECOND ANSWER AT OPENING 7 SETTLES THE QUESTION THE FIRST ONE LEFT OPEN. Last night's single
+  // reveal point sat 0.194 m above the head and could not distinguish a splayed head, which rises going
+  // back, from a recess at a constant level. The peel finds a SECOND point in the same reveal, 11 rays,
+  // ratio 23.5: h 11.340 against the first one's 11.359, NINETEEN MILLIMETRES apart, at depths 0.320 and
+  // 0.659 m behind the face. Twice the depth, the same height. A SPLAY IS REFUTED. Whatever is up there
+  // is level, and it is level at about 11.35, which is 0.185 m above the measured opening head.
+  // THAT IS TWO INDEPENDENT POINTS AGAINST THE FLAT SOFFIT THIS MODEL DRAWS, and it is still one opening
+  // out of twelve. The economical reading is that the opening is rebated: a stop at the front on 11.165
+  // with a taller reveal behind it. Nothing is redrawn on one opening, and what would settle it is named
+  // instead: the same pair of points in a second opening.
+  // A THIRD SURVIVOR IS ON THE HALL SIDE AND IS NOT DRAWN AT ALL. Opening 7's peel also returns a point
+  // 0.377 m in FRONT of the wall face on h 9.051, from 18 rays with a ratio of 6.9. Something is mounted
+  // on the hall face of that wall at chest height above the sill and this model has nothing there.
+  // THE CORRIDOR ITSELF GAINED NOTHING. It still yields exactly two measured points, the two lamps, and
+  // the peel added no third. That is the clearest statement yet of how little of that room is visible:
+  // 133 blobs were gathered through the twelve apertures and only two of the points they form are
+  // conditioned well enough to be believed past the reveal.
   // THE BEST-CONDITIONED POINT BEHIND THIS WALL WAS THROWN AWAY FOR NOT LOOKING LIKE A LAMP (2026-09-09,
   // tools/point_v.py). The corridor search runs one blob hunt per opening and returns the strongest point
   // its rays agree on. It found EIGHT. Three sat about two metres back at about eleven up, were called
@@ -3330,7 +3357,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 68 bounds, all satisfied.
+  // 71 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
