@@ -2821,6 +2821,22 @@ function buildEndWalls(root){
   quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
   quad([[uF,0,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],handMat,'gallery-handrail');
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // WHICH FRAMES CAN SEE WHAT IS OVER A BALCONY (2026-09-09, tools/balcony_up.py, tools/balcony_look.py).
+  // Lloyd: "You can see how the ceiling goes above that balcony as well right? You can see that in the
+  // balcony videos." So the 366 posed balcony frames were sorted by where the camera stands and which way
+  // it points, and the answer splits cleanly in two.
+  //   OVER THE NORTH GALLERY there is footage. 55 frames pitch their view UP by 10 to 23.8 degrees, every
+  //   one of them from inside a north wall opening (u 19.36 to 23.29, d -0.41 to -0.21, h 9.46 to 9.83,
+  //   clips b1 and b5). b5_000085 is the steepest and it shows the glass canopy coming down to the wall
+  //   head with nothing between, which is what this file already draws.
+  //   OVER THE END BALCONIES there is none. 179 frames stand on a west or east gallery deck (u 3.19 to
+  //   49.38, h 9.50 to 10.23) and NOT ONE of them looks up: the pitch runs -23.1 to +1.6 degrees. Every
+  //   one is aimed out over the parapet at the hall, which is what a person filming a room does.
+  // So the 2.1 m front canopy below and the open strip behind it still rest on the two hall-floor frames
+  // named on the next line, and no balcony frame has been able to confirm or refuse them. The deck frames
+  // do carry a dark overhead band across the top of the picture (b7s_000132, standing 1.07 m behind the
+  // east parapet), which is this soffit seen from under it, but its edge sits outside the frame, so it
+  // gives a sightline and not a height. head 11.1 and soffitDepth 2.1 are therefore UNCHANGED.
   // the soffit is a 2.1 m deep front canopy (w2_000252: its lit edge on 11.1, its underside for 2.1 m, then the lit
   // back wall rising past it; d4_000049: the exit light on the back wall on 11.07 with stone above it to the canopy)
   { const uS=uF+s*W.soffitDepth; quad([[uF,0,W.head],[uS,0,W.head],[uS,D,W.head],[uF,D,W.head]],topSoffitMat,'gallery-soffit'); }
