@@ -1409,6 +1409,21 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE WALL THICKNESS FROM THE DECKS, THE SECOND ROUTE, AND IT REFUSED TOO (2026-09-10, tools/reveal_depth_deck.py).
+RDD = {'east_frames': 163, 'west_frames': 7, 'op11': {'n': 10, 'wins': 5, 'med': 0.780, 'half': 0.245},
+       'beat': 0.70, 'minfr': 8, 'spreadmax': 0.15, 'drawn': 0.90}
+check('the deck route reads one reveal in ten frames and the null holds its own, so nothing is claimed',
+      RDD['op11']['wins'] / RDD['op11']['n'] < RDD['beat'] and RDD['op11']['half'] > RDD['spreadmax']
+      and abs(grab(r'openDepth:\s*([0-9.]+)') - RDD['drawn']) < 1e-9,
+      'from an end deck the far reveal of the nearest openings faces the camera square. East deck, %d posed '
+      'frames: opening 12 is inside none whole, opening 11 inside %d, and the real plane beats the invented '
+      'one in %d of those (%.0f%% where %.0f%% was asked), median separation %.3f with a half-width of %.3f. '
+      'West deck, %d frames: nothing read. openDepth %.2f stands untested by two routes, and the %.3f is '
+      'written down and not used, its spread being wider than any claim it could make.'
+      % (RDD['east_frames'], RDD['op11']['n'], RDD['op11']['wins'], 100 * RDD['op11']['wins'] / RDD['op11']['n'],
+         100 * RDD['beat'], RDD['op11']['med'], RDD['op11']['half'], RDD['west_frames'], RDD['drawn'],
+         RDD['op11']['med']),
+      'tools/reveal_depth_deck.py')
 # THE GLASS SEEN THROUGH FROM THE OPPOSITE DECK, AND A CONTROL THAT FAILED BY ITS OWN WORDING (2026-09-10,
 # tools/glass_step.py).
 GS = {'west': {'n': 56, 'h': 9.820, 'drawn': 9.799, 'g': 0.574, 'plain': 0.564, 'plain2': 1.914}, 'factor': 1.5, 'near': 0.15,
