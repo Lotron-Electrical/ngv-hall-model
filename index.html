@@ -3140,6 +3140,44 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // 8.34 STAYS UNMEASURED, AND A FIT WITH 100 PER CENT AGREEMENT IS WHAT TALKED ME OUT OF IT
+  // (2026-09-09, tools/run_deck_edge.py, tools/run_deck_ladder.py). The gallery deck is the most
+  // load-bearing number in this model: the solid upstand, the rail, the fascia, the floor and the ceiling
+  // below are all drawn as offsets from it, and it has only ever been bounded.
+  // ONE ROUTE WAS CLOSED BEFORE ANY IMAGERY WAS TOUCHED. A lens height cannot be measured, but it cancels
+  // out of a DIFFERENCE if one operator stands on a known floor and an unknown one in the same capture.
+  // Every class in the archive was checked: walk and night are 888 frames entirely on the hall floor, and
+  // every balcony class is entirely raised, h 9.07 to 10.29. The only class holding both is b6s, three
+  // frames, and it is the one class already carrying a pose contradiction. No operator stands on two
+  // floors, so there is no lens height to transfer.
+  // THE OTHER ROUTE IS THE INSTRUMENT THAT HAS WORKED ALL NIGHT, and the deck should have been its best
+  // case: the station is already measured, so a horizontal line on the end face plane has one unknown per
+  // ray. A ladder from 7.85 to 8.85 on the west face returned 145 detections and every single one of them
+  // agreed on u 4.189 h 8.645 inside 80 mm, an 8 mm residual on a condition number of 6. Taken at face
+  // value that is the best-conditioned balcony fit in this archive and it would move the deck 0.3 m.
+  // IT WAS THE CEILING OF ITS OWN LADDER. The detector averages 40 samples either side of a candidate and
+  // a sample is 5 mm, so it is blind within 0.20 m of each end. The usable band of that run was 8.05 to
+  // 8.65 and the answer came back five millimetres under the top of it.
+  // MOVING THE LADDER SETTLED IT IN ONE RUN. Three more windows on the same face, same polarity, same
+  // rays: usable 7.80 to 8.80 answers 8.803, which is its own ceiling again; usable 7.60 to 9.20 answers
+  // 9.090; usable 8.20 to 9.40 answers 9.093. Every ladder whose ceiling sits below 9.09 returns its own
+  // ceiling, and every ladder tall enough to contain 9.09 returns 9.09 instead.
+  // SO THERE IS NO STEP ON THE DECK LEVEL. Between h 7.6 and 9.4 on the west end face there is exactly
+  // one photometric edge and it is the top of the solid upstand, which this model already draws on 9.097
+  // and which the two wide ladders recover independently to 7 mm and 4 mm.
+  // THE 100 PER CENT WAS THE TELL, NOT THE REASSURANCE, and that is the lesson worth keeping. The two
+  // pinned runs agreed 100 and 99 per cent with 9 mm residuals; the two honest ones agreed 84 and 82 per
+  // cent with 33 mm. Detections pinned against a window edge cannot disagree with each other, so perfect
+  // consensus inside a narrow window is a symptom. Only moving the window can tell the two apart.
+  // AND THE WIDE LADDERS HANDED BACK SOMETHING THEY WERE NOT AIMED AT. Their stations land on u 3.757 and
+  // 3.746, which is the SOLID upstand on 3.710 and not the face on 4.194. Two ladders searching for a
+  // deck edge, from a different band with a different polarity, put the parapet 0.44 m behind the face and
+  // within 40 mm of the recess measured this evening. The 0.484 m recess was the largest change of the
+  // day and it now has a witness that was looking for something else.
+  // 8.34 IS THEREFORE STILL A BOUND AND NOT A MEASUREMENT: under the lowest lens standing on it, h 9.03,
+  // with 0.69 m of room above the drawn value. The east end refuses outright, 4 and 9 detections against
+  // a 22 grey level bar. What changed tonight is that the refusal is now specific: not that the deck is
+  // hard to see, but that the only edge visible anywhere near it belongs to the parapet above it.
   // THE EDGE 0.178 m INSIDE THE NORTH OPENINGS IS MEASURED, AND IT IS NOT THE BACK OF THE REVEAL
   // (2026-09-09, tools/jamb_depth.py). Eight jamb lines agree on a depth to 18 mm while each line's own
   // camera halves scattered by up to 500. A population tighter than its members is what a shared BIAS
@@ -3693,7 +3731,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 95 bounds, all satisfied.
+  // 99 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

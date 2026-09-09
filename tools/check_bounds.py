@@ -633,6 +633,52 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE DECK LEVEL, SEARCHED AND REFUSED PROPERLY (2026-09-09, tools/run_deck_edge.py + run_deck_ladder.py)
+DECKS = {'pin_h': 8.645, 'pin_band_hi': 8.65, 'pin_rays': 145, 'pin_share': 1.00, 'pin_res': 0.0081,
+         'pin2_h': 8.803, 'pin2_band_hi': 8.80, 'pin2_share': 0.99,
+         'wide_a': 9.090, 'wide_b': 9.093, 'wide_share_a': 0.84, 'wide_share_b': 0.82,
+         'wide_res': 0.0333, 'ustation_a': 3.757, 'ustation_b': 3.746, 'usolid': 3.710,
+         'uface': 4.194, 'east_lit': 4, 'east_dark': 9, 'lowest_lens': 9.03, 'classes': 15}
+check('the deck edge that looked measured was the ceiling of its own ladder',
+      abs(DECKS['pin_h'] - DECKS['pin_band_hi']) < 0.010
+      and abs(DECKS['pin2_h'] - DECKS['pin2_band_hi']) < 0.010,
+      'a ladder from 7.85 to 8.85 on the measured west face returned %d detections agreeing 100 per cent '
+      'on h %.3f with an %.0f mm residual, which would have been the best-conditioned balcony fit in the '
+      'archive and would have moved the deck 0.3 m. The detector averages 40 samples either side of a '
+      'candidate and a sample is 5 mm, so its usable band was 8.05 to 8.65 and the answer sat %.0f mm '
+      'under the top of it. A second window, usable 7.80 to 8.80, answered %.3f: its own ceiling again.'
+      % (DECKS['pin_rays'], DECKS['pin_h'], 1000 * DECKS['pin_res'],
+         1000 * abs(DECKS['pin_band_hi'] - DECKS['pin_h']), DECKS['pin2_h']),
+      'tools/run_deck_ladder.py')
+check('the only edge near the deck level belongs to the parapet above it',
+      abs(DECKS['wide_a'] - (G['deck'] + G['upWest'])) < 0.010 and abs(DECKS['wide_b'] - (G['deck'] + G['upWest'])) < 0.010,
+      'two ladders tall enough to contain it, usable 7.60 to 9.20 and 8.20 to 9.40, both answer the same '
+      'place: %.3f and %.3f against a solid upstand top this model draws on %.3f, recovered to %.0f mm '
+      'and %.0f mm by a search that was not aimed at it. So between h 7.6 and 9.4 on the west end face '
+      'there is exactly one photometric edge and it is not the deck. The east end refuses outright, %d '
+      'and %d detections against a 22 grey level bar.'
+      % (DECKS['wide_a'], DECKS['wide_b'], (G['deck'] + G['upWest']), 1000 * abs(DECKS['wide_a'] - (G['deck'] + G['upWest'])),
+         1000 * abs(DECKS['wide_b'] - (G['deck'] + G['upWest'])), DECKS['east_lit'], DECKS['east_dark']),
+      'tools/run_deck_ladder.py')
+check('perfect consensus inside a narrow window is a symptom, not a result',
+      DECKS['pin_share'] > DECKS['wide_share_a'] and DECKS['pin_res'] < DECKS['wide_res'],
+      'the two pinned runs agreed %.0f and %.0f per cent with residuals of %.0f and 31 mm; the two honest '
+      'ones agreed %.0f and %.0f per cent with %.0f mm. Detections pinned against a window edge cannot '
+      'disagree with each other, so the tighter number is the worse one here. Nothing about agreement '
+      'distinguishes them from the inside; only moving the window does.'
+      % (100 * DECKS['pin_share'], 100 * DECKS['pin2_share'], 1000 * DECKS['pin_res'],
+         100 * DECKS['wide_share_a'], 100 * DECKS['wide_share_b'], 1000 * DECKS['wide_res']),
+      'tools/run_deck_ladder.py')
+check('the recess measured this evening has a witness that was looking for something else',
+      abs(DECKS['ustation_a'] - DECKS['usolid']) < abs(DECKS['ustation_a'] - DECKS['uface']),
+      'the two wide ladders were searching a different band with a different polarity for a different '
+      'feature, and their stations land on u %.3f and %.3f. That is the SOLID upstand on %.3f, not the '
+      'face on %.3f: %.0f mm from the recessed parapet and %.0f mm from the face. The 0.484 m recess was '
+      'the largest change of the day and nothing else had confirmed it.'
+      % (DECKS['ustation_a'], DECKS['ustation_b'], DECKS['usolid'], DECKS['uface'],
+         1000 * abs(DECKS['ustation_a'] - DECKS['usolid']),
+         1000 * abs(DECKS['ustation_a'] - DECKS['uface'])),
+      'tools/run_deck_ladder.py')
 # THE JAMB PLANE, ASKED AS ONE UNKNOWN PER RAY (2026-09-09, tools/jamb_depth.py).
 JD = {'lines': 8, 'pass': 6, 'span': 0.018, 'median': -0.208, 'spread_lo': 0.001, 'spread_hi': 0.078,
       'spread_med': 0.014, 'null_lo': 0.001, 'null_hi': 0.014, 'lev_a': 42.5, 'lev_b': 88.7,
