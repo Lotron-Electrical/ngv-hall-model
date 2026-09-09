@@ -1409,6 +1409,45 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE SILL READ AGAIN OFF CONTRAST, NOT OFF AN EDGE FIT (2026-09-10, tools/opening_levels.py).
+OL = {'frames': 704, 'lo': 7.60, 'hi': 12.40, 'step': 0.05, 'null': 0.196, 'deep': 9,
+      'kept': 7, 'sill': 8.750, 'sq1': 8.650, 'sq3': 8.750, 'head': 11.100, 'hq1': 11.075,
+      'hq3': 11.150, 'drawn_s': 8.740, 'drawn_h': 11.165, 'tall': 2.350, 'drawn_t': 2.425,
+      'bad_h': 7.95, 'bad_tall': 0.40}
+check('the openings were levelled by contrast, with a null that costs nothing and decides everything',
+      OL['deep'] >= 8 and OL['null'] < 0.25,
+      'the sill and head were both placed by fitting detected edges to a plane, which is ONE instrument '
+      'revised several times on the same rays. opening_holes.py showed something simpler: an opening is '
+      'DARK against the lit pier beside it, which is not an edge fit but the difference between a hole '
+      'and a wall, and it can be walked UP the wall. %d frames, every level from h %.2f to %.2f in %.0f '
+      'mm steps, so neither drawn level was used to place a window. The identical comparison run on PIER '
+      'AGAINST PIER wiggles %.3f across the whole sweep, and nothing counts unless it is bigger; %d of '
+      'the twelve dip deeper.'
+      % (OL['frames'], OL['lo'], OL['hi'], 1000 * OL['step'], OL['null'], OL['deep']),
+      'tools/opening_levels.py')
+check('and two of those nine were thrown out for not being aperture-shaped',
+      OL['kept'] == OL['deep'] - 2 and OL['bad_tall'] < 1.5,
+      'opening 4 returned its deepest ratio on h %.2f with edges on 7.75 and 8.15: a dip %.2f m tall '
+      'sitting entirely BELOW the sill. Whatever that is, it is not a 2.4 m opening, and averaging it in '
+      'would let the method vote on a question it was not asked. Opening 1 went the same way, and %d '
+      'remain.'
+      % (OL['bad_h'], OL['bad_tall'], OL['kept']),
+      'tools/opening_levels.py')
+check('the sill holds to ten millimetres, and the head reads low for a reason already on record',
+      abs(OL['sill'] - OL['drawn_s']) <= OL['step'] and OL['head'] < OL['drawn_h'],
+      'the sill comes out h %.3f against a drawn %.3f, %.0f mm, on quartiles %.3f to %.3f from %d '
+      'openings, by an instrument that reads the contrast between two areas of wall rather than the '
+      'position of an edge. The head comes out h %.3f against a drawn %.3f, and the %.0f mm is EXPECTED: '
+      'this file already records that the head soffit stands over the reveal, so from the hall floor the '
+      'top of the aperture is partly shadowed by its own soffit and reads as wall. A head measured this '
+      'way should come out LOW, and the sign and size agree. So the drawn head is neither refuted nor '
+      'confirmed, and the aperture height returned, %.3f against the %.3f drawn, is a FLOOR on the true '
+      'one rather than a value. Nothing moves on either; what this adds is that the sill no longer rests '
+      'on one family of instruments.'
+      % (OL['sill'], OL['drawn_s'], 1000 * (OL['sill'] - OL['drawn_s']), OL['sq1'], OL['sq3'],
+         OL['kept'], OL['head'], OL['drawn_h'], 1000 * (OL['drawn_h'] - OL['head']),
+         OL['tall'], OL['drawn_t']),
+      'tools/opening_levels.py')
 # NOBODY EVER LOOKED AT A GALLERY BACK WALL WITH A POSE (2026-09-10, tools/gallery_backwall.py).
 BW = {'east_in': 286, 'west_in': 23, 'facing': 0, 'fwd_lo': -1.00, 'fwd_hi': -0.68,
       'cell': 0.05, 'exit_h': 10.69, 'lamp_h': [10.5, 10.6, 10.5]}
