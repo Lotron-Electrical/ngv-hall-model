@@ -3140,6 +3140,30 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE AUDIT COVERED ONE HALF OF THE BUILDING, SO I POINTED IT AT THE OTHER (2026-09-09,
+  // tools/constant_drift.py, tools/run_upstand_replane.py). The drift scanner is only as good as the list
+  // of values it knows have moved, and the first list was all wall: sill, head, wall depth, lamps. A list
+  // covering one half of the goal is an audit that passes while the other half rots. Extended with the
+  // balcony values that moved today it finds the upstand tops 9.020 and 9.110 still live in eight tools,
+  // one of them tools/west_far.py, which produces every ray these balconies were measured from.
+  // AND THAT ONE MATTERS MORE THAN THE OTHERS, because of what it samples. west_far.py walks its height
+  // ladder on the FACE plane, and this evening the west solid was moved 0.484 m BEHIND its face on a
+  // station scan run over rays this very tool produced. So the largest change made to this model today
+  // was measured by sampling one plane and solving for another, which is the same shape as the corridor
+  // aperture fault even though the mechanism is gentler: a ladder is a sampling surface, not a mask, and
+  // 1.8 m of it means nothing was ever clipped. That is an argument, not a check.
+  // SO THE LADDER WAS MOVED ONTO THE ANSWER AND THE QUESTION PUT AGAIN. If the station scan is measuring
+  // the building it must land in the same place whichever plane the rays were sampled on. If it follows
+  // the ladder, the west recess belongs in the same bin as the two reveal points withdrawn last night.
+  // IT DID NOT FOLLOW THE LADDER. Re-sampled on u 3.710 rather than 4.194, the west solid comes back on
+  // u 3.710, with its two camera halves agreeing to ZERO millimetres against 47 at the end of the sweep
+  // on a null that never exceeds 2, from 4,625 rays. Tighter than the original run, in the same place.
+  // AND THE EAST CONTROL REPRODUCES ITSELF, which is what makes that meaningful rather than lucky: its
+  // offset is zero by construction, and re-run it returns 48.056 against the 48.055 it gave before.
+  // THE WEST RECESS SURVIVES THE EXACT TEST THAT DESTROYED THE CORRIDOR FINDINGS. It is the largest
+  // geometric change this model made today and it now rests on three things that share no input: a
+  // near-far station scan with its own null, an arrival cap that forbids solid stone where light got
+  // past, and a re-sampling on the answer's own plane that refuses to move.
   // SO I WENT LOOKING FOR THE REST OF THEM, AND THERE WERE NINETY-FIVE (2026-09-09,
   // tools/constant_drift.py). One stale constant cost two nights of findings, and the lesson generalises
   // badly: every consistency test in this project compares instruments against each other, and not one of
@@ -3420,7 +3444,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 67 bounds, all satisfied.
+  // 69 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

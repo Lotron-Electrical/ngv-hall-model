@@ -613,6 +613,22 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE RE-PLANE TEST (2026-09-09, tools/run_upstand_replane.py). west_far.py walks its ladder on the FACE
+# plane, and the west solid was moved 0.484 m behind that face on rays it produced. Sampling one plane and
+# solving for another is the same shape as the corridor aperture fault, so the ladder was moved onto the
+# answer and the question put again: station, near-far at the minimum, worst near-far, worst null, rays.
+REPLANE = {'west': (3.710, 0.000, 0.047, 0.002, 4625), 'east': (48.056, 0.005, 0.190, 0.037, 4502)}
+for side in ('west', 'east'):
+    st, mn, mx, nl, nr = REPLANE[side]
+    check('the %s solid stays put when the ladder is moved onto it' % side,
+          abs(st - SCAN[(side, 'solid')][0]) <= 0.02 and mx > 3.0 * nl,
+          're-sampled on u %.3f instead of the drawn face, this end comes back on %.3f against the %.3f '
+          'the original run gave, with its halves agreeing to %.0f mm there and disagreeing by %.0f mm at '
+          'the end of the sweep on a null never past %.0f, from %d rays. The answer did not follow the '
+          'ladder. That is the exact test that destroyed two corridor findings last night, and this side '
+          'of the building passes it.'
+          % (st, st, SCAN[(side, 'solid')][0], 1000 * mn, 1000 * mx, 1000 * nl, nr),
+          'tools/run_upstand_replane.py')
 check('the east end is the control for the station scan, and it passed',
       abs(SCAN[('east', 'solid')][0] - DRAWNFACE['east']) <= 0.02
       and abs(SCAN[('east', 'rail')][0] - DRAWNFACE['east']) <= 0.02,

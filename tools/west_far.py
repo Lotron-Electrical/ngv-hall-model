@@ -48,6 +48,15 @@ POLARITY = os.environ.get('POLARITY', 'lit')
 PSIGN = 1.0 if POLARITY == 'lit' else -1.0
 DECK = 8.34
 UF, TOPD, SIGN = (4.194, 9.020, +1.0) if END == 'west' else (48.056, 9.110, -1.0)
+# UPLANE MOVES THE SAMPLING LADDER OFF THE DRAWN FACE, added 2026-09-09 to test the biggest change this
+# model made today. The west solid upstand was moved 0.484 m behind its face this evening on a station
+# scan run over rays this tool produced, and this tool walks its ladder on the FACE. That is the same
+# shape of exposure that turned the corridor aperture into an invented feature: a tool sampling on one
+# plane being used to measure a feature on another. The ladder is 1.8 m tall so nothing is clipped, but
+# asserting that is not checking it. Set UPLANE to the plane the feature is believed to stand on, re-run,
+# and see whether the answer follows the assumption or stays where it was.
+UF = float(os.environ.get('UPLANE', UF))
+TOPD = float(os.environ.get('TOPD', TOPD))
 # THE CLASS LIST IS SETTABLE BECAUSE DAY AGAINST NIGHT IS A TEST, not a convenience. A stone edge reads
 # the same under any light; a boundary that is really where the light stops does not, because after dark
 # this hall is lit from below and the sides rather than through the stained glass overhead. The jambs

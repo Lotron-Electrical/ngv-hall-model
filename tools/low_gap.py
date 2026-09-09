@@ -25,6 +25,10 @@ import numpy as np
 
 POSEDIR = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose'
 FLOOR = 6.33
+# these two are the PRE-CHANGE drawn values on purpose, so this tool keeps reporting the
+# comparison it was written to make. The model now draws 0.52 and 0.83, which is this tool's own
+# answer applied. Flagged by tools/constant_drift.py and left deliberately, which is the
+# distinction that audit exists to force: a stale constant is a fault, a pinned one is a record.
 DRAWN_UP, DRAWN_RAIL = 0.52, 0.89
 SEED = {'solid': (48.417, 6.781), 'rail': (47.672, 6.937)}
 SRC = {'solid': 'east-low-far-rays.npy', 'rail': 'east-lowrail-far-rays.npy'}

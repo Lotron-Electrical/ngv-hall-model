@@ -40,6 +40,14 @@ MOVED = [
     ('2.144', '2.047', 'the deepest corridor lamp'),
     ('10.990', '10.945', 'the highest corridor lamp'),
     ('1.093', '2.022', 'the shallowest corridor lamp'),
+    # THE BALCONY HALF OF THE GOAL, added 2026-09-09 after the first run only covered the walls. The
+    # scanner is only as good as this list, and a list that covers one half of the building is an audit
+    # that will pass while the other half rots.
+    ('9.020', '9.097', 'the west solid upstand top'),
+    ('9.110', '9.095', 'the east solid upstand top'),
+    ('0.89', '0.83', 'the lower gallery rail over its solid'),
+    ('2.000', '2.060', 'the corridor width'),
+    ('10.374', '10.916', 'a corridor lamp height'),
 ]
 SKIP = {'constant_drift.py'}
 

@@ -40,9 +40,16 @@ SEED = {('west', 'rail top'): (4.160, 9.799), ('west', 'solid upstand top'): (3.
         ('east', 'rail top'): (48.397, 9.865), ('east', 'solid upstand top'): (48.005, 9.067),
         # THE LOWER TIER, fitted for the first time this evening (tools/run_low_band.py). The west end
         # refused both polarities outright, 5 detections and none, so only the east is here.
-        ('east', 'lower solid top'): (48.417, 6.781), ('east', 'lower rail top'): (47.672, 6.937)}
+        ('east', 'lower solid top'): (48.417, 6.781), ('east', 'lower rail top'): (47.672, 6.937),
+        # THE SAME FEATURE, RE-SAMPLED ON THE PLANE IT IS NOW BELIEVED TO STAND ON (2026-09-09,
+        # tools/run_upstand_replane.py). If the station scan is measuring the building it must land
+        # in the same place whichever plane the ladder was walked on; if it follows the ladder, the
+        # west recess is an artefact of the same family as the corridor aperture.
+        ('west', 'solid top replaned'): (3.710, 9.097),
+        ('east', 'solid top replaned'): (48.056, 9.095)}
 SRC = {'rail top': '%s-walk-front-far-rays.npy', 'solid upstand top': '%s-up-far-rays.npy',
-       'lower solid top': '%s-low-far-rays.npy', 'lower rail top': '%s-lowrail-far-rays.npy'}
+       'lower solid top': '%s-low-far-rays.npy', 'lower rail top': '%s-lowrail-far-rays.npy',
+       'solid top replaned': '%s-upR-far-rays.npy'}
 # the arrival cap was measured for cameras standing on the 8.34 deck, so it says nothing about a parapet
 # two and a half metres below them. Naming that here rather than quietly applying it anyway.
 CAPPED = ('solid upstand top',)
@@ -97,7 +104,8 @@ def track(R, u0, h0):
 for end in ('west', 'east'):
     print('')
     print('%s END, the face drawn on u %.3f' % (end.upper(), DRAWNFACE[end]))
-    for feat in ('solid upstand top', 'rail top', 'lower solid top', 'lower rail top'):
+    for feat in ('solid upstand top', 'solid top replaned', 'rail top', 'lower solid top',
+                 'lower rail top'):
         if (end, feat) not in SEED:
             continue
         src = os.path.join(POSEDIR, SRC[feat] % end)
