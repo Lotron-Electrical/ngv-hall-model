@@ -184,21 +184,15 @@ for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
           '0.242, so the gap between the two ends is not a lens artefact.'
           % (drawn_top, G['deck'], G[upk], npts, uface, p5, over, 1.5 * POSE_MISS),
           'tools/gallery_arrival.py')
-# THE ONE EDGE BOTH ENDS AGREE ON, seen from the hall floor rather than from the deck (tools/west_far.py).
-# Walking the parapet face plane's own height ladder, narrowed to h 8.2-10.0 so the ray fan cannot reach
-# the stained-glass ceiling junction, the pooled brightness falls steeply at h 9.590 on the west and 9.550
-# on the east: two ends, 161 and 214 frames, agreeing to 40 mm. The line fits put that edge on h 9.65-9.90
-# with 537 and 917 inlier rays and 54 and 44 mm residuals. Whatever it is, nothing the sim draws on those
-# decks may stand above it, and the tallest thing the sim draws there is the upper rail.
-check('the upper rail is under the edge both far tests see',
-      G['deck'] + G['railTop'] <= 9.550,
-      'rail top drawn on %.3f, the deck %.3f plus %.3f. The far edge reads 9.590 west and 9.550 east from '
-      'the hall floor, so the bracket on that rail is %.3f to 9.550, %.3f m wide. The sim sits at the '
-      'bottom of it: this is the first two-ended measurement of anything on these balconies and it says '
-      'the rail is 0.15 m low rather than wrong.'
-      % (G['deck'] + G['railTop'], G['deck'], G['railTop'], G['deck'] + G['railTop'],
-         9.550 - (G['deck'] + G['railTop'])),
-      'tools/west_far.py')
+# THE EDGE BOTH ENDS SEE IS NOT A BOUND, AND THE REASON IS THE POINT (tools/west_far.py). Walking the
+# face plane's height ladder, narrowed to h 8.2-10.0 so the ray fan cannot reach the stained-glass ceiling
+# junction, the pooled brightness falls steeply at h 9.590 west and 9.550 east: two ends, 161 and 214
+# floor frames, agreeing to 40 mm, with 537 and 917 RANSAC inlier rays and 54 and 44 mm residuals.
+# THAT WOULD BE AN OCCLUSION BOUND IF THE DETECTED FEATURE LAY BEYOND THE FACE PLANE, because then the
+# sightline crossed it and nothing solid could have stood there. Drawn back on w1_000021 the detections
+# sit high in the frame against the dark upper wall, and NOTHING IN THIS TOOL TESTS THEIR RANGE. A feature
+# nearer than the face plane gives a crossing height that is arithmetic, not evidence. So it is recorded
+# below and asserted nowhere. Adding it as a passing check would have been the easy half of the work.
 check('the south tapestries hang in front of the south wall',
       all(d < G['dSouth'] for d in southtap),
       'wall face d %.3f; tapestries on %s. Measured surface 15.262.'
@@ -246,7 +240,10 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              ' disagree by 0.37 m west and 0.58 m east), so it cannot confirm a face, tools/west_far.py',
              'and the two west instruments only agree if the parapet is NOT the solid the sim draws: the'
              ' deck arrivals cap a solid on 8.818 while the hall floor sees an edge on 9.59. A low solid'
-             ' upstand with an open rail above it satisfies both. Nothing is drawn that way yet.'):
+             ' upstand with an open rail above it satisfies both. Nothing is drawn that way yet.',
+             'the far edge is NOT yet a bound on the rail. Its crossing height is only evidence if the'
+             ' feature lies beyond the face plane, and tools/west_far.py does not test the range of what'
+             ' it detected. Until it does, the upper rail on 9.400 has nothing over it'):
     print('   ' + line)
 print('')
 if fails:

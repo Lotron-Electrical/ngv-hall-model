@@ -2946,9 +2946,14 @@ function buildEndWalls(root){
   // and 0.58 m at the east, so the 7 mm the west RANSAC happens to sit from the drawn face is luck and is
   // reported as such. The HEIGHT is the durable number, and at both ends it is 1.21 to 1.25 m above the
   // drawn deck.
-  // SO A NEW BOUND, and it passes: nothing the sim draws on those decks may stand above that edge, and the
-  // tallest thing it draws is the upper rail on deck plus 1.06, which is 9.40. Bracket 9.400 to 9.550,
-  // 0.15 m wide. The rail is low rather than wrong.
+  // A BOUND WAS WRITTEN ON THAT AND THEN WITHDRAWN INSIDE THE SAME HOUR, which is the part worth keeping.
+  // The check said nothing the sim draws on those decks may stand above the edge, so the upper rail on
+  // deck plus 1.06 was bracketed 9.400 to 9.550 and passed. It is not sound. A crossing height is an
+  // occlusion bound only if the detected feature lies BEYOND the face plane, because only then did the
+  // sightline cross it; a feature nearer than the plane gives a crossing height that is arithmetic rather
+  // than evidence. Drawn back on w1_000021 the detections sit high against the dark upper wall and this
+  // tool never tests their range. So the check is gone and the gap is named in the unmeasured list. The
+  // easy half of that work was adding a passing bound; the other half is the reason it could not stay.
   // AND IT MAKES THE FAILING WEST BOUND COHERENT FOR THE FIRST TIME. The deck arrivals cap a SOLID parapet
   // on 8.818; the hall floor sees an edge on 9.59. Those are only compatible if the thing on that deck is
   // not the solid the sim draws: a low solid upstand with an OPEN rail above it satisfies both, because
