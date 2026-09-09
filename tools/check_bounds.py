@@ -1409,6 +1409,51 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# A BODY CANNOT PASS THROUGH GLASS, AND 139 CAMERAS STOOD BELOW THE TOP OF IT (2026-09-10,
+# tools/body_at_rail.py).
+BR = {'face': 48.056, 'top': 9.865, 'deck': 8.340, 'poserr': 0.100, 'below': 139,
+      'sets': {'day4k': 118, 'b3': 10, 'b7s': 5, 'b6g': 6},
+      'through': [0.125, 0.108, 0.103], 'null': {0.25: 101, 0.50: 123},
+      'p05': 48.011, 'ubound': 48.111, 'carry': [1.521, 1.966],
+      'decks': {'day4k': [9.931, 7.965, 8.409], 'b3': [10.024, 8.058, 8.503]},
+      'west': 7}
+check('the cameras below the glass top know where the plane is, and it is at the face, not behind it',
+      len(BR['through']) / BR['below'] < 0.05 and BR['null'][0.25] / BR['below'] > 0.5,
+      'a phone is a body, and a camera below the top of the glass must be on the deck side of it. %d '
+      'cameras from %s stand on the east deck below deck + railTops; %d of them stand more than the '
+      '%.3f m pose allowance in front of the drawn face, against %d of %d (%.0f%%) with the plane moved '
+      'back 0.25 m and %d (%.0f%%) with it moved back 0.50 m. The plane is where it is drawn and not '
+      'behind it, and this needs no sightline, which is why it works on glass where the three tone and '
+      'occlusion instruments before it could not.'
+      % (BR['below'], ', '.join('%s %d' % kv for kv in BR['sets'].items()), len(BR['through']),
+         BR['poserr'], BR['null'][0.25], BR['below'], 100.0 * BR['null'][0.25] / BR['below'],
+         BR['null'][0.50], 100.0 * BR['null'][0.50] / BR['below']),
+      'tools/body_at_rail.py')
+check('the rule fired on three cameras by less than its own allowance, so the plane is bounded, not moved',
+      max(BR['through']) - BR['poserr'] < BR['poserr'] and BR['face'] <= BR['ubound']
+      and abs(BR['ubound'] - BR['p05'] - BR['poserr']) < 1e-9,
+      'three cameras stand %s m in front of the drawn face, past the %.3f m allowance by %.0f to %.0f mm. '
+      'That is smaller than the allowance, and A CLAIM MUST NOT BE SMALLER THAN ITS OWN SPREAD, so the '
+      'plane is not moved on their account. THE BOUND, one-sided and robust: the 5th percentile of the '
+      'below-top cameras stands on u %.3f, so the glass plane sits no further back than %.3f, and the '
+      'drawn %.3f is inside that by %.0f mm. The first hard position bound the glass has had.'
+      % (', '.join('%.3f' % t for t in BR['through']), BR['poserr'],
+         1000 * (min(BR['through']) - BR['poserr']), 1000 * (max(BR['through']) - BR['poserr']),
+         BR['p05'], BR['ubound'], BR['face'], 1000 * (BR['ubound'] - BR['face'])),
+      'tools/body_at_rail.py')
+check('the east deck is consistent with both captures that stood upright on it, and refuted by none',
+      all(v[1] <= BR['deck'] <= v[2] for v in BR['decks'].values())
+      and all(abs(v[0] - BR['carry'][1] - v[1]) < 1e-9 and abs(v[0] - BR['carry'][0] - v[2]) < 1e-9
+              for v in BR['decks'].values()),
+      'read the way corridor_floor.py read the corridor floor: the tallest tenth of each capture less the '
+      'carry range %.3f to %.3f measured on the hall floor. %s. The drawn %.3f lies inside both brackets. '
+      'b7s and b6g stand on the east deck 5 and 6 frames apiece and the west deck holds %d frames in all, '
+      'too few to read either the plane or the deck there, and that is said rather than read.'
+      % (BR['carry'][0], BR['carry'][1],
+         '; '.join('%s tallest tenth %.3f, deck between %.3f and %.3f' % (k, v[0], v[1], v[2])
+                   for k, v in BR['decks'].items()),
+         BR['deck'], BR['west']),
+      'tools/body_at_rail.py')
 # THE SOFFIT DEPTH UNDER THE SAME RULER, KILLED BY ITS CONTROL AT BOTH ENDS (2026-09-10,
 # tools/soffit_ruler.py).
 SR = {'drawn': 2.1, 'head': 11.090, 'minout': 20.0, 'band': 0.75, 'front': 0.25, 'tol': 0.10,

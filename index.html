@@ -3199,6 +3199,37 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // A BODY CANNOT PASS THROUGH GLASS, AND 139 CAMERAS STOOD BELOW THE TOP OF IT (2026-09-10,
+  // tools/body_at_rail.py).
+  // WHY THIS AND NOT A FOURTH INSTRUMENT ON THE RAIL TOP. The note above says railTops is not measurable
+  // from this archive: no tone, no cap, and no occlusion leverage because glass blocks no sightline. All
+  // true, and all about the TOP. This is the other occlusion argument, the one that needs no sightline
+  // and has held up everywhere it has been used here: a body cannot be inside a solid, and a phone is a
+  // body. A camera whose height is below the top of the glass must be on the deck side of the glass. It
+  // says nothing about where the top is, because a man above it can lean out, but every camera below it
+  // is a point the glass cannot be behind, and the east deck was filmed with the phone held low.
+  // THE RULE, FIXED FIRST. A camera below deck + railTops standing more than 0.100 m in front of the
+  // drawn face plane, the same pose allowance body_in_wall.py used for the jambs, is a contradiction. The
+  // null moves the plane back by 0.25 and 0.50 m. The bound claimed is one-sided and robust: the plane
+  // sits no further back than the 5th percentile of the below-top cameras plus the allowance. Only the
+  // registered sets are used; the pan sets carry 0.10 to 0.32 m of position error.
+  // THE RESULT, EAST. 139 cameras below the glass top from day4k, b3, b7s and b6g, standing u 47.81 to
+  // 49.38. Three stand in front of the drawn face by more than the allowance: 0.103, 0.108 and 0.125 m,
+  // so the rule fired, by 3 to 25 mm. The null: with the plane moved back 0.25 m, 101 of 139 are through
+  // it (73%), and moved back 0.50 m, 123 (88%). So the cameras do know where the plane is, and it is at
+  // the face and not behind it. THE BOUND: the glass plane sits no further back than u 48.111, and the
+  // drawn 48.056 is inside that. The three exceedances, 3 to 25 mm past a 100 mm allowance, are smaller
+  // than the allowance itself, and A CLAIM MUST NOT BE SMALLER THAN ITS OWN SPREAD, so the plane is not
+  // moved forward on their account. What is written down instead is the first hard position bound the
+  // glass has had: it cannot be more than 55 mm behind where it is drawn, and 138 of 139 cameras below
+  // its top stand within the allowance of where it is drawn.
+  // THE DECK, READ THE SAME WAY AS THE CORRIDOR FLOOR. The tallest tenth of day4k stands on 9.931 and of
+  // b3 on 10.024; less the carry range 1.521 to 1.966 the east deck lies between 7.965 and 8.409 by one
+  // and 8.058 and 8.503 by the other, and the drawn 8.340 is inside both. Refuted by none. b7s and b6g
+  // stand on the east deck 5 and 6 frames apiece and are too few to read.
+  // THE WEST. Seven frames stand on the west deck, all from b7s, all below the glass top, all 0.86 to
+  // 1.00 m behind the face. Too few for the plane and too few for the deck, and it is said so rather
+  // than read.
   // THE SOFFIT DEPTH PUT UNDER THE SAME RULER, AND THE CONTROL KILLED IT AT BOTH ENDS (2026-09-10,
   // tools/soffit_ruler.py).
   // FIRST, WHAT THIS TURN SET OUT TO DO AND COULD NOT. The corridor behind the north wall was to be read
@@ -5243,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 252 bounds, all satisfied.
+  // 255 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
