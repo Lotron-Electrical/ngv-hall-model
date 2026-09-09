@@ -2676,7 +2676,17 @@ function buildWallDetails(root){
    for(const L of (C.lamps||[])){ const [lu,ld,y]=L, r=0.075; quad([[lu-r,ld-r,y],[lu+r,ld-r,y],[lu+r,ld+r,y],[lu-r,ld+r,y]],lampMat,'corridor-lamp'); }
    // the wall's own back face BETWEEN the openings (each opening stays open into the corridor)
    let up=ua; for(const [u0,u1] of F.openings){ if(u0>up)quad([[up,dR,C.floor],[u0,dR,C.floor],[u0,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); up=u1; }
-   if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); }
+   if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near');
+   // AND THE WALL'S BACK FACE AT AN OPENING IS NOT ALL AIR (2026-09-10, tools/model_consistency.py).
+   // The corridor ceiling stands 0.218 m BELOW the reveal head and its floor 0.400 m BELOW the sill,
+   // so in the building there is a downstand over each opening and an upstand under it. Until today
+   // this file drew NEITHER: across an opening no quad stood on dR at all, and the model was not
+   // watertight there. Both bands are bounded top and bottom by numbers already here, so closing them
+   // moves no measured value. The tests are kept as tests rather than baked in, so if the ceiling ever
+   // rises above the head or the floor above the sill these vanish instead of inverting.
+   for(const [u0,u1] of F.openings){
+    if(C.ceil<F.openY[1])quad([[u0,dR,C.ceil],[u1,dR,C.ceil],[u1,dR,F.openY[1]],[u0,dR,F.openY[1]]],corridorMat,'corridor-downstand');
+    if(C.floor<F.openY[0])quad([[u0,dR,C.floor],[u1,dR,C.floor],[u1,dR,F.openY[0]],[u0,dR,F.openY[0]]],corridorMat,'corridor-upstand'); } }
   // the vent grilles, 5 mm proud of the stone, each at its measured box
   for(const [u0,u1,y0,y1] of (w.north?F.grilles.north:F.grilles.south)){ const d=w.d-w.s*0.005;
    quad([[u0,d,y0],[u1,d,y0],[u1,d,y1],[u0,d,y1]],grilleMat,'wall-grille'); }
@@ -3189,6 +3199,36 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE MODEL CHECKED AGAINST ITSELF, AND TWO SURFACES WERE SIMPLY MISSING (2026-09-10,
+  // tools/model_consistency.py). THE CORRIDOR IS NOW WATERTIGHT AT THE OPENINGS.
+  // WHY THIS NEEDED A RUN OF ITS OWN. Every instrument here compares the model with the archive, and
+  // there is a whole class of fault none of them can see: a number that disagrees with ANOTHER NUMBER in
+  // the same file. A photometric test cannot find a missing surface, because a missing surface has no
+  // brightness. line_audit.py ranked twenty drawn lines by how well the photographs support them and
+  // could not have told you that two of those lines leave a hole between them.
+  // TEN RELATIONS THAT MUST HOLD IF THIS DESCRIBES A BUILDING. Seven hold, and two of those are worth
+  // reading: the highest corridor lamp sits 2 mm under the ceiling, which is tight BY CONSTRUCTION since
+  // that lamp is how the ceiling was placed; and the corridor floor and the end gallery deck are the same
+  // number, 8.34, so the room behind the north wall is on the same floor as the balconies and moving one
+  // moves the other. One is flagged rather than failed: the end gallery head 11.090 and the north opening
+  // head 11.165 differ by 75 mm, on different walls, from different runs.
+  // AND TWO FAIL, BOTH BECAUSE A SURFACE IS ABSENT RATHER THAN A NUMBER WRONG. The corridor ceiling
+  // stands 0.218 m BELOW the reveal head, and its floor 0.400 m BELOW the sill. In a building those are a
+  // downstand beam over each opening and an upstand under each one. In this file they were NOTHING:
+  // across an opening no quad stood on d -0.930 at all, because line 2678 draws the wall's back face
+  // BETWEEN the openings only. The corridor was open to unmodelled space at the top and bottom of every
+  // one of the twelve.
+  // CLOSED, AND NOT ONE MEASURED NUMBER MOVES. Both bands are bounded top and bottom by values already in
+  // this file, so the two new quads assert nothing that was not already asserted. They are drawn under
+  // the tests C.ceil < openY[1] and C.floor < openY[0] rather than baked in, so if either level is ever
+  // remeasured past the other they vanish instead of turning inside out.
+  // HOW VISIBLE WAS IT, HONESTLY. Less than the size of the hole suggests. A ray entering an opening from
+  // the hall floor rises steeply and is stopped by the head soffit, which spans the full reveal depth, so
+  // the upper band was hidden from down there. A ray descending from an end gallery deck passes through
+  // the lower band and lands on the corridor floor, so that one was hidden too. The band that COULD be
+  // seen is the upper one on a very shallow ray from a far gallery camera, crossing d -0.930 between
+  // h 10.947 and 11.165 and passing over the corridor ceiling into space this model does not draw. A
+  // narrow solid angle, and still a hole, and it is the first geometry to change in six attempts.
   // THE GLASS RAIL TOP CANNOT BE MEASURED FROM THIS ARCHIVE, AND THAT IS THE ANSWER RATHER THAN A GAP
   // (2026-09-10, tools/rail_percapture.py). THIRD INSTRUMENT, ROUTE CLOSED.
   // THE RULE WAS FIXED BEFORE THE RUN, which is the only way this could have moved anything. A face moves
@@ -4919,7 +4959,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 222 bounds, all satisfied.
+  // 225 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

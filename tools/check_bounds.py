@@ -1409,6 +1409,46 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE MODEL CHECKED AGAINST ITSELF (2026-09-10, tools/model_consistency.py).
+MC = {'checks': 10, 'hold': 7, 'fail': 2, 'flag': 1,
+      'ceil': 10.947, 'head': 11.165, 'floor': 8.340, 'sill': 8.740, 'dR': -0.930,
+      'lamp_gap': 0.002, 'deck': 8.340, 'endhead': 11.090, 'openings': 12}
+check('the model was checked against itself, with no photographs involved',
+      MC['hold'] + MC['fail'] + MC['flag'] == MC['checks'],
+      'every other instrument here compares the model with the archive, and a whole class of fault is '
+      'invisible to all of them: a number that disagrees with ANOTHER NUMBER in the same file. A '
+      'photometric test cannot find a missing surface because a missing surface has no brightness. Ten '
+      'relations that must hold if this describes a building; %d hold, %d fail, %d is flagged. Two of the '
+      'holds are worth reading: the highest corridor lamp sits %.0f mm under the ceiling, tight BY '
+      'CONSTRUCTION because that lamp is how the ceiling was placed; and the corridor floor and the end '
+      'gallery deck are the same number %.3f, so the room behind the north wall is on the same floor as '
+      'the balconies and moving one moves the other. The flag: the end gallery head %.3f and the north '
+      'opening head %.3f differ by %.0f mm, on different walls from different runs.'
+      % (MC['hold'], MC['fail'], MC['flag'], 1000 * MC['lamp_gap'], MC['deck'], MC['endhead'],
+         MC['head'], 1000 * abs(MC['endhead'] - MC['head'])),
+      'tools/model_consistency.py')
+check('two relations failed because a surface was absent, not because a number was wrong',
+      MC['ceil'] < MC['head'] and MC['floor'] < MC['sill'],
+      'the corridor ceiling stands %.3f m BELOW the reveal head and its floor %.3f m BELOW the sill. In a '
+      'building those are a downstand beam over each opening and an upstand under each one. In this file '
+      'they were NOTHING: across an opening no quad stood on d %.3f at all, because the line that draws '
+      'the wall back face draws it BETWEEN the openings only. The corridor was open to unmodelled space '
+      'at the top and the bottom of every one of the %d.'
+      % (MC['head'] - MC['ceil'], MC['sill'] - MC['floor'], MC['dR'], MC['openings']),
+      'tools/model_consistency.py')
+check('and closing them moves no measured number, which is why it was safe to do',
+      MC['ceil'] < MC['head'] and MC['floor'] < MC['sill'],
+      'both bands are bounded top and bottom by values already in this file, so the two new quads assert '
+      'nothing that was not already asserted. They are drawn under the tests C.ceil < openY[1] and '
+      'C.floor < openY[0] rather than baked in, so if either level is remeasured past the other they '
+      'vanish instead of turning inside out. Honesty about how visible it was: a ray from the hall floor '
+      'rises steeply and is stopped by the head soffit, which spans the full reveal depth, so the upper '
+      'band was hidden from down there; a ray descending from an end gallery deck passes through the '
+      'lower band and lands on the corridor floor, so that was hidden too. The band that COULD be seen '
+      'is the upper one on a very shallow ray from a far gallery camera, crossing d %.3f between h %.3f '
+      'and %.3f and passing over the corridor ceiling into space this model does not draw.'
+      % (MC['dR'], MC['ceil'], MC['head']),
+      'tools/model_consistency.py')
 # THE RAIL TOP, ASKED OF EACH CAPTURE, AND CLOSED (2026-09-10, tools/rail_percapture.py).
 RP = {'minvotes': 3, 'maxspan': 0.15, 'vstep': 0.05, 'bar': 1.25,
       'west_votes': [2.30, 1.15, 1.80, 1.35, 1.70, 1.15], 'east_votes': [1.05, 1.10],
