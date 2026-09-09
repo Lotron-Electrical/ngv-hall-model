@@ -637,6 +637,41 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# A MEDIAN OUTLIVES ITS OWN MEASUREMENTS, FOR THE FOURTH TIME TODAY (2026-09-10, deck_face_scan.py).
+DFS = {'east_n': 32, 'step': 9.095, 'drawn': 9.095, 'near': 9.085, 'far': 9.095, 'nullo': 9.095,
+       'nulle': 9.080, 'iqr': 0.432, 'spread': 1.500, 'ratio': 43, 'west_n': 7, 'deck': 8.34,
+       'floor_frames': 30, 'floor_lo': 12.9, 'floor_hi': 34.0, 'deck_lo': 0.02, 'deck_hi': 3.5}
+check('reading the end face from the deck is real leverage and nobody had used it',
+      DFS['east_n'] > 20 and DFS['deck_hi'] < DFS['floor_lo'],
+      'every scan of an end face here has been made from the hall floor: end_scan.py used %d frames from '
+      '%.1f to %.1f m, where a pixel covers 15 to 25 mm. But 176 frames stand ON a deck looking out, '
+      '%.2f to %.1f m behind the face, and no instrument had read the face from in there. From the deck '
+      'the profile up the face should be dark across the inside of the parapet, a step, then the bright '
+      'hall, with the step being the top of the solid part and nothing searched for near a drawn line.'
+      % (DFS['floor_frames'], DFS['floor_lo'], DFS['floor_hi'], DFS['deck_lo'], DFS['deck_hi']),
+      'tools/deck_face_scan.py')
+check('and the answer came back perfect, which is the tell',
+      abs(DFS['step'] - DFS['drawn']) < 0.001 and DFS['iqr'] > 0.3,
+      '%d east frames put the step on h %.3f and this file draws the solid upstand top on %.3f. Zero '
+      'millimetres. Near half %.3f against far half %.3f, ten apart, on a null of fifteen. But the frames '
+      'underneath spread %.3f m and their interquartile range alone is %.3f m, which is %d TIMES the '
+      'precision the split claims. The median of a wide scatter is stable, and both the split and the '
+      'null test that stability, so both pass while the measurements under them have stopped meaning '
+      'anything. The west end returns %d usable frames, so there is no control outside the run either.'
+      % (DFS['east_n'], DFS['step'], DFS['drawn'], DFS['near'], DFS['far'], DFS['spread'],
+         DFS['iqr'], DFS['ratio'], DFS['west_n']),
+      'tools/deck_face_scan.py')
+check('four instruments in one day passed a stability test and were wrong, and that is now a rule',
+      DFS['ratio'] >= 8,
+      'the fins split to 15 mm while two edges of ONE fin sat 0.29 m apart. The corridor lamps two '
+      'tightest fits, misses of 0.128 and 0.132 m, landed 20 and 36 m from their own openings. The cloud '
+      'plane fit gave five tight south bands that leaned 20 mm per metre. And this one agreed with the '
+      'model to nothing on a scatter of %.3f m. Every one passed a stability test; every one was caught '
+      'by something else, a redundancy the target itself provided, a control with an independently known '
+      'answer, or the spread of its own inputs. deck_face_scan.py now refuses any claim more than eight '
+      'times tighter than the interquartile range of its own inputs, however well it splits.'
+      % DFS['spread'],
+      'tools/deck_face_scan.py')
 # THE EAST HANDRAIL IS NOT IN THE PICTURES, AND TWO TESTS BRACKET IT (2026-09-10, tools/rail_band.py).
 BAND = {'east_n': 29, 'east_hits': 1, 'below': 107.4, 'inband': 55.9, 'above': 49.8,
         'west_n': 7, 'drawn_lo': 9.805, 'drawn_hi': 9.865, 'axis_lo': 9.420, 'deck': 8.34,

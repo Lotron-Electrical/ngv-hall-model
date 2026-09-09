@@ -3151,6 +3151,32 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // A SPLIT AND A NULL ARE TESTS OF A MEDIAN, AND A MEDIAN OUTLIVES ITS OWN MEASUREMENTS. Four times in
+  // one day now (2026-09-10, tools/deck_face_scan.py). This one caught itself.
+  // THE IDEA WAS GOOD AND THE LEVERAGE IS REAL. Every scan of an end face here has been made from the
+  // hall floor: tools/end_scan.py used 30 frames from 12.9 to 34.0 m, where a pixel covers 15 to 25 mm.
+  // But 176 frames STAND ON A DECK looking out, 0.02 to 3.5 m behind the face, and no instrument had ever
+  // read the face from in there. From the deck the profile up the face plane should be simple: dark
+  // across the inside of the parapet, then a step, then the bright hall above it, with the step being the
+  // top of the solid part and nothing searched for near any drawn line.
+  // AND THE ANSWER CAME BACK PERFECT, WHICH IS THE TELL. 32 east frames put the step on h 9.095. This
+  // file draws the solid upstand top on 9.095. Zero millimetres. Near half 9.085 against far half 9.095,
+  // ten millimetres apart, on a null of fifteen.
+  // THE FRAMES UNDERNEATH IT SPREAD 1.500 m. The interquartile range alone is 0.432 m, which is
+  // FORTY-THREE TIMES the precision the near-far split claims. The median of a wide scatter is stable,
+  // and both the split and the null are tests of that median's stability, so both pass while the
+  // measurements under them have stopped meaning anything. The pooled value agreeing with the drawn one
+  // to nothing is then a coincidence, and the west end returns only 7 usable frames so there is no
+  // control outside the run to check it against.
+  // SO THE TOOL NOW REFUSES ITS OWN ANSWER, and by a rule rather than by judgement: a claim more than
+  // eight times tighter than the interquartile range of its own inputs is refused however well it splits.
+  // THIS IS THE FOURTH TIME TODAY and it is worth naming them together, because the pattern is the point
+  // and not any one of them. The fins split to 15 mm while two edges of one fin sat 0.29 m apart. The
+  // corridor lamps' two tightest fits, misses of 0.128 and 0.132 m, landed 20 and 36 m from their own
+  // openings. The cloud plane fit gave five tight south bands that leaned 20 mm per metre. And now this.
+  // Every one passed a stability test. Every one was caught by something else: a redundancy the target
+  // itself provided, a control with an independently known answer, or the spread of its own inputs.
+  // A STABILITY TEST IS NOT A CORRECTNESS TEST, and this file has now paid for that sentence four times.
   // THE EAST HANDRAIL IS NOT IN TWENTY-EIGHT OF TWENTY-NINE PHOTOGRAPHS, AND THE TWO TESTS TOGETHER
   // BRACKET IT (2026-09-10, tools/rail_band.py with tools/rail_seeover.py).
   // THE PREVIOUS TEST WAS THE WRONG QUESTION AND SAYING SO IS THE POINT. rail_seeover.py projected each
@@ -4315,7 +4341,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 160 bounds, all satisfied.
+  // 163 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
