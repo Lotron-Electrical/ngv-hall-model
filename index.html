@@ -3140,6 +3140,36 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // SO I WENT LOOKING FOR THE REST OF THEM, AND THERE WERE NINETY-FIVE (2026-09-09,
+  // tools/constant_drift.py). One stale constant cost two nights of findings, and the lesson generalises
+  // badly: every consistency test in this project compares instruments against each other, and not one of
+  // them can catch an error in an input they SHARE. So the check has to be mechanical. This walks all 304
+  // tools, reads numeric literals in EXECUTABLE lines only, and flags any that match a value the model has
+  // moved away from today. Numbers inside comments and strings are left alone on purpose, because this
+  // file's whole method is to keep superseded values on the record; only a live constant can bite.
+  // NINETY-FIVE LIVE HITS, and most of them are harmless: one-shot tools whose constants ARE the record of
+  // what they applied, and overlay tools that only draw. One was not harmless. tools/wall_lines.py, which
+  // produces every ray behind the wall's depth, the opening heights and the head lean, was still carrying
+  // 8.99, 11.35 and -0.090.
+  // AND THE DIFFERENCE BETWEEN THAT FAULT AND THE CORRIDOR'S IS WORTH STATING, because it decides how
+  // much damage a stale constant does. The corridor's built a HARD MASK: a blob outside it could not be
+  // seen at all, so detections piled onto its edge and the tool invented a feature. This one builds a
+  // SAMPLING LADDER three metres tall, and both real edges sat 1.3 m inside it. A ladder centred on the
+  // wrong place still samples the right edge. It only chooses where to look.
+  // RE-RUN ON CORRECTED CONSTANTS THE GEOMETRY SURVIVES INTACT. The sill comes back on d -0.030 h 8.740,
+  // the shipped values exactly, with its two camera halves agreeing to ZERO millimetres and a ratio of
+  // 9.5. The head comes back on -0.050 and 11.182 globally, and per-opening on the drawn 11.165 to within
+  // five millimetres on the four openings that agree with each other. Nothing moves.
+  // A VERDICT DID NOT SURVIVE, THOUGH, AND IT WAS MINE. Two nights ago I concluded the opening head lean
+  // was entirely the instrument, on the grounds that the opening height spread 38 mm where the head spread
+  // 79, less than half. The corrected rays give 48 against 88, which is on the other side of the same
+  // threshold, and removing the one opening that is an outlier on both edges gives 20 against 5, which is
+  // on the other side again. A conclusion that turns on which side of a half a number lands is not a
+  // conclusion. WHAT ACTUALLY HOLDS is the correlation: head and sill move together at +0.95 and +0.96
+  // across two independent ray sets, so most of the lean is the instrument, and opening 3 is high on both
+  // edges both times. The residual, whether the other openings differ by twenty millimetres or by nothing,
+  // is not settled, and the claim is withdrawn to what the correlation supports. The openings are 2.43 m
+  // tall by both runs and the model draws 2.425.
   // I SHIPPED A GATE ARTEFACT TWICE AND THE TOOL TOLD ME SO WHEN I READ IT (2026-09-09,
   // tools/corridor_lamp.py, tools/corridor_cloud.py). Everything found behind this wall comes through an
   // APERTURE: the drawn opening rectangle projected into each frame and used as a mask, so a blob only

@@ -116,13 +116,29 @@ print('   the OPENING HEIGHT, which is the head minus the sill and cancels anyth
 print('   runs %.3f to %.3f, a spread of %.0f mm about a mean of %.3f'
       % (tall.min(), tall.max(), 1000 * float(np.ptp(tall)), float(np.mean(tall))))
 print('')
-if float(np.ptp(tall)) < 0.5 * float(np.ptp(heads)):
-    print('   THE LEAN IS NOT IN THE OPENINGS. Whatever moves the heads moves the sills with it, and the')
-    print('   height between them holds far tighter than either edge does. That is the signature of one')
-    print('   instrument leaning, not twelve openings built at different heights, and it means the model')
-    print('   should keep drawing every head on one level. What the archive can state is the OPENING')
-    print('   HEIGHT, %.3f m, which is invariant to the lean.' % float(np.mean(tall)))
-else:
-    print('   THE LEAN IS REAL AND IT IS IN THE OPENINGS. The height between head and sill varies as much')
-    print('   as the edges do, so it is not one instrument leaning: these openings are genuinely not all')
-    print('   the same height and drawing them on one level is wrong.')
+# THE BAR THIS TEST USED TO CARRY IS TOO CRUDE TO DECIDE THIS, and re-running on corrected rays showed it
+# by flipping the verdict on four millimetres. Run on the rays produced with a stale sill, head and wall
+# depth it read 38 mm of opening-height spread against 79 of head spread and said the lean was common. Run
+# on corrected rays it reads 48 against 88 and says the opposite, because 48 is not under half of 88. A
+# conclusion that turns on which side of a half a number falls is not a conclusion.
+# SO REPORT BOTH POPULATIONS AND LET THE INSTABILITY SHOW. One opening dominates both spreads at both
+# runs; with it removed the picture changes again, in the other direction, because the openings that
+# remain barely differ in head height at all.
+worst = int(np.argmax(np.abs(tall - np.median(tall))))
+keep = [i for i in range(len(tall)) if i != worst]
+print('   with all %d openings: opening height spreads %.0f mm against a head spread of %.0f'
+      % (len(tall), 1000 * float(np.ptp(tall)), 1000 * float(np.ptp(heads))))
+print('   with opening %d removed, which is the outlier on BOTH edges: %.0f mm against %.0f'
+      % (common[worst], 1000 * float(np.ptp(tall[keep])), 1000 * float(np.ptp(heads[keep]))))
+print('')
+print('   WHAT HOLDS ACROSS BOTH RUNS AND BOTH POPULATIONS, and it is less than was claimed:')
+print('   the head and the sill of the same openings correlate %+.2f, so most of what moves them is'
+      % corr)
+print('   common to both and is the instrument rather than the building. Opening %d is high on both'
+      % common[worst])
+print('   edges in both runs, which is the same signature. But the residual after that, whether the')
+print('   remaining openings differ in height by twenty millimetres or by nothing, is NOT settled by')
+print('   this test, and the earlier claim that the lean is entirely the instrument went further than')
+print('   the evidence. The opening height is %.3f m with all of them and %.3f without the outlier,'
+      % (float(np.mean(tall)), float(np.mean(tall[keep]))))
+print('   and the model draws %.3f, which sits inside both.' % (DRAWN['head'] - DRAWN['sill']))

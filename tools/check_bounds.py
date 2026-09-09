@@ -159,7 +159,8 @@ check('the corridor lamps are drawn where they were measured',
 check('the corridor ceiling is above its own lamps',
       G['cCeil'] > max(L[2] for L in MEASURED_LAMPS),
       'ceiling drawn on %.3f, the highest lamp measured inside the room on 10.942. Clearance %.3f m. '
-      'This is the ONLY constraint on that ceiling and it is one-sided.' % (G['cCeil'], G['cCeil'] - 10.990),
+      'This is the ONLY constraint on that ceiling and it is one-sided.'
+      % (G['cCeil'], G['cCeil'] - max(L[2] for L in MEASURED_LAMPS)),
       'tools/corridor_lamp.py')
 
 # --- the openings -------------------------------------------------------------------------------
@@ -548,16 +549,26 @@ def cap_at(side, uf):
 
 DRAWNFACE = {'west': 4.194, 'east': 48.056}
 # THE OPENING HEAD LEAN, ANSWERED (2026-09-09, tools/head_lean.py).
-LEAN = {'head': 0.079, 'sill': 0.052, 'corr': 0.96, 'tall5': 0.038, 'tall4': 0.017,
-        'mean5': 2.436, 'mean4': 2.430, 'tilt': 0.0028, 'worst': 3}
-check('the opening head lean is common to the sill, so it is the instrument and not the openings',
-      LEAN['tall5'] < 0.5 * LEAN['head'],
+# RE-RUN on rays generated with the sill, head and wall depth pointed at the measured wall (2026-09-09,
+# tools/constant_drift.py found the stale ones, tools/run_wall_edges.py regenerated the rays). The
+# geometry survived and a VERDICT DID NOT. The first run read 38 mm of opening-height spread against 79 mm
+# of head spread and concluded the lean was entirely the instrument. The corrected run reads 48 against
+# 88, which is on the other side of the same half-threshold, and with the outlier removed it reads 20
+# against 5, which is on the other side again. A conclusion that turns on which side of a half a number
+# lands is not a conclusion, and the earlier one went further than the evidence.
+LEAN = {'head': 0.088, 'sill': 0.055, 'corr': 0.95, 'tall5': 0.048, 'tall4': 0.020,
+        'mean5': 2.438, 'mean4': 2.431, 'tilt': 0.0017, 'worst': 3}
+check('most of the head lean is common to the sill, and the rest is not settled',
+      LEAN['corr'] >= 0.9,
       'the five openings with rays on both edges give heads spreading %.0f mm and sills spreading %.0f, '
-      'correlating %+.2f. Their DIFFERENCE, which cancels anything that moves both, spreads only %.0f mm. '
-      'Opening %d carries most of it, standing 73 mm high on its head and 38 mm high on its sill, high on '
-      'both, which is the common-mode signature. A real difference in how the openings were built would '
-      'show in the head and not in the sill.'
-      % (1000 * LEAN['head'], 1000 * LEAN['sill'], LEAN['corr'], 1000 * LEAN['tall5'], LEAN['worst']),
+      'correlating %+.2f. That correlation is the solid part: most of what moves the heads moves the '
+      'sills with it and is therefore the instrument. Opening %d is high on BOTH edges in both runs, '
+      'which is the same signature. What is NOT settled is the residual: the opening height spreads '
+      '%.0f mm across all five and %.0f mm with that outlier removed, and the threshold this check used '
+      'to carry flips between those two populations and between the two ray sets. The claim that the '
+      'lean is entirely the instrument is withdrawn to what the correlation actually supports.'
+      % (1000 * LEAN['head'], 1000 * LEAN['sill'], LEAN['corr'], LEAN['worst'],
+         1000 * LEAN['tall5'], 1000 * LEAN['tall4']),
       'tools/head_lean.py')
 check('the openings are drawn the height they were measured',
       abs((G['head'] - G['sill']) - LEAN['mean4']) <= 0.02,

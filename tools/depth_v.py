@@ -32,8 +32,10 @@ TARGET = os.environ.get('TARGET', 'corridor')
 CFG = {
     # file, seed depth, seed height, half-sweep, step, tracking window
     'corridor': ('corridor-ceiling-rays.npy', -2.090, 10.806, 1.20, 0.100, 0.220),
-    'head': ('wall-head-rays.npy', -0.090, 11.222, 0.24, 0.020, 0.060),
-    'sill': ('wall-sill-rays.npy', -0.090, 8.778, 0.24, 0.020, 0.060),
+    # seeds pointed at the measured wall, 2026-09-09. They only say where the tracker starts, but a tool
+    # that starts from a superseded number is one more place for a stale constant to hide.
+    'head': ('wall-head-rays.npy', -0.030, 11.165, 0.24, 0.020, 0.060),
+    'sill': ('wall-sill-rays.npy', -0.030, 8.740, 0.24, 0.020, 0.060),
 }
 SRC, D0, H0, SPAN, STEP, WIN = CFG[TARGET]
 TOL = 0.05

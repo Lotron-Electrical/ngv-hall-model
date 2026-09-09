@@ -32,7 +32,15 @@ import underside_geom as U  # noqa: E402
 O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
-DNORTH, SILL, HEAD = -0.090, 8.99, 11.35
+# THESE THREE WERE STALE TOO, found by tools/constant_drift.py after the corridor aperture cost two
+# nights (2026-09-09). The difference matters and is worth stating: the corridor's constants built a HARD
+# MASK, so a blob outside it could not be seen at all and detections piled up on its edge. These build a
+# SAMPLING LADDER, 3 m tall and centred on the drawn value, and both real edges sat comfortably inside it,
+# 1.3 m from the nearer end. A ladder centred on the wrong place still samples the right edge; it only
+# chooses where to look. The plane the ladder is walked on was also 60 mm out, which shifts the sampled
+# column slightly but not the ray, and tools/depth_v.py re-solves the depth from the rays anyway. So this
+# should change nothing measurable, and the only way to know that is to re-run it and compare.
+DNORTH, SILL, HEAD = -0.030, 8.740, 11.165
 OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
         [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
         [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
