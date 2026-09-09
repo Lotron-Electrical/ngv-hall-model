@@ -3140,6 +3140,30 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // BOTH END GALLERIES ARE DRAWN SPANNING THE WHOLE HALL AND NOBODY HAD CHECKED (2026-09-09,
+  // tools/balcony_width.py). Every quad on an end wall runs from d 0 to 15.364, the full width. That came
+  // from the first sketch and has survived every measurement made this week, because every one of those
+  // measurements threw away the only evidence that could test it: the ladder walks SIXTY STATIONS ACROSS
+  // THE HALL, takes one detection per station, and then discarded which station it came from before
+  // saving. So a fit could say where a feature stands and how high it is, and never whether it runs the
+  // full width or stops short. The station is kept now, appended last so nothing else moves.
+  // AND THE TEST HAS TO BE FAIR ABOUT WHERE CAMERAS CAN LOOK, which is the trap. The stations are not
+  // sampled evenly: a camera near one long wall sees the far side of a parapet at a worse angle than the
+  // near side, so a raw quarter count would call every feature lopsided. Each feature's quarters are
+  // therefore compared against the quarters of ALL detections on that same end, which carry exactly the
+  // same bias. The question is whether the feature is more lopsided than the sampling already is.
+  // BOTH BALCONIES SPAN THE HALL, on two features each. The west solid upstand puts 4,130 inliers from
+  // d 0.60 to 14.80 with quarters of 29, 26, 31 and 14 per cent against a sampling of 30, 27, 30 and 13:
+  // within ONE POINT everywhere. Its rail agrees to four points, the east solid to nine. No quarter of
+  // either hall end carries detections but not the feature, which is the signature of a gallery that
+  // stops short, and none of them does.
+  // THE EAST RAIL LEANS AND DOES NOT GAP, which is a different thing and is written down as one. Its
+  // inliers run 16, 39, 28 and 18 per cent where the sampling runs 18, 22, 26 and 33, so it is 16 points
+  // heavy in the second quarter and 15 light in the fourth. It still reaches d 0.60 to 14.80, so the rail
+  // is there across the whole width; something about the far quarter makes its top edge harder to read.
+  // Naming that is worth more than redrawing on it.
+  // SO THE FULL-WIDTH ASSUMPTION IS NOW A MEASUREMENT, and it is the oldest untested thing on these
+  // balconies. Nothing moves, and this time nothing should.
   // THE AUDIT COVERED ONE HALF OF THE BUILDING, SO I POINTED IT AT THE OTHER (2026-09-09,
   // tools/constant_drift.py, tools/run_upstand_replane.py). The drift scanner is only as good as the list
   // of values it knows have moved, and the first list was all wall: sill, head, wall depth, lamps. A list
@@ -3444,7 +3468,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 69 bounds, all satisfied.
+  // 74 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

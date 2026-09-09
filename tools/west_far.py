@@ -148,8 +148,13 @@ for stem, (cam, ip) in sorted(frames.items()):
         k = a + besti
         pix = [(float(x[sl][k]), float(y[sl][k]))]
         vv = rays_of(cam, pix)[0]
+        # THE STATION ACROSS THE HALL IS APPENDED LAST, 2026-09-09. This ladder has always walked 60
+        # stations from d 0.6 to 14.8 and then discarded which one each detection came from, so no fit it
+        # produced could ever say whether the feature it found runs the WHOLE width of the hall or stops
+        # short. The model draws both end galleries spanning the full width and nothing has checked it.
+        # Appended at the end so the existing indices, which the draw mode uses, do not move.
         rows.append((cu, ch, float(vv @ HU), float(vv[1]), stem,
-                     (int(round(pix[0][0])), int(round(pix[0][1]))), float(best)))
+                     (int(round(pix[0][0])), int(round(pix[0][1]))), float(best), float(DS[di])))
 
 print('%d frames on the floor look at the %s end and are roughly level' % (kept, END))
 if len(profiles) < 40:
@@ -184,7 +189,7 @@ print('')
 print('%d edge detections survived the %.0f grey level contrast test' % (len(rows), CONTRAST))
 if len(rows) < 30:
     raise SystemExit('too few detections to fit a line')
-R = np.array([[r[0], r[1], r[2], r[3]] for r in rows], float)
+R = np.array([[r[0], r[1], r[2], r[3], r[-1]] for r in rows], float)
 np.save(os.path.join(OUT, '%s%s-far-rays.npy' % (END, TAG)), R)
 span = float(R[:, 0].max() - R[:, 0].min())
 A = np.stack([R[:, 3], -R[:, 2]], 1)

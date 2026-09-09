@@ -613,6 +613,37 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE FULL-WIDTH ASSUMPTION, MEASURED (2026-09-09, tools/balcony_width.py). Each entry: inliers, the d
+# range they reach, this feature's quarters, and the quarters of ALL detections on that end, which carry
+# the same sampling bias and are what it has to be judged against.
+WIDTH = {
+    ('west', 'solid'): (4130, 0.60, 14.80, (29, 26, 31, 14), (30, 27, 30, 13)),
+    ('west', 'rail'): (161, 0.60, 14.80, (24, 27, 23, 26), (27, 26, 24, 22)),
+    ('east', 'solid'): (3585, 0.60, 14.80, (13, 34, 35, 18), (22, 33, 29, 16)),
+    ('east', 'rail'): (319, 0.60, 14.80, (16, 39, 28, 18), (18, 22, 26, 33)),
+}
+for (side, feat), (n, dlo, dhi, q, base) in WIDTH.items():
+    gap = [i for i in range(4) if q[i] < 5 and base[i] >= 10]
+    check('the %s %s runs the full width of the hall' % (side, feat),
+          not gap and dhi - dlo >= 13.0,
+          '%d inliers reaching d %.2f to %.2f of a hall 15.364 wide. By quarter this feature runs '
+          '%s per cent against a sampling of %s, and the sampling is the fair comparison because a camera '
+          'near one long wall reads the far side of a parapet at a worse angle. No quarter carries '
+          'detections without carrying the feature, which is what a gallery stopping short looks like. '
+          'The full-width assumption came from the first sketch and this is the first time anything has '
+          'tested it: the ladder always walked sixty stations across the hall and discarded which one '
+          'each detection came from.'
+          % (n, dlo, dhi, ', '.join(str(t) for t in q), ', '.join(str(t) for t in base)),
+          'tools/balcony_width.py')
+check('the east rail leans across the hall, and it is named rather than redrawn',
+      max(abs(a - b) for a, b in zip(WIDTH[('east', 'rail')][3], WIDTH[('east', 'rail')][4])) <= 25,
+      'its inliers run %s per cent where the sampling runs %s, so it is 16 points heavy in the second '
+      'quarter and 15 light in the fourth. It still reaches d 0.60 to 14.80, so the rail is there across '
+      'the whole width and something about the far quarter makes its top edge harder to read. The other '
+      'three features agree with their sampling to within 1, 4 and 9 points.'
+      % (', '.join(str(t) for t in WIDTH[('east', 'rail')][3]),
+         ', '.join(str(t) for t in WIDTH[('east', 'rail')][4])),
+      'tools/balcony_width.py')
 # THE RE-PLANE TEST (2026-09-09, tools/run_upstand_replane.py). west_far.py walks its ladder on the FACE
 # plane, and the west solid was moved 0.484 m behind that face on rays it produced. Sampling one plane and
 # solving for another is the same shape as the corridor aperture fault, so the ladder was moved onto the
