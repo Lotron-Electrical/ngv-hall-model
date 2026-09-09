@@ -33,6 +33,10 @@ if (process.env.PIXPAT) { const setv = (id, v) => `(()=>{const e=document.getEle
   await P.sleep(900); }
 // HIDE=name1,name2 hides every mesh whose name or material name matches (an isolation aid)
 if (process.env.HIDE) { const names = JSON.stringify(process.env.HIDE.split(',')); await P.ev(`(()=>{const N=${names}; let n=0; ngv.scene.traverse(o=>{ if(o.isMesh&&(N.includes(o.name)||(o.material&&N.includes(o.material.name)))){o.visible=false;n++;} }); ngv.dirty(); return n;})()`).then(n => console.log('hidden', n)); await P.sleep(600); }
+// HIDESPRITES=1 hides every Sprite in the scene. The event layout's zone tags (S3, S4, N4) are unnamed
+// sprites, so HIDE cannot reach them by name, and they sit exactly across the end galleries in any shot
+// aimed down the hall, which is where a pose pair needs to be read.
+if (process.env.HIDESPRITES) { await P.ev(`(()=>{let n=0; ngv.scene.traverse(o=>{ if(o.isSprite){o.visible=false;n++;} }); ngv.dirty(); return n;})()`).then(n => console.log('sprites hidden', n)).catch(() => {}); await P.sleep(500); }
 // PICK=x,y[;x,y...] names the mesh under each pixel of the shot (an isolation aid: what is that slab?)
 if (process.env.PICK) { for (const pr of process.env.PICK.split(';')) { const [px, py] = pr.split(',').map(Number);
   console.log('pick', pr, await P.ev(`(()=>{const c=document.getElementById('cv'), r=c.getBoundingClientRect(); const v=new dbg.THREE.Vector2(((${px}-r.left)/r.width)*2-1, -(((${py}-r.top)/r.height)*2-1)); const rc=new dbg.THREE.Raycaster(); rc.setFromCamera(v, ngv.cam); const hits=rc.intersectObjects(ngv.scene.children, true).filter(h=>h.object.visible); return hits.slice(0,3).map(h=>h.object.name+' / '+(h.object.material&&h.object.material.name||'')+' @ '+h.distance.toFixed(2)+' m').join(' | ')||'nothing'; })()`).catch(e => e.message)); } }

@@ -2922,6 +2922,26 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE POSE PAIR NOW WORKS FROM THE HALL FLOOR TOO, AND IT CLOSES THE FAR ROUTE (2026-09-09,
+  // tools/pose_pair.py, tools/pose-shot.mjs with the new HIDESPRITES). A rolled capture can be paired
+  // after all: turn the PHOTOGRAPH upright by quarter turns, swap its width and height and its two fields
+  // of view, and drive the sim with the upright geometry. w1_000401 pairs cleanly that way, standing on
+  // the floor 33 m west of the east gallery. The event layout's zone tags are unnamed sprites that sit
+  // straight across the galleries in any shot down the hall, so the shot tool can now hide every sprite.
+  //   ON THE PICTURE the drawn parapet top 9.11 and deck 8.34 land on the gallery's dark band where a
+  //   parapet belongs, and the render puts its gallery in the same place. That is reassuring and it is
+  //   only that: an overlay agreeing with a blurred band 33 m away is not a measurement.
+  //   AND THE PHOTOMETRY REFUSES TO MAKE IT ONE. Pooled over every hall-floor frame aimed level at that
+  //   gallery, the brightness profile up the parapet's face plane has its steepest fall between h 9.65
+  //   and 9.70 and that fall is 0.13 of a standard deviation. There is no step there to measure. It also
+  //   explains the previous run: a detector told to take the biggest step per frame scattered over 2.2 m
+  //   inside a single picture because it was choosing between noise.
+  // So the far route is CLOSED with numbers rather than left open. The parapet disagreement seen from the
+  // deck stands unresolved, nothing is moved, and the next thing that could settle it is a capture, not
+  // another instrument: stand on the deck and walk along it, so the cameras span the gallery's depth
+  // instead of a metre of it.
+  // ONE MORE THING THE PAIR SHOWS, unmeasured and recorded as such: the sim's columns look distinctly
+  // heavier than the real ones in both pairs shot today. Nothing has been changed on that.
   // TRYING TO BREAK THAT TIE FROM THE HALL FLOOR, AND THE RULE IT TAUGHT (2026-09-09,
   // tools/parapet_join.py). The deck rays cannot separate the parapet's station from its height because
   // every camera is on the same side of it and a metre apart, so the obvious fix is to add rays from the
