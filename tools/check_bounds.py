@@ -1409,6 +1409,62 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE SOUTH WALL, TESTED FOR THE FIRST TIME (2026-09-10, tools/south_wall.py).
+SW = {'posed': 1568, 'facing': 328, 'walk_facing': 137, 'nframes': 237, 'sframes': 242,
+      'nholes': 12, 'sholes': 0, 'of': 12, 'blind_found': 8,
+      'nrange': [0.974, 0.791, 0.607], 'srange': [1.112, 1.102, 1.000],
+      'nzero': 0.271, 'szero': -0.170, 'ctl_shift': -0.30, 'south_shift': 2.35,
+      'split_dips': [14.1, 21.6, 25.5], 'feat_dip': [0.139, 0.668, 0.586],
+      'ctl_dip': [0.265, 0.464, 0.683], 'doors_u': [38.81, 46.96], 'doors_h': 2.9}
+check('never state what this file draws from its constants; read the draw call and its gates',
+      True,
+      'ENDW still carries apron, lowUpstand and rails[0] and nothing reads them for geometry. And walls '
+      '= [{d:dNorth, north:true},{d:dSouth, north:false}] reads as though both long walls get '
+      'WALLF.openings; they do not. The reveals are if(w.north), the corridor is if(w.north), and the '
+      'bake shader discards opening pixels only where sd < 7.0. The south wall is SOLID up there with '
+      'two low doors on u %.1f and %.1f reaching h %.1f. This cost two turns on one day: a sound '
+      'measurement shipped as a false claim because the sentence saying what it was measured AGAINST was '
+      'taken from a constant instead of from the draw call.'
+      % (SW['doors_u'][0], SW['doors_u'][1], SW['doors_h']),
+      'tools/south_wall.py')
+check('the south wall is not in the blind spot, and nothing had ever asked it anything',
+      SW['facing'] > 300 and SW['walk_facing'] > 100,
+      'the registrar blind spot has closed four routes in this project: the frames that show a surface '
+      'are the ones with no pose. Not here. Of %d posed cameras %d FACE SOUTH and %d of those are floor '
+      'frames from the day walk. %d frames look at the north wall and %d at the south, so the evidence '
+      'to check it has been in the archive the whole time.'
+      % (SW['posed'], SW['facing'], SW['walk_facing'], SW['nframes'], SW['sframes']),
+      'tools/south_wall.py')
+check('the south wall reads solid on all twelve north lines, and three framings say so',
+      SW['sholes'] == 0 and SW['nholes'] == SW['of'] and SW['szero'] < 0 < SW['nzero'],
+      'the instrument is the one that confirmed the north openings, an opening being DARK against the '
+      'lit pier beside it, with pier against pier as the null. It passes its positive control twice: %d '
+      'of %d north openings read as holes on the drawn lines, and a BLIND sweep of the whole 42 m, told '
+      'nothing about where they are, recovers %d of those %d. On the south wall 0 of %d read as holes. '
+      'Range-matched so distance cannot explain it, the opening-to-pier ratio runs north %.3f, %.3f, '
+      '%.3f as the camera gets further away and south %.3f, %.3f, %.3f. Scored as a rigid shift, at zero '
+      'shift the north openings are %.3f DARKER than their piers and the south patches %.3f BRIGHTER '
+      'than theirs. A hole does not read brighter than the wall beside it. So this file is RIGHT about '
+      'the south wall, which is worth as much as finding it wrong would have been.'
+      % (SW['nholes'], SW['of'], SW['blind_found'], SW['of'], SW['of'],
+         SW['nrange'][0], SW['nrange'][1], SW['nrange'][2],
+         SW['srange'][0], SW['srange'][1], SW['srange'][2], SW['nzero'], -SW['szero']),
+      'tools/south_wall.py')
+check('and the three south marks are refused, by a control that dips as deep as they do',
+      max(SW['ctl_dip']) > max(SW['feat_dip']) and abs(SW['ctl_shift']) >= 0.30,
+      'the blind sweep also put dips on the south wall, and splitting the frames into two independent '
+      'halves reproduced three on u %s. That shows the pattern is stable across photographs; it does not '
+      'show it is ON the wall, because a fixed gradient of light is stable too. The height walk was '
+      'meant to settle it and does the opposite: blank stretches of south wall chosen as controls dip '
+      '%s where the three marks dip %s. The controls dip as deep as the features, so no south feature is '
+      'claimed and nothing is drawn on them. The rigid-shift search is refused in the same way: its own '
+      'control asked the NORTH wall for a %+.2f m shift when the north openings are where this file '
+      'draws them, so the south best shift of %+.2f m is recorded as not quoted rather than as a finding.'
+      % (', '.join('%.1f' % v for v in SW['split_dips']),
+         ', '.join('%.3f' % v for v in SW['ctl_dip']),
+         ', '.join('%.3f' % v for v in SW['feat_dip']),
+         SW['ctl_shift'], SW['south_shift']),
+      'tools/south_wall.py')
 # A PLANE SWEEP ON THE END APERTURES, CLOSED BY ITS OWN CONTROL (2026-09-10, tools/end_depth.py).
 ED = {'deep': 3.850, 'north': 0.00, 'north_contrast': 35, 'wtop': 3.60, 'etop': 0.00,
       'west': 0.20, 'east': 0.40, 'wframes': 187, 'eframes': 256, 'nframes': 55,

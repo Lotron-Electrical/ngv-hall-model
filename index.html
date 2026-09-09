@@ -3189,6 +3189,44 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE SOUTH WALL HAD NEVER BEEN TESTED BY ANYTHING, AND IT PASSES (2026-09-10, tools/south_wall.py).
+  // THE RULE THIS RUN COST ME TWICE IN A DAY, SO IT GOES FIRST. Do not state what this file draws from
+  // its constants or its comments. Read the draw call and every if that gates it. ENDW still carries
+  // apron, lowUpstand and rails[0] and nothing reads them. And walls = [{d:dNorth, north:true},
+  // {d:dSouth, north:false}] looks like both long walls get WALLF.openings; they do not. The reveals are
+  // if(w.north), the corridor is if(w.north), and the bake shader discards opening pixels only where
+  // sd < 7.0. THE SOUTH WALL IS SOLID up there, with two low doors on u 38.8 and 47.0 reaching h 2.9.
+  // I started this run believing the opposite and had to turn the question round.
+  // WHICH TURNED OUT TO BE THE BETTER QUESTION. The south wall has never been checked by any tool in
+  // this project, and it is NOT in the registrar's blind spot that closed four other routes: of 1568
+  // posed cameras, 328 face south and 137 of those are floor frames from the day walk. The evidence has
+  // been in the archive the whole time and nobody had asked it anything.
+  // THE INSTRUMENT IS THE ONE THAT CONFIRMED THE NORTH OPENINGS: an opening is DARK against the lit pier
+  // beside it. The NULL is pier against pier on the same wall in the same frames. The POSITIVE CONTROL
+  // is the north wall through identical code, and it passes twice over: 12 of 12 north openings read as
+  // holes on the drawn lines, and a BLIND sweep of the whole 42 m, told nothing about where they are,
+  // recovers 8 of those 12 on u 19.5, 23.1, 26.7, 30.3, 34.0, 37.3, 41.3, 44.9 against drawn lines of
+  // 19.5, 23.2, 26.8, 30.6, 34.2, 37.8, 41.5, 45.1.
+  // THE SOUTH WALL READS SOLID ON EVERY ONE OF THOSE TWELVE LINES, and three framings say it. 0 of 12
+  // read as holes. Range-matched, so distance cannot explain it, the opening-to-pier ratio runs north
+  // 0.974, 0.791, 0.607 as the camera gets further away and south 1.112, 1.102, 1.000. And scored as a
+  // rigid shift, at zero shift the north openings are 0.271 DARKER than their piers while the south
+  // patches are 0.170 BRIGHTER than theirs. A hole does not read brighter than the wall beside it.
+  // SO THIS FILE IS RIGHT ABOUT THE SOUTH WALL, and that is worth as much as finding it wrong would have
+  // been. It was drawn solid up there on an assumption nobody had tested; it is now tested.
+  // THE THREE MARKS I THOUGHT I HAD FOUND ARE NOT ESTABLISHED, AND THE CONTROL IS WHY. The blind sweep
+  // also put dips on the south wall on u 14.3, 21.7, 25.5, and splitting the frames into two independent
+  // halves reproduced three of them on u 14.1, 21.6, 25.5. That shows the pattern is stable across
+  // photographs. It does NOT show the pattern is on the wall, because a fixed gradient of light is
+  // stable too. The height walk was meant to settle it and does the opposite: blank stretches of south
+  // wall chosen as controls dip 0.265, 0.464 and 0.683 where the three marks dip 0.139, 0.668 and 0.586.
+  // The controls dip as deep as the features. So no south feature is claimed, nothing is drawn on them,
+  // and the route is left with its reason attached: it needs an instrument that can separate a mark from
+  // the light falling on the wall, and this one cannot.
+  // ALSO REFUSED IN THE SAME RUN: the rigid-shift search, because its own control asked the north wall
+  // for a -0.30 m shift when the north openings are where this file draws them. Two sampling steps of
+  // bias is small, but a control that misses by two steps cannot be quoted on a wall where the answer is
+  // unknown, so the south's best shift of +2.35 m is recorded as not quoted rather than as a finding.
   // A CORRECTION FIRST: THE BLOCK THAT STOOD HERE DESCRIBED A MODEL THAT NO LONGER EXISTS
   // (2026-09-10, tools/west_recess.py).
   // WHAT WAS WRONG WITH IT. It said this file draws the lower gallery as a solid deck on the end face,
@@ -4793,7 +4831,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 210 bounds, all satisfied.
+  // 214 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
