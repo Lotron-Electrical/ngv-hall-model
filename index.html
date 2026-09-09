@@ -3141,6 +3141,37 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // LIGHT WENT THROUGH A WALL THIS FILE DRAWS SOLID: 33 RAYS, AND THE WEST LOWER FRONT IS OPEN
+  // (2026-09-10, tools/gallery_lamp.py aimed at the lower band for the first time).
+  // WHY A LAMP AND NOT ANOTHER SURFACE. Every instrument aimed at the lower tier today failed the same
+  // way: it needed a plane, and the lower tier turns out not to be on the plane anyone was searching.
+  // A LAMP NEEDS NO PLANE. It is a point, two rays fix it outright, and a bright point survives a bad
+  // exposure and a steep angle. tools/gallery_lamp.py already triangulated the fittings of the UPPER
+  // gallery. Its search band was hard-wired to the upper gallery's open face, deck to wall top, so the
+  // lower tier had never been offered to it. The band is now an argument and the same audited search was
+  // pointed at h 5.20 to 8.30.
+  // THE SPLIT THAT TESTS A POINT HAD TO BE REBUILT, and that is worth recording because the first run of
+  // it reported nothing. tools/lamp_v.py established that a point's DEPTH is tested by the halves that see
+  // it from opposite directions along the depth axis. At an end the depth axis is u, and every camera in
+  // this archive stands on the hall side of both ends: the test returned "0 rays west of it" for every
+  // fitting. The axis that does have two sides here is d, the hall's own 15.4 m width, so the halves are
+  // the cameras SOUTH of the point against those NORTH of it. A wrong u swings the apparent point across
+  // d in opposite senses for the two halves, so the test still bites on the baseline this archive has.
+  // ONE FITTING SURVIVED IT AND TWO DID NOT, which is the null sitting inside the same run. West: u 2.191,
+  // d 7.858, h 7.083, from 33 rays, 0.047 m rms, cameras 28.9 m apart, and the two halves land 0.066 m
+  // apart in u and 0.035 in h. The two east candidates split by 0.481 and 2.015 m in u and are dropped.
+  // Every other cluster the search threw up tonight split by 0.08 to 5.4 m. 0.066 is the tight end of
+  // everything this instrument produced.
+  // AND THEN THE PART THAT NEEDS NO IDENTIFICATION AT ALL. Those 33 rays came from the hall and reached a
+  // point 2.003 m BEHIND the west face plane, so nothing on the face blocked them. They crossed that
+  // plane between h 5.458 and h 6.842. THIS FILE DRAWS SOLID THERE: the apron quad runs 5.40 to 6.33 on
+  // the face and the lower deck slab and its upstand run 6.33 to 6.85 on the same plane. As built, every
+  // one of those 33 rays is stopped by geometry this file asserts. Light does not do that.
+  // SO THE WEST LOWER FRONT IS OPEN BETWEEN 5.458 AND 6.842, and that is a bound rather than a reading:
+  // it needs no view of the thing it constrains, no fitted plane, and no guess about what the fitting is.
+  // The numbers are still not replaced, because knowing a front is open does not say where its real head
+  // and sill are. What it does is settle the argument the rest of today only pointed at: the lower tier
+  // is not a deck standing on the end face, and the apron under it is not a wall.
   // THE LOWER GALLERY IS A RECESS SET BACK, NOT A DECK ON THE FACE, AND THAT IS WHY IT MEASURES 1.75 m
   // HIGH (2026-09-10, tools/end_scan.py, tools/end_ladder.py, and a 68-agent sweep of all seven clips).
   // THE BLIND SPOT FIRST, because it is not an oversight and it explains the rest. tools/end_levels.py
@@ -4036,7 +4067,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 131 bounds, all satisfied.
+  // 134 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

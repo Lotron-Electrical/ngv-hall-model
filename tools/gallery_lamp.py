@@ -99,7 +99,13 @@ def miss(P, C, v):
 def run(end, cams):
     uB, s = ENDS[end]
     uF = uB - s * FACE
-    hlo, hhi = DECK, TOP
+    # THE BAND IS A PARAMETER NOW, and it used to be the upper gallery and nothing else (2026-09-10).
+    # DECK to TOP is the upper gallery's open face. The LOWER tier, which the clips read as a deep unlit
+    # recess set back behind the parapet, was never searched by this instrument at all, and a recess is
+    # exactly what a triangulated point can measure when a plane cannot: a lamp fixes u, d and h at once
+    # with no assumption about which surface it sits on. HLO and HHI aim the same audited search at it.
+    hlo = float(os.environ.get('HLO', DECK))
+    hhi = float(os.environ.get('HHI', TOP))
     rays = []
     for f, (cls, cam, ip) in cams.items():
         qc = cam.center - O
@@ -163,9 +169,36 @@ def run(end, cams):
         cs = np.array([r[1] for r in inl])
         spread = float(np.linalg.norm(cs.max(0) - cs.min(0)))
         rms = float(np.sqrt(np.mean([miss(P, r[1], r[2]) ** 2 for r in inl])))
-        inside = (min(uF, uB) - 0.15 <= pu <= max(uF, uB) + 0.15) and (DECK - 0.2 < ph < TOP)
+        inside = (min(uF, uB) - 0.15 <= pu <= max(uF, uB) + 0.15) and (hlo - 0.2 < ph < hhi)
         print('   u %7.3f  d %6.3f  h %6.3f   %2d rays, %.3f m rms, cameras %5.1f m apart   %s'
               % (pu, pd, ph, len(inl), rms, spread, 'in the gallery' if inside else 'OUTSIDE it, dropped'))
+        # THE SPLIT THAT TESTS A POINT IS NOT NEAR AGAINST FAR (tools/lamp_v.py, 2026-09-09). A point's
+        # DEPTH is fixed by the angular spread of the rays, so the halves that disagree about a wrong depth
+        # are the cameras WEST of it against the cameras EAST of it: a depth error moves the apparent
+        # station one way for one half and the other way for the other. Two halves that land together have
+        # agreed about the depth from genuinely different directions.
+        # AN END LAMP CANNOT BE SPLIT WEST AGAINST EAST, and that had to be found rather than assumed
+        # (2026-09-10). lamp_v.py established that a point's depth is tested by the halves that see it
+        # from opposite directions ALONG the depth axis. At an end, the depth axis is u and every camera
+        # in the archive stands on the hall side of it: the first run of this split reported "0 rays west
+        # of it" for every end fitting. The axis that does have two sides here is d, the hall's own width,
+        # 15.4 m of it, so the halves are the cameras SOUTH of the point against those NORTH of it. A
+        # wrong u swings the apparent point across d in opposite senses for the two halves, so the test
+        # still bites; it is simply run on the baseline this archive actually has.
+        cd_in = np.array([float((r[1] - O) @ HD) for r in inl])
+        cut = float(np.median(cd_in))
+        lo = [r for r, v in zip(inl, cd_in) if v < cut]
+        hi2 = [r for r, v in zip(inl, cd_in) if v >= cut]
+        if len(lo) >= 2 and len(hi2) >= 2:
+            Pl, Ph = closest_point([r[1:] for r in lo]), closest_point([r[1:] for r in hi2])
+            ql, qh = Pl - O, Ph - O
+            print('        south half (%d rays) u %.3f d %.3f h %.3f   north half (%d rays) u %.3f d %.3f'
+                  ' h %.3f   apart by %.3f in u, %.3f in h'
+                  % (len(lo), ql @ HU, ql @ HD, ql[1], len(hi2), qh @ HU, qh @ HD, qh[1],
+                     abs(float(ql @ HU) - float(qh @ HU)), abs(float(ql[1]) - float(qh[1]))))
+        else:
+            print('        one-sided in d as well (%d against %d), so its depth is not tested'
+                  % (len(lo), len(hi2)))
         if inside:
             # AND THE OCCLUSION BOUND, which is the part that finally constrains the soffit. Every one of
             # these rays reached a fitting standing INSIDE the gallery, so nothing blocked it, so the
@@ -184,7 +217,16 @@ def run(end, cams):
                     continue
                 cross.append(float((Cc + tt * vv)[1] - O[1]))
             uS = uF + s * SOFFIT
-            under = (min(uF, uS) <= pu <= max(uF, uS))
+            # the soffit bound only means anything for the band it was reasoned about, the upper gallery
+            under = (min(uF, uS) <= pu <= max(uF, uS)) and abs(hlo - DECK) < 1e-6
+            if cross:
+                # WHERE THE RAYS CROSSED THE FACE, printed for every kept fitting rather than only for the
+                # ones under the drawn soffit (2026-09-10). This is the assumption-free half of the result:
+                # each of these rays reached a lamp standing behind the face, so NOTHING on the face
+                # blocked it, so whatever the model draws on the face between these two heights is not
+                # solid. It needs no view of the thing it constrains and no identification of the lamp.
+                print('        its %d rays crossed the face plane u %.3f between h %.3f and %.3f, so the'
+                      ' face carries no solid there' % (len(cross), uF, min(cross), max(cross)))
             if cross and under:
                 # THE SENSE OF THE BOUND, stated because the first version of this had it backwards. The
                 # slab is horizontal and the ray is rising, so if the ray is already ABOVE the slab where
@@ -227,6 +269,7 @@ if __name__ == '__main__':
             if f not in seen:
                 seen.add(f)
                 cams[f] = (cls, v[0], v[1])
-    print(len(cams), 'distinct posed frames offered to the search')
+    print('%d distinct posed frames offered to the search, band h %s to %s'
+          % (len(cams), os.environ.get('HLO', DECK), os.environ.get('HHI', TOP)))
     for e in (('west', 'east') if which == 'both' else (which,)):
         run(e, cams)

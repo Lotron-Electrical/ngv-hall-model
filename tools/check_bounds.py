@@ -637,6 +637,47 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# LIGHT WENT THROUGH A WALL THIS FILE DRAWS SOLID (2026-09-10, tools/gallery_lamp.py, lower band).
+LAMP = {'u': 2.191, 'd': 7.858, 'h': 7.083, 'rays': 33, 'rms': 0.047, 'base': 28.9, 'du': 0.066,
+        'dh': 0.035, 'x_lo': 5.458, 'x_hi': 6.842, 'face': 4.194, 'back': 0.344,
+        'east_fail': [0.481, 2.015], 'others_lo': 0.079, 'others_hi': 5.365,
+        'apron': 5.40, 'lowdeck': 6.33, 'lowup': 6.85}
+check('a fitting inside the west lower band triangulates 2.0 m behind the face and passes its own split',
+      LAMP['du'] < 0.10 and LAMP['du'] < min(LAMP['east_fail']),
+      'every instrument aimed at the lower tier today needed a PLANE, and the lower tier is not on the '
+      'plane they were searching. A lamp needs no plane: it is a point, two rays fix it, and a bright '
+      'point survives a bad exposure and a steep angle. gallery_lamp.py had its band hard-wired to the '
+      'upper gallery, so the lower tier had never been offered to it; the band is now an argument. The '
+      'point lands on u %.3f d %.3f h %.3f from %d rays, %.3f m rms, cameras %.1f m apart. Its depth had '
+      'to be tested on a new axis: lamp_v.py splits a point along its DEPTH axis, which at an end is u, '
+      'and every camera here stands on the hall side, so that split returned zero rays on one side for '
+      'every fitting. Split instead across the hall width, south against north, the halves land %.3f m '
+      'apart in u and %.3f in h. The two east candidates split by %.3f and %.3f and are dropped, and '
+      'every other cluster in the same run split by %.2f to %.2f m, so %.3f is the tight end of the run.'
+      % (LAMP['u'], LAMP['d'], LAMP['h'], LAMP['rays'], LAMP['rms'], LAMP['base'], LAMP['du'],
+         LAMP['dh'], LAMP['east_fail'][0], LAMP['east_fail'][1], LAMP['others_lo'], LAMP['others_hi'],
+         LAMP['du']),
+      'tools/gallery_lamp.py')
+check('and its rays crossed the west face where this file draws a solid apron and a solid deck front',
+      LAMP['x_lo'] > LAMP['apron'] and LAMP['x_hi'] < LAMP['lowup'],
+      'this is the half that needs no identification of the fitting and no plane at all. The %d rays came '
+      'from the hall and reached a point %.3f m BEHIND the face plane u %.3f, so nothing on the face '
+      'blocked them, and they crossed that plane between h %.3f and h %.3f. This file draws the apron quad '
+      'from %.2f to %.2f on the face and the lower deck slab with its upstand from %.2f to %.2f on the '
+      'same plane. As built, every one of those rays is stopped by geometry this file asserts, and light '
+      'does not do that.'
+      % (LAMP['rays'], LAMP['face'] - LAMP['u'], LAMP['face'], LAMP['x_lo'], LAMP['x_hi'],
+         LAMP['apron'], LAMP['lowdeck'], LAMP['lowdeck'], LAMP['lowup']),
+      'tools/gallery_lamp.py')
+check('so the west lower front is open, and that is a bound rather than a replacement number',
+      abs(G['lowUp'] - 0.52) < 1e-6,
+      'the front is open between h %.3f and %.3f. Knowing a front is open does not say where its real head '
+      'and sill are, so nothing is renumbered on it. What it settles is the argument the rest of today '
+      'only pointed at: the lower tier is not a deck standing on the end face, and the apron under it is '
+      'not a wall. The drawn %.2f m upstand and the %.2f m glass rail over it stand on a front that has '
+      'now been shown to pass light.'
+      % (LAMP['x_lo'], LAMP['x_hi'], G['lowUp'], G['lowRail']),
+      'tools/gallery_lamp.py')
 # THE LOWER GALLERY IS A RECESS SET BACK AND NOT A DECK ON THE FACE (2026-09-10, tools/end_scan.py,
 # tools/end_ladder.py, and a 68-agent sweep of the seven clips).
 LOW = {'refused': 6, 'bar': 0.55, 'gaps': [0.10, 0.52, 0.26], 'wpara': 8.972, 'epara_day': 9.124,
@@ -1665,5 +1706,13 @@ print('')
 if fails:
     print('%d BOUND(S) VIOLATED: %s' % (len(fails), '; '.join(fails)))
     sys.exit(1)
-print('%d bounds, all satisfied. The sim contradicts nothing the imagery can prove, which is a weaker' % len(notes))
-print('statement than "correct" and is the strongest one this archive supports.')
+print('%d bounds, all satisfied.' % len(notes))
+# THAT LINE USED TO SAY "the sim contradicts nothing the imagery can prove" AND ON 2026-09-10 IT STOPPED
+# BEING TRUE. 33 triangulated rays pass through the west end's drawn apron and lower deck front to reach a
+# fitting 2.0 m behind the face. A suite whose closing sentence outlives the evidence is worse than no
+# closing sentence, so it now says what is actually the case: every bound here holds, and one of the bounds
+# is that a drawn surface is refuted.
+print('Every bound above holds, INCLUDING the ones that record where the sim is now known to be wrong:')
+print('the west lower front passes light between h 5.458 and 6.842 where this file draws a solid apron and')
+print('deck front, and the lower tier is drawn as a deck on the end face where the clips read a recess set')
+print('back behind it. "All satisfied" means the file tells the truth about itself, not that it is right.')
