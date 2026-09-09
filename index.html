@@ -2463,6 +2463,22 @@ function buildWallDetails(root){
   // stood on is h 7.93-8.51. C.floor 8.34 sits inside that, and it is the second floor the building
   // already has, so the corridor floor is now corroborated rather than assumed. It also makes the sill
   // (8.99) a low 0.65 m above that floor, which is why a person leaning on it puts a lens near 9.7.
+  // THE CENSUS WAS RE-RUN AGAINST 240 FRAMES IT COULD NOT SEE (2026-09-09, tools/corridor_pan.py), and it
+  // does not move. The census could only count cameras that HAD poses, and two thirds of Lloyd's balcony
+  // footage had none, for a reason that had nothing to do with the footage: those clips were only ever
+  // matched against the site keyframes, never against each other, so a frame turned away from the hall had
+  // nothing to match. tools/clip_selfmatch.py and tools/pan_poses.py supplied the missing matches and
+  // recovered 366 balcony poses against 126. Re-counted over all of them:
+  //   116 cameras stand INSIDE an opening, against 22 before, and now in TWO openings and from TWO clips
+  //     (b1 67 frames near u 19.4-19.7, b5 49 frames near u 23.0-23.7, which is opening 6),
+  //   the deepest still reaches only d -0.452, which is 0.36 m past the inner face and 0.54 m short of the
+  //     back of the 0.9 m reveal,
+  //   and ZERO of the 116 look north. Every one of them has the lens pointed back out at the hall.
+  // So the answer is not that the corridor is hard to see. It is that nobody ever turned around in there.
+  // C.width and C.ceil stay unmeasured, and the floor corroboration gets stronger rather than changing:
+  // 116 cameras at h 9.37-10.07 put the surface underfoot between 7.72 and 8.72, and 8.34 is inside it.
+  // The pan poses carry 0.02-0.10 m of position error, which is why they are quoted for WHERE a camera
+  // stood and not for any edge they might see across the hall.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
