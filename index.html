@@ -2922,6 +2922,35 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // WHAT THE POSES THEMSELVES ARE WORTH, AND IT WITHDRAWS LAST NIGHT'S WEST VERDICT (2026-09-09,
+  // tools/pose_selfcheck.py, tools/opening_nearcloud.py). Two attempts on the north wall and the west
+  // parapet both ended up asking the same unasked question: how well does each clip's poses agree with
+  // its own pictures? Meet every matched pair of rays in the near field and the answer is a distance in
+  // metres, because a pose out by a tenth of a metre makes corresponding rays miss by about that much.
+  //   b1 0.061   b1p 0.068   b3 0.099   b3p 0.123   b4 0.067   b5 0.066   b5p 0.069
+  //   b7s 0.173  b7sp 0.109  b6g 0.179  b6gp 0.200        (median near-field ray miss, under 6 m)
+  // THE WEST PARAPET RESULT IS INSIDE THAT. b7s is the only clip that stands on either end deck a metre
+  // back from the face, and its own median is 0.173 m. The west discrepancy was 0.202 m. A disagreement
+  // barely larger than the instrument's demonstrated precision is a suspicion, not a defect, so the
+  // check in tools/check_bounds.py now sets its bar to 1.5 times that miss, the west passes with 0.202
+  // and the wording says plainly that it is not evidence. Nothing about the EAST ruling changes: that
+  // rested on 163 camera POSITIONS with margins of 0.16 and 0.81 m, five times this noise.
+  // AND b6g IS THE WORST POSE SET IN THE ARCHIVE, 0.179 and 0.200 m with 0.6 and 0.3 per cent of matches
+  // inside 15 mm. Those are the six frames that were read as standing on the east upper balcony rather
+  // than behind the north wall, and the b6s registration that finished today puts the same clip outside
+  // the building. Nothing may rest on them and the unmeasured list now says so.
+  // THE NORTH WALL FROM ONE METRE WAS TRIED AND REFUSED (tools/opening_nearcloud.py). b1, b4 and b5 stand
+  // IN the openings, which is the south wall's winning geometry rather than the north wall's losing one,
+  // and b1 alone has 138 frames spanning a metre of height. The cloud came back with 4,826 near points
+  // and only 560 supported ones: b4's sit 0.385 m PROUD of the wall inside an opening, which is not a
+  // reveal, and b5's 62 points sit 0.167 m proud with a 0.111 m spread. No wall plane. dNorth stays
+  // unmeasured, and the reason is now quantitative rather than a shrug: with a median ray miss of 0.067 m
+  // these clips keep only the lucky tenth of their matches, so a 30 mm sheet cannot form.
+  // ONE CORRECTION INSIDE THAT RUN, because it looked like a much bigger finding for an hour. b1 returned
+  // ZERO points where b4 returned 3,888, which read as a condemnation of the b1 pan poses. It was not.
+  // The pair chooser took the LONGEST baselines first, and b1's longest baselines join frames from
+  // opposite ends of a pan that barely overlap. The self-check, which pairs temporal neighbours, gives b1
+  // 0.061 m, the best of any clip here. The tool was wrong, not the clip.
   // THE SAME TESTS TAKEN WEST, AND THE WEST PARAPET FAILS THEM (2026-09-09, tools/gallery_arrival.py,
   // tools/west_parapet_look.py, tools/coping_focus.py). b7s walks the west end too: sixteen posed cameras
   // between u 3.19 and 3.33, pitched down 12 to 23 degrees, a metre back from the drawn face rather than
