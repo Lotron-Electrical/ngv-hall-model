@@ -170,6 +170,38 @@ check('the openings are as wide as the pairs of jambs measured end to end',
       'exactly the bias a brightness step carries into the dark side, so the width was NOT changed.'
       % (OPEN[0][1] - OPEN[0][0], (OPEN[0][1] - OPEN[0][0]) - 1.191),
       'tools/jamb_lines.py')
+# THE OPENINGS TESTED BY WHERE PEOPLE STOOD, tools/lens_in_aperture.py (2026-09-09). No detector, no
+# contrast threshold, no polarity: three clips were shot from INSIDE north apertures, and 167 of their
+# posed lenses sit at aperture height BEHIND the wall face, which means each one is a point that was not
+# inside masonry. That is a hard one-sided bound on the jamb either side of it, and it is independent of
+# the nine fitted lines the openings were moved on, so it is a real check on that move rather than a
+# restatement of it. The bar is each clip's own near-field self-miss, tools/pose_selfcheck.py.
+# The first version of this test allowed any lens within a metre of the wall and promptly reported a
+# violation, because it counted b4 frames sitting 0.87 m OUT in the hall leaning back to shoot along the
+# wall. A lens in front of the face is not in the hole and no jamb constrains it. Corrected, nothing fails.
+APERTURE = ((5, 89, 19.364, 19.707, 0.068, 'b1'), (6, 73, 23.164, 23.655, 0.069, 'b5'),
+            (11, 5, 41.179, 41.990, 0.067, 'b4'))
+_worst, _worstn = 9.9, ''
+for _k, _n, _umin, _umax, _bar, _clip in APERTURE:
+    _lo, _hi = OPEN[_k - 1]
+    for _m, _side in ((_umin - _lo, 'west'), (_hi - _umax, 'east')):
+        if _m < _worst:
+            _worst, _worstn = _m, 'opening %d %s jamb, %s' % (_k, _side, _clip)
+check('nobody stood inside a jamb',
+      all(min(OPEN[k - 1][1] - umax, umin - OPEN[k - 1][0]) >= -bar
+          for k, n, umin, umax, bar, clip in APERTURE),
+      '167 posed lenses sit at aperture height behind the wall face, in openings 5, 6 and 11. Against the '
+      'openings as the model now draws them the tightest clearance is %+.3f m at the %s, and the bar '
+      'there is that clip\'s own %.3f m self-miss. This is the only test of the jamb move that uses no '
+      'pixels at all.' % (_worst, _worstn, 0.069),
+      'tools/lens_in_aperture.py')
+check('the reveal is at least as deep as the lens that stood in it',
+      G['openDepth'] >= 0.362 - 1e-9,
+      'openDepth %.3f. b1_000057 sits 0.362 m behind the wall face between a measured pair of jambs and '
+      'above the measured sill, so it was standing in the reveal and the reveal is at least that deep. '
+      'That is a floor and not a value, and it is weaker than the 0.9 m the traced rays already give, so '
+      'nothing moves on it.' % G['openDepth'],
+      'tools/lens_in_aperture.py')
 check('the reveal is at least as deep as the rays that crossed it',
       G['openDepth'] >= 0.9 - 1e-9,
       'openDepth %.3f; rays were traced 0.9 m in and were still inside the aperture.' % G['openDepth'],
@@ -337,13 +369,16 @@ for ok, name, detail, source in notes:
     print('        %s' % source)
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
-for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4, and it is now known WHY:'
-             ' the opening is a collimator. A line behind the wall can only be separated from the rays by'
-             ' cameras at different distances from it, but seeing the whole height ladder through a 1.2 m'
-             ' slot forces the lens far back, so the usable set collapses from an 8.64 m baseline to 1.59 m.'
-             ' The same detector, rays and fit reproduce the measured opening head to 23 mm with the two'
-             ' halves of the wall agreeing to 41 mm, then disagree by 573 mm two metres further back.'
-             ' The control passes and the measurement refuses, so nothing moves, tools/corridor_lines.py',
+for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4, and there are now TWO'
+             ' counted reasons rather than an absence. FROM THE HALL FLOOR the opening is a collimator:'
+             ' seeing the whole height ladder through a 1.2 m slot forces the lens far back, so the'
+             ' usable set collapses from an 8.64 m baseline to 1.59 m. The same detector, rays and fit'
+             ' reproduce the measured opening head to 23 mm with the two halves of the wall agreeing to'
+             ' 41 mm, then disagree by 573 mm two metres further back, tools/corridor_lines.py. FROM'
+             ' INSIDE THE OPENINGS there is no imagery at all: 317 posed lenses stand in north apertures'
+             ' and not one of them points into the room. The most inward-facing frame in the whole set'
+             ' still has its axis 0.38 of the way toward the hall. The operator stood in the holes and'
+             ' filmed the room he had come from, tools/opening_facing.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the opening head lean of 40 to 205 mm',
              'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'

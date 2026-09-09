@@ -3106,6 +3106,39 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // NOBODY EVER TURNED ROUND, AND THAT IS THE END OF THE CORRIDOR (2026-09-09,
+  // tools/opening_facing.py, tools/corridor_from_opening.py, tools/lens_in_aperture.py).
+  // The hall-floor route to that room closed on collimation: a line two metres behind the wall can only
+  // be separated from the rays by cameras at different distances from it, and seeing the whole height
+  // ladder through a 1.2 m slot forces the lens far back, so the set collapsed from an 8.64 m baseline to
+  // 1.59 m. The obvious answer to that is to stop looking THROUGH the slot and stand IN it.
+  // AND THERE ARE CAMERAS IN IT. Three clips were shot from inside north apertures: b1 in opening 5, b5
+  // in opening 6, b4 in opening 11, 317 posed lenses, all at gallery height, all within half a metre of
+  // the wall plane, and b1 is the best-posed clip in the archive on 0.061 m. From in there the back wall
+  // is two metres away instead of sixteen and the aperture is behind the lens, not in front of it.
+  // NOT ONE OF THE 317 POINTS INTO THE ROOM. The most inward-facing frame in the whole set still has its
+  // optical axis 0.38 of the way toward the hall; none is even parallel to the wall. The operator stood
+  // in the holes and filmed the room he had come from. So the corridor now has two counted reasons and
+  // not an absence: from the floor the slot collimates, and from inside there is no imagery at all.
+  // Nothing about that room moves, and nothing should, because nothing has ever seen it.
+  // THE REFUSAL IS KEPT RATHER THAN DELETED. Pointed at the opening head from inside, with the parity
+  // reversed as it must be from in there, the fit lands 1.394 m low and its two halves differ by 0.128 m.
+  // Those lenses look out roughly level, so their own aperture edges sit sixty to eighty degrees behind
+  // them, outside the frame. They cannot even measure the hole they are standing in.
+  // THE SAME CAMERAS THEN PAID FOR THEMSELVES A DIFFERENT WAY. Their POSITIONS are measurements. A lens
+  // sitting at aperture height BEHIND the wall face, between a pair of jambs, is a point that was not
+  // inside masonry, which is the principle that settled the east parapet, with no detector, no contrast
+  // threshold and no polarity in it. 167 of them qualify, and they are the only independent test of the
+  // opening move made this evening, because the nine fitted lines that moved the openings used none of
+  // them. Every lens clears both its jambs: the tightest margin anywhere is 0.123 m against a bar of
+  // 0.069 m, which is that clip's own near-field self-miss.
+  // ONE MORE OF MY OWN MISTAKES, LEFT IN THE FILE. The first version of that test allowed any lens within
+  // a metre of the wall and reported a violation at opening 11: a b4 frame 0.241 m inside the east jamb.
+  // It was sitting 0.87 m OUT in the hall, leaning back to shoot along the wall. A lens in front of the
+  // face is not in the hole and no jamb constrains it. Restricted to lenses actually behind the face,
+  // nothing fails, and the deepest of them gives a free floor of 0.362 m on the reveal depth, weaker than
+  // the 0.9 m the traced rays already give, so it changes nothing.
+  // 33 bounds now, all satisfied.
   // THE UPSTAND WAS NEVER MEASURED BECAUSE IT WAS BEING ASKED THE WRONG WAY UP (2026-09-09,
   // tools/west_far.py with POLARITY, tools/apply_upstands.py, tools/fix_parapet_bound.py). The one bound
   // this model has failed all day was the west parapet top standing 0.202 m into light that got over it.
