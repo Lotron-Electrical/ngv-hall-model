@@ -1409,6 +1409,30 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE WEST GALLERY SEEN FROM ACROSS THE HALL, AND A SOUTH GALLERY THAT IS NOT THERE (2026-09-10,
+# ladders projected into b5_000072, b5_000085, b1_000069 and b4_000297).
+WG = {'frames': ['b5_000072', 'b5_000085', 'b1_000069', 'b4_000297'], 'south': 15.364, 'deck': 8.340,
+      'glass': 9.799, 'door': [13.35, 14.15, 10.0], 'feet_err': 0.10, 'px': 0.025, 'range': 20.0}
+check('the dark band with people in it is the west gallery, and the south wall has no upper gallery',
+      len(WG['frames']) == 4 and abs(WG['south'] - grab(r'dSouth:([0-9.]+)')) < 1e-9,
+      'the b5 clip from north opening 6 shows a long dark band at gallery height with a lit doorway full '
+      'of people, and the sim at that pose shows none. Height lines drawn on the drawn south plane, d '
+      '%.3f, land on the wall carrying the tapestry in all four posed frames, parallel to its courses, '
+      'and the u marks for the west end land on the band. It is the WEST UPPER GALLERY seen end-on from '
+      '%.0f m, which the model has, and nothing is built on the south wall.'
+      % (WG['south'], WG['range']),
+      'index.html provenance, 2026-09-10')
+check('the west deck and the west glass top hold from a viewpoint level with the deck',
+      abs(grab(r'floors:\[[0-9.]+,\s*([0-9.]+)\]') - WG['deck']) < 1e-9 and WG['feet_err'] <= 4 * WG['px'],
+      'the west top door drawn on the back wall (d %.2f to %.2f, deck to %.1f) lands on the lit doorway '
+      'and the people standing in it have their feet on the drawn deck %.3f within about %.2f m by eye, '
+      'one pixel being %.0f mm there, their heads reaching the drawn door head. The glass top %.3f is '
+      'exactly where the lit back wall stops reading lit, the people clear above it and dimmed below it. '
+      'A second independent corroboration of the deck after body_at_rail.py, from another clip and '
+      'another argument, and the first of the west glass top from a photograph.'
+      % (WG['door'][0], WG['door'][1], WG['door'][2], WG['deck'], WG['feet_err'], 1000 * WG['px'],
+         WG['glass']),
+      'index.html provenance, 2026-09-10')
 # A BODY CANNOT PASS THROUGH GLASS, AND 139 CAMERAS STOOD BELOW THE TOP OF IT (2026-09-10,
 # tools/body_at_rail.py).
 BR = {'face': 48.056, 'top': 9.865, 'deck': 8.340, 'poserr': 0.100, 'below': 139,

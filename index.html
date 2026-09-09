@@ -2791,7 +2791,7 @@ function buildEndWalls(root){
  // the tiers' tones (end_profile.py, real against sim on the same pose, 2026-09-08): the top gallery is lit by
  // day, three times the stone, with downlights; the recess under the lower floor is near black; the lower
  // tier's interior about the stone. Unlit materials, so the day frames' ratios hold whatever the house does.
- const topBackMat=stone;   /* the gallery back wall is the same grey ashlar as the hall walls in every b6 frame that shows it (001242, 001250, 001300); the warm dnm it had read as brick from the deck */
+ const topBackMat=dnm(0x0f0f0f,0x7a7a7a,'gallery-back-lit');   /* the measured brightness kept (0x8a7660 by day, read against the stone in d4_000049) with its hue taken out: the wall is grey ashlar in every b6 frame from the deck (001242, 001250, 001300) and lit grey through the west glass in b5_000072 from across the hall; the warm tint read as brick, and the hall walls material tried in its place read too bright from the hall */
  const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  const lowBackMat=dnm(0x0a0908,0x16120f,'gallery-back-low');   /* 0.1-0.15x the stone by day: the lower tier is unlit in d4_000049 (2026-09-09) */
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
@@ -5274,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 255 bounds, all satisfied.
+  // 257 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5764,28 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE WEST GALLERY SEEN FROM ACROSS THE HALL, AND A SOUTH GALLERY THAT IS NOT THERE (2026-09-10,
+  // b5_000072, b5_000085, b1_000069, b4_000297, all posed, ladders projected through their own cameras).
+  // WHAT PROMPTED IT. Lloyd's b5 clip, shot from north opening 6 looking south-west, shows a long dark
+  // band at gallery height with a lit doorway full of people in it, and the sim at the same pose shows
+  // no such band. Read as the south wall it would have meant a recessed gallery the model does not have.
+  // THE LADDER SAYS OTHERWISE. Height lines drawn on the drawn south plane, d 15.364, land on the wall
+  // carrying the tapestry in all four frames, parallel to its courses, and the u marks for the west end
+  // land on the dark band. The band is the WEST UPPER GALLERY seen end-on from 20 m away, and the model
+  // has it. The south wall has no upper gallery, and nothing is built for one.
+  // AND THE WEST GALLERY'S OWN LINES HOLD, from a viewpoint nothing had used, level with the deck:
+  //   the west top door drawn on the back wall (d 13.35 to 14.15, deck to 10.0) lands on the lit doorway,
+  //   and the people standing in it stand with their feet on the drawn deck, 8.340, within about 0.1 m
+  //   by eye, one pixel being 25 mm there; their heads reach the drawn door head. A second, independent
+  //   corroboration of the deck after body_at_rail.py, from a different clip and a different argument.
+  //   the glass top, 9.799, is exactly where the lit back wall stops reading lit: above that line the
+  //   back wall is seen in the open, below it through glass, and the people in the door are clear above
+  //   it and dimmed below it. So the west front carries glass to 9.799, as drawn, and the east does not
+  //   contradict its own glass either (b6 shows no top edge because the east cameras stood at the
+  //   coping, not 20 m off).
+  //   the stone above the head is continuous to the canopy with a faint change on the 11.090 line, which
+  //   is the face wall above the opening meeting the back wall seen through it, consistent with the
+  //   0.45 m beam now drawn there and not with a 2.1 m slab.
   // THE 2.1 m FRONT SOFFIT IS NOT THERE, AND THE MAN STANDING UNDER IT IS THE WITNESS (2026-09-10).
   // Every b6 frame shot from the walkway of the east upper gallery (001242, 001250 looking south, 001200
   // looking north, 001100 and 001150 looking up, 001050, 001350) shows the stained glass canopy straight
