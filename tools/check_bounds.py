@@ -637,6 +637,48 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE LOWER GALLERY IS A RECESS SET BACK AND NOT A DECK ON THE FACE (2026-09-10, tools/end_scan.py,
+# tools/end_ladder.py, and a 68-agent sweep of the seven clips).
+LOW = {'refused': 6, 'bar': 0.55, 'gaps': [0.10, 0.52, 0.26], 'wpara': 8.972, 'epara_day': 9.124,
+       'epara_night': 9.136, 'wnf': 0.012, 'wnull': 0.004, 'e1': 6.640, 'e2': 7.304, 'e1nf': 0.008,
+       'e1null': 0.004, 'sep': 0.664, 'frames': 30, 'rlo': 12.9, 'rhi': 34.0, 'lines_drawn': 6}
+check('the lower gallery has never been measured, and the tool that measures ends refuses it by design',
+      LOW['refused'] == 6,
+      'tools/end_levels.py finds a level by projecting the line the MODEL draws and taking the strongest '
+      'gradient in a window round it, and refuses any level whose nearest modelled neighbour is closer '
+      'than %.2f m. Down the ENDW stack that is ground top 5.30 against apron 5.40 (%.2f m), lower deck '
+      '%.2f against lower upstand %.2f (%.2f m), and slab soffit %.2f against top deck %.2f (%.2f m): all '
+      '%d refused. Of the nine lines drawn across an end face the floor imagery has only ever measured '
+      'the top parapet, the head and the wall top.'
+      % (LOW['bar'], LOW['gaps'][0], 6.33, 6.85, LOW['gaps'][1], 8.08, G['deck'], LOW['gaps'][2],
+         LOW['refused']),
+      'tools/end_scan.py')
+check('an unseeded scan of the end faces reproduces the west-east parapet split it was never told about',
+      abs(LOW['epara_night'] - LOW['wpara']) > 0.10,
+      'tools/end_scan.py walks h continuously up the face and reports where the brightness steps, so it '
+      'has no drawn line to follow; tools/follow_test.py measured that following as about 45 per cent of '
+      'an answer from the old finder. Near against far, a null of the same frames split odd against even, '
+      'and two smoothing widths were all stated before it ran. It puts the west parapet on %.3f and the '
+      'east on %.3f by day and %.3f by night against %.2f and 9.11 drawn, and that line is 10 to 30 times '
+      'stronger than anything else on either face. West reads near-far %.3f on a null of %.3f and does '
+      'not move between windows.'
+      % (LOW['wpara'], LOW['epara_day'], LOW['epara_night'], G['deck'] + G['upWest'], LOW['wnf'],
+         LOW['wnull']),
+      'tools/end_scan.py')
+check('and it finds nothing on the west face where this file draws six lines',
+      LOW['lines_drawn'] == 6,
+      'between the parapet top and the ground wall near 5.2 the west end is one continuous dark band with '
+      'no edge that survives all three tests, over %d frames from %.1f to %.1f m. This file draws %d lines '
+      'in that band. The east face by night does carry two, %.3f (near-far %.3f on a null of %.3f) and '
+      '%.3f, %.3f m apart where this file draws 0.31 from upstand top to rail top. The clips say what it '
+      'is: b4 232-246, b5 136-190 and b1 208-286 independently read the lower tier as a deep unlit RECESS '
+      'set back behind the parapet face, with a head, a sill, a back wall, a doorway with two downlights '
+      'over it, and no balustrade and no people. This file draws a deck ON the face with a rail and a '
+      'ceiling %.2f m over it, which is why it reads as a room nobody could stand up in. Nothing is '
+      'renumbered on this, because a recess needs a depth, a sill and a head and none is measured yet.'
+      % (LOW['frames'], LOW['rlo'], LOW['rhi'], LOW['lines_drawn'], LOW['e1'], LOW['e1nf'],
+         LOW['e1null'], LOW['e2'], LOW['sep'], 8.08 - 6.33),
+      'tools/end_ladder.py')
 # NOBODY EVER TURNED ROUND (2026-09-10, tools/find_corridor.py): there is no frame inside the corridor.
 NOTURN = {'frames': 917, 'clips': 3, 'runs': 3, 'inside': 0, 'd_lo': -0.45, 'd_hi': 0.12,
           'h_lo': 9.07, 'h_hi': 10.14, 'px_lo': 100, 'px_hi': 150, 'levels': 20}

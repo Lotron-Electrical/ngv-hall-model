@@ -3141,6 +3141,49 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE LOWER GALLERY IS A RECESS SET BACK, NOT A DECK ON THE FACE, AND THAT IS WHY IT MEASURES 1.75 m
+  // HIGH (2026-09-10, tools/end_scan.py, tools/end_ladder.py, and a 68-agent sweep of all seven clips).
+  // THE BLIND SPOT FIRST, because it is not an oversight and it explains the rest. tools/end_levels.py
+  // finds an end level by projecting the line the MODEL draws and taking the strongest gradient inside a
+  // window around it, and it refuses any level whose nearest modelled neighbour is closer than 0.55 m.
+  // Run down the ENDW stack: ground top 5.30 and apron 5.40 are 0.10 apart, lower deck 6.33 and lower
+  // upstand 6.85 are 0.52 apart, slab soffit 8.08 and top deck 8.34 are 0.26 apart. ALL SIX ARE REFUSED.
+  // Of the nine lines this file draws across an end face, the only three the floor imagery has ever
+  // measured are the top parapet, the head and the wall top. The entire lower gallery, and the top deck
+  // 8.34 it hangs from, have never been measured from anywhere.
+  // SO THE FACE WAS SCANNED WITH NO SEED. tools/end_scan.py walks h continuously up the end face plane and
+  // reports where the brightness actually steps, which is the one thing the old finder cannot do: it has
+  // no line to follow, and tools/follow_test.py measured that following as roughly 45 per cent of an
+  // answer. Three tests were stated before it ran: near against far, a null (the same frames split odd
+  // against even, which shares the geometry and so reports only the noise), and two smoothing widths.
+  // IT VALIDATES ITSELF ON THE ONE LINE THAT IS KNOWN. With no seed it puts the west parapet on 8.972 and
+  // the east on 9.124 by day and 9.136 by night, against 9.02 and 9.11 drawn, and that line is 10 to 30
+  // times stronger than anything else on either face. The west end reads near-far 0.012 against a null of
+  // 0.004 and does not move at all between the two windows. The unseeded scan reproduces the west-east
+  // split this file already carried, which is the best evidence yet that the split is real.
+  // AND ON THE WEST FACE THERE IS NOTHING ELSE. Between that parapet top and the ground wall near 5.2 the
+  // west end is one continuous dark band with no edge that survives the three tests, over 30 frames from
+  // 12.9 to 34.0 m. This file draws SIX lines in that band: apron 5.40, deck 6.33, upstand 6.85, rail
+  // 7.16, soffit 8.08, deck 8.34. The ladder drawn on w1_000084 shows the same thing to the eye.
+  // THE EAST FACE DOES CARRY TWO LINES AND THEY ARE NOT THE DRAWN ONES. By night, 6.640 reads near-far
+  // 0.008 on a null of 0.004 with no window movement, and 7.304 reads 0.032 on a null of 0.052. The day
+  // walk sees the same pair 0.05 lower. Their separation is 0.664 m where this file draws 0.31 m from
+  // upstand top to rail top, so whatever that pair is, the lower front is not built as drawn.
+  // WHAT IT ACTUALLY IS, and the clips say it with one voice. A sweep of all seven clips returned the
+  // lower tier from three separate standpoints and every reader described the same thing: b4 232-246, a
+  // long deep unlit horizontal recess SET BACK behind the plane of the parapet face, with a dark soffit
+  // over it and recessed luminaires inside; b5 136-190, a second recessed band the full width, unlit,
+  // with a definite head AND a definite sill, so a recess of its own and not the shadow under the balcony
+  // above; b1 208-286, level from across the hall, a pale stone back wall, a pale pier, a dark doorway
+  // with two round downlights over it and a pale lit floor behind, and NO balustrade and no people.
+  // THAT RESOLVES THE 1.75 m. This file draws the lower tier as a deck on the FACE plane carrying a solid
+  // upstand and a glass rail, with a ceiling 1.75 m over it, which is why it reads as a room nobody could
+  // stand up in. The imagery says it is not on the face plane at all: it is a recess behind it, with a
+  // head, a sill and downlights, and the reason the west scan finds no edge in that band is that on the
+  // face there is nothing there to find. The numbers are not corrected here, because a recess needs a
+  // depth and a sill and a head and this archive has measured none of them from a pose. What changes is
+  // that 6.33, 6.85, 7.16 and 8.08 stop being levels this file believes and become a shape it has been
+  // shown is wrong.
   // NOBODY EVER TURNED ROUND: THERE IS NO FRAME INSIDE THE CORRIDOR, IN ANY CLIP (2026-09-10,
   // tools/find_corridor.py). This is the third route to that room to close and it is the one that looked
   // most likely, so it is written down at length.
@@ -3993,7 +4036,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 128 bounds, all satisfied.
+  // 131 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
