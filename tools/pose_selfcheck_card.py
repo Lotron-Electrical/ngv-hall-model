@@ -42,9 +42,10 @@ for i, (name, miss, note) in enumerate(ROWS):
 
 y = TOP + ROW * len(ROWS) + 44
 for t, col in (('green: good enough to measure a surface a metre away', (110, 240, 130)),
-               ('amber: the west parapet result lives here, so it is a', (90, 200, 255)),
-               ('       suspicion and not a defect', (90, 200, 255)),
-               ('red: nothing should rest on these six frames', (90, 120, 255))):
+               ('amber: usable, but not for a 30 mm sheet', (90, 200, 255)),
+               ('red: the west parapet result lives on b7s, 0.173 m, so', (90, 120, 255)),
+               ('     it is a suspicion and not a defect. and nothing', (90, 120, 255)),
+               ('     should rest on the six b6g frames at all', (90, 120, 255))):
     cv2.putText(im, t, (54, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 1, cv2.LINE_AA)
     y += 36
 os.makedirs(OUT, exist_ok=True)
