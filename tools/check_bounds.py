@@ -636,6 +636,42 @@ check('the station scan now requires the gap to come down, not just to beat its 
       'requires the gap to fall by the same factor of three. Two defects in one line, both found by '
       'pointing it at something that was not there.' % (1000 * APRON['null']),
       'tools/end_face_scan.py')
+# THE SAME QUESTION ASKED WIDE, AFTER THE NARROW ANSWER TURNED OUT TO REST ON THE WINDOW
+# (2026-09-09, tools/apron_wide.py).
+APRONW = {'lo': 0.151, 'hi': 0.251, 'ulo': 1.494, 'uhi': 5.594, 'asked': 4.2, 'stations': 42,
+          'stable': 22, 'nullbar': 0.05, 'trunc_lo': 0.062, 'trunc_hi': 0.265, 'trunc_span': 3.8}
+check('the apron refusal survives a sweep three times wider than the one that produced it',
+      APRONW['hi'] < 3.0 * APRONW['lo'],
+      'the narrow scan swept 1.3 m and a feature standing outside a swept window gives the same flat '
+      'curve a genuinely different feature gives, so that refusal rested on window size. Swept %.1f m '
+      'instead, the gap runs %.0f to %.0f mm over %d stations from u %.3f to %.3f, a ratio of %.1f '
+      'against a bar of 3, climbing monotonically with no dip anywhere. No vertical plane in four metres '
+      'of station reconciles the two camera halves to better than %.0f mm.'
+      % (APRONW['uhi'] - APRONW['ulo'], 1000 * APRONW['lo'], 1000 * APRONW['hi'], APRONW['stations'],
+         APRONW['ulo'], APRONW['uhi'], APRONW['hi'] / APRONW['lo'], 1000 * APRONW['lo']),
+      'tools/apron_wide.py')
+check('a fixed window can end a sweep early and the tool then blames the building',
+      APRONW['uhi'] - APRONW['ulo'] > APRONW['trunc_span'],
+      'the first wide run solved every station against a window centred on the DRAWN floor 6.33. Far from '
+      'the truth the solved heights walk out of a fixed window, the station returns nothing and the sweep '
+      'stops. It was asked for %.1f m, covered %.1f, and reported a gap falling %.0f to %.0f mm, a ratio '
+      'of %.1f, with its minimum sitting on the first station that survived. That would have shipped as '
+      'the lower tier station had the edge check not refused it. Recentring the window on each station '
+      'own answer, as tools/low_gap.py does, holds one edge over %.1f m and the ratio falls to %.1f: the '
+      'convergence was the truncation.'
+      % (APRONW['asked'], APRONW['trunc_span'], 1000 * APRONW['trunc_hi'], 1000 * APRONW['trunc_lo'],
+         APRONW['trunc_hi'] / APRONW['trunc_lo'], APRONW['uhi'] - APRONW['ulo'],
+         APRONW['hi'] / APRONW['lo']),
+      'tools/apron_wide.py')
+check('stations where the null itself is large are not read',
+      APRONW['stable'] < APRONW['stations'] and APRONW['lo'] > 2.0 * APRONW['nullbar'],
+      'across a third of the swept stations the odd-against-even null runs 150 to 240 mm, which is the '
+      'tracker failing to hold one feature rather than two halves disagreeing about where it is. A '
+      'near-far number from a station like that is noise about noise. Only the %d of %d stations whose '
+      'null stays under %.0f mm are read, and the surviving gap of %.0f mm is still three times that '
+      'bar, so the refusal is not being manufactured by the gate.'
+      % (APRONW['stable'], APRONW['stations'], 1000 * APRONW['nullbar'], 1000 * APRONW['lo']),
+      'tools/apron_wide.py')
 check('no verdict shipped on the old rule changes under the new one',
       True,
       'the two solid upstands, the replaned pair and the east rail were all re-run against the stricter '
