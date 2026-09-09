@@ -160,12 +160,16 @@ check('the top deck is below every camera that stood on it',
 # same experiment. Only lenses at least 0.6 m behind the face are used: a lens almost on the coping cannot
 # send a ray across the face plane low enough to test anything, and the first east run was 140 b3 frames
 # standing 0.2 m from the stone, which is why its 1.62 % was never comparable with the west's 24.30 %.
-# AND THE TOLERANCE IS THE POSES' OWN PRECISION, not a number picked to pass. tools/pose_selfcheck.py
-# meets every matched pair of rays in each clip and reports how far apart they pass in the near field:
-# b7s, which is the ONLY clip standing on either of these decks a metre back from the face, has a median
-# near-field ray miss of 0.173 m. A parapet discrepancy smaller than that is not evidence of anything, so
-# the bar is 1.5 times it. The west end's 0.202 m sits inside that and is recorded, not acted on.
-POSE_MISS = 0.173
+# AND THE TOLERANCE IS SET BY A STATED RULE, not by whichever number makes the suite green. The bar is
+# 1.5 times the LARGER of two measured quantities: the method's systematic, which is its overshoot at the
+# EAST end where the face is settled, and the clip's own near-field self-consistency.
+#   the east overshoot is 0.032 m with the frozen focal and 0.072 m with it scaled by 0.965
+#   b7s, the only clip standing on either deck a metre back from the face, misses itself by 0.173 m with
+#   the frozen focal and 0.091 m at the focal that suits it best (tools/focal_probe.py)
+# So the bar is 1.5 x 0.091 = 0.137 m. Last night this file used b7s's 0.173 m and let the west pass. That
+# was too cautious: the 0.173 is inflated by a lens the registration never refined for that clip, and the
+# west overshoot of 0.202 m survives the whole focal sweep, moving to 0.242 m rather than away.
+POSE_MISS = 0.091
 for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
                                    ('west', 'upWest', 4.194, 8.818, 3371)):
     drawn_top = G['deck'] + G[upk]
@@ -175,7 +179,8 @@ for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
           'top drawn on %.3f, the deck %.3f plus an upstand of %.3f. Of %d rays that reached a camera on '
           'that deck from a point inside the building and crossed the face on u %.3f, the 5th percentile '
           'crossed on %.3f, so the drawn top stands %.3f m into light that arrived, against a bar of '
-          '%.3f m which is 1.5 times the 0.173 m median near-field ray miss of the poses that produced it.'
+          '%.3f m. Scaling the frozen focal by 0.965 moves the east overshoot to 0.072 and the west to '
+          '0.242, so the gap between the two ends is not a lens artefact.'
           % (drawn_top, G['deck'], G[upk], npts, uface, p5, over, 1.5 * POSE_MISS),
           'tools/gallery_arrival.py')
 check('the south tapestries hang in front of the south wall',
@@ -206,9 +211,10 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              'dNorth -0.090: the cloud swings 0.12 m with frame selection, tools/north_face.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the opening head lean of 40 to 205 mm',
-             'the west upstand 0.68: the arrivals cap its top on 8.818 against a drawn 9.020, but that'
-             ' 0.202 m is smaller than the 0.173 m median near-field ray miss of b7s, the only clip that'
-             ' stands there, so it is a suspicion and not a measurement, tools/gallery_arrival.py',
+             'WHICH of the west numbers is wrong: the arrivals cap the top on 8.818 against a drawn 9.020,'
+             ' but a top 0.20 m lower, a deck 0.20 m lower and a face 0.20 m further into the hall all fit'
+             ' the same rays, and 16 cameras from one clip at one station cannot separate them. The bound'
+             ' below fails; the fix is not identified, tools/gallery_arrival.py',
              'b6g and b6gp are the worst poses in the archive: median near-field ray miss 0.179 and 0.200 m'
              ' with 0.6 and 0.3 per cent of matches inside 15 mm. Nothing should rest on those six frames,'
              ' tools/pose_selfcheck.py',

@@ -15,6 +15,7 @@
 # Nothing drawn is searched for: the stations sweep a metre either side of each drawn face, and every
 # candidate top from the deck to a metre and a half above it is scored against the arrivals.
 #   python tools/gallery_arrival.py [east|west] [max-pairs-per-clip]
+import os
 import sys
 
 import cv2
@@ -36,8 +37,15 @@ BOTTOM = 0.60
 sift = cv2.SIFT_create(nfeatures=3000)
 
 
+# A SENSITIVITY KNOB, NOT A CALIBRATION. tools/focal_probe.py finds that b7s, the clip both end-deck
+# results rest on, agrees with itself 46 per cent better when its frozen focal is scaled by 0.965. That is
+# not proof the lens is wrong, but it does mean any conclusion drawn from these rays has to survive the
+# question. Set FOCAL to re-run the whole test on rays made with a scaled focal length.
+FOCAL = float(os.environ.get('FOCAL', '1.0'))
+
+
 def unit_rays(cam, pts):
-    fx, fy, ux, uy = cam.params[0], cam.params[1], cam.params[2], cam.params[3]
+    fx, fy, ux, uy = cam.params[0] * FOCAL, cam.params[1] * FOCAL, cam.params[2], cam.params[3]
     K = np.array([[fx, 0, ux], [0, fy, uy], [0, 0, 1]], float)
     dist = np.array(cam.params[4:8], float) if cam.model == 'OPENCV' else np.zeros(4)
     un = cv2.undistortPoints(np.asarray(pts, np.float64).reshape(-1, 1, 2), K,

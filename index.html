@@ -2922,6 +2922,38 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE LENS WAS NEVER REFINED FOR THESE CLIPS, AND THE WEST FAULT SURVIVES ANYWAY (2026-09-09,
+  // tools/pose_refine.py, tools/focal_probe.py). Two things were tried in order, and the second is the
+  // one that matters.
+  // FIRST, REFINING THE POSES AGAINST THE CLIP'S OWN TRACKS. Alternating resection and intersection, the
+  // scene rebuilt from the poses every round so it stays in the hall frame, each camera capped to 0.20 m
+  // and 3 degrees. It does not work. On b3 the cameras had to move a median 0.056 m to buy 0.013 m of ray
+  // agreement, and on b7s the miss went UP, from 0.151 to 0.171. Only 804 of 5,362 tracks could be
+  // reprojected into their own frames inside 8 px. Poses that must move further than they gain are not
+  // slightly wrong: something they all share is.
+  //   ONE BUG FOUND THERE AND WORTH KEEPING: the first run paired frames by list order with no distance
+  //   test, and b7s's twelve frames are two clusters forty-five metres apart, so the next frame in the
+  //   list was the other end of the hall. A pair must now be within 3 m as well as within five frames.
+  // SECOND, THE CAMERA. Every balcony clip was registered with the day4k camera frozen, which is right for
+  // placing a clip in a model and a silent assumption for measuring something a metre away. Sweeping one
+  // number, a scale on the focal length, with the poses left exactly where they are:
+  //   b3 and b1 carry the frozen camera EXACTLY, fx = fy = 1850.0 with the principal point on the image
+  //   centre, and their curves slide to the edge of the sweep rather than bottoming out anywhere.
+  //   b5 and b7s carry their own refined cameras (1905.3 / 1913.5 and 1946.6 / 1924.8) and DO bottom out:
+  //   b7s sharply, on 0.965, where its near-field miss falls from 0.167 m to 0.091 m, 46 per cent better.
+  // TWO CLIPS PULL OPPOSITE WAYS, so there is no single shared lens error to correct, and nothing about
+  // the camera is changed on this. What it does establish is that b7s's 0.173 m self-miss, the number
+  // used last night to withdraw the west verdict, is inflated by a lens that clip never had refined.
+  // SO THE WITHDRAWAL IS ITSELF WITHDRAWN, and the west bound FAILS again. The rule is now stated rather
+  // than chosen: the bar is 1.5 times the larger of the method's systematic, measured as its overshoot at
+  // the settled EAST end, and the clip's own self-consistency at the focal that suits it. That is
+  // 1.5 x 0.091 = 0.137 m. The west overshoot is 0.202 m, and running the entire test again with the
+  // focal scaled by 0.965 moves the east overshoot to 0.072 and the WEST to 0.242, away from agreement
+  // rather than towards it. The gap between the two ends is not a lens artefact.
+  // WHAT IS STILL NOT KNOWN is unchanged and is the reason nothing moves: a west top 0.20 m lower, a west
+  // deck 0.20 m lower and a west face 0.20 m further into the hall all fit the same rays. Sixteen cameras
+  // from one clip at one station cannot separate them. 20 bounds, 19 satisfied, one failing, and the
+  // failure names a real defect without naming its fix.
   // WHAT THE POSES THEMSELVES ARE WORTH, AND IT WITHDRAWS LAST NIGHT'S WEST VERDICT (2026-09-09,
   // tools/pose_selfcheck.py, tools/opening_nearcloud.py). Two attempts on the north wall and the west
   // parapet both ended up asking the same unasked question: how well does each clip's poses agree with
