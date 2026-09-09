@@ -3151,45 +3151,82 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
-  // THE WEST LOWER FRONT IS OPEN WHERE THIS FILE DRAWS A DECK SLAB, AND THE LIGHT THAT GOT OUT SAYS SO
+  // THE EAST LOWER TIER IS STILL DRAWN ON NOTHING, AND A PLANE SWEEP COULD NOT CHANGE THAT BECAUSE ITS
+  // OWN CONTROL CAUGHT IT FAILING (2026-09-10, tools/end_depth.py).
+  // THE GAP IS ADMITTED A FEW LINES DOWN THIS FILE. When the apron, the solid upstand, the glass rail
+  // and the 6.33 slab were deleted and the lower tier became an open recess, the proof was WEST ONLY:
+  // 33 rays near d 6.2 to 8.2. The two east candidates failed their own split-halves test by 0.481 and
+  // 2.015 m and were dropped. Drawing the ends differently on no east evidence would have been worse
+  // than drawing them alike, so both changed. The east lower tier is therefore drawn on nothing.
+  // THE TEST NEEDED NO LAMP AND NO EDGE. A surface has a DEPTH, and depth shows as parallax: sample a
+  // fixed world point on a candidate plane in many frames, and if the surface really is there every
+  // frame looks at the same physical spot and the brightness agrees. Sweep the plane back from the face
+  // and the depth with the least scatter is the surface. That decides recess against face without
+  // knowing what is inside either.
+  // TWO CONTROLS, AND THE SECOND ONE IS WHY THIS RUN IS HONEST. The north wall, a big flat wall whose
+  // position is measured many times over, comes back on depth 0.00 with 35 per cent contrast: the sweep
+  // works on a plain wall. But a sweep across an APERTURE is biased towards the aperture plane, because
+  // deeper planes fall behind the jambs for some views and not others, and the north wall cannot test
+  // that. The TOP GALLERIES can: same wall, same drawn 3.850 m depth, and open beyond doubt because 286
+  // posed cameras stand inside the east one.
+  // THE TWO APERTURE CONTROLS DISAGREE WITH EACH OTHER ON A KNOWN ANSWER. West top gallery reads 3.60 m
+  // against the drawn 3.850 and passes. East top gallery reads 0.00 m. Same instrument, same known
+  // geometry, opposite results. A sweep that misses a recess it can be checked against cannot be quoted
+  // on one it cannot, so NOTHING is concluded about the east lower tier and nothing moves.
+  // THE FIRST VERSION OF THIS RUN BELIEVED IT ANYWAY. The verdict took the BEST control and ignored the
+  // other, which is how a broken instrument gets quoted. It now requires every control to pass.
+  // WHAT SURVIVES IS NARROWER AND WEST-ONLY. On the west end the instrument HAS a passing control on the
+  // same wall in the same frames: the top gallery reads 3.60 m. On that same wall the lower tier reads
+  // 0.20 m back, against a drawn 3.850. That does not refute the 33 rays, which proved emptiness along
+  // their own paths and reached 2.003 m in, while this pools the whole 13 m of the gallery length; both
+  // hold together if the lower recess is deep over only part of its length.
+  // BUT THE LENGTH-RESOLVED VERSION DOES NOT SUPPORT THAT EITHER, AND IT IS PRINTED SO NOBODY BUILDS ON
+  // IT. Metre by metre along the west end the estimate jumps 0.0, 0.6, 0.8, 3.6, 0.0, 2.6, 2.0, 4.0,
+  // 3.4, 1.0, 3.0, 0.2, 1.8. A real depth profile does not do that; an unstable estimator does. The only
+  // thing worth noting is that d 7 and d 8, where the 33 rays went, read 2.6 and 2.0 against a fitting
+  // 2.003 m in, and with neighbours on 0.0 and 4.0 that is as likely coincidence as signal.
+  // SO THE ROUTE IS CLOSED WITH ITS REASON ATTACHED: a plane sweep cannot resolve depth behind these end
+  // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
+  // and marked as such. What the run cost was one instrument; what it bought is that the next person
+  // does not spend a day rebuilding it.
+  // A CORRECTION FIRST: THE BLOCK THAT STOOD HERE DESCRIBED A MODEL THAT NO LONGER EXISTS
   // (2026-09-10, tools/west_recess.py).
-  // THE DEFECT WAS ALREADY ON RECORD AND HAD NEVER BEEN FIXED. This file draws the lower gallery as a
-  // DECK STANDING ON THE END FACE: solid apron 5.40 to 6.33, deck slab and solid upstand 6.33 to 6.85,
-  // rail to 7.16, soffit 8.08. Seven clips read from three standpoints all describe something else, a
-  // long unlit horizontal RECESS SET BACK behind the parapet with a head, a sill and downlights inside.
-  // The record says so and then says why nothing moved: a recess needs a depth and a sill and a head and
-  // this archive had measured none of them from a pose. The unseeded brightness scan found no edge
-  // anywhere in that band on the west face, which is exactly what a face with nothing on it looks like.
-  // So brightness ON the face was the wrong question, and this asks the other one.
-  // THERE ARE LIGHTS BEHIND THAT FACE, AND A CAMERA IN THE HALL CAN ONLY SEE THEM THROUGH THE OPENING.
-  // Five sources: the four this file draws on the west gallery back wall 3.830 m in, and the fitting
-  // triangulated from 33 rays 2.003 m in. For every hall camera, work out the height where its ray to a
-  // source crosses the face plane, then look at the photograph and ask whether the source is really
-  // there. No edge finder, no fitted plane, no brightness step. Light either arrived or it did not.
-  // THE THRESHOLD IS SET BY A CONTROL RATHER THAN BY ME. The same photometry runs on PHANTOM points, the
+  // WHAT WAS WRONG WITH IT. It said this file draws the lower gallery as a solid deck on the end face,
+  // apron 5.40 to 6.33, slab and upstand 6.33 to 6.85, rail to 7.16. IT DOES NOT, and has not since
+  // earlier the same day: those four surfaces were DELETED and the tier is drawn as an open recess from
+  // the ground wall's soffit on 5.30 up to the top slab soffit on 8.08. The measurement was sound; the
+  // sentence saying what it was measured against was false. It is replaced here rather than quietly
+  // edited, because a wrong statement about the model is worse than no statement.
+  // WHAT THE RUN ACTUALLY IS, AND IT IS WORTH MORE THIS WAY. Deleting four surfaces is the largest
+  // change ever made to these balconies, and it rested on ONE instrument: tools/lamp_void.py swept the
+  // space 33 triangulated rays crossed to reach a fitting 2.003 m behind the face, and found all four
+  // inside the emptiness. That deletion never had a second opinion. THIS IS IT, from machinery that had
+  // no part in it. lamp_void argues from ray CONVERGENCE, which is geometry about where lines go. This
+  // asks whether a bright blob is actually IN THE PICTURE where a lamp should be, with a false-positive
+  // rate measured rather than assumed.
+  // THE THRESHOLD COMES FROM A CONTROL, NOT FROM ME. The same photometry runs on PHANTOM points, the
   // same lamps slid along d to places where nothing is drawn and nothing was fitted. 1483 phantom
   // sightlines score 1.074 at the median and 1.799 on their 95th, and that 95th IS the threshold.
-  // THE FACE IS OPEN FROM h 6.30 TO 6.80. 36 of the 134 rays crossing there see the source, against a
-  // phantom rate of 0.00 to 0.05 in the same bands, and the seen rays cross the face over d 7.11 to 8.22
-  // so it is not one local hole. This file draws deck slab and solid upstand across every millimetre of
-  // that. It is 0.50 m wide against the 1.384 m the earlier 33-ray bound already carried, and it comes
-  // from the SAME fitting, so it does not extend that bound: it confirms it by a different question,
-  // photometric visibility with a null, where the first was ray convergence.
-  // AND IT ADDS ONE THING THE FIRST COULD NOT. Those rays cross the face on h 6.30 to 6.80 and ARRIVE on
-  // h 7.083 2.003 m in, so the recess interior is open along that climb too. Whatever the head is, it
-  // stands above 7.083 at a depth of 2.003 m, and that is a floor on the inside of the recess rather
-  // than on its mouth.
-  // THE FOUR LAMPS THIS FILE DRAWS ON THAT BACK WALL ARE UNCONFIRMED, AND NOT REFUTED, AND THE
+  // LIGHT COMES OUT OVER h 6.30 TO 6.80. 36 of the 134 rays crossing there see the source, against
+  // phantom rates of 0.00 to 0.05 in the same bands, and the seen rays cross the face over d 7.11 to
+  // 8.22, so it is not one local hole. That band sits INSIDE the 5.30 to 8.08 this file now draws open.
+  // The deletion is confirmed exactly where the apron, the upstand, the rail and the 6.33 slab stood.
+  // AND THE LIMIT ON IT, WHICH MATTERS AS MUCH. Only one of the five sources cleared the bar, and it is
+  // the same fitting lamp_void swept to. So this is a second QUESTION, not a second SOURCE: both
+  // readings still rest on that one lamp being real, and what carries that is its 0.047 m rms over 33
+  // rays and its 0.066 m split-halves agreement in u, neither of which is re-tested here. The band is
+  // also narrower than the sweep, 0.50 m against 1.384, so it extends nothing.
+  // ONE THING IT ADDS THAT THE SWEEP COULD NOT. Those rays cross the face on h 6.30 to 6.80 and ARRIVE
+  // on h 7.083, 2.003 m in. So whatever the recess head is, it stands above 7.083 at that depth: a floor
+  // on the INSIDE of the recess rather than on its mouth, and the inside had nothing before.
+  // THE FOUR LAMPS THIS FILE DRAWS ON THE WEST BACK WALL ARE UNCONFIRMED AND NOT REFUTED, AND THE
   // DIFFERENCE IS MEASURED RATHER THAN ASSERTED. They are seen in NONE of the 65 rays that reached the
-  // right height, and the photometry FAVOURS them: they stand 17.0 to 18.5 m away filling 5.0 to 5.8 px
-  // where the fitting stands 28.2 m away filling 3.7 px and is seen 27 times in a hundred. But the
-  // geometry does not favour them. A ray to a back lamp must climb 1.38 m inside the recess after it
-  // crosses the face, against 0.38 m for the fitting, and a recess only has to be shallower or shorter
-  // than that climb needs for the light never to get out with the lamp exactly where it is drawn. So
-  // they stay, marked: nothing in 859 frames has ever seen them, and nothing here can tell absence from
-  // a ceiling in the way. That is the honest state of four objects this model draws.
-  // NOTHING IS RE-DRAWN. An open band is a floor on an aperture, not a sill and a head, and a height
-  // that did not answer is unanswered rather than solid.
+  // right height, and the photometry FAVOURS them: 17.0 to 18.5 m away filling 5.0 to 5.8 px, where the
+  // fitting is 28.2 m away filling 3.7 px and is seen 27 times in a hundred. But a ray to a back lamp
+  // must climb 1.38 m inside the recess after crossing the face, against 0.38 m for the fitting, and a
+  // recess only has to be shallower or shorter than that climb needs for the light never to get out with
+  // the lamp exactly where it is drawn. They stay, marked. Deleting them would be acting on an absence
+  // with a known blind spot, which is how the wrong things get removed.
   // THE RULER TURNED SIDEWAYS: THE OPENINGS GIVEN THEIR OWN JAMBS, AND THE MISSES TURNING OUT TO BE
   // DEPTH RATHER THAN ERROR (2026-09-10, tools/opening_jambs.py and tools/jamb_parallax.py).
   // WHY IT WAS WORTH DOING. The twelve openings were positioned on NINE jamb lines and every one of
@@ -4756,7 +4793,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 206 bounds, all satisfied.
+  // 210 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

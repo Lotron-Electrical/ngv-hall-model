@@ -1409,51 +1409,103 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
-# THE WEST LOWER FRONT, ASKED WITH LIGHT THAT GOT OUT OF IT (2026-09-10, tools/west_recess.py).
-WR = {'frames': 859, 'sources': 5, 'phantoms': 9, 'nrays': 1483, 'rrays': 769,
+# A PLANE SWEEP ON THE END APERTURES, CLOSED BY ITS OWN CONTROL (2026-09-10, tools/end_depth.py).
+ED = {'deep': 3.850, 'north': 0.00, 'north_contrast': 35, 'wtop': 3.60, 'etop': 0.00,
+      'west': 0.20, 'east': 0.40, 'wframes': 187, 'eframes': 256, 'nframes': 55,
+      'inside_east': 286, 'rays': 33, 'fit_depth': 2.003, 'length': 13.0,
+      'perm': [1.0, 0.0, 0.6, 0.8, 3.6, 0.0, 2.6, 2.0, 4.0, 3.4, 1.0, 3.0, 0.2, 1.8]}
+check('the east lower tier is still drawn on nothing, and a plane sweep did not change that',
+      abs(ED['etop'] - ED['deep']) > 0.6,
+      'when the apron, the solid upstand, the glass rail and the 6.33 slab were deleted and the lower '
+      'tier became an open recess, the proof was WEST ONLY: %d rays. The two east candidates failed '
+      'their own split by 0.481 and 2.015 m. Both ends were changed anyway because drawing them '
+      'differently on no east evidence would be worse, so the east tier is drawn on nothing. A plane '
+      'sweep can decide recess against face with no lamp and no edge: sample a fixed world point on a '
+      'candidate plane in many frames and the depth where the brightness agrees is the surface.'
+      % ED['rays'],
+      'tools/end_depth.py')
+check('and it was its own aperture control that caught it, not a judgement about the answer',
+      ED['north'] <= 0.4 and abs(ED['wtop'] - ED['deep']) <= 0.6 and abs(ED['etop'] - ED['deep']) > 0.6,
+      'the north wall control comes back on depth %.2f with %d per cent contrast, so the sweep works on '
+      'a plain wall. But a sweep across an APERTURE is biased towards the aperture plane, because deeper '
+      'planes fall behind the jambs for some views and not others, and a plain wall cannot test that. '
+      'The TOP GALLERIES can: same wall, same drawn %.3f m depth, open beyond doubt because %d posed '
+      'cameras stand inside the east one. They DISAGREE WITH EACH OTHER on that known answer: west reads '
+      '%.2f and passes, east reads %.2f. A sweep that misses a recess it can be checked against cannot '
+      'be quoted on one it cannot, so nothing is concluded about the east lower tier. The first version '
+      'of the verdict took the BEST control and ignored the other, which is how a broken instrument gets '
+      'quoted; it now requires every control to pass.'
+      % (ED['north'], ED['north_contrast'], ED['deep'], ED['inside_east'], ED['wtop'], ED['etop']),
+      'tools/end_depth.py')
+check('what survives is west-only, and its own length-resolved version refuses to support it',
+      abs(ED['wtop'] - ED['deep']) <= 0.6 and (max(ED['perm']) - min(ED['perm'])) > 3.0,
+      'on the west end the instrument HAS a passing control on the same wall in the same frames, the top '
+      'gallery on %.2f m. On that same wall the lower tier reads %.2f m back against a drawn %.3f. That '
+      'does not refute the %d rays, which proved emptiness along their OWN paths and reached %.3f m in '
+      'while this pools the whole %.0f m of the gallery length; both hold if the recess is deep over '
+      'only part of its length. But the length-resolved version jumps %.1f to %.1f m between '
+      'neighbouring metres of the same wall, which is what an unstable estimator does and not what a '
+      'depth profile does. d 7 and d 8, where the rays went, read 2.6 and 2.0 against a fitting %.3f m '
+      'in, and with neighbours on 0.0 and 4.0 that is as likely coincidence as signal. So the route is '
+      'closed with its reason attached and the east tier stays drawn from the west evidence, marked.'
+      % (ED['wtop'], ED['west'], ED['deep'], ED['rays'], ED['fit_depth'], ED['length'],
+         min(ED['perm']), max(ED['perm']), ED['fit_depth']),
+      'tools/end_depth.py')
+# THE OPEN RECESS GIVEN THE SECOND OPINION IT NEVER HAD (2026-09-10, tools/west_recess.py).
+WR = {'frames': 859, 'sources': 5, 'nrays': 1483, 'rrays': 769,
       'null_med': 1.074, 'thresh': 1.799, 'open_lo': 6.30, 'open_hi': 6.80,
       'band_rays': 134, 'band_hits': 36, 'null_rate_hi': 0.05, 'dlo': 7.11, 'dhi': 8.22,
-      'prev_lo': 5.458, 'prev_hi': 6.842, 'fit_u': 2.191, 'fit_h': 7.083, 'fit_depth': 2.003,
+      'drawn_lo': 5.30, 'drawn_hi': 8.08, 'sweep_lo': 5.458, 'sweep_hi': 6.842,
+      'fit_h': 7.083, 'fit_depth': 2.003, 'fit_rms': 0.047, 'fit_split': 0.066, 'fit_rays': 33,
       'back_depth': 3.830, 'back_rays': 65, 'back_hits': 0, 'back_climb': 1.38,
       'fit_climb': 0.38, 'back_rng': 17.0, 'fit_rng': 28.2, 'back_px': 5.0, 'fit_px': 3.7}
-check('the west lower front is open where this file draws a deck slab, and light out of it says so',
-      WR['band_hits'] > 0 and WR['open_lo'] >= 6.30 and WR['open_hi'] <= 6.85,
-      'this file draws the lower gallery as a DECK ON THE END FACE: apron 5.40 to 6.33 solid, deck slab '
-      'and upstand 6.33 to 6.85 solid, rail to 7.16, soffit 8.08. Seven clips describe a RECESS SET BACK '
-      'instead, and the unseeded brightness scan found no edge anywhere in that band, which is what a '
-      'face with nothing on it looks like. So the question was changed: there are LIGHTS behind that '
-      'face and a hall camera can only see them THROUGH the opening. For each of %d frames, the height '
-      'where the ray to a source crosses the face plane was computed and the photograph asked whether '
-      'the source is really there. The face reads OPEN from h %.2f to %.2f: %d of %d rays crossing there '
-      'see it, against a phantom rate no higher than %.2f, and the seen rays cross over d %.2f to %.2f '
-      'so it is not one local hole.'
-      % (WR['frames'], WR['open_lo'], WR['open_hi'], WR['band_hits'], WR['band_rays'],
-         WR['null_rate_hi'], WR['dlo'], WR['dhi']),
+check('a claim shipped about this model was false, and it is corrected in place rather than dropped',
+      WR['drawn_lo'] < WR['open_lo'] and WR['open_hi'] < WR['drawn_hi'],
+      'the first write-up of this run said index.html draws the lower gallery as a solid deck on the end '
+      'face, apron 5.40 to 6.33, slab and upstand 6.33 to 6.85, rail to 7.16. It does not, and has not '
+      'since earlier the same day, when those four surfaces were deleted and the tier became an open '
+      'recess from h %.2f to %.2f. The measurement was sound and the sentence describing what it was '
+      'measured against was not. A wrong statement about the model is worse than no statement, so it is '
+      'replaced where it stood.'
+      % (WR['drawn_lo'], WR['drawn_hi']),
       'tools/west_recess.py')
-check('the threshold came from a control, and the band confirms the old bound rather than extending it',
-      WR['thresh'] > WR['null_med'] and (WR['open_hi'] - WR['open_lo']) < (WR['prev_hi'] - WR['prev_lo']),
-      'the same photometry runs on PHANTOM points, the same lamps slid along d to where nothing is drawn '
-      'and nothing was fitted; %d phantom sightlines score %.3f at the median and %.3f on their 95th, '
-      'and that 95th IS the threshold, so it is calibrated by a control instead of chosen. The band is '
-      '%.2f m wide against the %.3f m the earlier 33-ray bound carried and comes from the SAME fitting, '
-      'so it does not extend that bound: it confirms it by a different question, photometric visibility '
-      'with a null where the first was ray convergence. What it adds is inside: those rays cross the '
-      'face on h %.2f to %.2f and ARRIVE on h %.3f %.3f m in, so whatever the head is, it stands above '
-      '%.3f at that depth, which is a floor on the inside of the recess rather than on its mouth.'
-      % (WR['nrays'], WR['null_med'], WR['thresh'], WR['open_hi'] - WR['open_lo'],
-         WR['prev_hi'] - WR['prev_lo'], WR['open_lo'], WR['open_hi'], WR['fit_h'],
+check('the largest change ever made to these balconies now has a second opinion, from other machinery',
+      WR['band_hits'] > 0 and WR['thresh'] > WR['null_med'],
+      'deleting four surfaces rested on ONE instrument: lamp_void.py swept the space %d triangulated '
+      'rays crossed to reach a fitting %.3f m behind the face and found all four inside the emptiness. '
+      'That never had a second opinion. lamp_void argues from ray CONVERGENCE, geometry about where '
+      'lines go; this asks whether a bright blob is actually IN THE PICTURE where a lamp should be. The '
+      'threshold is a control: %d phantom sightlines, the same lamps slid along d to where nothing is '
+      'drawn and nothing was fitted, score %.3f at the median and %.3f on their 95th, and that 95th IS '
+      'the threshold. Light comes out over h %.2f to %.2f: %d of %d rays crossing there see the source '
+      'against phantom rates no higher than %.2f, over d %.2f to %.2f so it is not one local hole.'
+      % (WR['fit_rays'], WR['fit_depth'], WR['nrays'], WR['null_med'], WR['thresh'],
+         WR['open_lo'], WR['open_hi'], WR['band_hits'], WR['band_rays'], WR['null_rate_hi'],
+         WR['dlo'], WR['dhi']),
+      'tools/west_recess.py')
+check('it is a second question and not a second source, and it adds a floor inside the recess',
+      (WR['open_hi'] - WR['open_lo']) < (WR['sweep_hi'] - WR['sweep_lo']) and WR['fit_h'] > WR['open_hi'],
+      'only one of the five sources cleared the bar and it is the SAME fitting lamp_void swept to, so '
+      'both readings still rest on that one lamp being real; what carries that is its %.3f m rms over '
+      '%d rays and its %.3f m split-halves agreement in u, neither re-tested here. The band is also '
+      'narrower than the sweep, %.2f m against %.3f, so it extends nothing. What it adds is inside: '
+      'those rays cross the face on h %.2f to %.2f and ARRIVE on h %.3f, %.3f m in, so whatever the '
+      'recess head is it stands above %.3f at that depth. That is a floor on the INSIDE of the recess '
+      'rather than on its mouth, and the inside had nothing before.'
+      % (WR['fit_rms'], WR['fit_rays'], WR['fit_split'], WR['open_hi'] - WR['open_lo'],
+         WR['sweep_hi'] - WR['sweep_lo'], WR['open_lo'], WR['open_hi'], WR['fit_h'],
          WR['fit_depth'], WR['fit_h']),
       'tools/west_recess.py')
 check('and the four lamps drawn on the west back wall are unconfirmed rather than refuted',
       WR['back_hits'] == 0 and WR['back_climb'] > 1.6 * WR['fit_climb'],
       'they are seen in NONE of the %d rays that reached the right height, and the photometry FAVOURS '
-      'them: they stand %.1f m away filling %.1f px where the fitting stands %.1f m away filling %.1f px '
-      'and is seen 27 times in a hundred. But the geometry does not favour them. A ray to a back lamp '
-      'must climb %.2f m inside the recess after crossing the face, against %.2f m for the fitting, and '
-      'a recess only has to be shallower or shorter than that climb needs for the light never to get out '
-      'with the lamp exactly where it is drawn. So they stay, marked: nothing in %d frames has ever seen '
-      'them and nothing here can tell absence from a ceiling in the way. Deleting them would be acting '
-      'on an absence with a known blind spot, which is how the wrong things get removed.'
+      'them: %.1f m away filling %.1f px where the fitting is %.1f m away filling %.1f px and is seen 27 '
+      'times in a hundred. But the geometry does not. A ray to a back lamp must climb %.2f m inside the '
+      'recess after crossing the face, against %.2f m for the fitting, and a recess only has to be '
+      'shallower or shorter than that climb needs for the light never to get out with the lamp exactly '
+      'where it is drawn. So they stay, marked: nothing in %d frames has ever seen them and nothing here '
+      'can tell absence from a ceiling in the way. Deleting them would be acting on an absence with a '
+      'known blind spot, which is how the wrong things get removed.'
       % (WR['back_rays'], WR['back_rng'], WR['back_px'], WR['fit_rng'], WR['fit_px'],
          WR['back_climb'], WR['fit_climb'], WR['frames']),
       'tools/west_recess.py')

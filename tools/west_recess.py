@@ -1,13 +1,18 @@
 # 2026-09-10: WHERE IS THE WEST LOWER FRONT OPEN? ASKED WITH LIGHT THAT CAME OUT OF IT.
 #
-# THE DEFECT THIS AIMS AT IS ALREADY WRITTEN INTO index.html AND HAS NEVER BEEN FIXED. This file draws
-# the lower gallery as a DECK STANDING ON THE END FACE with a solid apron 5.40 to 6.33, a deck slab and
-# a solid upstand 6.33 to 6.85, a rail to 7.16 and a soffit on 8.08. Seven clips read from three
-# standpoints all describe something else: a long unlit horizontal RECESS SET BACK behind the parapet
-# face, with a head, a sill and downlights inside it. The record says so and then says why nothing moved:
-# "a recess needs a depth and a sill and a head and this archive has measured none of them from a pose."
-# The unseeded brightness scan found no edge anywhere in that band on the west face, which is what a face
-# with nothing on it looks like. So brightness on the face is the wrong question.
+# WHAT THIS IS FOR, CORRECTED. The first version of this file said index.html still draws the lower tier
+# as a solid deck on the end face. IT DOES NOT, and has not since earlier on 2026-09-10, when the apron,
+# the solid upstand, the glass rail and the 6.33 floor slab were all DELETED and the tier became an open
+# recess from the ground wall's soffit up to the top slab. That was a large change to the balconies and it
+# rested on ONE instrument: tools/lamp_void.py swept the space 33 triangulated rays crossed to reach a
+# fitting 2.003 m behind the face and found all four surfaces inside the emptiness. A deletion of four
+# surfaces on one sweep is exactly the kind of thing that needs a second opinion from different machinery,
+# and it never had one. THIS IS THAT SECOND OPINION.
+#
+# WHY IT HAS TO BE DIFFERENT MACHINERY. lamp_void.py argues from ray CONVERGENCE: rays met somewhere, so
+# the space they crossed is empty. That is geometry about where lines go. This argues from whether a
+# bright blob is actually IN THE PICTURE where the model says a lamp should be, with a measured
+# false-positive rate. Same conclusion from either would be worth having; they share only the poses.
 #
 # THE RIGHT QUESTION IS OCCLUSION, WHICH IS THE ONE CLASS OF ARGUMENT THAT HAS HELD UP HERE. There are
 # LIGHTS BEHIND that face. This file already draws four of them on the west gallery back wall, 3.830 m
@@ -72,7 +77,11 @@ LAMPS = [('back %d' % (i + 1), BACK + 0.02, d, h) for i, (d, h) in enumerate(DRA
 LAMPS.append(('fitting', 2.191, 7.858, 7.083))
 print('the west face plane stands on u %.3f and the gallery back wall on u %.3f' % (FACE, BACK))
 print('%d sources sit behind it: %s' % (len(LAMPS), ', '.join(l[0] for l in LAMPS)))
-print('this file draws that face SOLID from 5.40 to 8.08, so any light out of it is a hole in the model')
+# the open recess this file draws: from the ground wall's soffit up to the underside of the top slab
+DRAWN_LO = endw('groundTop')
+DRAWN_HI = float(re.search(r'floors:\[[0-9.]+,([0-9.]+)\]', BLOCK).group(1)) - endw('slab')
+print('this file NOW draws that tier OPEN from h %.2f to %.2f, the recess left when four surfaces went'
+      % (DRAWN_LO, DRAWN_HI))
 
 # THE NULL: the same lamps slid along the gallery, where nothing is drawn and nothing was fitted.
 PHANTOM = []
@@ -245,16 +254,28 @@ print('   the lamp is %.3f m across and the disc is %d px, so a source whose rad
 print('   that fills the disc and a zero against it is about light rather than about distance.')
 
 print('')
-print('   WHAT THIS FILE DRAWS ACROSS THAT BAND: apron 5.40 to 6.33 solid, deck slab and upstand 6.33')
-print('   to 6.85 solid, rail to 7.16, soffit 8.08. Light came out through %.2f m of it.' % (b1 - b0))
+inside = DRAWN_LO <= b0 and b1 <= DRAWN_HI
+print('   THE DRAWN RECESS IS OPEN FROM h %.2f TO %.2f AND THE MEASURED BAND IS %.2f TO %.2f, so the'
+      % (DRAWN_LO, DRAWN_HI, b0, b1))
+print('   band this run finds sits %s the shape this file draws.'
+      % ('INSIDE' if inside else 'OUTSIDE'))
+if inside:
+    print('   THE DELETION OF THE FOUR SURFACES IS CONFIRMED BY MACHINERY THAT HAD NO PART IN IT. Where')
+    print('   the apron, the upstand, the rail and the 6.33 slab used to be drawn, light demonstrably')
+    print('   comes out, %d times in %d rays against a phantom rate no higher than the null bands show.'
+          % (len([r for r in real if b0 <= r[0] < b1 and r[2] > THRESH]),
+             len([r for r in real if b0 <= r[0] < b1])))
+else:
+    print('   THAT IS A DISAGREEMENT WITH WHAT IS DRAWN and it is the finding of the run.')
 if len(answered) < 2:
     print('')
-    print('   BUT IT IS ONE SOURCE, AND THAT IS THE RESULT RATHER THAN THE BAND. Only %s cleared the bar,'
+    print('   IT IS ONE SOURCE, AND THAT LIMITS WHAT IT IS WORTH. Only %s cleared the bar, and it is the'
           % (answered[0] if answered else 'nothing'))
-    print('   and that is the SAME fitting the previous 5.458 to 6.842 bound came from, so this is not a')
-    print('   second opinion on that bound, it is the same opinion measured a different way. And it is')
-    print('   NARROWER, %.2f m against 1.384, so the earlier bound stands and nothing here replaces it.'
-          % (b1 - b0))
+    print('   same fitting lamp_void.py swept to. So this is a second opinion on the SURFACES, from a')
+    print('   different question, but not a second SOURCE: both readings rest on that one lamp being')
+    print('   real. Its 0.047 m rms over 33 rays and its split-halves agreement of 0.066 m in u are what')
+    print('   carry that, and they are not re-tested here. The band is also NARROWER than the sweep,')
+    print('   %.2f m against 1.384, so nothing about the recess extent is extended by it.' % (b1 - b0))
     cb = [CLIMB[n] for n in CLIMB if n.startswith('back') and np.isfinite(CLIMB[n])]
     cf = CLIMB.get('fitting', float('nan'))
     print('   THE PART THAT IS NEW IS WHAT DID NOT ANSWER. The four lamps this file DRAWS on the west')
