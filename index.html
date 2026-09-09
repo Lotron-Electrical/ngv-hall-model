@@ -2479,6 +2479,20 @@ function buildWallDetails(root){
   // 116 cameras at h 9.37-10.07 put the surface underfoot between 7.72 and 8.72, and 8.34 is inside it.
   // The pan poses carry 0.02-0.10 m of position error, which is why they are quoted for WHERE a camera
   // stood and not for any edge they might see across the hall.
+  // AND THE SAME EVIDENCE TESTED THE WHOLE MODEL AT ONCE (tools/occupancy_audit.py). A registered camera is
+  // a point a person and a phone physically occupied, and the model says which points are stone; the two
+  // cannot both be right where they disagree. This needs no edge finder, no search window and no drawn line
+  // to start from, so it has none of the follow bias that has had to be fitted out of every other
+  // instrument here, and it covers the balconies, both long walls, both ends and the corridor in one pass.
+  // All 1,518 posed cameras in the archive, across thirteen classes, were tested against the north wall and
+  // its openings, the south wall, both end walls, both end gallery slabs, the hall floor and the corridor
+  // back wall. FOURTEEN cameras land inside a solid and every one of them by 0.002 m: b5 frames grazing
+  // opening 6's east jamb, 19 mm past a jamb whose own pose error is 51 mm. Nothing else touches anything.
+  // Read it for what it is. A clean pass bounds the model WHERE PEOPLE WALKED and nowhere else: a surface
+  // drawn a metre into a room nobody entered passes this test happily, which is exactly the corridor's
+  // situation. What it does rule out is any gross misplacement of the walls, the ends or the gallery decks
+  // along every route the six captures took, and it rules out the one-storey-down pose alias having crept
+  // into the new pan poses, because a camera aliased down a storey would sit inside a gallery slab.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=3.0, ub=47.0;
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
@@ -2705,6 +2719,33 @@ function buildEndWalls(root){
   // higher; extrapolating the draw-to-answer line to where it crosses itself puts it near 9.15. The model
   // takes the measured +0.090 rather than the extrapolation. For the same reason, DO NOT read a small
   // residual on a re-measure after this change as confirmation: part of it will be this change echoing.
+  // THE FOLLOW GAIN WAS FITTED INSTEAD OF ASSUMED, AND THE RESULT IS THAT THIS LEVEL IS NOT MEASURED
+  // (2026-09-09, tools/parapet_fit.py). Everything above assumes the instrument reads the edge and then
+  // corrects for a gain measured separately. It can be done properly, because a following instrument is
+  // linear in the drawn height: A(d) = truth + g(d - truth), so reading the SAME edge in the SAME frames
+  // at three different draws makes the slope the gain and the intercept the truth, with nothing assumed.
+  // The draws are 8.92, 9.06 and 9.20, as wide apart as the 0.25 m search window allows while still
+  // bracketing both candidate heights and clearing the deck line below.
+  // Run over twelve captures, including five built from the newly recovered balcony pans:
+  //   EAST  walk  truth 9.091, gain 0.20   the only well-conditioned reading in the whole set
+  //         night truth 9.216, gain 0.70   |  b1 truth 9.290, gain 0.66
+  //         three captures, spread 0.199 m, VERDICT NOT MEASURED
+  //   WEST  walk  truth 8.974, gain 0.37   |  b3 truth 9.079, gain 0.69
+  //         day4k and b3p returned gains of 0.99 and 0.90, i.e. they only read the drawing back
+  //         two captures, VERDICT NOT MEASURED
+  // So the four-capture agreement recorded above was four captures agreeing about the DRAWING, not about
+  // the edge: at a gain near 0.7 an instrument reproduces most of whatever it was given, and the captures
+  // were all given the same value. The pan classes were added to this test precisely because b3p stands ON
+  // the east gallery a couple of metres from the parapet, where every other capture reads it across 28 to
+  // 40 m, and they did not rescue it either: from up there the operator looks OUT at the hall, so the edge
+  // he is standing beside is behind the lens in nearly every frame.
+  // NOTHING IS CHANGED ON THIS. Moving a level on one capture is what produced the result being corrected
+  // here, so 0.68 and 0.77 stay, now labelled for what they are. The single low-gain reading at each end,
+  // the floor walk at gain 0.20 and 0.37, would put west 0.634 and east 0.751, which keeps the asymmetry
+  // and lowers both by about 40 mm. That is a hint, not a measurement, and it is written down so a future
+  // pass can test it rather than rediscover it.
+  // WHAT WOULD SETTLE IT: a capture standing on one gallery and looking ALONG its own parapet, which no
+  // clip in the archive does. Not more analysis of these frames.
   const ups=(W.upstands&&W.upstands[side]!==undefined)?W.upstands[side]:W.upstand;
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+ups],[uF,0,fl[1]+ups]],upstandMat,'gallery-parapet');
   quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
