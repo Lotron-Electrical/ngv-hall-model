@@ -2922,6 +2922,43 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // LLOYD WAS RIGHT, THERE IS A WALK ALONG THE BALCONY, AND IT SETTLES THE PARAPET (2026-09-09,
+  // tools/balcony_walk.py, tools/deck_cloud.py, tools/coping_cloud.py, tools/parapet_arrival.py).
+  // Lloyd: "in one of the videos I referenced I walk along the balcony." He said it twice and he was
+  // right both times. Laid out as a route rather than counted, b3 is a walk along the east top gallery
+  // from d 3.98 to d 7.50, 25 accepted poses and 140 with the pan chain. b7s walks both ends. The
+  // "cameras spanning 0.68 m" that every earlier refusal quoted was the span ACROSS the gallery, not
+  // along it; the walk was always there.
+  // WHAT THE WALK CANNOT DO, measured rather than assumed. All 163 posed frames on that deck look WEST
+  // down the hall: none looks at the gallery. The only near surface in them is the coping at the bottom
+  // edge, and the coping runs parallel to the walk, so walking past it triangulates nothing. Proved
+  // twice: a cloud from those frames put 7,120 points in mid-air beside the operator and no sheet within
+  // 2 m of the parapet, and a second pass built only on the VERTICAL baselines in the operator's hand
+  // (0.12 to 0.67 m, which is square across the coping) returned 27 near points from 431 matched pairs.
+  // Both are recorded as refusals and neither number is used anywhere.
+  // WHAT THE WALK CAN DO IS RULE, and it rules on the disagreement that stood open all day. The
+  // silhouette fit preferred a face on u 48.702 with a top on 9.391 over the drawn (48.056, 9.110).
+  //   NOBODY WALKS IN MID-AIR. A face on 48.702 puts 140 of the 163 deck cameras out over the hall, a
+  //   median of 0.445 m past the stone and as much as 0.807 m, held for a 3.5 m walk. The drawn face
+  //   puts 31 of them past it by a median of 0.115 m, which is a lean over a coping. The rival is
+  //   refused by where the operator's feet were.
+  //   AND LIGHT THAT ARRIVED WAS NOT BLOCKED. 7,252 points triangulated inside the building from those
+  //   cameras each sent a ray over the parapet; where a ray crosses the face, its height caps the top.
+  //   At the drawn face 1.62 % of the 7,141 crossings pass below 9.110 and the 5th percentile is 9.363,
+  //   so the drawn parapet stops almost none of the light that actually arrived.
+  // THE FIRST RUN OF THAT TEST TOOK THE SINGLE LOWEST RAY AND REFUTED BOTH CANDIDATES, which is how a
+  // one-sided bound reports an outlier rather than a fact: over 7,000 far points a few pairs of nearly
+  // parallel rays agree to 20 mm on a point that is not there, and the minimum is the statistic that bad
+  // point owns. Counting every crossing instead is the honest question and it is what is quoted above.
+  // SO THE EAST PARAPET IS NO LONGER AN OPEN QUESTION. Nothing moved, because the drawn line is the one
+  // that survives; it now has evidence under it instead of a tie. The face is bounded from the west at
+  // 48.145 and the top bracketed 9.110 to 9.363, both in tools/check_bounds.py, which now carries 18
+  // bounds. The coping's own depth is still unmeasured and is listed as such.
+  // AND ONE CONTRADICTION FOUND ON THE WAY, recorded because something used to rest on it: the b6s
+  // registration finished and poses three frames of clip b6 OUTSIDE the hall, on u 62.9 and d 23.7,
+  // while the b6g model poses frames 1002 to 1020 of the SAME clip on the east deck on 7 to 9 inliers.
+  // Two models, one clip, 20 m apart. Neither is strong enough to keep, so the corridor floor rests on
+  // nothing again and is back in the unmeasured list where it belongs.
   // THE POSE PAIR NOW WORKS FROM THE HALL FLOOR TOO, AND IT CLOSES THE FAR ROUTE (2026-09-09,
   // tools/pose_pair.py, tools/pose-shot.mjs with the new HIDESPRITES). A rolled capture can be paired
   // after all: turn the PHOTOGRAPH upright by quarter turns, swap its width and height and its two fields

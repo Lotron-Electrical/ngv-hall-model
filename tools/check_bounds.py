@@ -131,6 +131,23 @@ check('the gallery ceiling is above the people who stood under it',
       'soffit drawn on %.3f; deck cameras stand as high as h 10.23. With the line above, the bracket is '
       '10.230 to 11.633, %.3f m wide.' % (G['gHead'], 11.633 - 10.230),
       'tools/balcony_up.py')
+check('the east parapet face is behind the operator who walked past it',
+      G['uMax'] - G['face'] <= 48.145,
+      'face drawn on u %.3f (uMax %.3f less face %.3f). 163 posed cameras stand on the east deck across '
+      'three clips, and the westernmost lens is b3_000125 on u 47.895. A face further west than 48.145 '
+      'would have put that lens more than the 0.25 m of a lean over the coping out into the hall, and the '
+      'rival line u 48.702 from the silhouette fit would have put 140 of the 163 over the void, a median '
+      'of 0.445 m and as much as 0.807 m. Clearance %.3f m.'
+      % (G['uMax'] - G['face'], G['uMax'], G['face'], 48.145 - (G['uMax'] - G['face'])),
+      'tools/parapet_arrival.py')
+check('the east parapet top is under the light that got over it',
+      G['deck'] + 0.77 <= 9.363 + 1e-9,
+      'top drawn on %.3f, which is the deck %.3f plus 0.770. Of 7,141 rays that reached a deck camera from '
+      'a point inside the hall and crossed that face, the 5th percentile crossed on 9.363 and only 1.62%% '
+      'crossed below the drawn top, so a parapet drawn there stops almost none of the light that actually '
+      'arrived. Bracket 9.110 to 9.363, %.3f m wide.'
+      % (G['deck'] + 0.77, G['deck'], 9.363 - (G['deck'] + 0.77)),
+      'tools/parapet_arrival.py')
 check('the top deck is below every camera that stood on it',
       G['deck'] <= 9.416,
       'deck drawn on %.3f; the lowest camera standing on a gallery is h 9.416.' % G['deck'],
@@ -166,8 +183,11 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the west gallery upstand 0.68, and the opening head lean of 40 to 205 mm',
              'ENDW soffitDepth 2.1: nothing has ever seen the back edge of that soffit',
-             'the east parapet: 449 silhouette rays fit the drawn (48.056, 9.110) 1.80 times worse'
-             ' than (48.702, 9.391), and neither line is clean enough to ship, tools/parapet_silhouette.py'):
+             'the b6 gallery frames: the new b6s registration poses frames 396 to 1260 OUTSIDE the hall'
+             ' (u 62.9, d 23.7), while b6g poses frames 1002 to 1020 of the same clip on the east deck on'
+             ' 7 to 9 inliers. Two models, one clip, 20 m apart. Nothing rests on either, tools/balcony_walk.py',
+             'the parapet TOP is bracketed 9.110 to 9.363 and the face is only bounded from the west, so'
+             ' the coping depth itself has never been measured'):
     print('   ' + line)
 print('')
 if fails:
