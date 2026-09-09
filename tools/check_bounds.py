@@ -637,6 +637,76 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE LOWER END BALCONY IS DRAWN 1.75 m HIGH INSIDE (2026-09-09, arithmetic on this file's own numbers).
+TIER = {'deck': 6.33, 'slab': 0.26, 'upper': 8.34, 'rail': 7.16, 'depth': 3.85,
+        'habitable': 2.1, 'lenses_lower': 0, 'lenses_upper': 309, 'end_spread': 0.163}
+_clear = TIER['upper'] - TIER['slab'] - TIER['deck']
+check('the lower balcony as drawn is too low inside to be the gallery it is drawn as',
+      _clear < TIER['habitable'],
+      'the lower deck 6.33 and the ceiling over it 8.08 were both read off the same 4K frame, and their '
+      'difference is %.2f m of clear height over a floor %.2f m deep with a balustrade drawn on its edge. '
+      'A balustrade says people stand there; %.2f m says they cannot, being under every habitable minimum '
+      '(%.1f m) and under the standing height of a large share of adults. Two readings that cannot both '
+      'mean what they were taken for. This check states the contradiction rather than resolving it.'
+      % (_clear, TIER['depth'], _clear, TIER['habitable']),
+      'tools/check_bounds.py')
+check('and no camera in the archive has ever stood on the lower deck',
+      TIER['lenses_lower'] == 0 and TIER['lenses_upper'] > 100,
+      'the upper deck carries %d lenses across the captures and the lower one carries %d. That is '
+      'CONSISTENT with the lower band being closed to the public, which would make the drawn rail the '
+      'wrong element, and it is not evidence of it: nobody films from a service level either way. Named '
+      'so the three live possibilities stay separable - the 6.32 row is a parapet and not a floor, the '
+      '8.08 row hangs under the real ceiling, or the band is not occupied. The two readings that resolve '
+      'this tier already disagree by %.0f mm between the two ends, so there is no room to fit a third '
+      'answer out of them.'
+      % (TIER['lenses_upper'], TIER['lenses_lower'], 1000 * TIER['end_spread']),
+      'tools/check_bounds.py')
+# THE HEAD RESIDUAL: BUILT, SHIPPED INTO ELEVEN TOOLS, REFUSED BY A BOUND, REVERTED
+# (2026-09-09, tools/head_obliquity.py + tools/head_rebate.py).
+HRES = {'sill': 0.010, 'head': -0.110, 'null': -0.020, 'profiles': 232, 'openings': 6, 'of': 7,
+        'dissent': -0.005, 'windows': 3, 'implied': 2.315, 'measured_h': 2.431,
+        'D_head': 0.083, 'D_sill': -0.000, 'D_null': 0.030, 'n_head': 794, 'n_sill': 2370,
+        'n_null': 412, 'jamb': 0.178, 'Lmin': 11.0, 'Lmax': 14.0}
+check('the head residual is real and better controlled than most things shipped tonight',
+      abs(HRES['head']) > 3.0 * abs(HRES['null']) and abs(HRES['sill']) < 0.030,
+      'a profile walked through every drawn edge in 789 walk frames finds the SILL right, %+.0f mm, and '
+      'the HEAD %+.0f mm on %d of %d openings that carry square-on views, %d profiles, identical through '
+      '%d windows, against a pier null of %+.0f mm. One opening dissents on %+.0f mm and is named. The '
+      'sill is the control that says the detector is not biased downward in general.'
+      % (1000 * HRES['sill'], 1000 * HRES['head'], HRES['openings'], HRES['of'], HRES['profiles'],
+         HRES['windows'], 1000 * HRES['null'], 1000 * HRES['dissent']),
+      'tools/head_obliquity.py')
+check('the move I had already applied everywhere was refused by a bound written days ago',
+      abs(HRES['measured_h'] - HRES['implied']) > 0.100,
+      'the head was moved to 11.055 in the model and in every tool carrying it as a live aperture '
+      'constant. This suite refused it: tools/head_lean.py measures the opening HEIGHT as a difference in '
+      'which a drift common to sill and head cancels, and gets %.3f m across four openings, where the '
+      'move implies %.3f. Two instruments that both claim to cancel their own bias disagreeing by %.0f mm '
+      'is not settled by preferring the newer one, so the change was reverted whole. The bound that '
+      'caught it was written days ago for a different reason.'
+      % (HRES['measured_h'], HRES['implied'],
+         1000 * abs(HRES['measured_h'] - HRES['implied'])),
+      'tools/check_bounds.py')
+check('the residual expressed as a depth does not clear its own null by enough',
+      abs(HRES['D_head']) < 3.0 * abs(HRES['D_null']),
+      'a horizontal return standing D behind the face projects lower than the arris by '
+      '(H - h_cam) * D / (L + D), so the residual can be solved for D on every profile and must come out '
+      'constant if it is a surface. Signed, the sill returns %+.3f m on %d profiles, the pier null %+.3f '
+      'on %d, and the head %+.3f on %d. The head beats its null by less than the factor of three this '
+      'archive uses, and %.3f does not match the %.3f the jambs measured on the vertical edges.'
+      % (HRES['D_sill'], HRES['n_sill'], HRES['D_null'], HRES['n_null'], HRES['D_head'],
+         HRES['n_head'], HRES['D_head'], HRES['jamb']),
+      'tools/head_rebate.py')
+check('the camera set has no distance leverage to test that depth for constancy',
+      HRES['Lmax'] - HRES['Lmin'] < 5.0,
+      'the first version of that test was biased by its own filter and the null caught it: keeping only '
+      'downward offsets made every set return a positive depth, the pier null included, which came back '
+      'with D 0.205 m on masonry with no opening behind it. A null that cannot sit on zero is not a null. '
+      'Signed, it behaves. But every walk camera stands %.0f to %.0f m from this wall, so only one '
+      'distance bin answers and constancy cannot be tested at all. One bin is not a constant, the head is '
+      'not moved, and 11.165 stands with the opening height 2.43.'
+      % (HRES['Lmin'], HRES['Lmax']),
+      'tools/head_rebate.py')
 # THE NORTH TAPESTRIES, BURIED BY A CHANGE I SHIPPED THIS AFTERNOON (2026-09-09).
 TAPN = {'old_face': -0.090, 'drawn': -0.053, 'standoff': 0.037, 'south_standoff': 0.102,
         'shift': 0.060}

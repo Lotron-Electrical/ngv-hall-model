@@ -3141,6 +3141,59 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE LOWER BALCONY AS DRAWN IS 1.75 m HIGH INSIDE, AND THAT IS NOT A ROOM (2026-09-09, arithmetic on
+  // this file's own numbers, no detector involved). Lloyd: "the balcony sections still don't look correct."
+  // The levels were checked against real frames first and they land where the imagery puts them, so this
+  // is not a level in the wrong place. It is two readings that cannot both mean what they were taken for.
+  //   the lower deck is drawn on 6.33, read as the middle fascia's top h 6.32 off d4_000049
+  //   the ceiling over it is drawn on 8.08, read as the underside of the top slab off the SAME frame
+  //   8.08 - 6.33 = 1.75 m of clear height, over a floor 3.85 m deep, with a balustrade drawn on its edge
+  // A balustrade says people stand there. 1.75 m says they cannot: it is under every habitable minimum
+  // (2.1 to 2.4 m) and under the standing height of a large share of adults. A gallery you have to stoop
+  // the whole length of is not what that end wall is.
+  // SO ONE OF THREE THINGS IS TRUE and this file cannot yet say which:
+  //   the 6.32 row is the top of a PARAPET or a fascia and not a floor, and the real lower deck is lower;
+  //   the 8.08 row is not the lower tier's ceiling but something hanging under it, and the real one is up;
+  //   or the lower band is not an occupied gallery at all, in which case the rail drawn on 7.16 is wrong.
+  // WHAT THE ARCHIVE ALREADY SAYS ABOUT THE THIRD. Not one lens in any capture stands on 6.33, where the
+  // upper deck carries 309 of them. That is consistent with the lower band being closed to the public and
+  // it is not evidence of it, because nobody filmed from a service level either way.
+  // NOTHING IS MOVED. The lower tier is resolved by exactly two readings in the whole archive and they
+  // already contradict each other by 163 mm between the two ends, so there is no room to fit a third
+  // answer out of it. What changes today is that the contradiction is written where it is visible instead
+  // of living unnoticed inside a difference nobody had taken.
+  // A 110 mm MOVE OF THE OPENING HEAD WAS BUILT, SHIPPED INTO ELEVEN TOOLS, AND THEN REFUSED BY A BOUND
+  // (2026-09-09, tools/head_obliquity.py, tools/head_rebate.py). Walking a profile through every drawn
+  // edge in all 789 walk frames found the SILL right, +10 mm, and the HEAD 100 to 120 mm LOW on six of
+  // the seven openings that carry square-on views, on 232 profiles, identical through windows of 0.20,
+  // 0.30 and 0.45 m, against a pier null of -20 mm. Opening 10 dissents on -5 mm and is named.
+  // THAT IS A BETTER-CONTROLLED RESIDUAL THAN MOST THINGS SHIPPED TONIGHT, so the head was moved to
+  // 11.055 in the model and in every tool carrying it as a live aperture constant.
+  // AND tools/check_bounds.py REFUSED IT. tools/head_lean.py measures the opening HEIGHT as a difference
+  // in which a drift common to sill and head cancels, and gets 2.431 m across four openings. The move
+  // implies 2.315. Two instruments that both claim to cancel their own bias disagreeing by 116 mm is not
+  // something to settle by preferring the newer one, so the change was reverted whole.
+  // THE FLAW WAS IN MY OWN CONTROL, and it is worth writing down. "Square on" there meant square in the
+  // HORIZONTAL angle along the wall. The head is eleven metres up and every camera in this archive stands
+  // on the floor: from 12 m out with a lens 1.6 m high the head is seen at about 38 degrees of elevation.
+  // There is no vertically square view of a head from down there, and the bin labelled 0 to 15 degrees
+  // was still looking steeply upward.
+  // SO THE RESIDUAL WAS TURNED INTO A DEPTH. A horizontal surface standing D behind the face projects
+  // lower on the wall plane than the arris by (H - h_cam) * D / (L + D), and every term but D is known
+  // per profile. If the residual is a real return, D is the same for a camera 6 m away and one 25 m away.
+  // THE FIRST VERSION OF THAT TEST WAS BIASED BY ITS OWN FILTER, and the null caught it: keeping only
+  // downward offsets made every set return a positive depth, the pier null included, which came back
+  // with D 0.205 m on masonry that has no opening behind it. A null that cannot sit on zero is not a
+  // null. Signed, the sill returns -0.000 m on 2370 profiles, the pier null +0.030 on 412, and the head
+  // +0.083 on 794.
+  // WHICH IS REAL AND NOT ENOUGH. The head beats its null by less than three times where tonight's bar
+  // is three, its 0.083 does not match the 0.178 the jambs measured on the vertical edges, and the walk
+  // cameras all stand 11 to 14 m out, so there is no distance leverage to test whether D is constant at
+  // all. One bin is not a constant.
+  // SO THE HEAD IS NOT MOVED. 11.165 stands, the opening height 2.43 stands, and what is on the record is
+  // a well-controlled residual with no accepted explanation, plus the fact that the model refused a
+  // change I had already applied everywhere. The bound that refused it was written days ago for a
+  // different reason.
   // I BURIED BOTH NORTH TAPESTRIES IN THE WALL THIS AFTERNOON AND NOTHING CAUGHT IT (2026-09-09,
   // tools/tapestries.json). Moving the north wall face from -0.090 to -0.030 was a measurement and it
   // stands. What went with it was a defect: the two north tapestries hang on d -0.053, and once the face
@@ -3853,7 +3906,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 114 bounds, all satisfied.
+  // 120 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
