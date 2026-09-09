@@ -3140,6 +3140,30 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // A THIRD ROUTE TO THE LOWER FLOOR, AND THE WAY IT FAILS IS THE USEFUL PART (2026-09-09,
+  // tools/run_apron_edge.py). Last night named 6.33 as the least supported number in this model. There is
+  // a boundary lying exactly on it that nothing had ever looked at: the APRON runs from 5.40 up to that
+  // floor and the lower solid upstand runs from the floor up, so the level itself is a material change on
+  // the face plane, lighter below and darker above, which is the polarity this instrument was built for.
+  // AND IT HAD BEEN EXCLUDED BY CONSTRUCTION RATHER THAN BY EVIDENCE. Every lower-tier ladder run this
+  // evening started on 6.35 or 6.70, at or above the floor. Nobody looked below it and decided there was
+  // nothing there; the window simply never contained it.
+  // THE EAST RETURNS FOUR DETECTIONS and is refused outright, which is now the third separate refusal
+  // that end has given on its lower tier.
+  // THE WEST RETURNS 107 AND THEY DO NOT FORM A PLANE. Its near-far gap sits between 198 and 233 mm at
+  // EVERY station across the whole sweep and never dips: near cameras put this boundary around 6.2 and
+  // far cameras around 6.5, everywhere. That is not a badly conditioned line, it is two halves of the
+  // camera set looking at two different things, and a free fit run over both would have averaged them
+  // into a confident number sitting between.
+  // WHICH FOUND A SECOND DEFECT IN A VERDICT LINE I HAD ALREADY FIXED ONCE. The station scan required a
+  // candidate to beat its null split and to have its minimum inside the sweep. Both were necessary and
+  // both were still not enough: this flat 200 mm gap beat a 15 mm null comfortably and was declared real
+  // geometry. A curve with no dip is not a V. The rule now also requires the gap to COME DOWN by the same
+  // factor of three, and every feature shipped on the old wording was re-run against the new one: the two
+  // solid upstands, the replaned pair and the east rail all still pass, and nothing that was shipped
+  // changes. Two defects in one line, both found by pointing it at something that was not there.
+  // SO 6.33 STANDS UNSUPPORTED AND THE CLOSURE IS NOW SPECIFIC. It is not that nothing is visible on that
+  // level. It is that the cameras which can see it disagree with each other by 0.2 m about what it is.
   // THE DECK CARRIES EVERY OTHER BALCONY NUMBER AND IT IS STILL NOT MEASURED (2026-09-09,
   // tools/run_soffit_edge.py, tools/deck_bound.py). 8.34 is the number the solid upstand, the rail, the
   // fascia, the floor and the ceiling below are all drawn as offsets from, so every balcony height in
@@ -3493,7 +3517,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 77 bounds, all satisfied.
+  // 80 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

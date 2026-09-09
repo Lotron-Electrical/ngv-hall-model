@@ -45,11 +45,16 @@ SEED = {('west', 'rail top'): (4.160, 9.799), ('west', 'solid upstand top'): (3.
         # tools/run_upstand_replane.py). If the station scan is measuring the building it must land
         # in the same place whichever plane the ladder was walked on; if it follows the ladder, the
         # west recess is an artefact of the same family as the corridor aperture.
+        # THE APRON TOP, which IS the lower gallery floor, searched for the first time 2026-09-09.
+        # Every lower-tier ladder before tonight started on 6.35 or 6.70, at or above the floor, so
+        # this boundary was outside the window by construction rather than by evidence. The east
+        # returns four detections and is refused; only the west has anything to test.
+        ('west', 'apron top'): (3.687, 6.404),
         ('west', 'solid top replaned'): (3.710, 9.097),
         ('east', 'solid top replaned'): (48.056, 9.095)}
 SRC = {'rail top': '%s-walk-front-far-rays.npy', 'solid upstand top': '%s-up-far-rays.npy',
        'lower solid top': '%s-low-far-rays.npy', 'lower rail top': '%s-lowrail-far-rays.npy',
-       'solid top replaned': '%s-upR-far-rays.npy'}
+       'solid top replaned': '%s-upR-far-rays.npy', 'apron top': '%s-apron-far-rays.npy'}
 # the arrival cap was measured for cameras standing on the 8.34 deck, so it says nothing about a parapet
 # two and a half metres below them. Naming that here rather than quietly applying it anyway.
 CAPPED = ('solid upstand top',)
@@ -104,8 +109,8 @@ def track(R, u0, h0):
 for end in ('west', 'east'):
     print('')
     print('%s END, the face drawn on u %.3f' % (end.upper(), DRAWNFACE[end]))
-    for feat in ('solid upstand top', 'solid top replaned', 'rail top', 'lower solid top',
-                 'lower rail top'):
+    for feat in ('apron top', 'solid upstand top', 'solid top replaned', 'rail top',
+                 'lower solid top', 'lower rail top'):
         if (end, feat) not in SEED:
             continue
         src = os.path.join(POSEDIR, SRC[feat] % end)
@@ -165,10 +170,19 @@ for end in ('west', 'east'):
         # results shipped on the old wording were re-run against the new one and all four minimise well
         # inside their sweeps, so nothing shipped on it was wrong.
         edge = best[0] in (rows[0][0], rows[-1][0])
+        # A SECOND DEFECT IN THE SAME LINE, found by pointing this tool at a feature that is not there.
+        # Beating the null and having the minimum inside the sweep are both necessary and still not
+        # enough: the apron search returns a gap that sits on 200 mm at EVERY station and never dips, and
+        # the old wording called that real geometry because its maximum comfortably beat a 15 mm null. A
+        # curve with no dip is not a V, it is two camera halves looking at different features. So the gap
+        # must actually COME DOWN as well, by the same factor of three it has to beat the null by.
+        dip = gaps.max() > 3.0 * max(gaps.min(), 1e-6)
         print('      the null split moves %.0f to %.0f mm across the same sweep, so the '
               'near-far V is %s'
               % (1000 * np.nanmin(nulls), 1000 * np.nanmax(nulls),
                  'NOT a V at all: its minimum sits on the edge of the sweep' if edge else
+                 'NOT a V at all: the gap never comes down, so the two halves are looking at different '
+                 'features' if not dip else
                  'real geometry' if gaps.max() > 3.0 * np.nanmax(nulls)
                  else 'NOT distinguishable from the tracker recentring'))
         slope = float(np.polyfit([r[0] for r in rows], [r[1] for r in rows], 1)[0])

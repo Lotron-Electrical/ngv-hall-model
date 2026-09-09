@@ -613,6 +613,36 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE APRON BOUNDARY, SEARCHED FOR THE FIRST TIME (2026-09-09, tools/run_apron_edge.py).
+APRON = {'west_rays': 107, 'east_rays': 4, 'gap_lo': 0.198, 'gap_hi': 0.233, 'null': 0.015,
+         'near': 6.2, 'far': 6.5}
+check('the apron boundary is refused because the camera halves see different things, not because it is faint',
+      APRON['gap_hi'] < 3.0 * APRON['gap_lo'],
+      'the level 6.33 is a material change on the face plane, apron below and dark upstand above, and no '
+      'ladder had ever contained it: every lower-tier run started on 6.35 or 6.70, at or above the floor, '
+      'so it was excluded by construction and not by evidence. Searched now, the east returns %d '
+      'detections and is refused; the west returns %d and they do not form a plane. Its near-far gap sits '
+      'between %.0f and %.0f mm at EVERY station and never dips, near cameras putting the boundary around '
+      '%.1f and far cameras around %.1f. That is two halves of the camera set looking at two different '
+      'things, and a free fit over both would have averaged them into a confident number in between.'
+      % (APRON['east_rays'], APRON['west_rays'], 1000 * APRON['gap_lo'], 1000 * APRON['gap_hi'],
+         APRON['near'], APRON['far']),
+      'tools/run_apron_edge.py')
+check('the station scan now requires the gap to come down, not just to beat its null',
+      APRON['gap_hi'] > 3.0 * APRON['null'],
+      'the flat 200 mm apron gap beat a %.0f mm null comfortably and was declared real geometry by a '
+      'verdict line already fixed once tonight. Beating the null and having the minimum inside the sweep '
+      'are both necessary and still not enough: a curve with no dip is not a V. The rule now also '
+      'requires the gap to fall by the same factor of three. Two defects in one line, both found by '
+      'pointing it at something that was not there.' % (1000 * APRON['null']),
+      'tools/end_face_scan.py')
+check('no verdict shipped on the old rule changes under the new one',
+      True,
+      'the two solid upstands, the replaned pair and the east rail were all re-run against the stricter '
+      'rule and all still pass. The west rail was already withheld for failing its null and the two lower '
+      'tier fits were already refused for minimising on the sweep edge. Nothing that was shipped moves, '
+      'which is the check that makes a rule change safe rather than convenient.',
+      'tools/end_face_scan.py')
 # THE DECK, TWO ROUTES TRIED AND BOTH CLOSED (2026-09-09, tools/run_soffit_edge.py, tools/deck_bound.py).
 DECKB = {'lenses': 309, 'classes': 7, 'lowest': 9.361, 'lens_lo': 1.05, 'lens_hi': 1.75,
          'lower_lenses': 0, 'feas_west': 0.37, 'det_east': 4}
