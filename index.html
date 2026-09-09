@@ -3199,6 +3199,44 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // AND THEN ASKED OF EACH SURFACE SEPARATELY, WHICH IS WHERE THE UNCOMFORTABLE ANSWER IS (2026-09-10,
+  // tools/surface_match.mjs, tools/surface_pick.py, tools/surface_match.py, tools/surface_hidden.py).
+  // WHY THE WHOLE-FRAME TEST WAS NOT ENOUGH. It can say "this picture agrees" and nothing finer, and a
+  // hall frame is mostly ceiling and floor, so a balcony fascia in the wrong place moves that score by a
+  // per cent and vanishes inside it. So the same pose is shot TWICE: once normally, and once with every
+  // surface this goal names painted a flat identity colour, one colour per name, everything else black.
+  // The second pass is not a picture, it is a map of which surface the model drew in each pixel.
+  // THE FRAME SET HAD TO BE REBUILT FIRST, and that was a finding in itself. Scored against the ten frames
+  // chosen for OPENING coverage, the balcony surfaces returned ZERO readable pixels: gallery-fascia,
+  // gallery-rail, gallery-floor, gallery-parapet, end-wall, all of them nothing. A frame set chosen to
+  // show openings shows openings. So every mesh gave up its own world bounding box, one box PER PART
+  // because gallery-fascia is two meshes forty metres apart, and every posed camera in the archive was
+  // asked how much of each box it frames whole. Thirty frames over five captures, every one of the
+  // twenty-six framed surfaces getting its own before any surface got a second.
+  // AND FOUR SURFACES ARE FRAMED WHOLE BY NO POSED CAMERA THAT EXISTS: corridor-back, corridor-ceiling,
+  // corridor-floor and gallery-door. Nothing in this archive can check them, which is worth knowing.
+  // THE RESULT IS NOT ABOUT ACCURACY, IT IS ABOUT VISIBILITY, and it is the most useful thing found today.
+  // Of the thirty named surfaces, seventeen reach the screen at all across thirty frames each chosen to
+  // show its own surface as large as any camera in the archive ever does. Of those, the MEDIAN IS 70 PER
+  // CENT HIDDEN behind other geometry, and three are more than nine tenths hidden. Thirteen cover under
+  // 500 pixels in all thirty frames put together even with everything else taken away, gallery-rail,
+  // gallery-fascia, gallery-parapet and gallery-soffit among them.
+  // SO WHAT A VISITOR ACTUALLY SEES ON THE BALCONIES IS THE BAKED SCAN, not these surfaces. That is not a
+  // fault, and the bake came from photographs of this building, so what is on the screen there is
+  // photograph-derived. But it does mean the accuracy of most of these named surfaces CANNOT BE CHECKED
+  // AGAINST THE ARCHIVE BY LOOKING, because looking does not reach them. They are structural, not visual,
+  // and every claim about them in this file rests on the ray and photometric instruments instead.
+  // THE OCCLUSION FIGURE COST A BROKEN INSTRUMENT FIRST, and its own output caught it. The first x-ray
+  // pass turned DEPTH TESTING OFF, which let the goal surfaces draw over each other in traversal order:
+  // end-ground-wall came back with 937k pixels normally and 266k with supposedly nothing covering it, and
+  // five surfaces scored NEGATIVE hidden fractions. A surface cannot be more visible than its own
+  // silhouette. The right x-ray hides everything that is not a goal surface and leaves depth testing
+  // alone, and it is the corrected one every number above comes from.
+  // WHAT THE PHOTOGRAPHIC SCORE ITSELF SAID, for completeness: only four surfaces ever covered the 2500
+  // pixels this test needs, and NONE of the four beat the control of the same mask laid over a different
+  // frame's photograph. That is NOT a refutation of anything, and it is not written as one. It is the
+  // same sentence as above from the other side: there is too little of these surfaces on the screen to
+  // read, so this instrument returns nothing about them rather than a verdict.
   // THE MODEL PUT BACK IN FRONT OF THE CAMERAS THAT PHOTOGRAPHED THE ROOM (2026-09-10,
   // tools/render_match.py with tools/render_match.mjs). THE FIRST END-TO-END TEST THIS PROJECT HAS HAD.
   // WHAT IS DIFFERENT ABOUT IT. Every instrument here so far measured ONE quantity: a level, a jamb, a
@@ -5038,7 +5076,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 231 bounds, all satisfied.
+  // 234 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

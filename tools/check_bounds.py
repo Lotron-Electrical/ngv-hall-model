@@ -1409,6 +1409,54 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# AND ASKED OF EACH SURFACE SEPARATELY (2026-09-10, tools/surface_match.mjs + surface_pick.py +
+# surface_match.py + surface_hidden.py).
+SF = {'named': 30, 'onscreen': 17, 'medianhidden': 70.2, 'ninetenths': 3, 'tiny': 13, 'tinypx': 500,
+      'frames': 30, 'captures': 5, 'covered': 26, 'unframed': 4, 'parts': 151, 'minpix': 2500,
+      'scored': 4, 'corroborated': 0, 'idsurvived': 93.1,
+      'unframedn': ['corridor-back', 'corridor-ceiling', 'corridor-floor', 'gallery-door'],
+      'badxray': [937582, 265693], 'negatives': 5}
+check('each surface was asked separately, by rendering a map of which surface the model drew in each pixel',
+      SF['onscreen'] <= SF['named'] and SF['covered'] <= SF['named'],
+      'the whole-frame test can say "this picture agrees" and nothing finer, and a hall frame is mostly '
+      'ceiling and floor, so a balcony fascia in the wrong place moves that score by a per cent. So the '
+      'same pose is shot TWICE: once normally and once with every surface this goal names painted a flat '
+      'identity colour, everything else black. %.1f per cent of the pixels came back within tolerance of '
+      'a colour that was actually assigned, so the map survived the trip.'
+      % SF['idsurvived'],
+      'tools/surface_match.mjs')
+check('the frame set had to be rebuilt per surface first, and that was a finding of its own',
+      SF['covered'] + SF['unframed'] >= SF['named'] - 1,
+      'scored against the ten frames chosen for OPENING coverage, the balcony surfaces returned ZERO '
+      'readable pixels: gallery-fascia, gallery-rail, gallery-floor, gallery-parapet, end-wall, all of '
+      'them nothing. A frame set chosen to show openings shows openings. So every mesh gave up its own '
+      'world bounding box, one box PER PART because gallery-fascia is two meshes forty metres apart, and '
+      'every posed camera was asked how much of each box it frames whole: %d parts, %d frames over %d '
+      'captures, every one of the %d framed surfaces getting a frame before any got a second. And %d '
+      'surfaces are framed whole by NO posed camera that exists, so nothing in this archive can check '
+      'them either way: %s.'
+      % (SF['parts'], SF['frames'], SF['captures'], SF['covered'], SF['unframed'],
+         ', '.join(SF['unframedn'])),
+      'tools/surface_pick.py')
+check('and the answer is about visibility rather than accuracy, which is the most useful thing found today',
+      SF['onscreen'] < SF['named'] and SF['corroborated'] == 0,
+      'of the %d named surfaces, %d reach the screen at all across %d frames each chosen to show its own '
+      'surface as large as any camera in the archive ever does. Of those, the MEDIAN IS %.1f PER CENT '
+      'HIDDEN behind other geometry and %d are more than nine tenths hidden; %d cover under %d pixels in '
+      'all %d frames together even with everything else taken away, gallery-rail, gallery-fascia, '
+      'gallery-parapet and gallery-soffit among them. So what a visitor sees on the balconies is the BAKED '
+      'SCAN, which came from photographs of this building, and the accuracy of most of these named '
+      'surfaces cannot be checked by looking because looking does not reach them. Only %d surfaces ever '
+      'covered the %d pixels the photographic test needs and %d of them beat the control of the same mask '
+      'over a different frame photograph, which is NOT a refutation and is not written as one. The '
+      'occlusion figure cost a broken instrument first: the initial x-ray turned depth testing OFF, let '
+      'the goal surfaces draw over each other, and returned %d pixels against %d for end-ground-wall with '
+      '%d negative hidden fractions. A surface cannot be more visible than its own silhouette; the '
+      'corrected x-ray hides everything that is not a goal surface and leaves depth testing alone.'
+      % (SF['named'], SF['onscreen'], SF['frames'], SF['medianhidden'], SF['ninetenths'], SF['tiny'],
+         SF['tinypx'], SF['frames'], SF['scored'], SF['minpix'], SF['corroborated'],
+         SF['badxray'][0], SF['badxray'][1], SF['negatives']),
+      'tools/surface_hidden.py')
 # THE MODEL PUT BACK IN FRONT OF THE CAMERAS (2026-09-10, tools/render_match.py + render_match.mjs).
 RM = {'poses': 10, 'captures': 6, 'mismatched': 90, 'bar': 0.2424, 'beat': 6,
       'best': 0.4447, 'flatpeak': 0.4081, 'flatexp': 0.3964, 'tile': 60, 'boot': 400,
