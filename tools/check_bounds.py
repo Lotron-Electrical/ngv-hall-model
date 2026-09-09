@@ -637,6 +637,42 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE BLACK BAND NAMED, AND THE BAR DELETED (2026-09-10, rail_over.py with rail_band.py).
+RO = {'back': 0.164, 'eye': 9.810, 'thick': 0.06, 'subtend': 18, 'seen': 49, 'glass': 47,
+      'hand': 0, 'solid': 0, 'ctrl_e': 0.51, 'ctrl_w': 0.63, 'band_n': 29, 'band_hits': 1,
+      'rays_e': 660, 'rays_w': 366, 'drawn_e': 1.525, 'drawn_w': 1.459}
+check('the band across the east gallery render has a name, and it is a mesh this file draws',
+      RO['subtend'] > 10,
+      'it was gallery-handrail, an opaque Lambert quad drawn across the whole width of the gallery on '
+      'deck plus railTops. A deck camera stands %.3f m behind it with its eye on h %.3f, so %.0f mm of '
+      'opaque bar subtends about %d degrees of vertical view, roughly a third of a portrait frame '
+      'straight across the middle. That is the band, and it is the standing complaint about these '
+      'balconies.'
+      % (RO['back'], RO['eye'], 1000 * RO['thick'], RO['subtend']),
+      'tools/rail_over.py')
+check('the occlusion route has no leverage on a gallery barrier, and the reason is geometry',
+      RO['glass'] > 0.9 * RO['seen'] and RO['hand'] == 0 and RO['solid'] == 0,
+      'a deck camera looks out over the barrier at the north wall, so each sightline to the bottom of one '
+      'of the twelve openings can be traced to the barrier plane and the photograph asked whether that '
+      'opening is there. Of the %d sightlines seen at both ends together, %d crossed the barrier inside '
+      'the GLASS and %d crossed the opaque handrail and %d the solid upstand. Glass blocks nothing, so '
+      'seeing an opening through it contradicts nothing. Every deck camera stands with its eye between '
+      'the upstand top and the rail top, which is where a person stands, so almost every sightline to '
+      'anything far leaves through the glass. That is why this element has resisted every instrument, '
+      'and it is recorded so the route is not rebuilt. The not-seen readings were discarded first: the '
+      'control registers %.0f per cent east and %.0f west, so a miss is as likely to be the instrument.'
+      % (RO['seen'], RO['glass'], RO['hand'], RO['solid'], 100 * RO['ctrl_e'], 100 * RO['ctrl_w']),
+      'tools/rail_over.py')
+check('so the bar was deleted rather than moved, and the measured edge under it was kept',
+      RO['band_hits'] == 1 and RO['band_n'] == 29,
+      'the ray fit measured a top EDGE of the lit front, %d rays inside 50 mm east and %d west. A BAR '
+      'standing on that edge was never measured; it was laid over the measurement as an interpretation '
+      'of it, and rail_band.py finds it in %d photograph out of %d taken from behind it. The glass quad '
+      'still runs to the same rTop, so the measured edge is not given up and only the unmeasured bar '
+      'goes. Both ends lose it, not only the refuted east, because at neither end did anything ever '
+      'measure a bar; railTops stays %.3f east and %.3f west as the record of the edge that was.'
+      % (RO['rays_e'], RO['rays_w'], RO['band_hits'], RO['band_n'], RO['drawn_e'], RO['drawn_w']),
+      'tools/rail_over.py')
 # AN OPENING MOVED, ON THREE LINES THAT AGREED (2026-09-10, opening_holes.py, opening_shift.py).
 OP3 = {'reads': 1055, 'ctrl': 0.04, 'lo': 0.57, 'hi': 0.85, 'three': 1.10, 'spacing': 3.679,
        'within': 0.115, 'predicted': 0.784, 'measured': 0.780, 'clo': 0.600, 'chi': 0.870,
@@ -2136,4 +2172,9 @@ print('interior read BRIGHTER than the stone beside it, it sat 0.784 m off a rhy
 print('to 0.115, the photographs put it 0.780 m east of where it was drawn while eleven controls stayed')
 print('put, and no jamb had ever been measured within 9 m of it. It moved. That is the first time a piece')
 print('of this model has changed position rather than been deleted on a measurement.')
+print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
+print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
+print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')
+print('there, and 28 of 29 photographs taken from behind it show none, so it was deleted at both ends')
+print('and the measured edge beneath it kept. That is the second surface this model has lost today.')
 print('"All satisfied" means the file tells the truth about itself, not that it is right.')
