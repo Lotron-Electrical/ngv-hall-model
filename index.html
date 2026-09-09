@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.320, floor:8.34, ceil:10.947, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); WIDTH AND CEILING ARE NOW ONE ANSWER, not two assumptions: the anchored ceiling locus (tools/corridor_locus.py) gives the ceiling height for every assumed back-wall depth, and the highest lamp measured inside the room, h 10.945, cuts it -- a ceiling below a lamp is impossible. The curve crosses that lamp on d -2.350 h 10.947 from 82 rays with its four camera splits agreeing to 10 mm, so the room is at least 2.320 m deep and this is the SHALLOWEST admissible one. A deeper room with a higher ceiling is equally allowed; 50 mm of lamp-height error moves the wall 86 mm. Was 2.06 and 11.4, a pair that put the drawn ceiling 0.6 m above what the rays read at the drawn depth. Floor 8.34 CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py) */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:1.420, floor:8.34, ceil:10.947, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); WIDTH AND CEILING ARE NOW ONE ANSWER, not two assumptions: the anchored ceiling locus (tools/corridor_locus.py) gives the ceiling height for every assumed back-wall depth, and the highest lamp measured inside the room, h 10.945, cuts it -- a ceiling below a lamp is impossible. The curve crosses that lamp on d -2.350 h 10.947 from 82 rays with its four camera splits agreeing to 10 mm, so the back wall stands on d -2.350 and this is the SHALLOWEST admissible room. WIDTH IS MEASURED FROM THE BACK OF THE REVEAL, not from the face: the model draws dB = face + openDepth + width, so 0.9 + 1.420 = 2.320 m of room behind the face. A deeper room with a higher ceiling is equally allowed; 50 mm of lamp-height error moves the wall 86 mm. Was 2.06 and 11.4, which drew the wall on -2.990 and put the drawn ceiling 0.6 m above what the rays read at the drawn depth. Floor 8.34 CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py) */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -3140,6 +3140,52 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // SORTING THE STALE CONSTANTS BY WHAT THEY DO, AND FINDING A SHIPPED ARITHMETIC ERROR OF MY OWN
+  // (2026-09-09, tools/mask_audit.py). Two stale-constant faults tonight had opposite consequences. The
+  // lamp aperture manufactured two reveal points and both were withdrawn. The corridor ray gate carried
+  // the same three stale numbers and moved its answer by five millimetres. And the corridor's sampling
+  // ladder was moved 260 mm deliberately and moved the answer by three.
+  // SO THE DIFFERENCE IS NOT HOW STALE A CONSTANT IS, IT IS WHAT THE CONSTANT DOES. A MASK decides
+  // whether a ray exists; get it wrong and detections pile onto its edge and the tool reports the mask as
+  // a feature, and nothing downstream can catch it because every instrument downstream looks through the
+  // same rectangle. A LADDER decides only where to look; a wide enough one finds the real edge from the
+  // wrong centre, and it costs rays rather than truth.
+  // tools/constant_drift.py finds stale constants but treats them alike, which is why its 121 hits sat
+  // unread and why the corridor gate survived a whole day inside them. The new audit parses every tool,
+  // resolves its module constants, and asks of each use whether the value sits inside a COMPARISON that
+  // keeps or drops data. 313 tools, 26 stale values inside comparisons. That list is readable in one
+  // sitting and the other ninety-odd are not.
+  // ITS FIRST FINDING WAS IN THE JAMB PEEL, WHICH IS SHIPPED GEOMETRY. tools/jamb_lines.py gates every
+  // peeled line with a DEPTH TEST centred on the wall face, and the face constant there was -0.090 with
+  // a gate of 0.30, so the accepted band ran -0.390 to +0.210. One of the three lines it rejected as not
+  // on this wall sat on d +0.217: seven millimetres outside a window whose centre was wrong by sixty.
+  // On the corrected face the band is -0.330 to +0.270 and that line is inside it.
+  // RE-PEELED ON THE CORRECTED GATE, THE OPENINGS HOLD. West returns the same four lines, moved -5, -1,
+  // +7 and -5 mm. East returns four where it returned five: the lost one is the weakest of the nine,
+  // u 34.877 on 36 rays with a 17 mm residual, and the four that remain moved by 10 mm or less. Measured
+  // against the openings as this model now draws them, the offsets have median +8 mm west and -14 mm
+  // east, so the 0.147 m shift applied this afternoon landed where the jambs say it should.
+  // AND THE PEEL STILL FINDS AN EDGE 0.177 m BEHIND THE FACE. All eight lines land between d -0.217 and
+  // -0.201 against a face on -0.030, a spread of 16 mm across two independent peels of opposite polarity.
+  // The model draws the reveal 0.9 m deep and draws nothing on that plane. It remains the north wall's
+  // clearest unexplained feature and it is recorded, not drawn.
+  // THE TWO PEELS ALSO AGREE ON A WIDTH THEY WERE NEVER ASKED FOR: pairing each line with the nearest of
+  // the opposite parity gives 1.189 m west over four openings and 1.190 m east over three, medians one
+  // millimetre apart, against a face opening drawn 1.212 m wide. It is the REVEAL width and not the face
+  // width, because both peels find the reveal edge, so it is recorded rather than applied.
+  // THEN THE AUDIT LED INTO AN ERROR I SHIPPED AN HOUR AGO. The model builds the room as dR = face +
+  // openDepth, then dB = dR + width, so the corridor WIDTH is measured from the back of the reveal and
+  // the back wall stands the reveal PLUS the width behind the face. tools/check_bounds.py computed the
+  // back wall as face minus width, leaving the reveal out, and had done so since the corridor was first
+  // drawn: with width 2.06 the checker read -2.090 while the sim drew -2.990.
+  // IT PASSED ANYWAY, WHICH IS THE PART WORTH KEEPING. Every corridor bound is one-sided, and a wall
+  // drawn deeper than required satisfies a one-sided test happily. A suite of one-sided tests cannot
+  // catch an arithmetic error that errs in the safe direction, and this one hid there for a day.
+  // Corrected, the width becomes 1.420 so that the drawn back wall lands on the measured -2.350, which is
+  // 0.9 + 1.420 = 2.320 m of room behind the face.
+  // THE AUDIT ALSO CAUGHT ITSELF SKIPPING A TOOL. One file carries a byte-order mark and both audits had
+  // been silently failing to parse it, reporting the skip as a count nobody reads. Both now read past it,
+  // and the scanned total goes from 311 to 313.
   // THE CORRIDOR IS DEEPER THAN THIS MODEL DREW IT, AND THE TOOL THAT SAYS SO HAD BEEN LOOKING THROUGH
   // THE WRONG SLOT (2026-09-09, tools/corridor_lines.py, tools/corridor_locus.py). The room behind the
   // brick wall is seen only through twelve openings, and every ray admitted to a corridor measurement is
@@ -3604,7 +3650,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 87 bounds, all satisfied.
+  // 92 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

@@ -87,8 +87,10 @@ files = [f for f in sorted(os.listdir(HERE)) if f.endswith('.py')]
 for name in files:
     if name in SKIP:
         continue
+    # utf-8-sig, NOT utf-8. One tool carries a byte-order mark and every audit here had been
+    # silently skipping it: an unaudited tool is exactly the hole these audits exist to close.
     try:
-        lines = open(os.path.join(HERE, name), encoding='utf-8').read().split('\n')
+        lines = open(os.path.join(HERE, name), encoding='utf-8-sig').read().split('\n')
     except Exception:
         continue
     inside_doc = False

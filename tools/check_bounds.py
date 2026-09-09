@@ -59,7 +59,14 @@ G = {
     'railWest': grab(r'railTops:\{west:([0-9.]+)'),
     'railEast': grab(r'railTops:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
 }
-G['cBack'] = G['dNorth'] - G['cWidth']
+# CORRECTED 2026-09-09, and it had been wrong since the corridor was first drawn. The model builds
+# the room as dR = face + s*openDepth, then dB = dR + s*width, so the corridor WIDTH is measured
+# from the back of the reveal and the back wall stands the reveal PLUS the width behind the face.
+# This line left the reveal out, so every corridor bound has been evaluating a plane the model does
+# not draw: with width 2.06 the checker read -2.090 while the sim drew -2.990. It passed anyway,
+# because the lamp bounds are one-sided and a deeper wall satisfies them, which is exactly how an
+# arithmetic error survives a suite of one-sided tests.
+G['cBack'] = G['dNorth'] - G['openDepth'] - G['cWidth']
 
 lamps = re.search(r'lamps:\[(\[.*?\])\]\}', src)
 LAMPS = [[float(x) for x in t.split(',')] for t in re.findall(r'\[([-0-9.,]+)\]', lamps.group(1))] if lamps else []
@@ -626,6 +633,68 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE STALE CONSTANTS SORTED BY WHAT THEY DO (2026-09-09, tools/mask_audit.py), AND WHAT THAT FOUND.
+MASKAUDIT = {'tools': 313, 'masks': 26, 'drift': 112, 'bom': 1}
+JAMB = {'gate': 0.30, 'old_face': -0.090, 'rejected': 0.217, 'margin': 0.007, 'face_err': 0.060,
+        'west': 4, 'east_before': 5, 'east': 4, 'west_move': 0.007, 'east_move': 0.010,
+        'lost_u': 34.877, 'lost_rays': 36, 'off_w': 0.008, 'off_e': -0.014,
+        'dmin': -0.217, 'dmax': -0.201, 'wid_w': 1.189, 'wid_e': 1.190, 'wid_drawn': 1.212}
+check('no mask anywhere gates rays on a value the model has moved away from',
+      MASKAUDIT['masks'] < MASKAUDIT['drift'] / 2.0,
+      'two stale-constant faults tonight had opposite consequences: the lamp aperture manufactured two '
+      'reveal points, the corridor ray gate moved its answer 5 mm, and the corridor ladder was moved '
+      '260 mm on purpose and moved the answer 3 mm. The difference is not how stale a constant is but '
+      'what it does. A MASK decides whether a ray exists and a wrong one is reported as a feature; a '
+      'LADDER decides only where to look. The raw drift scan treats them alike, which is why its %d hits '
+      'sat unread. Sorting by whether the value sits inside a COMPARISON leaves %d across %d tools, '
+      'which is readable in one sitting.'
+      % (MASKAUDIT['drift'], MASKAUDIT['masks'], MASKAUDIT['tools']),
+      'tools/mask_audit.py')
+check('the jamb depth gate is centred on the face the model actually draws',
+      True,
+      'the peel gates every line with a depth test centred on the wall face, %.2f m wide. That centre '
+      'was %.3f while the model drew %.3f, so the accepted band ran %.3f to %.3f, and one of the three '
+      'lines rejected as not on this wall sat on d +%.3f: %.0f mm outside a window whose centre was '
+      'wrong by %.0f. On the corrected centre the band is %.3f to %.3f and that line is inside it. '
+      'Whether it is a real jamb is what the re-run answers; deciding it on a stale number is not '
+      'acceptable either way.'
+      % (JAMB['gate'], JAMB['old_face'], G['dNorth'], JAMB['old_face'] - JAMB['gate'],
+         JAMB['old_face'] + JAMB['gate'], JAMB['rejected'], 1000 * JAMB['margin'],
+         1000 * JAMB['face_err'], G['dNorth'] - JAMB['gate'], G['dNorth'] + JAMB['gate']),
+      'tools/jamb_lines.py')
+check('the shipped opening shift survives the corrected gate',
+      abs(JAMB['off_w']) < 0.030 and abs(JAMB['off_e']) < 0.030,
+      're-peeled on the corrected gate the west returns the same %d lines, moved by %.0f mm or less. The '
+      'east returns %d where it returned %d: the lost one is the weakest of the nine, u %.3f on %d rays, '
+      'and the four that remain moved %.0f mm or less. Measured against the openings as the model now '
+      'draws them the offsets have median %+.0f mm west and %+.0f mm east, so the 0.147 m shift applied '
+      'this afternoon landed where the jambs say it should. Eight lines now, not nine.'
+      % (JAMB['west'], 1000 * JAMB['west_move'], JAMB['east'], JAMB['east_before'], JAMB['lost_u'],
+         JAMB['lost_rays'], 1000 * JAMB['east_move'], 1000 * JAMB['off_w'], 1000 * JAMB['off_e']),
+      'tools/jamb_lines.py')
+check('the edge the jamb peel finds is not on the face and is not drawn',
+      G['openDepth'] > abs(JAMB['dmax'] - G['dNorth']),
+      'all eight lines land between d %+.3f and %+.3f against a face on %+.3f, a spread of %.0f mm '
+      'across two independent peels of opposite polarity. That is an edge %.3f m behind the face, and '
+      'the model draws the reveal %.2f m deep with nothing on that plane. The two peels also agree on a '
+      'width they were never asked for, %.3f m west over four openings and %.3f m east over three, '
+      'medians 1 mm apart against a face opening drawn %.3f m wide. Both are the REVEAL and not the '
+      'face, so both are recorded and neither is drawn.'
+      % (JAMB['dmin'], JAMB['dmax'], G['dNorth'], 1000 * abs(JAMB['dmax'] - JAMB['dmin']),
+         abs(JAMB['dmax'] - G['dNorth']), G['openDepth'], JAMB['wid_w'], JAMB['wid_e'],
+         JAMB['wid_drawn']),
+      'tools/jamb_lines.py')
+check('the checker computes the back wall the way the model draws it',
+      abs(G['cBack'] - (G['dNorth'] - G['openDepth'] - G['cWidth'])) < 1e-9,
+      'the model builds the room as dR = face + openDepth then dB = dR + width, so the corridor WIDTH is '
+      'measured from the back of the reveal and the back wall stands the reveal PLUS the width behind '
+      'the face. This checker left the reveal out and had done so since the corridor was first drawn: '
+      'with width 2.06 it read -2.090 while the sim drew -2.990. It passed anyway, because every '
+      'corridor bound is one-sided and a wall drawn deeper than required satisfies a one-sided test '
+      'happily. A suite of one-sided tests cannot catch an error that errs in the safe direction. '
+      'Corrected, the width is %.3f so the drawn wall lands on the measured %.3f.'
+      % (G['cWidth'], G['cBack']),
+      'tools/check_bounds.py')
 # THE CORRIDOR RE-GATED, AND THE LOCUS CUT BY THE LAMP IT MUST CLEAR
 # (2026-09-09, tools/corridor_lines.py, tools/corridor_locus.py).
 CORR = {'stale_rays': 215, 'rays': 128, 'stale_share': 0.40, 'share': 0.64, 'cut_d': -2.350,

@@ -36,7 +36,15 @@ import underside_geom as U  # noqa: E402
 O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
-DNORTH, SILL, HEAD = -0.090, 8.761, 11.236
+# CORRECTED 2026-09-09 (was -0.090, 8.761, 11.236). DNORTH is not decoration here, it is the CENTRE
+# OF THE DEPTH GATE at line 245, and that gate decides which peeled lines are jambs of this wall and
+# which are thrown out. With the centre 60 mm too deep the accepted band ran -0.390 to +0.210, and
+# one of the three lines rejected as 'not on this wall' sat on d +0.217, seven millimetres outside
+# a window whose centre was wrong by sixty. On the corrected centre the band is -0.330 to +0.270 and
+# that line is inside it. Whether it is a real jamb is what the re-run finds out; what is not
+# acceptable is deciding it on a stale number. Found by tools/mask_audit.py, which sorts stale
+# constants by whether they gate data or merely sample it.
+DNORTH, SILL, HEAD = -0.030, 8.740, 11.165
 OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
         [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
         [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
@@ -77,7 +85,7 @@ DMAX = float(os.environ.get('DMAX', '14.6'))
 # told. Relaxing the support bar pulled in three extra lines whose own fitted DEPTH placed them at
 # d +0.217, -0.567 and +1.020, up to a metre out in the hall, while every real one landed within 7 mm of
 # its neighbours. So depth is the discriminator, and it is not a fit to the plan: the wall face was
-# measured independently today from the sill and the head, both times on -0.090. The gate is generous
+# measured independently today from the sill and the head, and again tonight on -0.030. The gate is generous
 # enough to admit a reveal a quarter of a metre deep and still throws every one of those three out.
 DGATE = float(os.environ.get('DGATE', '0.30'))
 
