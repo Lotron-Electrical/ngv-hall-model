@@ -637,6 +637,33 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# NOBODY EVER TURNED ROUND (2026-09-10, tools/find_corridor.py): there is no frame inside the corridor.
+NOTURN = {'frames': 917, 'clips': 3, 'runs': 3, 'inside': 0, 'd_lo': -0.45, 'd_hi': 0.12,
+          'h_lo': 9.07, 'h_hi': 10.14, 'px_lo': 100, 'px_hi': 150, 'levels': 20}
+check('not one of the 917 frames shot from inside the north openings looks into the corridor',
+      NOTURN['inside'] == 0,
+      'b1, b4 and b5 are posed with the camera on d %+.2f to %+.2f and h %.2f to %.2f, standing IN an '
+      'opening. If the operator had turned round, the frame would show the corridor from inside, and that '
+      'room is the least measured thing here. Every ACCEPTED frame of those clips points out at the hall, '
+      'which proves nothing, because the registrar solves against a model of the HALL and a frame aimed '
+      'into dark stone has nothing to match. So all %d were scored on the two things a corridor frame '
+      'cannot contain, the stained glass and the pink carpet, and ranked. %d runs came back and all %d '
+      'are hall views: the south wall with its tapestry, the canopy seen 22 degrees up, and the balcony '
+      'across the hall. Each was opened and looked at rather than trusted to the score.'
+      % (NOTURN['d_lo'], NOTURN['d_hi'], NOTURN['h_lo'], NOTURN['h_hi'], NOTURN['frames'],
+         NOTURN['runs'], NOTURN['runs']),
+      'tools/find_corridor.py')
+check('so the corridor numbers cannot improve on this archive and should stop being hunted in it',
+      abs(G['cWidth'] - 1.420) < 1e-6,
+      'already on the record: from the hall floor an opening is %d to %d px wide carrying under %d grey '
+      'levels, the head soffit stands over the reveal so an upward sightline ends on its underside, and '
+      'no posed frame is in the room. Now added: on the one day anybody was up there with a camera, not '
+      'one of %d frames from inside the openings is aimed into the corridor. He stood in the window and '
+      'filmed the room, which is what a person does. Width %.3f and ceiling %.3f therefore stay exactly '
+      'as strong as the single lamp-locus crossing that produced them, floor 8.34 stays unmeasured, and '
+      'moving any of them needs new capture rather than another pass over this one.'
+      % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
+      'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
 CRS = {'course': 0.306, 'strips': 7, 'agree': [60.0, 60.5, 61.0, 61.5], 'counted': 16.8,
        'metres': 5.15, 'frame_w': 2160, 'frame_h': 3840, 'endtop_captures': 5, 'endtop_resid': -0.009}
