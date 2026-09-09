@@ -637,6 +637,40 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE OCCLUDER NAMED, THEN THE NAME DISPROVED (2026-09-10, tools/rail_seeover.py).
+SEE = {'west_n': 23, 'east_n': 153, 'west_lo': 9.240, 'east_lo': 9.420, 'deck': 8.34,
+       'west_spread': 0.308, 'east_spread': 0.798, 'ups_w': 9.097, 'ups_e': 9.095,
+       'hand_w': 9.739, 'hand_e': 9.805, 'eye': 9.81, 'refuted': 0}
+check('176 frames stand on a deck and look out, and their sightlines agree with the drawn deck',
+      SEE['west_n'] + SEE['east_n'] == 176,
+      'a frame that shows the hall proves its own sightline was not blocked, so the height at which its '
+      'optical axis crosses the end face is a height nothing opaque can occupy. %d frames do that at the '
+      'west end and %d at the east, which is worth recording on its own: this archive has far more '
+      'balcony-standpoint imagery than any instrument here has used. The lowest axis crosses the west '
+      'face on h %.3f, %.3f m over the deck, spread %.3f m; the east on h %.3f, %.3f m over, spread '
+      '%.3f m. Those are the heights a standing eye reaches over a balustrade, so the deck %.2f and the '
+      'poses agree, which is a quiet pass for a number that has never had one.'
+      % (SEE['west_n'], SEE['east_n'], SEE['west_lo'], SEE['west_lo'] - SEE['deck'], SEE['west_spread'],
+         SEE['east_lo'], SEE['east_lo'] - SEE['deck'], SEE['east_spread'], SEE['deck']),
+      'tools/rail_seeover.py')
+check('and the handrail I named as the occluder is cleared by the same test',
+      SEE['refuted'] == 0,
+      'only two things on that face are opaque: the solid upstand, topping out on %.3f west and %.3f '
+      'east, and the 60 mm handrail on %.3f west and %.3f east. The lowest sightline passes ABOVE both '
+      'upstands and BELOW both handrails; it threads the glass, which cannot block a view. The guess was '
+      'made from a picture and an arithmetic coincidence, the eye height %.2f falling inside the east '
+      'handrail band, and a coincidence in one frame is not a mechanism.'
+      % (SEE['ups_w'], SEE['ups_e'], SEE['hand_w'], SEE['hand_e'], SEE['eye']),
+      'tools/rail_seeover.py')
+check('so the band in the pair render is still unexplained, and that is the honest state of it',
+      SEE['east_lo'] < SEE['hand_e'] and SEE['east_lo'] > SEE['ups_e'],
+      'nothing this file draws on the east face between the upstand and the handrail can stop that view, '
+      'so the band comes from somewhere else: a surface not on the face plane, or a material meant to be '
+      'transparent that is not rendering that way. The glass rail is a basic material on 0.28 opacity '
+      'spanning %.3f to %.3f, and if its transparency fails it is opaque across most of that frame. '
+      'Naming it needs a raycast from the standpoint rather than another inference from arithmetic.'
+      % (SEE['ups_e'], SEE['hand_e'] + 0.06),
+      'tools/rail_seeover.py')
 # THE PHOTOGRAPH AND THE SIM THROUGH THE SAME LENS (2026-09-10, tools/pose_pair.py).
 PAIR = {'frames': 5, 'west_agree_px': 10, 'east_u': 48.22, 'east_d': 5.43, 'east_h': 9.81,
         'east_face': 48.056, 'behind': 0.164, 'blocked': True, 'deck': 8.34, 'head': 11.09}

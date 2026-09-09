@@ -3151,6 +3151,31 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // I NAMED THE OCCLUDER AND THEN DISPROVED MY OWN NAME FOR IT (2026-09-10, tools/rail_seeover.py).
+  // The pair render showed a solid band across the view from the east deck. The obvious candidate was the
+  // handrail: the camera's eye sits on h 9.81 and this file draws a 60 mm opaque handrail on 9.805 to
+  // 9.865, on a quad running the full 15.364 m width, 0.164 m from the lens. It looked settled.
+  // THE TEST THAT COULD CONFIRM IT COULD ALSO KILL IT, WHICH IS WHY IT WAS WORTH WRITING. A frame that
+  // shows the hall proves its own sightline was not blocked. Project each deck-standing camera's optical
+  // axis onto the end face plane and the height it crosses at is a height nothing opaque can occupy. That
+  // is the same argument tools/gallery_lamp.py used on the soffit: light arrived, so nothing was in the
+  // way, so a bound.
+  // 176 FRAMES STAND ON A DECK AND LOOK OUT, 23 at the west end and 153 at the east, which is itself worth
+  // recording: this archive has far more balcony-standpoint imagery than any instrument here has used.
+  // The lowest axis crosses the west face on h 9.240, which is 0.900 m over the deck, with the 23 frames
+  // spread 0.308 m; the east on h 9.420, 1.080 m over the deck, spread 0.798 m. Those are exactly the
+  // heights a standing person's eye reaches when looking out over a balustrade, so the deck 8.34 and the
+  // poses agree with each other, which is a quiet pass for a number that has never had one.
+  // AND NEITHER OPAQUE ELEMENT IS REFUTED. Only two things on that face are opaque: the solid upstand,
+  // which tops out on 9.097 west and 9.095 east, and the 60 mm handrail on 9.739 to 9.799 west and 9.805
+  // to 9.865 east. The lowest sightline passes ABOVE both upstands and BELOW both handrails. It threads
+  // the glass, which cannot block a view. The occlusion test passes at both ends.
+  // SO THE HANDRAIL IS NOT THE BAND AND THE BAND IS STILL UNEXPLAINED. That is worth more than a
+  // confirmation would have been. The first guess was made from a picture and an arithmetic coincidence,
+  // the eye height 9.81 falling inside the handrail band 9.805 to 9.865, and a coincidence in one frame
+  // is not a mechanism. What the geometry actually says is that nothing this file draws on the east face
+  // between the upstand and the handrail can stop that view, so the band comes from somewhere else: a
+  // surface not on the face plane, or a material that is meant to be transparent and is not.
   // THE SIM PUTS A SOLID BAND ACROSS THE VIEW FROM THE EAST GALLERY, AND THE PHOTOGRAPH DOES NOT
   // (2026-09-10, tools/pose_pair.py). After a day of detectors, this is the instrument that answers the
   // question Lloyd actually asked, because he was looking at a picture when he asked it.
@@ -4262,7 +4287,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 153 bounds, all satisfied.
+  // 156 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
