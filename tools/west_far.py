@@ -39,6 +39,13 @@ HD = np.array([0.219196, 0, -0.975681])
 # independent tests on 163 camera positions, so if this instrument returns 48.056 from the hall floor it
 # has earned the right to be believed about the west.
 END = os.environ.get('END', 'west')
+# TAG separates one ladder's rays from another's on the same face, see tools/patch_far_tag.py
+TAG = os.environ.get('TAG', '')
+# POLARITY names which feature is being looked for, see tools/patch_far_polarity.py.
+# 'lit' is the top of a lit front, bright below and dark above. 'shade' is the top of a
+# shaded solid with something see-through and lit above it, which is the upstand.
+POLARITY = os.environ.get('POLARITY', 'lit')
+PSIGN = 1.0 if POLARITY == 'lit' else -1.0
 DECK = 8.34
 UF, TOPD, SIGN = (4.194, 9.020, +1.0) if END == 'west' else (48.056, 9.110, -1.0)
 FAR = ('walk', 'night', 'day4k')
@@ -118,7 +125,7 @@ for stem, (cam, ip) in sorted(frames.items()):
         # the biggest bright-below dark-above step, walked along the wall's own height
         best, besti = -1e9, None
         for i in range(HWIN, len(v) - HWIN):
-            dstep = float(v[i - HWIN:i].mean() - v[i + 1:i + 1 + HWIN].mean())
+            dstep = PSIGN * float(v[i - HWIN:i].mean() - v[i + 1:i + 1 + HWIN].mean())
             if dstep > best:
                 best, besti = dstep, i
         if besti is None or best < CONTRAST:
@@ -139,11 +146,12 @@ cnt = np.sum(~np.isnan(P), axis=0)
 good = cnt > max(20, 0.2 * len(P))
 hs, mm = HS[good], mean[good]
 grad = np.gradient(mm, hs)
-k = int(np.argmin(grad))                       # the steepest FALL going up
+k = int(np.argmin(PSIGN * grad))               # the steepest step of the chosen polarity
 print('')
 print('THE FEASIBILITY TEST, pooled over %d station profiles' % len(P))
-print('   the steepest fall in brightness going up the face plane is between h %.3f and %.3f'
-      % (hs[max(0, k - 1)], hs[min(len(hs) - 1, k + 1)]))
+print('   the steepest %s in brightness going up the face plane is between h %.3f and %.3f'
+      % ('fall' if POLARITY == 'lit' else 'rise', hs[max(0, k - 1)],
+         hs[min(len(hs) - 1, k + 1)]))
 print('   and it is %.2f of a standard deviation per metre. The east end returned 0.13 and was refused.'
       % abs(float(grad[k])))
 for probe in (DECK + 0.05, TOPD, TOPD + 0.3):
@@ -162,7 +170,7 @@ print('%d edge detections survived the %.0f grey level contrast test' % (len(row
 if len(rows) < 30:
     raise SystemExit('too few detections to fit a line')
 R = np.array([[r[0], r[1], r[2], r[3]] for r in rows], float)
-np.save(os.path.join(OUT, END + '-far-rays.npy'), R)
+np.save(os.path.join(OUT, '%s%s-far-rays.npy' % (END, TAG)), R)
 span = float(R[:, 0].max() - R[:, 0].min())
 A = np.stack([R[:, 3], -R[:, 2]], 1)
 yv = R[:, 3] * R[:, 0] - R[:, 2] * R[:, 1]

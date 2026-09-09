@@ -26,6 +26,11 @@ FACE = {'west': 4.194, 'east': 48.056}
 DECK = 8.34
 THRESH = 0.05
 ends = os.environ.get('RAYS', 'west east').split()
+TAG = os.environ.get('TAG', '')
+# HLO/HHI keep the RANSAC window on the same band the ladder was walked over, so a fit
+# for the upstand cannot wander up onto the front edge already measured above it.
+HLO = float(os.environ.get('HLO', '8.0'))
+HHI = float(os.environ.get('HHI', '12.0'))
 
 
 def fit(R):
@@ -56,7 +61,7 @@ def ransac(R, uf, tries=20000, seed=11):
         if abs(np.linalg.det(A)) < 1e-9:
             continue
         c = np.linalg.solve(A, y)
-        if not (uf - 3.0 < c[0] < uf + 3.0 and 8.0 < c[1] < 12.0):
+        if not (uf - 3.0 < c[0] < uf + 3.0 and HLO < c[1] < HHI):
             continue
         n = int((perp(R, c[0], c[1]) < THRESH).sum())
         if n > bestn:
@@ -65,7 +70,7 @@ def ransac(R, uf, tries=20000, seed=11):
 
 
 for end in ends:
-    src = os.path.join(OUT, end + '-far-rays.npy')
+    src = os.path.join(OUT, '%s%s-far-rays.npy' % (end, TAG))
     if not os.path.exists(src):
         print('%s: no saved rays; run tools/west_far.py with END=%s first' % (end, end))
         continue

@@ -228,19 +228,62 @@ check('the top deck is below every camera that stood on it',
 # was too cautious: the 0.173 is inflated by a lens the registration never refined for that clip, and the
 # west overshoot of 0.202 m survives the whole focal sweep, moving to 0.242 m rather than away.
 POSE_MISS = 0.091
-for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
-                                   ('west', 'upWest', 4.194, 8.818, 3371)):
+# The 5th percentile crossing height against the assumed face station, both ends at the matched 0.6 m
+# setback, tools/gallery_arrival.py. These are the curves, not a single number, which is the whole point.
+CAP = {
+    'west': ((3.394, 9.544), (3.594, 9.370), (3.794, 9.189), (3.994, 9.002), (4.194, 8.818),
+             (4.394, 8.632), (4.594, 8.446), (4.794, 8.261), (4.994, 8.073), (5.194, 7.886)),
+    'east': ((47.056, 8.541), (47.256, 8.650), (47.456, 8.762), (47.656, 8.872), (47.856, 8.975),
+             (48.056, 9.078), (48.256, 9.183), (48.456, 9.289), (48.656, 9.401), (48.856, 9.502)),
+}
+# where the upstand-top line fit puts each end: face station, height, inliers, median residual
+TOPFIT = {'west': (3.760, 9.082, 3545, 0.017), 'east': (48.005, 9.067, 3973, 0.011)}
+
+
+def cap_at(side, uf):
+    xs = [p[0] for p in CAP[side]]
+    ys = [p[1] for p in CAP[side]]
+    if uf <= xs[0]:
+        return ys[0]
+    if uf >= xs[-1]:
+        return ys[-1]
+    for i in range(len(xs) - 1):
+        if xs[i] <= uf <= xs[i + 1]:
+            t = (uf - xs[i]) / (xs[i + 1] - xs[i])
+            return ys[i] + t * (ys[i + 1] - ys[i])
+    return ys[-1]
+
+
+for side, upk, npts in (('east', 'upEast', 1941), ('west', 'upWest', 3371)):
+    uf, htop, ninl, med = TOPFIT[side]
+    cap = cap_at(side, uf)
+    over = htop - cap
     drawn_top = G['deck'] + G[upk]
-    over = drawn_top - p5
-    check('the %s parapet top is not taller than the light that got over it' % side,
+    check('the %s parapet top clears the light that got over it, on the same face' % side,
           over <= 1.5 * POSE_MISS,
-          'top drawn on %.3f, the deck %.3f plus an upstand of %.3f. Of %d rays that reached a camera on '
-          'that deck from a point inside the building and crossed the face on u %.3f, the 5th percentile '
-          'crossed on %.3f, so the drawn top stands %.3f m into light that arrived, against a bar of '
-          '%.3f m. Scaling the frozen focal by 0.965 moves the east overshoot to 0.072 and the west to '
-          '0.242, so the gap between the two ends is not a lens artefact.'
-          % (drawn_top, G['deck'], G[upk], npts, uface, p5, over, 1.5 * POSE_MISS),
-          'tools/gallery_arrival.py')
+          'the upstand-top line fit puts this end on face u %.3f and height %.3f, from %d inliers with a '
+          '%.0f mm median. The %d arrivals that reached a camera on that deck from inside the building '
+          'give a 5th percentile of %.3f on that same face, so the top stands %+.3f m into light that '
+          'arrived, against a bar of %.3f m. The model draws the top on %.3f, deck %.3f plus an upstand '
+          'of %.3f. The old form of this check read the cap on the DRAWN face instead of the measured '
+          'one, which is how the west came to fail it by 0.202 m: that cap moves 0.19 m for every 0.20 m '
+          'the face moves, so the face choice decided the verdict.'
+          % (uf, htop, ninl, 1000 * med, npts, cap, over, 1.5 * POSE_MISS, drawn_top, G['deck'],
+             G[upk]),
+          'tools/west_far.py + tools/gallery_arrival.py')
+check('the two ends agree on how tall the solid upstand is',
+      abs((TOPFIT['west'][1] - G['deck']) - (TOPFIT['east'][1] - G['deck'])) <= 0.10,
+      'fitted separately from cameras 37 m apart with opposite views, the two ends give upstands of '
+      '%.3f and %.3f m above the deck, %.0f mm apart. The model draws %.3f west and %.3f east.'
+      % (TOPFIT['west'][1] - G['deck'], TOPFIT['east'][1] - G['deck'],
+         1000 * abs(TOPFIT['west'][1] - TOPFIT['east'][1]), G['upWest'], G['upEast']),
+      'tools/west_far.py')
+for side, upk in (('west', 'upWest'), ('east', 'upEast')):
+    check('the %s upstand is drawn on the height that was measured' % side,
+          abs((G['deck'] + G[upk]) - TOPFIT[side][1]) <= 0.02,
+          'drawn top %.3f against a measured %.3f, %+.3f m out.'
+          % (G['deck'] + G[upk], TOPFIT[side][1], (G['deck'] + G[upk]) - TOPFIT[side][1]),
+          'tools/west_far.py')
 # THE EDGE BOTH ENDS SEE, NOW WITH A RANGE, so it is a bound after all (tools/far_edge_range.py).
 # It was withdrawn this evening because a crossing height is an occlusion bound only if the feature lies
 # BEYOND the face plane, and the detector never tested that. The fit already contained the answer: an edge
@@ -303,10 +346,10 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' The control passes and the measurement refuses, so nothing moves, tools/corridor_lines.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the opening head lean of 40 to 205 mm',
-             'WHICH of the west numbers is wrong: the arrivals cap the top on 8.818 against a drawn 9.020,'
-             ' but a top 0.20 m lower, a deck 0.20 m lower and a face 0.20 m further into the hall all fit'
-             ' the same rays, and 16 cameras from one clip at one station cannot separate them. The bound'
-             ' below fails; the fix is not identified, tools/gallery_arrival.py',
+             'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'
+             ' 0.20 m lower and a face 0.20 m over all fitted the same rays, and the upstand-top line fit'
+             ' separates them because a line carries both at once: face u 3.760, height 9.082. The cap'
+             ' read on THAT face is 9.220, so nothing was ever over it, tools/west_far.py',
              'b6g and b6gp are the worst poses in the archive: median near-field ray miss 0.179 and 0.200 m'
              ' with 0.6 and 0.3 per cent of matches inside 15 mm. Nothing should rest on those six frames,'
              ' tools/pose_selfcheck.py',
@@ -320,12 +363,13 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' both ends, which fits a balustrade top and would also fit the top of the dark recess behind'
              ' one. The face station it implies carries about 0.5 m of slop (RANSAC and least squares'
              ' disagree by 0.37 m west and 0.58 m east), so it cannot confirm a face, tools/west_far.py',
-             'and the two west instruments only agree if the parapet is NOT the solid the sim draws: the'
-             ' deck arrivals cap a solid on 8.818 while the hall floor sees an edge on 9.59. A low solid'
-             ' upstand with an open rail above it satisfies both. Nothing is drawn that way yet.',
-             'the west upstand is still drawn on 0.68 against an arrival cap of 0.478. That cap is'
-             ' one-sided and from one clip, so it is not a value and the upstand is NOT moved on it; the'
-             ' bound below fails and says so, tools/gallery_arrival.py',
+             'ANSWERED: a low solid upstand with an open rail above it was the shape that satisfied both'
+             ' west instruments, and it is now drawn AND measured rather than proposed. The upstand top'
+             ' is a line of its own, dark below and lit above, and it fits on 0.742 m west and 0.727 m'
+             ' east of the deck, the two ends agreeing to 15 mm, tools/west_far.py',
+             'STILL OPEN at the west end: two of my own fits on the same face disagree in u. The balcony'
+             ' front puts it on 4.160 and the upstand top on 3.760, and u is the weak direction in both,'
+             ' so 0.40 m between them is not a measurement and the face is NOT moved on it',
              'and whether the front the hall floor measures is glass, balusters or a solid with a deep'
              ' recess behind it. All three pass light the same way from where the cameras stood'):
     print('   ' + line)
