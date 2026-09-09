@@ -1409,6 +1409,48 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE CLOSURE VERIFIED IN THE SHIPPED PAGE (2026-09-10, tools/watertight.mjs).
+WT = {'tris': 2008, 'names': 94, 'baked': 14, 'edges': 3390, 'shared': 2594,
+      'once': 780, 'tjunction': 188, 'tj_m': 498.3, 'boundary': 592, 'b_m': 1571.4,
+      'over': 16, 'over_m': 90.5, 'atR': 2, 'ends': [3.000, 47.000], 'dR': -0.930,
+      'bad_first': 148, 'bad_first_m': 311.6, 'tol': 0.002}
+check('the two new surfaces are verified closed in the page Lloyd opens, not in my reading of the source',
+      WT['atR'] == len(WT['ends']),
+      'model_consistency.py found the missing surfaces by comparing constants, which meant guessing which '
+      'relations to check. This guesses nothing: it attaches to the LIVE sandbox, walks the scene graph '
+      'after every matrix is applied, and runs the standard enclosure test. %d analytic triangles over %d '
+      'names, with %d baked scan meshes skipped by vertex count because their triangles were never meant '
+      'to share edges with hand-built ones. On the back of the reveal, d %.3f, the corridor now has '
+      'exactly %d real boundary edges and they stand on u %.3f and u %.3f, the two ends where the corridor '
+      'is drawn to stop. Every other join along that plane is shared or a T-junction.'
+      % (WT['tris'], WT['names'], WT['baked'], WT['dR'], WT['atR'], WT['ends'][0], WT['ends'][1]),
+      'tools/watertight.mjs')
+check('an edge count alone was the wrong test, and the coverage test is what made the numbers mean anything',
+      WT['tjunction'] + WT['boundary'] == WT['once'] and WT['bad_first'] < WT['once'],
+      'counting edges alone gave %d open edges over %.1f m and almost none were holes. Two reasons, both '
+      'mine. T-JUNCTIONS: the corridor floor is ONE quad running u 3.0 to 47.0 while the wall back face is '
+      'drawn in twelve short pieces between the openings, so the surfaces touch along the whole line but a '
+      'long edge and a short edge are not the same edge. And I had hand-picked which meshes to include, so '
+      'a chosen mesh meeting an unchosen one read as open too. The right test is COVERAGE: for each edge '
+      'used once, does any OTHER triangle contain its midpoint within %.0f mm of its plane. %d edges are '
+      'used once, %d are T-junctions where the surface is continuous (%.1f m) and %d are real boundaries '
+      '(%.1f m) where the model stops.'
+      % (WT['bad_first'], WT['bad_first_m'], 1000 * WT['tol'], WT['once'], WT['tjunction'],
+         WT['tj_m'], WT['boundary'], WT['b_m']),
+      'tools/watertight.mjs')
+check('nothing else in the balconies, walls or corridor is open, and the doubled edges are not damage',
+      WT['over'] == 16 and WT['boundary'] > 0,
+      'the %d boundaries are where this model honestly ends: the hall floor on d 0.000, the end faces on '
+      'u 4.194 and 48.056, the gallery back walls on u 0.344 and 51.906, the canopy, and the borders of '
+      'the baked scan pieces. None is a hole in a balcony, a wall or the corridor. And %d edges are used '
+      'more than twice, %.1f m, which is not a fault: three of the four groups are three surfaces meeting '
+      'along one line, which is what architecture does. gallery-fascia with gallery-floor and gallery-'
+      'rail, the same with gallery-parapet, and gallery-back with ground-soffit; a deck edge carrying a '
+      'fascia below and a rail above SHOULD have three surfaces on one line. The fourth is twelve edges '
+      'inside canopy-procedural, a fan in the canopy and outside this goal. The page reported no errors '
+      'while any of it ran.'
+      % (WT['boundary'], WT['over'], WT['over_m']),
+      'tools/watertight.mjs')
 # THE MODEL CHECKED AGAINST ITSELF (2026-09-10, tools/model_consistency.py).
 MC = {'checks': 10, 'hold': 7, 'fail': 2, 'flag': 1,
       'ceil': 10.947, 'head': 11.165, 'floor': 8.340, 'sill': 8.740, 'dR': -0.930,

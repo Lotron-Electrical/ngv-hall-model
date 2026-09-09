@@ -3199,6 +3199,42 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // AND THAT FIX VERIFIED IN THE SHIPPED PAGE, BY A TEST THAT READS THE GEOMETRY THE BROWSER BUILT
+  // (2026-09-10, tools/watertight.mjs).
+  // WHY IT NEEDED A SECOND RUN. The two missing surfaces were found by comparing constants, which meant I
+  // had to guess which relations to check. This guesses nothing: it attaches to the LIVE sandbox, walks
+  // the scene graph after every matrix has been applied, and runs the standard test for whether a surface
+  // encloses anything. 2008 analytic triangles over 94 names; the 14 baked scan meshes are skipped by
+  // vertex count and the skips are printed, because their triangles were never meant to share edges with
+  // hand-built ones.
+  // THE FIRST VERSION OF THAT TEST WAS WRONG AND IT IS WORTH SAYING HOW. Counting edges alone gave 148
+  // open edges over 311 m, and almost none were holes. Two reasons, both mine. T-JUNCTIONS: the corridor
+  // floor is ONE quad running u 3.0 to 47.0 while the wall back face is drawn in twelve short pieces
+  // between the openings, so the surfaces touch along the whole line but a long edge and a short edge are
+  // not the same edge. And I had hand-picked which meshes to include, so any chosen mesh meeting an
+  // unchosen one read as open too.
+  // THE RIGHT TEST IS COVERAGE, and with it the numbers mean something. For each edge used by one
+  // triangle, take its midpoint and ask whether any OTHER triangle contains it within 2 mm of its plane.
+  // 780 edges are used once: 188 of them are T-junctions where the surface is continuous, and 592 are
+  // real boundaries where the model stops. Every analytic mesh goes in, so nothing reads as open merely
+  // because I left its neighbour out.
+  // THE ANSWER TO THE QUESTION IT WAS BUILT FOR. On the back of the reveal, d -0.930, the corridor now has
+  // exactly TWO real boundary edges, and they stand on u 3.000 and u 47.000: the two ends where the
+  // corridor is drawn to stop. Every other join along that plane is shared or a T-junction. The downstand
+  // and the upstand added earlier today did close it, and that is now checked in the file Lloyd opens
+  // rather than argued from my own reading of the source.
+  // NOTHING ELSE IN THE THREE THINGS THE GOAL NAMES IS OPEN. The 592 boundaries are where this model
+  // honestly ends: the hall floor on d 0.000, the two end faces on u 4.194 and 48.056, the gallery back
+  // walls on u 0.344 and 51.906, the canopy, and the borders of the baked scan pieces. None of them is a
+  // hole in a balcony, a wall or the corridor.
+  // AND 16 EDGES ARE USED MORE THAN TWICE, WHICH IS NOT A FAULT HERE. Three of the four groups are three
+  // surfaces meeting along one line, which is what architecture does: gallery-fascia with gallery-floor
+  // and gallery-rail, the same with gallery-parapet, and gallery-back with ground-soffit. A deck edge
+  // carrying a fascia below it and a rail above it SHOULD have three surfaces on one line. The fourth is
+  // twelve edges inside canopy-procedural, up to five triangles each, which is a fan in the canopy and
+  // outside what this goal covers. Recorded so the count is not read as damage.
+  // THE PAGE REPORTED NO ERRORS WHILE ANY OF THIS RAN, which is also the first time the balcony and
+  // corridor geometry has been exercised in a real browser as part of a check rather than a screenshot.
   // THE MODEL CHECKED AGAINST ITSELF, AND TWO SURFACES WERE SIMPLY MISSING (2026-09-10,
   // tools/model_consistency.py). THE CORRIDOR IS NOW WATERTIGHT AT THE OPENINGS.
   // WHY THIS NEEDED A RUN OF ITS OWN. Every instrument here compares the model with the archive, and
@@ -4959,7 +4995,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 225 bounds, all satisfied.
+  // 228 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
