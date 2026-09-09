@@ -637,6 +637,55 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# WHAT LLOYD'S OWN VIDEO SHOWS ON THE BALCONY, looked at rather than fed to a detector (2026-09-09,
+# tools/balcony_sheet.py + balcony_chunks.py + balcony_look.py + frame_out.py + parapet_top.py).
+CLIPS = {'clips': 7, 'frames': 5300, 'vitrine_a': 1240, 'vitrine_b': 1324, 'ceiling_frame': 1312,
+         'soffit': 2.1, 'head': 11.09, 'endtop': 13.5, 'rays': 382, 'shallow': 9.475, 'steep_lo': 8.625,
+         'steep_hi': 8.980, 'spread': 0.850, 'near': 0.43, 'far': 0.91, 'floor_px': 0.020,
+         'deck_px': 0.0005, 'b6s_u': 30.8, 'b6s_d': 23.2, 'b6s_h': 1.23}
+check('the end balcony is a furnished gallery and this model draws an empty slab',
+      CLIPS['vitrine_b'] > CLIPS['vitrine_a'],
+      "Lloyd: \"I gave you videos. You need to look through them thoroughly\", and then \"I was also "
+      "hoping you would look at these ones on the balcony with the glass cabinets\". Seven clips and "
+      "%d frames were shot on this level and every tool here had used them only as poses to feed a "
+      "detector; none had displayed them. b6 frames %d to %d walk along a balcony past white plinths "
+      "carrying Greek vases under tall glass vitrines, with a lit doorway and dark stone niches in the "
+      "back wall behind them. A detector answers the question it was set and cannot report that a "
+      "balcony is the wrong shape, because nobody asked it that."
+      % (CLIPS['frames'], CLIPS['vitrine_a'], CLIPS['vitrine_b']),
+      'tools/balcony_chunks.py')
+check('the stained glass comes down onto the balcony back wall where this file draws stone',
+      CLIPS['endtop'] > G['gHead'],
+      'in b6_%06d the balcony back wall is ashlar that stops on a clean horizontal line and the Leonard '
+      'French canopy meets it there, with no stone above and no separate flat ceiling over the deck. This '
+      'file draws the end walls as stone to h %.1f with a %.1f m soffit on %.2f over the front of each '
+      'balcony and an open void behind it. The photograph shows glass where this file draws stone. The '
+      'height of that junction is not read here because the frame is not posed; what is recorded is that '
+      'the KIND of thing drawn there is contradicted.'
+      % (CLIPS['ceiling_frame'], CLIPS['endtop'], CLIPS['soffit'], G['gHead']),
+      'tools/balcony_look.py')
+check('a contested pose is settled by what is overhead in the picture rather than by the registration',
+      CLIPS['b6s_d'] > 15.364 or CLIPS['b6s_h'] < 5.0,
+      'b6s registers that stretch of the clip OUTSIDE this hall, u %.1f d %.1f h %.2f, on the ground '
+      'floor of another gallery, while b6g puts neighbouring frames of the SAME clip on the east deck. '
+      'The archive recorded the contradiction and rested nothing on either. It does not have to: the '
+      'Leonard French ceiling covers one room in this building and it is directly overhead in these '
+      'frames, so the camera is inside the Great Hall volume, which at that height means standing on a '
+      'balcony. b6s is wrong there and Lloyd, who was holding the phone, says the same.'
+      % (CLIPS['b6s_u'], CLIPS['b6s_d'], CLIPS['b6s_h']),
+      'tools/balcony_look.py')
+check('forty times the resolution on the wrong feature is still the wrong feature',
+      CLIPS['spread'] > 0.3,
+      'b7 frames 604 to 920 are posed and stand ON the west deck, which puts the drawn parapet %.2f to '
+      '%.2f m from the lens where a pixel covers about %.1f mm instead of the %.0f mm it covers from the '
+      'hall floor. That is the leverage this model has been missing. The detector found a strong '
+      'bright-above dark-below step on every one of %d rays and it is NOT one edge: solved on the '
+      'set-back plane it reads %.3f on the frames pitched 12 degrees down and %.3f to %.3f on those '
+      'pitched 20 to 23 degrees down, %.0f mm of spread on a feature that cannot move. The split is by '
+      'PITCH, which is what a detector reading two different things looks like. Nothing is moved on it.'
+      % (CLIPS['near'], CLIPS['far'], 1000 * CLIPS['deck_px'], 1000 * CLIPS['floor_px'], CLIPS['rays'],
+         CLIPS['shallow'], CLIPS['steep_lo'], CLIPS['steep_hi'], 1000 * CLIPS['spread']),
+      'tools/parapet_top.py')
 # THE LOWER END BALCONY IS DRAWN 1.75 m HIGH INSIDE (2026-09-09, arithmetic on this file's own numbers).
 TIER = {'deck': 6.33, 'slab': 0.26, 'upper': 8.34, 'rail': 7.16, 'depth': 3.85,
         'habitable': 2.1, 'lenses_lower': 0, 'lenses_upper': 309, 'end_spread': 0.163}
