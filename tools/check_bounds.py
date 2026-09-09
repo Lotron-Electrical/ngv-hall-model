@@ -485,6 +485,33 @@ def cap_at(side, uf):
 
 
 DRAWNFACE = {'west': 4.194, 'east': 48.056}
+# THE OPENING HEAD LEAN, ANSWERED (2026-09-09, tools/head_lean.py).
+LEAN = {'head': 0.079, 'sill': 0.052, 'corr': 0.96, 'tall5': 0.038, 'tall4': 0.017,
+        'mean5': 2.436, 'mean4': 2.430, 'tilt': 0.0028, 'worst': 3}
+check('the opening head lean is common to the sill, so it is the instrument and not the openings',
+      LEAN['tall5'] < 0.5 * LEAN['head'],
+      'the five openings with rays on both edges give heads spreading %.0f mm and sills spreading %.0f, '
+      'correlating %+.2f. Their DIFFERENCE, which cancels anything that moves both, spreads only %.0f mm. '
+      'Opening %d carries most of it, standing 73 mm high on its head and 38 mm high on its sill, high on '
+      'both, which is the common-mode signature. A real difference in how the openings were built would '
+      'show in the head and not in the sill.'
+      % (1000 * LEAN['head'], 1000 * LEAN['sill'], LEAN['corr'], 1000 * LEAN['tall5'], LEAN['worst']),
+      'tools/head_lean.py')
+check('the openings are drawn the height they were measured',
+      abs((G['head'] - G['sill']) - LEAN['mean4']) <= 0.02,
+      'the model draws %.3f m from its own measured sill and head. The invariant measures %.3f across the '
+      'four openings that agree with each other, spread %.0f mm, and %.3f across all five, spread %.0f. '
+      'So the drawing is %.0f mm out on the tight set, inside the 14 mm those two heights already carry.'
+      % (G['head'] - G['sill'], LEAN['mean4'], 1000 * LEAN['tall4'], LEAN['mean5'],
+         1000 * LEAN['tall5'], 1000 * abs((G['head'] - G['sill']) - LEAN['mean4'])),
+      'tools/head_lean.py')
+check('the twelve heads belong on one level, and are drawn on one',
+      LEAN['tilt'] < 0.005,
+      'a straight line through the heads that answer tilts %.1f mm per metre of hall and none of them '
+      'sits more than 20 mm off it. That is one tilt across 30 m, well under what the pose self-check '
+      'allows, so there is no case for drawing the heads at different heights and none is made.'
+      % (1000 * LEAN['tilt']),
+      'tools/head_lean.py')
 # THE LOWER TIER, fitted for the first time (2026-09-09, tools/run_low_band.py, tools/low_gap.py).
 LOWGAP = {'gap': 0.310, 'spread': 0.022, 'span': 1.60, 'hmove': 0.298, 'solid': 341, 'rail': 91,
           'westsolid': 0, 'westrail': 5, 'ratio_solid': 1.7, 'ratio_rail': 1.6}
@@ -722,7 +749,11 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' for anything this model draws. A rebate back edge and a shadow on the reveal return BOTH'
              ' lie in the jamb plane, and that is a plane of constant u, so both give the same station.'
              ' The openings were moved on the station and the station is invariant to the answer',
-             'the opening head lean of 40 to 205 mm',
+             'ANSWERED, and it was never a lean: the head and the sill of the same openings correlate'
+             ' +0.96, and their DIFFERENCE spreads 38 mm where the head alone spreads 79. Whatever'
+             ' moves the heads moves the sills with it, which is one instrument leaning and not twelve'
+             ' openings built at different heights. Opening 3 carries most of it, high on both edges.'
+             ' The openings are 2.43 m tall and the model draws 2.425, tools/head_lean.py',
              'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'
              ' 0.20 m lower and a face 0.20 m over all fitted the same rays, and the upstand-top line fit'
              ' separates them because a line carries both at once: face u 3.760, height 9.082. The cap'

@@ -3112,6 +3112,28 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // THE OPENING HEAD LEAN COMES OFF THE UNMEASURED LIST, AND IT WAS NEVER A LEAN (2026-09-09,
+  // tools/head_lean.py). Forty to two hundred and five millimetres of disagreement between the twelve
+  // opening heads has sat unexplained all day. It was put on that list while the wall's depth was an
+  // assumption, and a head solved on the wrong depth moves by 0.69 m for every metre of it: sixty
+  // millimetres of depth is forty of height, which is the bottom of the lean's own range. With the depth
+  // now measured the question is worth putting again.
+  // EACH OPENING ASKED ON ITS OWN, and only some of them can answer. Five carry enough head rays and
+  // seven enough sill rays; the other openings are at the ends of the hall where the fan does not reach.
+  // The heads that answer spread 79 mm and the sills 52, and a straight line through either tilts under
+  // 3 mm per metre with everything sitting within 20 mm of it. That is one tilt, not twelve heights.
+  // AND THE SILL IS WHAT MAKES IT DECIDABLE, because it is the same twelve openings in the same frames.
+  // Anything that leans the instrument, a pose drift, a hall-frame error, a wrong wall plane, moves the
+  // head and the sill together. A difference in how the openings were BUILT moves the head alone.
+  // THEY CORRELATE +0.96, AND ONE OPENING CARRIES MOST OF IT. Opening 3 stands 73 mm high on its head and
+  // 38 mm high on its sill, high on both, which is the common-mode signature and not a taller opening.
+  // SO THE INVARIANT IS THE ANSWER. Head minus sill cancels everything that moves both, and it runs 2.423
+  // to 2.461 across five openings, a 38 mm spread where the head alone spreads 79. On the four that agree
+  // with each other it is 2.423 to 2.440, a spread of 17 mm about 2.430. THE OPENINGS ARE 2.43 M TALL, and
+  // the model draws 2.425 from its own measured sill and head, five millimetres out on the tight set and
+  // eleven on the full one. Both sit inside the 14 mm those two heights already carry.
+  // NOTHING MOVES, and this time that is the finding rather than a refusal: the twelve heads belong on one
+  // level, the model already draws them there, and the lean was the instrument.
   // THE LOWER GALLERY TIER HAD NEVER BEEN FITTED BY ANYTHING, AT EITHER END (2026-09-09,
   // tools/run_low_band.py, tools/low_gap.py). Every ray spent on these balconies today went on the top
   // tier. The lower one was drawn entirely from other people's numbers: a floor of 6.33 from
@@ -3230,7 +3252,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 59 bounds, all satisfied.
+  // 62 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
