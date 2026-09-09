@@ -17,6 +17,15 @@ O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.21
 DN = -0.090                     # the north wall's inner face
 OPENINGS = [[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.440],[18.770,19.983],[22.418,23.631],[26.066,27.279],[29.816,31.028],[33.495,34.706],[37.177,38.383],[40.906,42.118],[44.526,45.739]]
 LEVELS = [('sill', 8.99), ('head', 11.35)]
+# OPENY_SHIFT slides BOTH levels by the same amount, which is what makes the follow gain fittable rather
+# than merely testable. A following instrument is linear in the drawn height, A(d) = truth + g(d - truth),
+# so reading the same physical edge against three shifted draws gives the gain as the slope and the truth
+# as the intercept, with nothing assumed. The shift has to stay inside the 0.14 m window or the draw stops
+# bracketing the real edge, so it is small, and the fit is correspondingly noisy: that is the price of an
+# answer about the wall rather than about the table. tools/openy_gainfit.py drives it.
+if os.environ.get('OPENY_SHIFT'):
+    _s = float(os.environ['OPENY_SHIFT'])
+    LEVELS = [(n, h + _s) for n, h in LEVELS]
 WIN = 0.14                      # half a course, less a margin
 INSET = 0.15                    # keep the samples clear of the jambs
 # THE OBLIQUITY GATE. The first pass split cleanly by capture, not by opening: the two floor walks, which
