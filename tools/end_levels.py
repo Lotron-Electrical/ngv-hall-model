@@ -18,18 +18,23 @@ LEVELS = [('ground-wall top', 5.30), ('apron top', 5.40), ('lower deck', 6.33), 
 # tested: measure the same physical edge with the model putting it in two different places and see whether
 # the absolute height comes back the same. tools/follow_test.py does exactly that.
 import os as _os
+_SET = {}
 if _os.environ.get('LEVELS_SET'):
-    _o = dict(kv.split('=') for kv in _os.environ['LEVELS_SET'].split(','))
-    LEVELS = [(n, float(_o.get(n, h))) for n, h in LEVELS]
+    _SET = dict(kv.split('=') for kv in _os.environ['LEVELS_SET'].split(','))
+    LEVELS = [(n, float(_SET.get(n, h))) for n, h in LEVELS]
 cls, end = sys.argv[1], sys.argv[2]
 # THE TWO ENDS CAN BE DRAWN AT DIFFERENT HEIGHTS, and once they are, one shared LEVELS table silently
 # measures one of them against a line the model no longer draws. That happened the moment ENDW gained a
 # per-end upstand: the east parapet moved to 9.11 in index.html while this file went on searching around
 # 9.02. Whatever the right value turns out to be, the tool has to search where the model draws, so the
 # per-end levels are stated here and picked by the end under test. UPSTANDS mirrors ENDW.upstands.
+# LEVELS_SET WINS OVER THE PER-END TABLE. Without this the remap below reinstated the model's own parapet
+# height after the caller had asked for a different one, so a two-draw test would silently measure one draw
+# twice and return a follow gain of zero. That is the exact shape of the error being hunted here.
 UPSTANDS = {'west': 0.68, 'east': 0.77}
 DECK = 8.34
-LEVELS = [(n, (DECK + UPSTANDS[end]) if n == 'top parapet top' else h) for n, h in LEVELS]
+if 'top parapet top' not in _SET:
+    LEVELS = [(n, (DECK + UPSTANDS[end]) if n == 'top parapet top' else h) for n, h in LEVELS]
 maxf = int(sys.argv[3]) if len(sys.argv) > 3 else 40
 uF = float(sys.argv[4]) if len(sys.argv) > 4 else FACE[end]   # a 4th argument overrides the face, so the
 # same measurement can be swept across face positions. That sweep is the discriminator: an offset that
@@ -110,19 +115,42 @@ for fr in order:
             offs.append(e)
         if len(offs) >= 6:
             q = cam.center - O; du = abs(float(q @ HU) - uF)      # how far down the hall this camera stands
-            acc[name].append((float(np.median(offs)), du))
+            try: fi = int(fr.split('_')[1])
+            except Exception: fi = used
+            acc[name].append((float(np.median(offs)), du, fi))
 # The same lesson the wall jambs taught (tools/wall_pool.py): one capture's quartiles say how well its own
 # consecutive frames agree, not how well the level is known. So each capture writes its medians out and
 # tools/level_pool.py pools them across captures, where the spread that matters lives.
+# ONE NUMBER PER LOOK, NOT PER FRAME (2026-09-09). Twenty-five consecutive frames of one pan are one
+# sample of a level, not twenty-five: they share the pose solution, the exposure and the operator's stance,
+# and the only thing that varies between them is noise the median then averages away, which makes a capture
+# look far more certain than it is. Measured on the accepted sets, b1's 59 frames are 8 separate looks and
+# ONE of them is 31 percent of the frames; b6g's 6 frames are 2 looks and one is 67 percent. So a capture's
+# median was really the median of whichever look happened to run longest.
+# Frames are grouped into looks by their index in the clip, a gap of more than two frames starting a new
+# one, each look contributes its own median, and the capture's number is the median of THOSE.
+def by_look(rows):
+    if not rows: return [], []
+    rows = sorted(rows, key=lambda z: z[2])
+    looks, cur = [], [rows[0]]
+    for a, b in zip(rows, rows[1:]):
+        if b[2] - a[2] <= 2: cur.append(b)
+        else: looks.append(cur); cur = [b]
+    looks.append(cur)
+    return [float(np.median([z[0] for z in L])) for L in looks], looks
+
 import json, os
 if os.environ.get('LEVEL_JSON'):
     rec = {}
     for nm, hv in LEVELS:
         a = acc[nm]
         if a is None or len(a) < 3: continue
+        lv, looks = by_look(a)
+        if len(lv) < 2: continue          # one look is one sample: not enough to state a level from
         v = [x[0] for x in a]
-        rec[nm] = {'h': hv, 'n': len(v), 'median': float(np.median(v)),
-                   'p25': float(np.percentile(v, 25)), 'p75': float(np.percentile(v, 75))}
+        rec[nm] = {'h': hv, 'n': len(v), 'looks': len(lv), 'median': float(np.median(lv)),
+                   'median_per_frame': float(np.median(v)),
+                   'p25': float(np.percentile(lv, 25)), 'p75': float(np.percentile(lv, 75))}
     json.dump({'class': cls, 'end': end, 'face': uF, 'frames': used, 'levels': rec},
               open(os.environ['LEVEL_JSON'], 'w'), indent=1)
     print('wrote', os.environ['LEVEL_JSON'])
