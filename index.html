@@ -1157,6 +1157,27 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // than 13 mm. The one loose end worth recording rather than acting on: the head is 22 mm off bed joint
  // 37 (11.328), which is inside the measurement, but the sill is 94 mm off the nearest joint (8.896), so
  // either the sill is not built to the coursing or the coursing phase is off by that much this high up.
+ // THE GAIN FITTED HERE TOO, AND THE HEAD LEANS LOW (2026-09-09, tools/openy_gainfit.py, OPENY_SHIFT in
+ // tools/open_levels.py). The pooled +0.013 and -0.013 above still assume one measured follow gain applies
+ // everywhere, and on the end galleries that assumption was hiding four captures agreeing about the
+ // drawing. Reading each edge against three draws makes the slope the gain and the intercept the truth.
+ // It is HARD here and the stone is why: the window is half a course, so the draws can only be 0.06 m
+ // apart against 0.10 for the jambs, the slope is that much noisier, and which openings resolve changes
+ // between draws, so the intersection that can be fitted at all is small. What survived:
+ //   head, opening  1   -0.205 m   gain 0.72   (night)
+ //   head, opening  4   -0.113 m   gain 0.39   (night)
+ //   head, opening  7   -0.040 m   gain 0.54   (day4k)
+ //   sill               NOTHING resolved at any opening in any capture, at any draw.
+ // Every surviving reading is NEGATIVE: three openings and two captures all put the head BELOW 11.35, by
+ // 40 to 205 mm. They disagree by 165 mm, so this is not a measurement and openY is NOT moved. But the
+ // SIGN is consistent, and a single-draw pass over the walk capture agrees with it independently: head
+ // -0.088 m across the three openings it resolves, spread 7 mm. The head is the one number on this wall
+ // where the evidence leans one way and the model has not followed. What it needs is a capture that sees a
+ // head from close up and square on, and the frames that stand inside an opening cannot supply it: they
+ // are aimed OUT at the hall, so they see the south wall and not the reveal they are standing in.
+ // The samplers in open_levels and end_levels were both widened today to follow the stretch each camera
+ // can actually see, so every number in this block is from the new sampler and is not directly comparable
+ // with one taken before it.
  openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[45.16]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width UNMEASURED, from the 1968 plan; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},

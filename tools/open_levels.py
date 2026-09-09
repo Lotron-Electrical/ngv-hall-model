@@ -64,12 +64,23 @@ for _, _, fr in cand[:maxf]:
     img = None
     for name, hv in LEVELS:
         for oi, (u0, u1) in enumerate(OPENINGS):
-            us = np.linspace(u0 + INSET, u1 - INSET, 9)
+            # SAMPLE THE PART OF THE OPENING THIS CAMERA CAN SEE. Nine points spread across the full
+            # 1.213 m width, five of which had to be in frame, is a rule written for a camera on the hall
+            # floor looking at a whole opening from 9 m below. It refuses the frames that stand INSIDE the
+            # opening, which are the only ones that see this edge from half a metre, and those are exactly
+            # the frames the balcony clips supplied. A coarse pass now finds the stretch that is visible
+            # and the samples are spread across THAT; a distant camera still gets the whole width.
+            u0c = np.linspace(u0 + INSET, u1 - INSET, 41)
+            p0 = np.array([O + uu * HU + DN * HD + np.array([0, hv, 0]) for uu in u0c])
+            sx, sy, sz = cam.project(p0)
+            vis = (sz > 0.5) * (sx > 30) * (sx < cam.w - 30) * (sy > 30) * (sy < cam.h - 30)
+            if vis.sum() < 3: continue
+            us = np.linspace(float(u0c[vis].min()), float(u0c[vis].max()), 21)
             pts = np.array([O + uu * HU + DN * HD + np.array([0, hv, 0]) for uu in us])
             up = np.array([O + uu * HU + DN * HD + np.array([0, hv + 0.25, 0]) for uu in us])
             x, y, z = cam.project(pts); xu, yu, zu = cam.project(up)
             ok = (z > 0.5) * (zu > 0.5) * (x > 30) * (x < cam.w - 30) * (y > 30) * (y < cam.h - 30)
-            if ok.sum() < 5: continue
+            if ok.sum() < 8: continue
             if img is None:
                 img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
                 if img is None: break
