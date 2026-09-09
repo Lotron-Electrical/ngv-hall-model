@@ -613,6 +613,37 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE DECK, TWO ROUTES TRIED AND BOTH CLOSED (2026-09-09, tools/run_soffit_edge.py, tools/deck_bound.py).
+DECKB = {'lenses': 309, 'classes': 7, 'lowest': 9.361, 'lens_lo': 1.05, 'lens_hi': 1.75,
+         'lower_lenses': 0, 'feas_west': 0.37, 'det_east': 4}
+check('the gallery deck is under the lowest lens that stood on it',
+      G['deck'] < DECKB['lowest'],
+      '%d posed lenses from %d classes stand on that deck, the lowest on h %.3f. A lens is above the '
+      'floor carrying it, so the deck is under that, with no assumption of any kind. It is a metre of '
+      'room and it says little, but it is the only assumption-free statement about the most load-bearing '
+      'number on these balconies.' % (DECKB['lenses'], DECKB['classes'], DECKB['lowest']),
+      'tools/deck_bound.py')
+check('the drawn deck sits at the top of what the lenses comfortably allow, and is not moved on it',
+      abs(G['deck'] - (DECKB['lowest'] - DECKB['lens_lo'])) <= 0.06,
+      'the one quantity this archive cannot measure is how high a lens sits above the feet carrying it. '
+      'Taken as %.2f to %.2f m, the lowest lens puts the deck between %.3f and %.3f, and the drawn %.3f '
+      'lands %.0f mm above that band. Twenty-nine millimetres resting on the single lowest of %d lenses, '
+      'which is exactly where an unusual posture shows up, is one-sided pressure and not a contradiction. '
+      'Nothing is moved on it and the pressure is recorded instead.'
+      % (DECKB['lens_lo'], DECKB['lens_hi'], DECKB['lowest'] - DECKB['lens_hi'],
+         DECKB['lowest'] - DECKB['lens_lo'], G['deck'],
+         1000 * (G['deck'] - (DECKB['lowest'] - DECKB['lens_lo'])), DECKB['lenses']),
+      'tools/deck_bound.py')
+check('the lower tier is named as the largest unsupported structure in this model',
+      DECKB['lower_lenses'] == 0,
+      'zero lenses in the whole archive stand on the lower deck. Beside the west end refusing to yield '
+      'any lower-tier edge and the east lower fits failing the near-far test, that leaves the entire '
+      'lower tier resting on one 2009 photograph and one inherited file: its floor has no ray and no lens '
+      'behind it, its solid and its rail have no measured station, and the only measured thing about it '
+      'is the 0.310 m between its two edges. The photometric route to the deck above it is shut too, the '
+      'west soffit returning a feasibility of %.2f and the east %d detections above the contrast bar.'
+      % (DECKB['feas_west'], DECKB['det_east']),
+      'tools/deck_bound.py')
 # THE FULL-WIDTH ASSUMPTION, MEASURED (2026-09-09, tools/balcony_width.py). Each entry: inliers, the d
 # range they reach, this feature's quarters, and the quarters of ALL detections on that end, which carry
 # the same sampling bias and are what it has to be judged against.
