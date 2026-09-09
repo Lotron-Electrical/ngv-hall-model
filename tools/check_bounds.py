@@ -637,6 +637,48 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE EAST HANDRAIL IS NOT IN THE PICTURES, AND TWO TESTS BRACKET IT (2026-09-10, tools/rail_band.py).
+BAND = {'east_n': 29, 'east_hits': 1, 'below': 107.4, 'inband': 55.9, 'above': 49.8,
+        'west_n': 7, 'drawn_lo': 9.805, 'drawn_hi': 9.865, 'axis_lo': 9.420, 'deck': 8.34,
+        'brk_lo': 1.080, 'brk_hi': 1.465, 'drawn_rail': 1.525, 'chest_lo': 1.2, 'chest_hi': 1.4}
+check('an axis test can never refute a handrail, and that is why the last one did not',
+      BAND['east_hits'] < BAND['east_n'] / 4.0,
+      'rail_seeover.py projected each deck camera OPTICAL AXIS and found it threads between the solid '
+      'upstand and the handrail, and that was read as clearing the handrail. An axis is one ray. A 60 mm '
+      'rail standing 0.16 m from a lens blocks a BAND either side of the ray that goes under it. The '
+      'question was put to the picture instead: project the rail own top and bottom edges into each frame '
+      'and compare that band with the bands immediately above and below, sampled the same way in the same '
+      'frame at the same exposure, so the comparison carries its own control.',
+      'tools/rail_band.py')
+check('the east handrail as drawn is in one frame out of twenty-nine',
+      BAND['east_hits'] == 1 and BAND['east_n'] == 29,
+      '%d frames put the drawn band h %.3f to %.3f in shot and %d shows a dark flat bar. The median '
+      'brightness runs %.1f below the band, %.1f in it and %.1f above, which is a gradient from the lit '
+      'floor up into the dark upper wall, not a bar in front of a hall. A full-width opaque handrail '
+      '0.16 m from the lens cannot be invisible in 28 frames out of 29.'
+      % (BAND['east_n'], BAND['drawn_lo'], BAND['drawn_hi'], BAND['east_hits'], BAND['below'],
+         BAND['inband'], BAND['above']),
+      'tools/rail_band.py')
+check('and the two tests together bracket the east rail where neither does alone',
+      BAND['drawn_rail'] > BAND['brk_hi'],
+      'the sightlines say nothing opaque stands where the lowest axis crossed, h %.3f, so a handrail must '
+      'be ABOVE that. The band test says it is not on %.3f to %.3f, so it must be BELOW that. The east '
+      'handrail top therefore lies between %.3f and %.3f m over the deck. This file draws %.3f, which is '
+      '%.0f mm outside the bracket. A third line lands inside it: the clip sweep reader described b6 1032 '
+      'as a parapet with a wide flat top standing chest height on the visitors beside it, about %.1f to '
+      '%.1f m, written from the pictures with no access to either test.'
+      % (BAND['axis_lo'], BAND['drawn_lo'], BAND['drawn_hi'], BAND['brk_lo'], BAND['brk_hi'],
+         BAND['drawn_rail'], 1000 * (BAND['drawn_rail'] - BAND['brk_hi']), BAND['chest_lo'],
+         BAND['chest_hi']),
+      'tools/rail_band.py')
+check('and nothing is moved on it, because a bracket is not a number',
+      abs(G['railEast'] - 1.525) < 1e-6 and BAND['west_n'] < 12,
+      'the bracket is %.3f m wide, the west end has only %d usable frames and returns inconclusive rather '
+      'than agreement, and this file has refused twice today to draw the two ends differently on evidence '
+      'that covers one. What it does mean is that railTops.east %.3f is now a value the imagery EXCLUDES '
+      'rather than one it has never tested, which is a different and worse position for it to be in.'
+      % (BAND['brk_hi'] - BAND['brk_lo'], BAND['west_n'], G['railEast']),
+      'tools/rail_band.py')
 # THE OCCLUDER NAMED, THEN THE NAME DISPROVED (2026-09-10, tools/rail_seeover.py).
 SEE = {'west_n': 23, 'east_n': 153, 'west_lo': 9.240, 'east_lo': 9.420, 'deck': 8.34,
        'west_spread': 0.308, 'east_spread': 0.798, 'ups_w': 9.097, 'ups_e': 9.095,

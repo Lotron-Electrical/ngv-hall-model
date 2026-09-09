@@ -3151,6 +3151,34 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE EAST HANDRAIL IS NOT IN TWENTY-EIGHT OF TWENTY-NINE PHOTOGRAPHS, AND THE TWO TESTS TOGETHER
+  // BRACKET IT (2026-09-10, tools/rail_band.py with tools/rail_seeover.py).
+  // THE PREVIOUS TEST WAS THE WRONG QUESTION AND SAYING SO IS THE POINT. rail_seeover.py projected each
+  // deck camera's OPTICAL AXIS and found it threads between the solid upstand and the handrail, and that
+  // was read as clearing the handrail. An axis is one ray. A 60 mm rail standing 0.16 m from a lens
+  // blocks a BAND either side of the ray that goes under it, so an axis test can never refute a handrail
+  // and should never have been asked to.
+  // SO THE QUESTION WAS PUT TO THE PICTURE INSTEAD. Project the handrail's own top and bottom edges into
+  // each frame and look at what is there. An opaque bar 0.16 m from a lens is the darkest and flattest
+  // thing in the picture; the hall behind it is bright and varied. The bands immediately above and below
+  // are sampled the same way in the same frame at the same exposure, so the comparison carries its own
+  // control and nothing from the model enters it except where to look.
+  // THE EAST ANSWER IS EMPHATIC. 29 frames put the drawn band in shot and ONE of them shows a dark flat
+  // bar. The median brightness runs 107.4 below the band, 55.9 in it and 49.8 above it, which is a
+  // gradient from the lit floor up into the dark upper wall, not a bar sitting in front of a hall. A
+  // full-width opaque handrail 0.16 m from the lens cannot be invisible in 28 frames out of 29.
+  // AND THE TWO TESTS TOGETHER GIVE A BRACKET, which neither gives alone. The sightlines say nothing
+  // opaque stands where the lowest axis crossed, h 9.420, so a handrail must be ABOVE that. The band test
+  // says it is not on 9.805 to 9.865, so it must be BELOW that. The east handrail top therefore lies
+  // between 1.080 and 1.465 m over the deck. This file draws 1.525, which is 60 mm outside the bracket.
+  // A THIRD LINE, READ BY SOMEBODY ELSE, LANDS INSIDE IT. The clip sweep's reader described b6 1032 as a
+  // parapet with a wide flat top standing "chest height on the two visitors beside it". Chest height on a
+  // standing adult is about 1.2 to 1.4 m. That was written from the pictures with no access to either of
+  // these tests.
+  // NOTHING IS MOVED ON IT YET. A bracket 0.385 m wide is not a number, the west end has only 7 usable
+  // frames and returns inconclusive rather than agreement, and this file has refused twice today to draw
+  // the two ends differently on evidence that only covers one. What it does mean is that railTops.east
+  // 1.525 is now a value the imagery excludes rather than one it has never tested.
   // I NAMED THE OCCLUDER AND THEN DISPROVED MY OWN NAME FOR IT (2026-09-10, tools/rail_seeover.py).
   // The pair render showed a solid band across the view from the east deck. The obvious candidate was the
   // handrail: the camera's eye sits on h 9.81 and this file draws a 60 mm opaque handrail on 9.805 to
@@ -4287,7 +4315,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 156 bounds, all satisfied.
+  // 160 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
