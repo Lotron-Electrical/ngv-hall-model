@@ -63,20 +63,48 @@ NSAMP = 9
 # cleanest possible pass and also useless as a bar. A pier carries the same masonry, the same lighting and
 # the same courses as the wall beside an opening, so a null line drawn across a pier on the sill's own
 # height is the honest question: does this machinery find "the sill" where there is no sill?
+# 2026-09-09, SECOND FEATURE SET: THE EAST GALLERY, MEASURED FROM THE CAMERAS STANDING ON IT.
+# Every balcony number in this model was fitted from HALL FLOOR frames looking at an end wall from 6 to
+# 42 m away, through grazing sightlines and dark stone, and that is why the deck refused three times
+# tonight. But roughly three hundred posed frames STAND ON the east gallery: b3 and b3p on u 47.9 to 48.5,
+# b6g and b6gp on 49.1 to 49.4, day4k on 47.8 to 48.6, all with lens heights of 9.1 to 10.3. From up there
+# the parapet is one to two metres away and lit, and the deck-to-parapet junction, which is the level 8.34
+# itself, is directly underfoot and in view. It is the one place in this archive where the least supported
+# number in the model is a near object rather than a far one.
+#
+# THE WINDOWS ARE SMALLER HERE AND THAT IS FORCED, NOT CHOSEN. The deck, the solid top and the rail top
+# are 0.755 and 0.770 m apart, so a half-metre window would reach its neighbour and every feature would be
+# free to answer with the wrong one. 0.30 and 0.20 both stay well inside that spacing.
+#
+# THE NULLS ARE MID-UPSTAND. Two lines are drawn across blank parapet face, 8.60 and 8.85, where the model
+# draws nothing between the deck and the solid top. Same stone, same light, same distance as the real
+# features either side of them.
 OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920], [15.227, 16.440], [18.917, 20.130],
         [22.565, 23.778], [26.213, 27.426], [29.963, 31.175], [33.642, 34.853], [37.177, 38.383],
         [40.906, 42.118], [44.526, 45.739]]
 PIERS = [[OPEN[i][1] + 0.35, OPEN[i + 1][0] - 0.35] for i in range(len(OPEN) - 1)]
 DN, SILL, HEAD = -0.030, 8.740, 11.165
+SET = os.environ.get('SET', 'north')
 FEATURES = []
-for i, (u0, u1) in enumerate(OPEN):
-    FEATURES.append(('opening %-2d sill' % (i + 1), (u0, u1), DN, SILL, 'h', False))
-    FEATURES.append(('opening %-2d head' % (i + 1), (u0, u1), DN, HEAD, 'h', False))
-for i, (u0, u1) in enumerate(PIERS):
-    if u1 - u0 < 0.8:
-        continue
-    FEATURES.append(('NULL pier %-2d sill line' % (i + 1), (u0, u1), DN, SILL, 'h', True))
-    FEATURES.append(('NULL pier %-2d head line' % (i + 1), (u0, u1), DN, HEAD, 'h', True))
+if SET == 'north':
+    for i, (u0, u1) in enumerate(OPEN):
+        FEATURES.append(('opening %-2d sill' % (i + 1), (u0, u1), DN, SILL, 'h', False))
+        FEATURES.append(('opening %-2d head' % (i + 1), (u0, u1), DN, HEAD, 'h', False))
+    for i, (u0, u1) in enumerate(PIERS):
+        if u1 - u0 < 0.8:
+            continue
+        FEATURES.append(('NULL pier %-2d sill line' % (i + 1), (u0, u1), DN, SILL, 'h', True))
+        FEATURES.append(('NULL pier %-2d head line' % (i + 1), (u0, u1), DN, HEAD, 'h', True))
+else:
+    # the east gallery parapet, run in BANDS across the hall so a partial view still answers
+    UFACE, DECK = 48.056, 8.34
+    BANDS = [(1.0, 4.5), (4.5, 8.0), (8.0, 11.5), (11.5, 14.9)]
+    LEVELS = [('deck junction  8.340', DECK, False), ('solid top      9.095', 9.095, False),
+              ('rail top       9.865', 9.865, False), ('NULL face      8.600', 8.600, True),
+              ('NULL face      8.850', 8.850, True)]
+    for name, hv, isnull in LEVELS:
+        for bi, (d0, d1) in enumerate(BANDS):
+            FEATURES.append(('%s d%d' % (name, bi + 1), (d0, d1), UFACE, hv, 'h', isnull))
 
 
 def unit(v):
@@ -88,18 +116,39 @@ def world(u, d, h):
 
 
 def profile(im, cam, X, N, span):
+    """the longest contiguous run of the profile that is actually visible.
+
+    THE FIRST GALLERY RUN RETURNED ZERO PROFILES ON NINETEEN OF TWENTY FEATURES, and the reason was this
+    function rather than the building. It demanded that EVERY sample of a profile be in front of the lens
+    and inside the frame. That is a fair demand from the hall floor, where a wall is fifteen metres away
+    and a 0.6 m profile spans a few dozen pixels. It is an impossible demand from a camera standing ON the
+    gallery a metre from the parapet, where the same 0.6 m fills much of the frame and its ends run off
+    the edge. So the near view, the one place in this archive where the deck is a NEAR object, was being
+    thrown away by a rule written for the far view.
+    The longest contiguous visible run is used instead, provided it is long enough to carry the detector's
+    own window. Nothing else relaxes: the detector still needs HWIN samples either side of a candidate, so
+    a run that only just qualifies can still only report near its own middle."""
     ts = np.arange(-span, span + 1e-9, STEP)
     P = np.array([X + t * N for t in ts])
     x, y, z = cam.project(P)
-    ok = z > 0.3
-    if not np.all(ok):
-        return None, None
-    xi = np.rint(x).astype(int)
-    yi = np.rint(y).astype(int)
     H, W = im.shape[:2]
-    if xi.min() < 1 or yi.min() < 1 or xi.max() >= W - 1 or yi.max() >= H - 1:
+    ok = np.logical_and.reduce([z > 0.3, x > 1, y > 1, x < W - 2, y < H - 2])
+    if not ok.any():
         return None, None
-    return ts, im[yi, xi].astype(np.float64)
+    best_a, best_b, a = 0, 0, None
+    for i, v in enumerate(list(ok) + [False]):
+        if v and a is None:
+            a = i
+        elif not v and a is not None:
+            if i - a > best_b - best_a:
+                best_a, best_b = a, i
+            a = None
+    if best_b - best_a < 3 * HWIN + 1:
+        return None, None
+    sl = slice(best_a, best_b)
+    xi = np.rint(x[sl]).astype(int)
+    yi = np.rint(y[sl]).astype(int)
+    return ts[sl], im[yi, xi].astype(np.float64)
 
 
 def strongest(ts, v):
@@ -130,7 +179,7 @@ for k in keys:
     for name, rng, dfix, hfix, free, isnull in FEATURES:
         N = VY if free == 'h' else HD
         for a in np.linspace(rng[0] + 0.15, rng[1] - 0.15, NSAMP):
-            X = world(a, dfix, hfix)
+            X = world(a, dfix, hfix) if SET == 'north' else world(dfix, a, hfix)
             for s in SPANS:
                 ts, v = profile(im, cam, X, N, s)
                 if ts is None:

@@ -633,6 +633,46 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE BALCONY MEASURED FROM THE BALCONY (2026-09-09, tools/overlay_residual.py with SET=gallery).
+GAL = {'frames_day': 138, 'frames_b3p': 140, 'deck_bands': (0.020, -0.030, 0.030),
+       'null_conf': 5, 'null_bands': 6, 'real_conf': 5, 'real_bands': 10,
+       'b3p_deck_profiles': 2, 'day_deck_lo': 36, 'day_deck_hi': 81,
+       'null_h': (8.600, 8.850), 'deck': 8.34}
+check('the near view of the deck was being discarded by a rule written for the far view',
+      True,
+      'the profile sampler demanded that EVERY sample be in front of the lens and inside the frame. From '
+      'the hall floor that is fair; from a metre away the same 0.6 m of profile fills the frame and its '
+      'ends run off the edge. The first gallery run returned zero usable profiles on nineteen of twenty '
+      'features and none of that was the building. The sampler now takes the longest contiguous visible '
+      'run, provided it still carries the detector window either side of a candidate.',
+      'tools/overlay_residual.py')
+check('the deck junction appears confirmed from the gallery and the null says it is not',
+      GAL['null_conf'] / float(GAL['null_bands']) >= GAL['real_conf'] / float(GAL['real_bands']),
+      'across %d day4k frames the deck junction reads %+.0f, %+.0f and %+.0f mm in three of four bands, '
+      'window-invariant, which looks like the confirmation this number has waited for all night. Two null '
+      'lines were drawn across BLANK parapet face, h %.3f and %.3f, where the model draws nothing, in the '
+      'same stone under the same light at the same distance: %d of their %d bands come back confirmed '
+      'within 50 mm, against %d of %d for the real features. The null scores BETTER than the signal, so '
+      'this detector finds an edge wherever it is pointed on that face.'
+      % (GAL['frames_day'], 1000 * GAL['deck_bands'][0], 1000 * GAL['deck_bands'][1],
+         1000 * GAL['deck_bands'][2], GAL['null_h'][0], GAL['null_h'][1], GAL['null_conf'],
+         GAL['null_bands'], GAL['real_conf'], GAL['real_bands']),
+      'tools/overlay_residual.py')
+check('two clips disagree about whether the deck junction exists at all',
+      GAL['b3p_deck_profiles'] * 10 < GAL['day_deck_lo'],
+      'on the identical junction with identical geometry, day4k clears the contrast bar %d to %d times '
+      'per band while b3p, %d frames of it, clears it %d times in total across all four bands. A junction '
+      'that one clip sees hundreds of times and another cannot see at all is lighting, not masonry.'
+      % (GAL['day_deck_lo'], GAL['day_deck_hi'], GAL['frames_b3p'], GAL['b3p_deck_profiles']),
+      'tools/overlay_residual.py')
+check('the near route to the deck is closed on evidence and nothing is moved on it',
+      abs(G['deck'] - GAL['deck']) < 1e-9,
+      'the gallery route is now tested rather than untried, and it was closed by the instrument own null '
+      'rather than by an absence of data. Run without that null it would have produced a headline: the '
+      'deck confirmed in three of four bands from %d balcony frames. That sentence would have been false '
+      'and nothing else in the experiment could have said so. %.2f stays a bound: under the lowest lens '
+      'standing on it, h 9.03.' % (GAL['frames_day'], G['deck']),
+      'tools/overlay_residual.py')
 # THE WHOLE NORTH WALL AGAINST 263 POSED FRAMES (2026-09-09, tools/overlay_residual.py).
 RESID = {'frames': 263, 'features': 18, 'invariant': 14, 'confirmed': 10, 'nulls': 7,
          'null_fail': 5, 'null_stable': 2, 'sill_ok': 8, 'sill_win': 3, 'sill_off': 0.145,

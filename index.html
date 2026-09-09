@@ -3140,6 +3140,37 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE BALCONY MEASURED FROM THE BALCONY, AND THE NULL PASSED MORE OFTEN THAN THE SIGNAL
+  // (2026-09-09, tools/overlay_residual.py). Every balcony number in this model was fitted from HALL
+  // FLOOR frames looking at an end wall from 6 to 42 m away, through grazing sightlines and dark stone,
+  // which is why the deck refused three separate times tonight. But about three hundred posed frames
+  // STAND ON the east gallery, one to two metres from the parapet, and from up there the deck-to-parapet
+  // junction, which is the level 8.34 itself, is underfoot and in view. It is the one place in this
+  // archive where the least supported number in the model is a NEAR object.
+  // THE FAR-VIEW RULE WAS SILENTLY THROWING THE NEAR VIEW AWAY. The profile sampler demanded that every
+  // sample of a profile be in front of the lens and inside the frame. From the hall floor that is fair;
+  // from a metre away the same 0.6 m of profile fills the frame and its ends run off the edge. The first
+  // gallery run returned zero usable profiles on nineteen of twenty features, and none of that was the
+  // building. The sampler now takes the longest contiguous visible run, provided it still carries the
+  // detector's own window either side of a candidate.
+  // WITH THAT FIXED THE GALLERY ANSWERS, AND THE ANSWER IS THAT IT CANNOT BE ASKED. Across 138 day4k
+  // frames the deck junction reads +20, -30 and +30 mm in three of its four bands, window-invariant, and
+  // that looks exactly like the confirmation this number has been waiting for all night.
+  // IT IS NOT, AND THE NULLS ARE HOW I KNOW. Two lines were drawn across BLANK parapet face, h 8.600 and
+  // h 8.850, where this model draws nothing whatever, in the same stone under the same light at the same
+  // distance. FIVE OF THEIR SIX BANDS COME BACK CONFIRMED WITHIN 50 mm. The null scores better than the
+  // signal: five of six against five of ten. From a metre away a mortar joint is a strong step, so this
+  // detector finds an edge wherever it is pointed on that face, and a line drawn 0.26 m below the deck
+  // junction on nothing at all is confirmed just as convincingly as the junction is.
+  // THE TWO CLIPS DISAGREE ABOUT WHETHER THE FEATURE EXISTS, which says the same thing again. On the
+  // identical junction with identical geometry, day4k clears the contrast bar 36 to 81 times per band
+  // while b3p, 140 frames of it, clears it twice in total across all four. A junction that one clip sees
+  // hundreds of times and another cannot see at all is lighting, not masonry.
+  // SO NOTHING MOVES AND 8.34 STAYS A BOUND. What this run bought is that the near route is now closed on
+  // evidence rather than untried, and it was closed by the instrument's own null rather than by an
+  // absence of data. Run without that null it would have produced a headline: the deck confirmed in three
+  // of four bands from 138 balcony frames. That sentence would have been false, and nothing else in the
+  // experiment could have told me so.
   // THE WHOLE NORTH WALL MEASURED AGAINST 263 REAL FRAMES AT ONCE, WITH THE INSTRUMENT'S OWN FALSE
   // POSITIVE RATE REPORTED BESIDE IT (2026-09-09, tools/overlay_residual.py). Every instrument tonight
   // fitted one feature from rays, which is slow and only ever answers about the feature it was aimed at.
@@ -3769,7 +3800,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 103 bounds, all satisfied.
+  // 107 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
