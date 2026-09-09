@@ -637,6 +637,61 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE CLOUD CENSUS, THE AUDIT OF THE DELETION, AND THE HOLE THAT MEASURES THE RECESS (2026-09-10,
+# tools/end_cloud_census.py, tools/end_gap.py).
+CLOUD = {'clip_models': {'b1': 0, 'b3': 0, 'b4': 389, 'b5': 644, 'b6g': 63, 'b6s': 10, 'b7s': 110},
+         'in_band': 0, 'site_west': 15, 'site_east': 36, 'audit_in_void': 7, 'lamp_like': 3,
+         'lamp_du': 0.20, 'lamp_dd': 0.08, 'white': 231, 'envelope': 4, 'env_lo': 0.03, 'env_hi': 0.09,
+         'e_deep': 21, 'e_track': 15, 'e_err': 1.22, 'e_lo': 5.65, 'e_hi': 7.45, 'gap': 0.959,
+         'sill': 6.188, 'head': 7.148, 'p_east': 5.17e-06, 'w_deep': 8, 'p_west': 1.19e-02,
+         'w_sill': 5.846, 'w_head': 6.617}
+check('not one balcony clip reconstructed a single point of either end recess',
+      CLOUD['in_band'] == 0 and min(CLOUD['clip_models'].values()) >= 0,
+      'end_cloud.py had only ever been aimed at the day4k model, and the standing note that the ends carry '
+      'almost no surface was written about a capture shot from the hall FLOOR forty metres off. The '
+      'balcony clips were shot on the upper level three metres from the recess and each has its own '
+      'reconstruction, so every one was counted: %s. None has a point in the band. Standing close did not '
+      'reconstruct it, and that is now measured rather than assumed. Everything in the band comes from the '
+      'one shared site cloud, %d points west and %d east.'
+      % (', '.join('%s %d total' % (k, v) for k, v in sorted(CLOUD['clip_models'].items())),
+         CLOUD['site_west'], CLOUD['site_east']),
+      'tools/end_cloud_census.py')
+check('the deletion was checked against that cloud and it stands, with its blind spot now written down',
+      CLOUD['lamp_like'] + CLOUD['envelope'] == CLOUD['audit_in_void'],
+      '%d of the %d west points fall INSIDE the swept void, which would refute it. %d do not: they sit on '
+      'u 2.39, d 7.73 to 7.83, h 6.93 to 7.05, which is %.2f m in u and %.2f in d from the triangulated '
+      'fitting, and one is rgb %d, white. The cloud found the same lamp on its own. That exposes a real '
+      'limit of the sweep: within about %.1f m of the fitting the void is only as empty as the fitting, '
+      'because the rays END there. The other %d sit %.2f to %.2f m UNDER the void upper envelope near the '
+      'face, which is where a grazing bundle boundary lies, so they fit a real surface bounding the rays '
+      'from above rather than a wrong void.'
+      % (CLOUD['audit_in_void'], CLOUD['site_west'], CLOUD['lamp_like'], CLOUD['lamp_du'],
+         CLOUD['lamp_dd'], CLOUD['white'], CLOUD['lamp_du'], CLOUD['envelope'], CLOUD['env_lo'],
+         CLOUD['env_hi']),
+      'tools/end_cloud_census.py')
+check('a hole in the deep east points measures a sill and a head, and it is not thin sampling',
+      CLOUD['p_east'] < 0.001,
+      'take only points more than a metre behind the face, so nothing on the face is in the sample. An '
+      'open recess puts points on its sill and its head with AIR between; one flat wall spreads them. The '
+      'east has %d such points, median track %d, median error %.2f px, running h %.2f to %.2f, with a '
+      'HOLE %.3f m tall from %.3f to %.3f, eleven below and ten above. A random scatter of %d over 1.80 m '
+      'makes a gap that big with probability %.2e. b5 136-190 had already read this tier as a recess with '
+      'a definite head AND a definite sill; the cloud now puts numbers on both, and the two lines are '
+      'entirely independent.'
+      % (CLOUD['e_deep'], CLOUD['e_track'], CLOUD['e_err'], CLOUD['e_lo'], CLOUD['e_hi'], CLOUD['gap'],
+         CLOUD['sill'], CLOUD['head'], CLOUD['e_deep'], CLOUD['p_east']),
+      'tools/end_gap.py')
+check('and it is NOT drawn, because the west cannot carry the same claim',
+      CLOUD['p_west'] > 0.01 and CLOUD['w_deep'] < 10,
+      'the west has only %d deep points and its own best hole, %.3f to %.3f, comes back at probability '
+      '%.2e, which is suggestive and not a measurement, and it sits about 0.4 m off the east one. Drawing '
+      'a slot at one end on %d points while the other end has %d would put a difference into this model '
+      'that the evidence does not carry, and this file has already refused that once today over the lamp. '
+      'The recess stays open 5.30 to 8.08 at both ends. What would settle it is the one thing this archive '
+      'has never had: frames shot INTO an end recess rather than along the hall past it.'
+      % (CLOUD['w_deep'], CLOUD['w_sill'], CLOUD['w_head'], CLOUD['p_west'], CLOUD['e_deep'],
+         CLOUD['w_deep']),
+      'tools/end_gap.py')
 # THE SWEPT VOID, AND THE FOUR SURFACES IT DELETED (2026-09-10, tools/lamp_void.py).
 VOID = {'planes': [(0.000, 5.458, 6.842), (0.509, 5.871, 6.926), (1.019, 6.284, 7.010),
                    (1.528, 6.697, 7.094), (2.003, 7.002, 7.173)],
@@ -1756,5 +1811,8 @@ print('%d bounds, all satisfied.' % len(notes))
 print('Every bound above holds, and some of them record where the sim WAS wrong and has been corrected:')
 print('33 rays crossed a face the sim drew solid, the void they swept refuted the apron, the lower')
 print('upstand, the glass rail and the lower deck slab itself, and all four are now deleted rather than')
-print('moved. What stands there is an open recess whose sill, head and depth are all still unmeasured.')
+print('moved. What stands there is an open recess. Its EAST sill and head now have numbers, 6.19 and')
+print('7.15, from a 0.96 m hole in the deep cloud points that thin sampling makes with probability 5e-06,')
+print('but they are not drawn: the west carries only 8 deep points and cannot support the same claim,')
+print('and one end drawn differently from the other on that difference would be a fabrication.')
 print('"All satisfied" means the file tells the truth about itself, not that it is right.')

@@ -3151,6 +3151,41 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE DELETION WAS AUDITED AGAINST THE CERTIFIED CLOUD, AND A HOLE IN THAT CLOUD MEASURES THE RECESS
+  // (2026-09-10, tools/end_cloud_census.py, tools/end_gap.py).
+  // FIRST THE CENSUS, and it kills a hope rather than confirming one. tools/end_cloud.py had only ever
+  // been aimed at the day4k model, and the standing note that the ends carry almost no surface was
+  // written about a capture shot from the hall FLOOR forty metres away. The balcony clips were shot on
+  // the upper level three metres from the recess and each has its own reconstruction. Every one was
+  // counted. NOT ONE OF THEM HAS A SINGLE POINT IN EITHER END RECESS: b1 has none, b3 none, b4 none of
+  // its 389, b5 none of 644, b6g none of 63, b6s none of 10, b7s none of 110. Standing close did not
+  // reconstruct it. Everything in that band comes from the one shared site cloud: 15 points west, 36 east.
+  // THEN THE AUDIT, because geometry was deleted yesterday and a deletion deserves a hostile check. Seven
+  // of the fifteen west points fall INSIDE the swept void, which would refute it. Three of them do not:
+  // they sit on u 2.39, d 7.73 to 7.83, h 6.93 to 7.05, which is 0.20 m in u and 0.08 in d from the
+  // triangulated fitting, and one of the three is rgb 231, white. The cloud found the same lamp
+  // independently. What that exposes is a real blind spot in the sweep: within about 0.2 m of the
+  // fitting the void is only as empty as the fitting's own position, because the rays END there.
+  // The other four sit on u 3.83 to 3.94 and h 6.80 to 6.86, which is 0.03 to 0.09 m UNDER the void's
+  // upper envelope near the face. That is where a grazing bundle's boundary lies, so they are consistent
+  // with a real surface bounding the rays from above rather than with the void being wrong. The deletion
+  // stands, and its limit is now written down instead of assumed.
+  // AND THEN THE MEASUREMENT. Take only the points DEEP in an end, more than a metre behind the face, so
+  // nothing on the face is in the sample. If the band is an open recess the points land on its sill and
+  // its head with AIR between them; if it is one flat wall they spread. The east has 21 such points,
+  // median track 15, median reprojection error 1.22 px, running h 5.65 to 7.45, and there is a HOLE in
+  // them 0.959 m tall from 6.188 to 7.148 with eleven points below it and ten above. A random scatter of
+  // 21 points over 1.80 m makes a gap that big with probability 5.2e-06, so it is not thin sampling.
+  // THE CLIPS SAID THE SAME THING IN WORDS FIRST. b5 136-190 read the lower tier as a recess with "a
+  // definite head AND a definite sill". The cloud now puts numbers on them at the east end: sill 6.19,
+  // head 7.15, a 0.96 m clear slot deep inside the recess. Two entirely independent lines, one a person
+  // reading pictures and one a reconstruction, land on the same shape.
+  // NOTHING IS DRAWN ON IT YET AND HERE IS WHY. The west has only 8 deep points and its own best hole,
+  // 5.85 to 6.62, comes back at probability 1.2e-02, which is suggestive and not a measurement, and it
+  // sits 0.4 m off the east's. Drawing a slot at one end on 21 points while the other end has 8 would
+  // put a difference into this model that the evidence does not carry. The recess stays open from 5.30
+  // to 8.08 at both ends, and what would settle it is the one thing this archive has never had: frames
+  // shot INTO an end recess rather than along the hall past it.
   // AND THEN FOUR SURFACES WERE DELETED, WHICH IS THE FIRST TIME THIS MODEL HAS LOST GEOMETRY TO A
   // MEASUREMENT RATHER THAN GAINED A NUMBER FROM ONE (2026-09-10, tools/lamp_void.py).
   // WHY THE FACE-PLANE BOUND WAS NOT ENOUGH. A bound on one plane can always be dodged by moving the
@@ -4104,7 +4139,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 137 bounds, all satisfied.
+  // 141 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
