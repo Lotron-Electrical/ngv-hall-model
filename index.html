@@ -2922,6 +2922,39 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE HALL FLOOR CAN READ THE WEST END, AND BOTH ENDS AGREE ON ONE EDGE (2026-09-09, tools/west_far.py).
+  // The failing west bound says the parapet stands 0.202 m into light that arrived and cannot say WHICH of
+  // the top, the deck or the face is wrong, because sixteen cameras inside a hand's width of one station
+  // trade all three against each other. That is conditioning, and conditioning is fixed by standing
+  // somewhere else. From the hall floor the lens is eight metres BELOW the coping instead of a metre above
+  // it, so the sightline climbs steeply and its angle changes fast with distance: two such rays cross at a
+  // point rather than sliding along each other.
+  // THE FEASIBILITY TEST FIRST, the one the east end failed in the afternoon. Pooled over 6,795 station
+  // profiles the brightness up the west face plane falls steeply at h 9.59, and it falls by 1.06 of a
+  // standard deviation per metre. The east end's earlier answer was 0.13, which is no step at all.
+  // AND THE FIRST RUN OF IT WAS WRONG IN AN INSTRUCTIVE WAY. Over a ladder from h 7.0 to 11.4 the ray fan
+  // from a floor camera sweeps across the stained-glass ceiling where it meets the wall, which is the
+  // brightest edge in the building. Drawn back on w1_000023, all 52 detections sat on that junction and
+  // the fitted line landed on u 8.261, four metres out in the hall. A step being STRONG says nothing about
+  // it being the RIGHT step. Narrowing the ladder to h 8.2 to 10.0 puts the junction outside the fan from
+  // anywhere in the hall, and the detections move onto the balcony.
+  // WHAT COMES BACK, and it is the first thing on these balconies that TWO ends and TWO captures agree on:
+  //   west, 161 floor frames, 1,373 detections: RANSAC 537 inliers on u 4.201 h 9.751, residual 0.054 m
+  //   east, 214 floor frames, 1,933 detections: RANSAC 917 inliers on u 48.641 h 9.896, residual 0.044 m
+  //   the pooled photometric fall, which fits no face at all: h 9.590 west and 9.550 east, 40 mm apart
+  // The face station it implies is NOT trustworthy: RANSAC and least squares disagree by 0.37 m at the west
+  // and 0.58 m at the east, so the 7 mm the west RANSAC happens to sit from the drawn face is luck and is
+  // reported as such. The HEIGHT is the durable number, and at both ends it is 1.21 to 1.25 m above the
+  // drawn deck.
+  // SO A NEW BOUND, and it passes: nothing the sim draws on those decks may stand above that edge, and the
+  // tallest thing it draws is the upper rail on deck plus 1.06, which is 9.40. Bracket 9.400 to 9.550,
+  // 0.15 m wide. The rail is low rather than wrong.
+  // AND IT MAKES THE FAILING WEST BOUND COHERENT FOR THE FIRST TIME. The deck arrivals cap a SOLID parapet
+  // on 8.818; the hall floor sees an edge on 9.59. Those are only compatible if the thing on that deck is
+  // not the solid the sim draws: a low solid upstand with an OPEN rail above it satisfies both, because
+  // light passes between balusters and the arrival test assumes it cannot. Nothing is drawn that way yet,
+  // because the solid's own top has only a ceiling on it and no measurement, but the shape of the answer
+  // is now known and it is written into tools/check_bounds.py rather than left in a commit message.
   // THE LENS WAS NEVER REFINED FOR THESE CLIPS, AND THE WEST FAULT SURVIVES ANYWAY (2026-09-09,
   // tools/pose_refine.py, tools/focal_probe.py). Two things were tried in order, and the second is the
   // one that matters.
