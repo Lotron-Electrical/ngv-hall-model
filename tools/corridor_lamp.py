@@ -26,8 +26,16 @@ import underside_geom as U  # noqa: E402
 O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
-DN = -0.090
-SILL, HEAD = 8.99, 11.35
+# THESE THREE WERE STALE AND IT MATTERED (2026-09-09). The aperture this tool projects is built from the
+# sill, the head and the wall depth, and it had been carrying 8.99, 11.35 and -0.090 since the morning.
+# All three moved: the sill and head were re-measured on a plane the near-far split actually pins, giving
+# 8.740 and 11.165 on d -0.030. So the gate was 0.185 m too tall at the top and 0.250 m too tall at the
+# bottom, and a blob detector whose mask ends 0.185 m above the real head will happily return detections
+# sitting on that edge. Two points reported last night as being 0.185 m ABOVE the opening head came in on
+# 11.359 and 11.340 against a gate that stopped on 11.350, which is not a coincidence to be explained
+# away. Pointed at the measured values the gate can no longer manufacture them.
+DN = -0.030
+SILL, HEAD = 8.740, 11.165
 OPENINGS = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
         [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
         [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],

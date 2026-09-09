@@ -66,12 +66,14 @@ LAMPS = [[float(x) for x in t.split(',')] for t in re.findall(r'\[([-0-9.,]+)\]'
 # RE-RUN 2026-09-09 after the openings moved 0.147 m and the wall face moved to -0.030. The aperture
 # gate that decides which rays may vote for a lamp depends on both, so the old array was built on
 # superseded geometry. Re-run, the three collapse onto one level.
-MEASURED_LAMPS = [[30.524, -2.068, 10.942], [34.139, -2.049, 10.935], [42.043, -1.824, 10.908]]
+# RE-RUN AGAIN with the aperture pointed at the measured sill, head and wall depth. The third lamp
+# is not found through the corrected gate, so it is not drawn. The two that remain agree to 25 mm
+# in depth and 29 in height, better than the three did.
+MEASURED_LAMPS = [[30.527, -2.022, 10.916], [34.140, -2.047, 10.945]]
 OLD_LAMPS = [[30.642, -1.093, 10.374], [34.139, -2.144, 10.990], [42.043, -1.824, 10.908]]
 # the near-far parallax test on each lamp's own ray bundle: measured?, best depth, height, ratio,
 # leverage (tools/lamp_v.py)
-LAMPV = {8: (True, -2.368, 11.117, 5.6, 5.69), 9: (True, -1.849, 10.807, 3.3, 12.52),
-         11: (False, -1.624, 10.793, 1.8, 1.54)}
+LAMPV = {8: (True, -2.322, 11.090, 6.5, 5.71), 9: (False, -2.047, 10.945, 2.9, 12.59)}
 
 southtap = []
 for t in tap['tapestries']:
@@ -98,76 +100,29 @@ check('corridor is deep enough for the lamps inside it',
          min(L[1] for L in MEASURED_LAMPS) + 0.062,
          min(L[1] for L in MEASURED_LAMPS) + 0.062 - G['cBack']),
       'tools/corridor_lamp.py')
-# THE REVEAL, MEASURED FROM INSIDE FOR THE FIRST TIME (2026-09-09, tools/point_v.py). All eight points the
-# corridor blob search ever returned were put through the parallax split, including the five that were
-# discarded for not looking like lamps. One of the discarded ones is the best-conditioned measurement this
-# archive has behind that wall.
-REVEALPT = {'u': 26.483, 'd': -0.659, 'h': 11.359, 'rays': 23, 'ratio': 88.4, 'gapmin': 0.018,
-            'gapmax': 2.074, 'null': 0.023}
-check('the reveal is at least as deep as the point measured inside it',
-      G['openDepth'] >= (G['dNorth'] - REVEALPT['d']) - 1e-9,
-      'opening 7 carries a point on u %.3f, d %+.3f, h %.3f from %d rays, whose two camera halves agree '
-      'to %.0f mm there and disagree by %.0f mm at the end of the sweep on a null of %.0f. A ratio of '
-      '%.1f, where the best corridor lamp gives 5.6 and every line in that room gives under 3. It stands '
-      '%.3f m behind the wall face, so the reveal is at least that deep. It is drawn %.2f m. The lower '
-      'bound was already 0.362 from a lens that leaned that far in, so this is not the first support for '
-      'it; it nearly doubles it, and it does so by a different principle, a triangulated point rather '
-      'than a camera position.'
-      % (REVEALPT['u'], REVEALPT['d'], REVEALPT['h'], REVEALPT['rays'], 1000 * REVEALPT['gapmin'],
-         1000 * REVEALPT['gapmax'], 1000 * REVEALPT['null'], REVEALPT['ratio'],
-         G['dNorth'] - REVEALPT['d'], G['openDepth']),
-      'tools/point_v.py')
-# THE PEEL (2026-09-09, tools/corridor_cloud.py): sixteen candidate points where the finder had returned
-# eight, each then made to survive the parallax split with its own null.
-CLOUD = {'kept': 5, 'refused': 11, 'blobs': 133,
-         'reveal': ((26.483, -0.659, 11.359, 23, 88.3), (26.702, -0.320, 11.340, 11, 23.5)),
-         'hallside': (27.967, 0.347, 9.051, 18, 6.9), 'corridor': 2}
-check('a splay in the opening head is refuted by two points, not assumed away',
-      abs(CLOUD['reveal'][0][2] - CLOUD['reveal'][1][2]) <= 0.03,
-      'one point could not tell a splayed head, which rises going back, from a recess at a constant '
-      'level. The peel finds a second point in the same reveal: h %.3f against %.3f, %.0f mm apart, at '
-      'depths %.3f and %.3f m behind the face. Twice the depth, the same height, so whatever is up there '
-      'is level. Ratios %.1f and %.1f, on %d and %d rays.'
-      % (CLOUD['reveal'][0][2], CLOUD['reveal'][1][2],
-         1000 * abs(CLOUD['reveal'][0][2] - CLOUD['reveal'][1][2]),
-         -CLOUD['reveal'][0][1] + G['dNorth'], -CLOUD['reveal'][1][1] + G['dNorth'],
-         CLOUD['reveal'][0][4], CLOUD['reveal'][1][4],
-         CLOUD['reveal'][0][3], CLOUD['reveal'][1][3]),
+# WITHDRAWN THE SAME NIGHT, and the withdrawal is the bound now (2026-09-09, tools/corridor_lamp.py).
+# Everything found behind this wall comes through an APERTURE: the drawn opening rectangle projected into
+# each frame and used as a mask. That rectangle is built from the sill, the head and the wall depth, and it
+# had been carrying 8.99, 11.35 and -0.090 all day while the model moved to 8.740, 11.165 and -0.030.
+# So the mask stopped 0.185 m above the real head. Two points reported on consecutive nights as sitting
+# 0.19 m ABOVE the head, one with a parallax ratio of 88, came in on 11.359 and 11.340 against a gate that
+# stopped on 11.350. Two points nineteen millimetres apart straddling the mask edge is the mask. Pointed
+# at the measured wall neither comes back: the best candidate up there now scores 2.9 against a bar of 3.
+check('the reveal claims built on the stale aperture are withdrawn, not quietly dropped',
+      G['openDepth'] >= 0.362 - 1e-9,
+      'the reveal depth bound goes back to the 0.362 m a lens leaning through an opening gives it, from '
+      'the 0.629 claimed on the withdrawn point. The point implied on the hall face on h 9.051 also fails '
+      'to reappear and is withdrawn with it. openDepth is drawn %.2f and still clears the bound that '
+      'survives.' % G['openDepth'],
       'tools/corridor_cloud.py')
-check('something is mounted on the hall face of the north wall and is not drawn',
-      CLOUD['hallside'][4] > 3.0,
-      'the peel returns a point %.3f m in FRONT of the wall face on u %.3f, h %.3f, from %d rays with a '
-      'ratio of %.1f. It is out in the hall at chest height above the sill and this model draws nothing '
-      'there. One point at one opening, so nothing is added, but it is on the record now rather than '
-      'discarded for being on the wrong side of the wall.'
-      % (CLOUD['hallside'][1] - G['dNorth'], CLOUD['hallside'][0], CLOUD['hallside'][2],
-         CLOUD['hallside'][3], CLOUD['hallside'][4]),
-      'tools/corridor_cloud.py')
-check('the peel did not add a single point inside the corridor, and that is the honest headline',
-      CLOUD['corridor'] == 2,
-      '%d blobs were gathered through the twelve apertures and peeled into 16 candidate points. %d '
-      'survive the parallax split and %d are refused with their leverage recorded. Of the survivors '
-      'exactly %d lie past the reveal, and they are the same two lamps already known. Asking the finder '
-      'for every answer instead of one answer added nothing at all to the corridor, which is the '
-      'clearest measure yet of how little of that room any camera has seen.'
-      % (CLOUD['blobs'], CLOUD['kept'], CLOUD['refused'], CLOUD['corridor']),
-      'tools/corridor_cloud.py')
-check('the flat reveal soffit is recorded as contradicted, not assumed',
-      REVEALPT['h'] > G['head'],
-      'the same point stands %.3f m ABOVE the measured opening head, inside the volume the model draws as '
-      'solid stone over the reveal. A blob finder found it and masonry does not light up, so the likeliest '
-      'reading is a fitting recessed into the soffit rather than a splayed head. One point cannot tell a '
-      'recess from a splay, so nothing is redrawn, but this is now a known contradiction rather than an '
-      'untested assumption.' % (REVEALPT['h'] - G['head']),
-      'tools/point_v.py')
-check('the two estimators on a lamp bundle disagree, and the bracket reflects it',
-      abs(LAMPV[8][1] - (-2.068)) <= 0.35 and abs(LAMPV[9][1] - (-2.049)) <= 0.35,
-      'the parallax minima put the two testable lamps on %.3f and %.3f while their own least-squares '
-      'points sit on -2.068 and -2.049. Two estimators on the SAME rays, disagreeing by %.0f and %.0f mm '
-      'in opposite directions. That scatter is the honest uncertainty on a lamp depth, and it is why the '
-      'deeper of the two does not get to move the back wall.'
-      % (LAMPV[8][1], LAMPV[9][1], 1000 * abs(LAMPV[8][1] + 2.068), 1000 * abs(LAMPV[9][1] + 2.049)),
-      'tools/lamp_v.py')
+check('a shared input error cannot be caught by agreement between instruments',
+      True,
+      'the withdrawn point passed a parallax split, an odd-against-even null, and confirmation by a '
+      'second independent point found in a separate peel round. All three agreed because all three looked '
+      'through the same wrong mask. No consistency test between instruments can catch an error in an '
+      'input they share. What caught it was reading the tool constants against the model numbers, which '
+      'is now worth doing to every tool in here that hard-codes geometry.',
+      'tools/corridor_lamp.py')
 check('the lamps agree with each other on a level, which they never did before',
       max(L[2] for L in MEASURED_LAMPS) - min(L[2] for L in MEASURED_LAMPS) <= 0.10,
       'the three heights now span %.0f mm across 11.5 m of corridor, where the array shipped until '
@@ -179,25 +134,27 @@ check('the lamps agree with each other on a level, which they never did before',
          1000 * (max(L[2] for L in OLD_LAMPS) - min(L[2] for L in OLD_LAMPS)),
          1000 * (max(L[1] for L in OLD_LAMPS) - min(L[1] for L in OLD_LAMPS))),
       'tools/corridor_lamp.py')
-check('the back wall sits inside the bracket the testable lamps allow',
-      min(v[1] for v in LAMPV.values() if v[0]) <= G['cBack'] <= max(v[1] for v in LAMPV.values() if v[0]),
+# ONE LAMP NOW SURVIVES THE PARALLAX TEST, NOT TWO. Through the corrected aperture lamp 9 scores 2.9
+# against a bar of 3 and lamp 11 is not found at all, so the bracket is no longer between two lamps. It is
+# between the two ESTIMATORS on the one lamp that does survive, and they straddle the drawn wall.
+check('the back wall sits between the two estimators on the one testable lamp',
+      min(LAMPV[8][1], -2.022) <= G['cBack'] <= max(LAMPV[8][1], -2.022),
       'a POINT can be tested where a line cannot: a line in that room is separated only by cameras at '
       'different distances and the slot collapses that to a leverage of 1.32, while a point is separated '
-      'by the angular spread of the rays that see it. Lamp 8 gives the sharpest signal anything has '
-      'produced inside the corridor, its two camera halves agreeing to 6 mm on d %.3f against 242 mm at '
-      'the end of the sweep on a null never past 43, a ratio of %.1f on a leverage of %.2f. Lamp 9 '
-      'carries a softer minimum on %.3f. Lamp 11 refuses, its leverage only %.2f. So the lamp plane is '
-      'bracketed between %.3f and %.3f and the wall drawn on %.3f sits inside it. Bracketed, not pinned, '
-      'and nothing is moved on it.'
-      % (LAMPV[8][1], LAMPV[8][3], LAMPV[8][4], LAMPV[9][1], LAMPV[11][4],
-         min(v[1] for v in LAMPV.values() if v[0]), max(v[1] for v in LAMPV.values() if v[0]),
-         G['cBack']),
+      'by the angular spread of the rays that see it. Lamp 8 is the only point behind this wall that '
+      'still carries a real depth minimum, its two camera halves agreeing on d %.3f with a ratio of %.1f '
+      'on a leverage of %.2f. Its own least-squares point sits on -2.022. Two estimators on the SAME rays, '
+      '%.0f mm apart, straddling the wall drawn on %.3f. Lamp 9 now scores %.1f against a bar of 3 and '
+      'lamp 11 is not found through the corrected gate at all. So the corridor has one testable point and '
+      'a 300 mm bracket, and nothing is moved on it.'
+      % (LAMPV[8][1], LAMPV[8][3], LAMPV[8][4], 1000 * abs(LAMPV[8][1] + 2.022), G['cBack'], LAMPV[9][3]),
       'tools/lamp_v.py')
-check('the three corridor lamps are drawn where they were measured',
-      len(LAMPS) == 3 and all(abs(a - b) < 0.001
+check('the corridor lamps are drawn where they were measured',
+      len(LAMPS) == 2 and all(abs(a - b) < 0.001
                               for L, M in zip(sorted(LAMPS), sorted(MEASURED_LAMPS))
                               for a, b in zip(L, M)),
-      '%d lamps in WALLF.corridor' % len(LAMPS),
+      '%d lamps in WALLF.corridor, down from three: the third is not found through the aperture '
+      'pointed at the measured wall, so it is not drawn.' % len(LAMPS),
       'tools/corridor_lamp.py')
 check('the corridor ceiling is above its own lamps',
       G['cCeil'] > max(L[2] for L in MEASURED_LAMPS),
@@ -824,12 +781,16 @@ print('STILL UNMEASURED, and not tested here because nothing in the archive can 
 for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. A POINT IN THERE CAN'
              ' BE TESTED WHERE A LINE CANNOT, and that is the one crack in this room: a line is separated'
              ' only by cameras at different distances, which the slot collapses, while a point is'
-             ' separated by the angular spread of the rays that see it. Lamp 8 gives 6 mm of half-to-half'
-             ' agreement on d -2.368 against 242 mm at the end of its sweep, a ratio of 5.6, the sharpest'
-             ' signal anything has produced inside that corridor. Lamp 9 gives a softer minimum on -1.849'
-             ' and lamp 11 refuses on a leverage of 1.54, so the lamp plane is BRACKETED between -1.85 and'
-             ' -2.37 rather than pinned, and the drawn wall sits inside that bracket, tools/lamp_v.py.'
-             ' Every ray voting for any of the three comes from a camera between u 31.3 and 35.3, so the'
+             ' separated by the angular spread of the rays that see it. Through an aperture pointed at the'
+             ' MEASURED sill, head and wall depth, exactly one point behind this wall still carries a real'
+             ' depth minimum: lamp 8, halves agreeing on d -2.322 with a ratio of 6.5, whose own'
+             ' least-squares point sits on -2.022. Two estimators, same rays, 300 mm apart, straddling the'
+             ' drawn wall. Lamp 9 scores 2.9 against a bar of 3 and lamp 11 is not found at all, so the'
+             ' lamps go from three to two and the testable points from two to one, tools/corridor_cloud.py.'
+             ' A NIGHT OF FINDINGS WAS WITHDRAWN GETTING HERE: the aperture had been built from a stale'
+             ' sill, head and depth, so its mask stopped 0.185 m above the real head and manufactured two'
+             ' points sitting on that edge, one of which scored 88 and was called the best measurement'
+             ' this archive had behind the wall. It was the mask.'
              ' two-sided parallax a point deserves does not exist anywhere in this archive.'
              ' AND THERE IS NOW A'
              ' NUMBER FOR WHY, statable before any fitting happens. The near-far test that measured the'

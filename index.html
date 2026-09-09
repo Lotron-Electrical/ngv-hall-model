@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.524,-2.068,10.942],[34.139,-2.049,10.935],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -3112,6 +3112,7 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // ITS REVEAL FINDING IS WITHDRAWN, see the block above; the peel itself stands.
   // THE SEARCH BEHIND THIS WALL WAS ONLY EVER ALLOWED TO FIND ONE THING PER OPENING (2026-09-09,
   // tools/corridor_cloud.py). The corridor finder gathers every bright blob visible through an aperture,
   // keeps the single point the most rays agree on, and stops. That is why this archive's entire knowledge
@@ -3139,6 +3140,38 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // I SHIPPED A GATE ARTEFACT TWICE AND THE TOOL TOLD ME SO WHEN I READ IT (2026-09-09,
+  // tools/corridor_lamp.py, tools/corridor_cloud.py). Everything found behind this wall comes through an
+  // APERTURE: the drawn opening rectangle projected into each frame and used as a mask, so a blob only
+  // counts if it lands inside the opening. That rectangle is built from the sill, the head and the wall
+  // depth, and it had been carrying 8.99, 11.35 and -0.090 since this morning. All three moved today. The
+  // sill and head were re-measured on a plane the near-far split actually pins, giving 8.740 and 11.165
+  // on d -0.030, and nobody pointed the gate at them.
+  // SO THE MASK STOPPED 0.185 M ABOVE THE REAL HEAD, and a blob detector whose mask ends there will
+  // return detections sitting on that edge. Last night I reported a point 0.194 m above the head with a
+  // parallax ratio of 88, called it the strongest measurement this archive had ever made behind the brick
+  // wall, and built a reveal depth bound on it. Tonight I reported a second one confirming it, at h
+  // 11.340 against the first's 11.359, and said a splay was refuted because two points at different
+  // depths shared a height. THE GATE STOPPED ON 11.350. Two points nineteen millimetres apart straddling
+  // the mask edge is the mask, not the building, and the shared height that looked like proof of a level
+  // soffit is just where the mask ended.
+  // POINTED AT THE MEASURED WALL, THEY DO NOT COME BACK. Opening 7 now yields nothing in its reveal that
+  // survives the parallax test at all: its best candidate up there lands on h 11.189 with a ratio of 2.9
+  // against a bar of 3. BOTH REVEAL FINDINGS ARE WITHDRAWN, and so is the point they implied on the hall
+  // face at h 9.051, which also fails to reappear. The reveal's lower bound goes back to the 0.362 m a
+  // lens leaning through an opening gives it.
+  // THE LAMPS SHRINK FROM THREE TO TWO, AND THE TWO AGREE BETTER THAN THE THREE DID. Re-run through the
+  // corrected gate, opening 8 gives d -2.022 h 10.916 and opening 9 gives -2.047 and 10.945: 25 mm apart
+  // in depth and 29 in height. The third, at u 42.043, is simply not found any more, so it is not drawn
+  // any more. The corridor's whole measured content is now two triangulated lamps, of which one survives
+  // the parallax test.
+  // WHAT THIS COSTS AND WHAT IT BUYS. It costs two nights of headline findings, both of which were mine
+  // and both of which I checked in other ways that could not have caught this: a parallax split, a null
+  // split and a second independent point all agreed with each other because they were all looking through
+  // the same wrong mask. No consistency test between instruments can catch a shared input error. The only
+  // thing that caught it was reading the tool's own constants against the model's current numbers, which
+  // is now worth doing to every tool that hard-codes geometry.
+  // WITHDRAWN THE SAME NIGHT, see the block above: this point was the aperture gate's own edge.
   // THE BEST-CONDITIONED POINT BEHIND THIS WALL WAS THROWN AWAY FOR NOT LOOKING LIKE A LAMP (2026-09-09,
   // tools/point_v.py). The corridor search runs one blob hunt per opening and returns the strongest point
   // its rays agree on. It found EIGHT. Three sat about two metres back at about eleven up, were called
@@ -3357,7 +3390,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 71 bounds, all satisfied.
+  // 67 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
