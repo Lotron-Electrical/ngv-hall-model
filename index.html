@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.320, floor:8.34, ceil:10.947, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); WIDTH AND CEILING ARE NOW ONE ANSWER, not two assumptions: the anchored ceiling locus (tools/corridor_locus.py) gives the ceiling height for every assumed back-wall depth, and the highest lamp measured inside the room, h 10.945, cuts it -- a ceiling below a lamp is impossible. The curve crosses that lamp on d -2.350 h 10.947 from 82 rays with its four camera splits agreeing to 10 mm, so the room is at least 2.320 m deep and this is the SHALLOWEST admissible one. A deeper room with a higher ceiling is equally allowed; 50 mm of lamp-height error moves the wall 86 mm. Was 2.06 and 11.4, a pair that put the drawn ceiling 0.6 m above what the rays read at the drawn depth. Floor 8.34 CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py) */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -3140,6 +3140,60 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE CORRIDOR IS DEEPER THAN THIS MODEL DREW IT, AND THE TOOL THAT SAYS SO HAD BEEN LOOKING THROUGH
+  // THE WRONG SLOT (2026-09-09, tools/corridor_lines.py, tools/corridor_locus.py). The room behind the
+  // brick wall is seen only through twelve openings, and every ray admitted to a corridor measurement is
+  // gated by an APERTURE: a ray counts only if it crosses the wall plane between the opening sill and the
+  // opening head. That gate lived in tools/corridor_lines.py carrying -0.090, 8.761 and 11.236 while the
+  // model had moved to -0.030, 8.740 and 11.165. The slot was therefore 71 mm too tall at the head and
+  // 21 mm too high at the sill, admitting rays that pass through solid stone above the real opening, on
+  // exactly the edge nearest the answer. This is the same mask fault that manufactured two reveal points
+  // tonight, one level upstream of them.
+  // tools/constant_drift.py HAD ALREADY FLAGGED IT, THREE TIMES, and the hits were triaged by category
+  // instead of read. Its own header says every hit gets read, and that instruction was the thing skipped.
+  // SO THE GATE WAS CORRECTED AND THE RAYS REGATHERED, keeping the old bundle beside the new one so the
+  // cost could be measured rather than asserted. 215 rays became 128: 87 of them, forty per cent, were
+  // admitted only by the too-tall slot.
+  // AND THE ANSWER DID NOT MOVE. The ceiling locus reads 10.805 on the drawn back wall through the
+  // corrected gate against 10.800 through the stale one, and 10.947 against 10.946 at the depth that
+  // matters below. What the correction bought was purity, not a different number: the share of rays
+  // inside the consensus went from 40 per cent to 64. THE MASK ADDED NOISE AROUND A REAL FEATURE RATHER
+  // THAN INVENTING ONE, which is worth saying plainly after tonight, because the lamp fault taught the
+  // opposite lesson and both are true of different masks.
+  // WITH THE GATE HONEST, THE LOCUS AND THE LAMPS CLOSE ON EACH OTHER. The locus is not a number, it is a
+  // curve: fix the back wall anywhere and every ray gives the ceiling height directly, one unknown per
+  // ray, nothing to slide along. It rises 0.583 m of ceiling per metre of depth. The highest lamp
+  // triangulated inside that room hangs on h 10.945, and a ceiling below a lamp is impossible, so the
+  // lamp cuts the curve. The crossing is d -2.350, h 10.947, from 82 rays whose west, east, near and far
+  // splits agree to 10 mm.
+  // THE MODEL DREW -2.090 AND 11.400, AND THAT PAIR WAS NOT POSSIBLE. At the drawn depth the rays put the
+  // ceiling on 10.805, which is 0.140 m BELOW the lamp hanging in the room and 0.595 m below the ceiling
+  // drawn above it. The corridor moves to 2.320 m deep with its ceiling on 10.947, which is the
+  // SHALLOWEST room the evidence admits and the first time those two numbers have come from one source
+  // instead of from the 1968 plan and a downlight respectively.
+  // THE TWO MEASURED LAMPS THEN SIT 2 mm AND 31 mm UNDER THAT CEILING, which is what flush ceiling
+  // fittings in a corridor look like, and was not built in: the depth was chosen by the higher lamp and
+  // the lower one landed where it landed.
+  // WHAT IS NOT CLAIMED. A DEEPER room is equally admissible, because the cut is one-sided; 50 mm of
+  // lamp-height error moves the wall 86 mm; and the 11.4 that stood here came from a downlight read
+  // through the deck at an assumed mid-corridor depth, which is itself a depth-conditional number and
+  // cannot cut this curve until it is re-read across the wider range. The room is at least this deep,
+  // drawn at its minimum.
+  // AND THE ANSWER DOES NOT FOLLOW THE LADDER, which is the test the west recess had to pass this
+  // evening and the one thing that could still have made this circular. Moving the back wall also moves
+  // the plane the detector's ladder is walked on, so the rays were regathered a second time with the
+  // ladder standing on the new -2.350 instead of the old -2.090, 260 mm away. 128 rays became 117 and
+  // the locus did not move: 10.976, 10.923 and 10.809 on the three stations either side of the answer,
+  // against 10.976, 10.920 and 10.811 before, differences of 0, 3 and 2 mm.
+  // THAT IS THE MASK-VERSUS-LADDER DISTINCTION MEASURED RATHER THAN ASSERTED. A mask makes a feature
+  // invisible and detections pile onto its edge, which is what the aperture did to the reveal points. A
+  // ladder only chooses where to look, and a wide enough one still finds the right edge from the wrong
+  // centre. The aperture was a mask and had to be right; the back wall is a ladder and did not need to
+  // be, and now both have been shown to behave that way on the same rays.
+  // A BOUND WAS ALSO OVER-CLAIMING AND IS NARROWED. "The back wall sits between the two estimators on the
+  // one testable lamp" treated a LAMP's depth as the WALL's depth. A lamp on d -2.022 does not put the
+  // wall there; it only forbids the wall from being shallower. The valid half of it is kept and the
+  // upper edge, which this locus now forbids outright, is dropped.
   // THE APRON QUESTION IS CLOSED ON EVIDENCE, AND THE TWO RUNS THAT CLOSED IT WERE BOTH WRONG FIRST
   // (2026-09-09, tools/apron_wide.py). Last night's apron scan swept 1.3 m of station, found its near-far
   // gap flat near 200 mm everywhere, and concluded the two camera halves were looking at different
@@ -3550,7 +3604,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 83 bounds, all satisfied.
+  // 87 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

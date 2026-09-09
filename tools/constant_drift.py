@@ -48,6 +48,15 @@ MOVED = [
     ('0.89', '0.83', 'the lower gallery rail over its solid'),
     ('2.000', '2.060', 'the corridor width'),
     ('10.374', '10.916', 'a corridor lamp height'),
+    # THE CORRIDOR MOVED TONIGHT, so the values it moved away from join the list the same evening.
+    # A list that is only updated when something breaks is a list that catches the fault after it
+    # has cost something, which is exactly how the aperture gate survived a whole day.
+    ('2.060', '2.320', 'the corridor width'),
+    ('-2.090', '-2.350', 'the corridor back wall'),
+    ('11.4', '10.947', 'the corridor ceiling'),
+    ('2.054', '2.047', 'the deepest lamp depth behind the face'),
+    ('8.761', '8.740', 'the opening sill, the aperture gate value'),
+    ('11.236', '11.165', 'the opening head, the aperture gate value'),
 ]
 SKIP = {'constant_drift.py'}
 

@@ -16,20 +16,34 @@
 # complete, honest statement of what this archive knows about that room: not a point, a curve, plus
 # whatever independent facts can cut across it.
 #
-# AND THERE ARE TWO SUCH FACTS. The three lamps triangulated inside that room hang on h 10.374, 10.908 and
-# 10.990, and a ceiling has to be above the highest of them. The deepest of them sits 2.054 m behind the
+# AND THERE ARE TWO SUCH FACTS. The two lamps that survive tonight's withdrawal hang on h 10.916 and
+# 10.945, and a ceiling has to be above the highest of them. The deepest of them sits 2.054 m behind the
 # wall face, so the back wall is at least that deep. Neither comes from these rays, so both may cut it.
 import os
 
 import numpy as np
 
 OUT = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/walls'
-DNORTH, DBACK, CEIL, FLOOR = -0.090, -2.090, 11.4, 8.34
-LAMPS = (10.374, 10.908, 10.990)
-LAMPDEEP = 2.054
+# CORRECTED 2026-09-09. Was -0.090 for the wall face, and the three-lamp set 10.374/10.908/10.990
+# whose deepest member sat 2.054 m back. All four were superseded before this tool last ran, and
+# one of them was load-bearing: max(LAMPS) was the cut that ruled out shallow back walls, and it was
+# a lamp that has since been withdrawn as a mask artefact. The two lamps that survive hang on
+# 10.916 and 10.945, and the deeper of them sits 2.047 m behind the corrected face.
+# CORRECTED 2026-09-09 (was -2.090, 11.4). These are the DRAWN values the tool reports against and,
+# in corridor_lines.py, the plane its ladder is walked on. They must track the model or the tool
+# quietly compares tonight's rays with yesterday's room. DBACK is a SAMPLING LADDER and not a
+# mask, so moving it 260 mm should not move the answer if the ladder is wide enough, and that is
+# a claim this change tests rather than assumes.
+DNORTH, DBACK, CEIL, FLOOR = -0.030, -2.350, 10.947, 8.34
+LAMPS = (10.916, 10.945)
+LAMPDEEP = 2.047
 TOL = 0.05
 
-A = np.load(os.path.join(OUT, 'corridor-ceiling-rays.npy'))
+# CORRIDOR_RAYS lets the same locus be run on an OLD ray bundle, which is how the cost of the stale
+# aperture was measured rather than asserted: the bundle gated by the superseded sill and head is
+# kept beside the corrected one and both are read by this tool unchanged.
+SRC = os.environ.get('CORRIDOR_RAYS', 'corridor-ceiling-rays.npy')
+A = np.load(os.path.join(OUT, SRC))
 R, UU = A[:, :4], A[:, 4]
 print('%d rays that crossed the wall plane inside a measured opening, from cameras d %.2f to %.2f'
       % (len(R), R[:, 0].min(), R[:, 0].max()))
@@ -59,9 +73,9 @@ for dv in np.arange(-3.60, -1.199, 0.10):
     if hval is None:
         continue
     rows.append((float(dv), hval, n, frac))
-    flag = '' if hval > LAMPS[2] else '   IMPOSSIBLE, a lamp hangs above it'
+    flag = '' if hval > max(LAMPS) else '   IMPOSSIBLE, a lamp hangs above it'
     print('   %+.3f      %7.3f   %5d          %4.0f%%   %+.3f m%s'
-          % (dv, hval, n, 100 * frac, hval - LAMPS[2], flag))
+          % (dv, hval, n, 100 * frac, hval - max(LAMPS), flag))
 
 if not rows:
     raise SystemExit('no consensus anywhere along the sweep')
@@ -75,11 +89,11 @@ wide = dsv[ns >= 0.95 * ns.max()]
 print('   the count stays within 5 per cent of its peak from d %+.3f to %+.3f, a band %.2f m wide'
       % (wide.min(), wide.max(), wide.max() - wide.min()))
 
-ok = [r for r in rows if r[1] > LAMPS[2]]
-bad = [r for r in rows if r[1] <= LAMPS[2]]
+ok = [r for r in rows if r[1] > max(LAMPS)]
+bad = [r for r in rows if r[1] <= max(LAMPS)]
 print('')
 print('   THE LAMPS CUT THE CURVE. A ceiling below h %.3f is impossible, because a lamp hangs there.'
-      % LAMPS[2])
+      % max(LAMPS))
 if bad:
     print('   That rules out every back wall shallower than d %+.3f.' % max(r[0] for r in bad))
 else:

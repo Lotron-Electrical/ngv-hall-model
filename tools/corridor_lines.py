@@ -38,9 +38,23 @@ import underside_geom as U  # noqa: E402
 O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
-DNORTH, SILL, HEAD = -0.090, 8.761, 11.236
-DBACK, CEIL, FLOOR = -2.090, 11.4, 8.34
-LAMPS = (10.374, 10.908, 10.990)
+# CORRECTED 2026-09-09 (was -0.090, 8.761, 11.236). These three build the APERTURE this tool gates
+# every corridor ray through: a ray counts only if it crosses the wall plane between the sill and
+# the head. The old head stood 71 mm above the measured one and the old sill 21 mm above, so the
+# slot admitted rays passing through solid stone above the real opening, and it did so on exactly
+# the edge nearest the answer the tool then reported. That is the same mask fault that invented two
+# reveal points tonight, one level upstream of them, and tools/constant_drift.py had flagged the
+# consumer of this file three times while the hits were triaged by category rather than read.
+DNORTH, SILL, HEAD = -0.030, 8.740, 11.165
+# CORRECTED 2026-09-09 (was -2.090, 11.4). These are the DRAWN values the tool reports against and,
+# in corridor_lines.py, the plane its ladder is walked on. They must track the model or the tool
+# quietly compares tonight's rays with yesterday's room. DBACK is a SAMPLING LADDER and not a
+# mask, so moving it 260 mm should not move the answer if the ladder is wide enough, and that is
+# a claim this change tests rather than assumes.
+DBACK, CEIL, FLOOR = -2.350, 10.947, 8.34
+# CORRECTED 2026-09-09 (was 10.374, 10.908, 10.990). The three-lamp set was withdrawn tonight: the
+# highest two of those were the mask edge. Two lamps survive as measurements.
+LAMPS = (10.916, 10.945)
 OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920],
         [15.227, 16.440], [18.917, 20.130], [22.565, 23.778],
         [26.213, 27.426], [29.963, 31.175], [33.642, 34.853],
@@ -57,8 +71,8 @@ HWIN, CONTRAST, THRESH = 40, 18.0, 0.06
 # THE CONTROL, and it is not optional. The first run of this tool fitted a line whose four sub-fits
 # scattered over 1.7 m in depth, which is a refusal, but a refusal only means something once you know
 # whether the machinery or the room is at fault. So the same detector, the same polarity, the same rays
-# and the same fit are pointed at a feature measured TODAY to 17 mm: the opening head on d -0.090
-# h 11.236, which is also a dark-below bright-above edge and is the strongest one anywhere near this
+# and the same fit are pointed at a feature measured TODAY to 17 mm: the opening head on d -0.030
+# h 11.165, which is also a dark-below bright-above edge and is the strongest one anywhere near this
 # ladder. The only thing that changes is the window the ray is allowed to cross the wall plane in, which
 # in the corridor run stops at the head and here is opened past it.
 # If the control lands on the head, the machinery works and the corridor genuinely has no line the hall
@@ -288,4 +302,4 @@ print('   range to the edge %.2f m against %.2f m to the wall face, %+.2f m alon
          100.0 * float((s - sface > 0).mean())))
 print('   cent of the inliers put it beyond the face, which is what being inside that room means')
 print('   the highest lamp triangulated in there hangs on h %.3f, so a ceiling on %.3f clears it by %.3f m'
-      % (LAMPS[2], ref[1], ref[1] - LAMPS[2]))
+      % (max(LAMPS), ref[1], ref[1] - max(LAMPS)))

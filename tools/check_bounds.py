@@ -137,8 +137,14 @@ check('the lamps agree with each other on a level, which they never did before',
 # ONE LAMP NOW SURVIVES THE PARALLAX TEST, NOT TWO. Through the corrected aperture lamp 9 scores 2.9
 # against a bar of 3 and lamp 11 is not found at all, so the bracket is no longer between two lamps. It is
 # between the two ESTIMATORS on the one lamp that does survive, and they straddle the drawn wall.
-check('the back wall sits between the two estimators on the one testable lamp',
-      min(LAMPV[8][1], -2.022) <= G['cBack'] <= max(LAMPV[8][1], -2.022),
+# NARROWED 2026-09-09. This read "the back wall sits between the two estimators on the one testable
+# lamp" and tested both edges. That conflated a LAMP's depth with the WALL's depth: a lamp on d -2.022
+# does not put the wall on -2.022, it only forbids the wall from being shallower than the lamp. The
+# ceiling locus now forbids the upper edge outright, which is how the over-claim was caught. Only the
+# one-sided half survives, and the bracket is kept in the text because it is still what is known about
+# that lamp.
+check('the back wall is behind the one testable lamp, on both estimators of it',
+      G['cBack'] <= min(LAMPV[8][1], -2.022),
       'a POINT can be tested where a line cannot: a line in that room is separated only by cameras at '
       'different distances and the slot collapses that to a leverage of 1.32, while a point is separated '
       'by the angular spread of the rays that see it. Lamp 8 is the only point behind this wall that '
@@ -146,7 +152,7 @@ check('the back wall sits between the two estimators on the one testable lamp',
       'on a leverage of %.2f. Its own least-squares point sits on -2.022. Two estimators on the SAME rays, '
       '%.0f mm apart, straddling the wall drawn on %.3f. Lamp 9 now scores %.1f against a bar of 3 and '
       'lamp 11 is not found through the corrected gate at all. So the corridor has one testable point and '
-      'a 300 mm bracket, and nothing is moved on it.'
+      'a 300 mm bracket. Only the near edge of it constrains the wall.'
       % (LAMPV[8][1], LAMPV[8][3], LAMPV[8][4], 1000 * abs(LAMPV[8][1] + 2.022), G['cBack'], LAMPV[9][3]),
       'tools/lamp_v.py')
 check('the corridor lamps are drawn where they were measured',
@@ -262,13 +268,20 @@ check('the jamb arris is behind the face by a test that can refuse it',
       'jamb DEPTH is much softer than it looked and nothing is drawn on it.'
       % (JAMBV['minima'], JAMBV['testable']),
       'tools/jamb_v.py')
-check('the corridor back wall stays where the lamps put it, whatever the face does',
-      abs(G['cBack'] - (-2.090)) <= 0.01,
-      'the back wall is drawn as the face minus the width, so moving the face 0.060 m into the hall moved '
-      'it too, and it landed IN FRONT of the deepest triangulated lamp on d -2.144. That wall was never '
-      'measured from the face; it was placed by those lamps. So the WIDTH absorbed the move, 2.00 to '
-      '2.06, and the wall stayed on %.3f.' % G['cBack'],
-      'tools/corridor_lamp.py')
+# RE-PINNED 2026-09-09. This held cBack on -2.090, where the wall sat when it was placed by a lamp on
+# d -2.144 that has since been withdrawn as a mask artefact. The ceiling locus cut by the lamp that
+# survives moves it to -2.350. The PRINCIPLE the bound exists for is unchanged and is the reason it is
+# re-pinned rather than deleted: the back wall is drawn as the face minus the width, so a change to the
+# face must be absorbed by the WIDTH and must not drag the wall, because the wall was never measured
+# from the face.
+check('the corridor back wall stays where the evidence puts it, whatever the face does',
+      abs(G['cBack'] - (-2.350)) <= 0.01,
+      'the face moved 0.060 m into the hall this afternoon and the width absorbed it, 2.00 to 2.06, so '
+      'the wall did not follow. Tonight the wall itself moved, on evidence: the anchored ceiling locus '
+      'cut by the highest surviving lamp puts it on -2.350, and the width absorbed that too, 2.06 to '
+      '%.3f. The wall is on %.3f and the face is on %.3f.'
+      % (G['cWidth'], G['cBack'], G['dNorth']),
+      'tools/corridor_locus.py')
 # THE JAMBS, MEASURED, tools/jamb_lines.py (2026-09-09). The same two-unknown line fit turned a third
 # way: a jamb is a VERTICAL line at constant (u, d) spanning h, so a ray meets one when
 # vd*(u* - cu) - vu*(d* - cd) = 0, and the conditioning comes from cameras spread ALONG the hall, which
@@ -613,6 +626,66 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE CORRIDOR RE-GATED, AND THE LOCUS CUT BY THE LAMP IT MUST CLEAR
+# (2026-09-09, tools/corridor_lines.py, tools/corridor_locus.py).
+CORR = {'stale_rays': 215, 'rays': 128, 'stale_share': 0.40, 'share': 0.64, 'cut_d': -2.350,
+        'cut_h': 10.947, 'cut_rays': 82, 'split': 0.010, 'drawn_h_at_old': 10.805, 'lamp': 10.945,
+        'slope': 0.583, 'sens': 0.086, 'stale_head': 11.236, 'stale_sill': 8.761, 'stale_d': -0.090,
+        'lad_rays': 117, 'lad_move': 0.260, 'lad_worst': 0.003, 'lad_share': 0.66}
+check('the corridor aperture gate matches the openings the model actually draws',
+      True,
+      'every corridor measurement is gated by an aperture: a ray counts only if it crosses the wall '
+      'plane between the sill and the head. That gate carried %.3f, %.3f and %.3f while the model drew '
+      '%.3f, %.3f and %.3f, so the slot stood %.0f mm too tall at the head and %.0f mm too high at the '
+      'sill and admitted rays through solid stone above the real opening. Corrected and regathered, '
+      '%d rays became %d: %d of them, %.0f per cent, were admitted only by the too-tall slot. '
+      'tools/constant_drift.py had flagged its consumer three times and the hits were triaged by '
+      'category instead of read, which is the instruction that tool exists to enforce.'
+      % (CORR['stale_d'], CORR['stale_sill'], CORR['stale_head'], G['dNorth'], G['sill'],
+         G['head'], 1000 * (CORR['stale_head'] - G['head']),
+         1000 * (CORR['stale_sill'] - G['sill']), CORR['stale_rays'], CORR['rays'],
+         CORR['stale_rays'] - CORR['rays'],
+         100.0 * (CORR['stale_rays'] - CORR['rays']) / CORR['stale_rays']),
+      'tools/corridor_lines.py')
+check('the wrong aperture added noise around a real feature rather than inventing one',
+      CORR['share'] > 1.5 * CORR['stale_share'],
+      'the natural fear after the reveal points is that every mask fault invalidates its finding. This '
+      'one did not. The ceiling locus reads the same through both gates, %.3f against %.3f on the old '
+      'drawn wall and %.3f against %.3f at the crossing, differences of 5 and 2 mm. What the correction '
+      'bought was purity: the share of rays inside the consensus went from %.0f to %.0f per cent. Both '
+      'lessons are true of different masks and neither generalises to the other.'
+      % (CORR['drawn_h_at_old'], 10.800, CORR['cut_h'], 10.946, 100 * CORR['stale_share'],
+         100 * CORR['share']),
+      'tools/corridor_locus.py')
+check('the corridor answer does not follow the ladder that found it',
+      CORR['lad_worst'] < 0.010,
+      'moving the back wall also moves the plane the detector ladder is walked on, so the rays were '
+      'regathered a second time with the ladder standing on the new %.3f instead of the old -2.090, '
+      '%.0f mm away, and %d rays became %d. The locus did not move: its worst station shifted %.0f mm '
+      'and the rest less. That is the mask-versus-ladder distinction measured rather than asserted. A '
+      'mask makes a feature invisible and detections pile onto its edge, which is what the aperture did '
+      'to the withdrawn reveal points; a ladder only chooses where to look, and a wide enough one finds '
+      'the right edge from the wrong centre. The aperture had to be right and the back wall did not, and '
+      'both have now been shown to behave that way on the same rays.'
+      % (CORR['cut_d'], 1000 * CORR['lad_move'], CORR['rays'], CORR['lad_rays'],
+         1000 * CORR['lad_worst']),
+      'tools/corridor_lines.py')
+check('the drawn corridor is the shallowest room its own lamps allow',
+      abs(G['cBack'] - CORR['cut_d']) < 0.005 and abs(G['cCeil'] - CORR['cut_h']) < 0.005
+      and G['cCeil'] > max(L[2] for L in MEASURED_LAMPS),
+      'the locus is a curve and not a number: fix the back wall anywhere and every ray gives the ceiling '
+      'directly, one unknown per ray. It rises %.3f m of ceiling per metre of depth. The highest lamp '
+      'inside the room hangs on h %.3f and a ceiling below a lamp is impossible, so the lamp cuts the '
+      'curve on d %.3f h %.3f, from %d rays whose west, east, near and far splits agree to %.0f mm. The '
+      'model drew -2.090 and 11.400, a pair that put the ceiling %.3f at the drawn depth, %.0f mm BELOW '
+      'the lamp hanging in the room. Now %.3f and %.3f, which is the shallowest room the evidence admits '
+      'and the first time the two numbers have come from one source. A DEEPER room is equally admissible '
+      'because the cut is one-sided, and %.0f mm of lamp-height error moves the wall %.0f mm.'
+      % (CORR['slope'], CORR['lamp'], CORR['cut_d'], CORR['cut_h'], CORR['cut_rays'],
+         1000 * CORR['split'], CORR['drawn_h_at_old'],
+         1000 * (CORR['lamp'] - CORR['drawn_h_at_old']), G['cBack'], G['cCeil'],
+         50.0, 1000 * CORR['sens']),
+      'tools/corridor_locus.py')
 # THE APRON BOUNDARY, SEARCHED FOR THE FIRST TIME (2026-09-09, tools/run_apron_edge.py).
 APRON = {'west_rays': 107, 'east_rays': 4, 'gap_lo': 0.198, 'gap_hi': 0.233, 'null': 0.015,
          'near': 6.2, 'far': 6.5}
