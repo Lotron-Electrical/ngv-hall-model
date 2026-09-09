@@ -3140,6 +3140,37 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // WHERE PEOPLE ACTUALLY STOOD BEHIND THAT WALL, WITH NO DETECTOR IN THE ARGUMENT AT ALL
+  // (2026-09-09, tools/corridor_occupancy.py). Every corridor number here comes from photometry, and the
+  // last three hours were a long lesson in what photometry does wrong: a stale mask manufactured two
+  // reveal points, a ladder ceiling manufactured a deck edge with 100 per cent agreement, and a parapet
+  // null passed more often than the parapet. All three failures live in the detector.
+  // A POSED LENS HAS NO DETECTOR IN IT. It is a point that was not inside stone, so the floor is below
+  // it, the ceiling above it and the back wall behind it, with no brightness, window, polarity or
+  // threshold anywhere in the reasoning. That argument had been used on the galleries and never on the
+  // corridor, which is the part of this model rebuilt twice tonight.
+  // 1568 LENSES, 196 OF THEM BEHIND THIS WALL, from five classes and three different openings: b1 and
+  // b1p through opening 5, b5 and b5p through 6, b4 through 11. And ALL 196 ARE STILL INSIDE THE REVEAL.
+  // The deepest reaches 0.422 m in, against a reveal drawn 0.900 deep. Not one lens is past it, let alone
+  // in the room. Everything this model draws deeper than 0.42 m rests on photometry and the 1968 plan,
+  // and no pose in this archive touches it.
+  // THE THREE BOUNDS ARE REAL AND NEARLY EMPTY, which is worth stating rather than glossing: the back
+  // wall has 1.90 m of slack against the deepest lens, the floor 0.73 m and the ceiling 0.83 m. Nothing
+  // is contradicted. A bound with metres of slack constrains almost nothing.
+  // AND ONE NUMBER IMPROVES WITHOUT ANYTHING BEING RE-MEASURED. The bound on the reveal depth was 0.362 m
+  // and its source is b1_000057, the same frame this sweep finds. That lens has not moved; the FACE moved,
+  // from -0.090 to -0.030 this afternoon, so the same lens that sat 0.362 m behind the old face sits
+  // 0.422 m behind the measured one. The reveal bound is 60 mm better for free.
+  // WHICH IS A HOLE IN TONIGHT'S OWN AUDIT. tools/mask_audit.py reads the constants inside TOOLS. This
+  // was a superseded constant baked into a BOUND VALUE, where neither audit was looking, and it took an
+  // unrelated experiment walking past it to find it.
+  // THE LENS IS NOT THE PERSON, AND THE FIRST DRAFT OF THIS TOOL FORGOT THAT. Reading 196 lenses inside
+  // the reveal it concluded people were leaning IN from outside. There is nowhere outside to lean from:
+  // these lenses sit between h 9.07 and 10.12, the sill is 8.740, and on the hall side at that height
+  // there is nothing but air. None of the 196 is below the sill, so the bodies were standing INSIDE the
+  // room and only the lenses leaned forward into the reveal. A lens bounds where the LENS was; the feet
+  // are behind it and deeper in. That is why this run says nothing about the floor and everything about
+  // the reveal.
   // THE BALCONY MEASURED FROM THE BALCONY, AND THE NULL PASSED MORE OFTEN THAN THE SIGNAL
   // (2026-09-09, tools/overlay_residual.py). Every balcony number in this model was fitted from HALL
   // FLOOR frames looking at an end wall from 6 to 42 m away, through grazing sightlines and dark stone,
@@ -3800,7 +3831,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 107 bounds, all satisfied.
+  // 111 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

@@ -116,8 +116,8 @@ check('corridor is deep enough for the lamps inside it',
 # stopped on 11.350. Two points nineteen millimetres apart straddling the mask edge is the mask. Pointed
 # at the measured wall neither comes back: the best candidate up there now scores 2.9 against a bar of 3.
 check('the reveal claims built on the stale aperture are withdrawn, not quietly dropped',
-      G['openDepth'] >= 0.362 - 1e-9,
-      'the reveal depth bound goes back to the 0.362 m a lens leaning through an opening gives it, from '
+      G['openDepth'] >= 0.422 - 1e-9,
+      'the reveal depth bound goes back to the 0.422 m a lens leaning through an opening gives it, from '
       'the 0.629 claimed on the withdrawn point. The point implied on the hall face on h 9.051 also fails '
       'to reappear and is withdrawn with it. openDepth is drawn %.2f and still clears the bound that '
       'survives.' % G['openDepth'],
@@ -380,8 +380,8 @@ check('nobody stood inside a jamb',
       'pixels at all.' % (_worst, _worstn, 0.069),
       'tools/lens_in_aperture.py')
 check('the reveal is at least as deep as the lens that stood in it',
-      G['openDepth'] >= 0.362 - 1e-9,
-      'openDepth %.3f. b1_000057 sits 0.362 m behind the wall face between a measured pair of jambs and '
+      G['openDepth'] >= 0.422 - 1e-9,
+      'openDepth %.3f. b1_000057 sits 0.422 m behind the wall face between a measured pair of jambs and '
       'above the measured sill, so it was standing in the reveal and the reveal is at least that deep. '
       'That is a floor and not a value, and it is weaker than the 0.9 m the traced rays already give, so '
       'nothing moves on it.' % G['openDepth'],
@@ -633,6 +633,50 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# WHERE PEOPLE ACTUALLY STOOD BEHIND THAT WALL (2026-09-09, tools/corridor_occupancy.py). No detector,
+# no window, no polarity, no threshold: a lens is a point that was not inside stone.
+OCC = {'lenses': 1568, 'classes': 15, 'behind': 196, 'inreveal': 196, 'inroom': 0,
+       'deepest': 0.422, 'was': 0.362, 'oldface': -0.090, 'lowest': 9.066, 'highest': 10.121,
+       'back_slack': 1.898, 'floor_slack': 0.726, 'ceil_slack': 0.826,
+       'openings': 3, 'behind_classes': 5, 'below_sill': 0}
+check('the reveal bound was measured against a wall face the model has moved away from',
+      abs(OCC['deepest'] - (OCC['was'] + abs(G['dNorth'] - OCC['oldface']))) < 0.002,
+      'the deepest lens behind this wall is b1_000057 and it has not moved. The FACE moved: %.3f to %.3f '
+      'this afternoon, so the same lens that sat %.3f m behind the old face sits %.3f m behind the '
+      'measured one. The bound is 60 mm better and nothing was re-measured to get it. tools/mask_audit.py '
+      'reads the constants inside TOOLS; this one was a stale constant baked into a BOUND VALUE, where '
+      'nothing was looking.'
+      % (OCC['oldface'], G['dNorth'], OCC['was'], OCC['deepest']),
+      'tools/corridor_occupancy.py')
+check('nobody in the archive has ever stood in the corridor itself',
+      OCC['inroom'] == 0,
+      '%d posed lenses across %d classes, %d of them behind the north wall face, from %d classes and %d '
+      'different openings. ALL %d are still inside the REVEAL: the deepest reaches %.3f m in and the '
+      'drawn reveal is %.2f m deep. Not one lens is past it, let alone in the room. So everything this '
+      'model draws deeper than %.3f m rests on photometry and the 1968 plan, and no pose in this archive '
+      'touches it.'
+      % (OCC['lenses'], OCC['classes'], OCC['behind'], OCC['behind_classes'], OCC['openings'],
+         OCC['inreveal'], OCC['deepest'], G['openDepth'], OCC['deepest']),
+      'tools/corridor_occupancy.py')
+check('the pose bounds on the corridor are real and nearly empty',
+      OCC['back_slack'] > 1.0 and OCC['floor_slack'] > 0.5,
+      'the three bounds are one-sided and assumption-free: the back wall is behind the deepest lens, the '
+      'floor below the lowest, the ceiling above the highest. Nothing is contradicted, and the size of '
+      'the clearances is the content. The back wall has %.2f m of slack, the floor %.2f m and the ceiling '
+      '%.2f m against the people who were actually in there. A bound with metres of slack constrains '
+      'almost nothing, and this room is drawn far beyond where anybody stood.'
+      % (OCC['back_slack'], OCC['floor_slack'], OCC['ceil_slack']),
+      'tools/corridor_occupancy.py')
+check('the lens is not the person, and the first draft of that tool forgot it',
+      OCC['below_sill'] == 0,
+      'reading %d lenses inside the reveal, the tool first concluded people were leaning IN from outside. '
+      'There is nowhere outside to lean from: these lenses sit between h 9.07 and 10.12, the sill is '
+      '%.3f, and on the hall side at that height there is nothing but air. %d of the %d are below the '
+      'sill, so the bodies were standing INSIDE the room and only the lenses leaned forward into the '
+      'reveal. A lens bounds where the LENS was; the feet are behind it and deeper in, which is why this '
+      'says nothing about the floor and everything about the reveal.'
+      % (OCC['behind'], G['sill'], OCC['below_sill'], OCC['behind']),
+      'tools/corridor_occupancy.py')
 # THE BALCONY MEASURED FROM THE BALCONY (2026-09-09, tools/overlay_residual.py with SET=gallery).
 GAL = {'frames_day': 138, 'frames_b3p': 140, 'deck_bands': (0.020, -0.030, 0.030),
        'null_conf': 5, 'null_bands': 6, 'real_conf': 5, 'real_bands': 10,
