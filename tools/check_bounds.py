@@ -1456,7 +1456,7 @@ check('the east deck is consistent with both captures that stood upright on it, 
       'tools/body_at_rail.py')
 # THE SOFFIT DEPTH UNDER THE SAME RULER, KILLED BY ITS CONTROL AT BOTH ENDS (2026-09-10,
 # tools/soffit_ruler.py).
-SR = {'drawn': 2.1, 'head': 11.090, 'minout': 20.0, 'band': 0.75, 'front': 0.25, 'tol': 0.10,
+SR = {'drawn': 2.1, 'now': 0.45, 'head': 11.090, 'minout': 20.0, 'band': 0.75, 'front': 0.25, 'tol': 0.10,
       'rail': 9.865, 'carry': 1.6,
       'west': {'frames': 348, 'xf': -0.150, 'xb': 2.470, 'gb': 0.144, 'nb': 0.172},
       'east': {'frames': 242, 'xf': -0.190, 'xb': 2.770, 'gb': 0.202, 'nb': 0.204}}
@@ -1481,9 +1481,12 @@ check('and the pre-registered control fired at both ends, so nothing was read fr
       % (SR['west']['nb'], SR['east']['nb'], "'s", SR['west']['gb'], SR['east']['gb'],
          SR['west']['xb'] - SR['west']['xf'], SR['east']['xb'] - SR['east']['xf'], SR['tol']),
       'tools/soffit_ruler.py')
-check('the drawn soffit depth is unchanged, and the b6 corridor premise is closed',
-      abs(grab(r'soffitDepth:([0-9.]+)') - SR['drawn']) < 1e-9,
-      'the file carries %.1f m exactly as untested as it was. Kept without being claimed: both back edges '
+check('the ruler left the soffit depth alone; the gallery frames then took the slab away',
+      abs(grab(r'soffitDepth:([0-9.]+)') - SR['now']) < 1e-9 and SR['now'] < SR['drawn'],
+      'the ruler left the drawn %.1f m exactly as untested as it was; what changed it, the same day, was '
+      'the b6 frames shot from the gallery walkway, which show the canopy straight overhead and no slab, '
+      'so the depth is now a 0.45 m edge beam on the measured head line. Kept from the ruler without being '
+      'claimed: both back edges '
       'landed in the outer third of their band (%.3f and %.3f of a band ending on %.2f) and both front '
       'edges fell in front of the face (%.3f and %.3f), the same way at both ends. And the pose-free '
       'corridor cross-section this turn set out to read from the b6 frames 1056 to 1330 has nothing to run '
