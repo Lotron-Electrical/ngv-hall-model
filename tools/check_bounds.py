@@ -1409,6 +1409,46 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# AND NOBODY EVER WALKED THROUGH ANYTHING (2026-09-10, tools/walk_through.py).
+WK = {'steps': 1491, 'captures': 12, 'tris': 1171, 'names': 52, 'medstep': 0.118,
+      'crossed': 'gallery-rail', 'real': 24, 'turned': 27.1, 'spread': 10.0, 'angles': 8,
+      'contradicted': 0,
+      'tight': [['gallery-rail', 0.001, 'b3_000111'], ['opening-reveal', 0.046, 'b1_000190'],
+                ['gallery-parapet', 0.153, 'd4_000018'], ['opening-sill', 0.326, 'b1_000183']],
+      'blind': [['gallery-fascia', 1.968], ['corridor-floor', 1.590], ['corridor-back', 1.898],
+                ['gallery-back', 2.700], ['corridor-lamp', 7.096]]}
+check('nobody in this archive ever walked through a surface this model draws',
+      WK['contradicted'] == 0 and WK['real'] < WK['turned'] + WK['spread'],
+      'the body-in-the-wall test is one-sided and said so: it can show a hole too NARROW and never too '
+      'WIDE. This is the complement. Consecutive frames are consecutive positions of one man holding one '
+      'phone, so the step between them is a path he took, and a surface crossing that step is either not '
+      'there or the pose is wrong. %d steps from %d captures against %d triangles over %d names, a step '
+      'being %.3f m at the median. The only surface any real step crosses is %s, %d times, and THE NULL '
+      'SETTLES IT: the same steps turned on the spot through %d angles, same length and same place, cross '
+      'it %.1f times with a spread of %.1f. Turning where he stood hits it just as often, so that is a '
+      'crowded place and not a fault.'
+      % (WK['steps'], WK['captures'], WK['tris'], WK['names'], WK['medstep'], WK['crossed'],
+         WK['real'], WK['angles'], WK['turned'], WK['spread']),
+      'tools/walk_through.py')
+check('and the pass is turned into a bound by how close anybody actually came',
+      all(t[1] <= 0.35 for t in WK['tight']),
+      'a pass is only worth its coverage, so the closest approach was measured for every surface: a '
+      'surface cannot stand further out towards the path than the closest anyone came, or he would have '
+      'walked through it. Four are bounded to better than 0.35 m: %s. ONE OF THOSE NEEDS SAYING PLAINLY: '
+      'a bound of a millimetre is not a measurement of a rail, it is a camera sitting ON it, which is '
+      'what a phone resting on a balustrade looks like. It bounds the rail in the one direction this test '
+      'can bound anything and is not evidence the rail is right, only that it is not further out than the '
+      'phone was.'
+      % ', '.join('%s %.3f m by %s' % (t[0], t[1], t[2]) for t in WK['tight']),
+      'tools/walk_through.py')
+check('and the blind spot is measured per surface, which is the list worth working down',
+      all(b[1] > 1.0 for b in WK['blind']),
+      'what is NOT bounded is the useful half of this. %s. Those could be a metre or more out towards the '
+      'path and nothing in this archive would know. That is the measured size of the blind spot, surface '
+      'by surface, and it is what a future attempt should work down rather than re-testing the four that '
+      'are already pinned.'
+      % '; '.join('%s is %.2f m from the nearest step' % (b[0], b[1]) for b in WK['blind']),
+      'tools/walk_through.py')
 # A BODY CANNOT BE INSIDE A BRICK WALL (2026-09-10, tools/body_in_wall.py, tools/eye_height.py).
 BW = {'inwall': 250, 'inopen': 248, 'captures': 5, 'null': 2.8, 'nullspread': 8.8, 'cover': 34.1,
       'pitch': 3.675, 'miss': 1, 'missmm': 15, 'poserr': [24, 100],

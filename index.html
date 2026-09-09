@@ -3199,6 +3199,37 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // AND THE OTHER SIDE OF THAT ARGUMENT: NOBODY EVER WALKED THROUGH ANYTHING (2026-09-10,
+  // tools/walk_through.py).
+  // WHY IT HAD TO BE ASKED. The body-in-the-wall test is one-sided by construction and said so: it can
+  // show a hole is too NARROW and can never show one is too WIDE. This is the complement. Consecutive
+  // frames of a clip are consecutive positions of one man holding one phone, so the straight step between
+  // them is a path he actually took. If a modelled surface crosses that step, either the surface is not
+  // there or the pose is wrong. It tests every deck, parapet, upstand, fascia, reveal and corridor quad
+  // in the file at once, and the ones nobody walked near return nothing, which is the honest answer.
+  // 1491 STEPS FROM TWELVE CAPTURES, against 1171 analytic triangles over 52 names. A step is 0.118 m at
+  // the median.
+  // NOT ONE SURFACE IS CONTRADICTED. The only surface any real step crosses at all is gallery-rail, 24
+  // times, and THE NULL SETTLES IT: the same steps turned on the spot through eight angles, same length
+  // and same place, cross it 27.1 times with a spread of 10. Turning where he stood hits it just as
+  // often, so that is a crowded place and not a fault. Every other surface in this model is crossed by
+  // nobody, ever.
+  // AND A PASS IS ONLY WORTH ITS COVERAGE, so the closest approach was measured for every surface. That
+  // turns the pass into a BOUND: a surface cannot stand further out towards the path than the closest
+  // anyone came, or he would have walked through it. Four are bounded to better than 0.35 m:
+  //   gallery-rail       0.001 m, set by b3_000111
+  //   opening-reveal     0.046 m, set by b1_000190
+  //   gallery-parapet    0.153 m, set by d4_000018
+  //   opening-sill       0.326 m, set by b1_000183
+  // ONE OF THOSE NEEDS SAYING PLAINLY. A bound of a millimetre is not a measurement of a rail, it is a
+  // camera sitting ON it, which is what a phone resting on a balustrade looks like. It still bounds the
+  // rail in the one direction this test can bound anything, but it is not evidence the rail is right,
+  // only that it is not further out than the phone was.
+  // AND WHAT IS NOT BOUNDED IS THE USEFUL HALF OF THIS. gallery-fascia is 1.97 m from the nearest step,
+  // corridor-floor 1.59 m, corridor-back 1.90 m, gallery-back 2.70 m, and corridor-lamp 7.10 m. Those
+  // could be a metre or more out towards the path and nothing in this archive would know. That is the
+  // measured size of the blind spot, per surface, and it is the list any future attempt should work
+  // down rather than re-testing the four that are already pinned.
   // A BODY CANNOT BE INSIDE A BRICK WALL, AND 250 OF THEM WERE (2026-09-10, tools/body_in_wall.py,
   // after tools/eye_height.py closed a route on the way).
   // THE ROUTE THAT DIED FIRST, because it is worth knowing it is dead. One man shot every clip with one
@@ -5137,7 +5168,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 240 bounds, all satisfied.
+  // 243 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
