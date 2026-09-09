@@ -5274,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 259 bounds, all satisfied.
+  // 260 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5764,19 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE GLASS SEEN THROUGH FROM THE OPPOSITE DECK, AND A CONTROL THAT FAILED BY ITS OWN WORDING
+  // (2026-09-10, tools/glass_step.py). The west glass top had just been seen by eye in b5_000072 as the
+  // line where the lit back wall stops reading lit, because glass looked through takes light. That is an
+  // instrument: sample the back wall of a gallery in every frame that looks at it from across the hall,
+  // stack, and find the step down. The west was declared the positive control, the east the question,
+  // and the null was the band 10.40 to 11.00 declared as plain stone, to be beaten by 1.5 times.
+  // West, 56 frames: the step lands on 9.820, 21 mm from the drawn 9.799. Its strength is 0.574 against
+  // 0.564 on the "plain" band, 1.02 times, because that band is not plain from these viewpoints: the lit
+  // back wall ends under the beam and the face wall begins, an edge as strong as the glass. The control
+  // fails by its own wording, so the instrument is dead for this run and NOTHING is said about the east
+  // (window peak on 10.400 with 0.2 times its band, per-frame median 9.730). The 21 mm is a hint for a
+  // next version with a null declared before it runs; it is not a result of this one, and the file is
+  // not changed by it.
   // THE WALL THICKNESS AT THE OPENINGS, AND WHY NO PHOTOGRAPH IN THE ARCHIVE CAN GIVE IT (2026-09-10,
   // tools/reveal_depth.py). openDepth 0.90 is the thickness of the brick wall the goal names and the
   // biggest shape in every balcony frame, and it rests on a lower bound of 0.422 m (a lens that leaned
