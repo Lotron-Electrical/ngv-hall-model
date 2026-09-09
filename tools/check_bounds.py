@@ -48,6 +48,8 @@ G = {
     'cCeil': grab(r'corridor:\{width:[0-9.]+,\s*floor:[0-9.]+,\s*ceil:([0-9.]+)'),
     'deck': grab(r'floors:\[[0-9.]+,\s*([0-9.]+)\]'),
     'gHead': grab(r'head:([0-9.]+), soffitDepth'),
+    'upWest': grab(r'upstands:\{west:([0-9.]+)'),
+    'upEast': grab(r'upstands:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
 }
 G['cBack'] = G['dNorth'] - G['cWidth']
 
@@ -154,6 +156,22 @@ check('the top deck is below every camera that stood on it',
       'tools/balcony_up.py')
 
 # --- the long walls -----------------------------------------------------------------------------
+# THE TWO PARAPET TOPS AGAINST THE LIGHT THAT GOT OVER THEM, at matched lens setback so the ends are the
+# same experiment. Only lenses at least 0.6 m behind the face are used: a lens almost on the coping cannot
+# send a ray across the face plane low enough to test anything, and the first east run was 140 b3 frames
+# standing 0.2 m from the stone, which is why its 1.62 % was never comparable with the west's 24.30 %.
+for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
+                                   ('west', 'upWest', 4.194, 8.818, 3371)):
+    drawn_top = G['deck'] + G[upk]
+    over = drawn_top - p5
+    check('the %s parapet top is not taller than the light that got over it' % side,
+          over <= 0.10,
+          'top drawn on %.3f, the deck %.3f plus an upstand of %.3f. Of %d rays that reached a camera on '
+          'that deck from a point inside the building and crossed the face on u %.3f, the 5th percentile '
+          'crossed on %.3f, so the drawn top stands %.3f m into light that arrived. The east end returns '
+          '0.032 m on the same test and that is this method own noise; anything much past it is a defect.'
+          % (drawn_top, G['deck'], G[upk], npts, uface, p5, over),
+          'tools/gallery_arrival.py')
 check('the south tapestries hang in front of the south wall',
       all(d < G['dSouth'] for d in southtap),
       'wall face d %.3f; tapestries on %s. Measured surface 15.262.'
@@ -181,7 +199,11 @@ print('STILL UNMEASURED, and not tested here because nothing in the archive can 
 for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lamp under it',
              'dNorth -0.090: the cloud swings 0.12 m with frame selection, tools/north_face.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
-             'the west gallery upstand 0.68, and the opening head lean of 40 to 205 mm',
+             'the opening head lean of 40 to 205 mm',
+             'the WEST end is now a live disagreement, not merely unmeasured: the arrivals cap its top on'
+             ' 8.818 and the sim draws 9.020. Which of the three numbers is wrong is NOT identified, because'
+             ' a top 0.20 m lower, a deck 0.20 m lower and a face 0.20 m further into the hall all fit the'
+             ' same rays. 16 cameras from one clip at one station cannot separate them, tools/gallery_arrival.py',
              'ENDW soffitDepth 2.1: nothing has ever seen the back edge of that soffit',
              'the b6 gallery frames: the new b6s registration poses frames 396 to 1260 OUTSIDE the hall'
              ' (u 62.9, d 23.7), while b6g poses frames 1002 to 1020 of the same clip on the east deck on'

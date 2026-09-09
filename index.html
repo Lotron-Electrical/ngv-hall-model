@@ -2922,6 +2922,36 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE SAME TESTS TAKEN WEST, AND THE WEST PARAPET FAILS THEM (2026-09-09, tools/gallery_arrival.py,
+  // tools/west_parapet_look.py, tools/coping_focus.py). b7s walks the west end too: sixteen posed cameras
+  // between u 3.19 and 3.33, pitched down 12 to 23 degrees, a metre back from the drawn face rather than
+  // leaning over it. Nobody there walks in mid-air, so test one passes and says nothing.
+  // TEST TWO DOES NOT PASS. Of 3,371 rays that reached those cameras from points inside the building, 24.30
+  // per cent crossed the drawn face u 4.194 BELOW the drawn top 9.020, and the 5th percentile crossed on
+  // 8.818. A parapet drawn there would have stopped one arrival in four.
+  // THE CONTROL IS WHAT MAKES THAT WORTH ANYTHING, and getting it right took a correction. The east end
+  // first answered 1.62 per cent, which looked like a clean contrast until the reason showed: how much of
+  // a frame can cross the face low is mostly a function of HOW FAR BACK THE LENS IS, and the east pool was
+  // 140 b3 frames standing 0.2 m from the stone, where a ray has to fall 77 degrees before it crosses at
+  // all. Re-run with only lenses at least 0.6 m back, the same experiment as the west, the east returns
+  // 6.18 per cent and a 5th percentile of 9.078 against a drawn 9.110. So this method carries about 0.03 m
+  // of its own error, and the west is 0.202 m out: six times the noise floor.
+  // AND IT IS LEGIBLE, not only arithmetic. Shading every pixel whose own ray crosses the face below the
+  // drawn top puts a band across the lower third of b7s_000908 that contains hall floor, three groups of
+  // people sitting on it and the west tapestry. Only the bottom eighth of that frame is the blurred stone
+  // of the coping itself.
+  // WHAT IS NOT KNOWN IS WHICH NUMBER IS WRONG. A top 0.20 m lower, a deck 0.20 m lower and a face 0.20 m
+  // further into the hall all fit the same rays, and sixteen cameras from one clip at one station cannot
+  // separate them. So NOTHING IS MOVED. The bound is written into tools/check_bounds.py as a real check
+  // and it FAILS there, which is the accurate state of this model: 19 bounds, 18 satisfied, the west
+  // parapet top violating one by 0.202 m.
+  // ONE INSTRUMENT WAS REFUSED BY ITS OWN CONTROL ON THE WAY, and it is recorded because the idea was
+  // good. The coping is half a metre from a lens focused on a room thirty metres away, so it should be
+  // findable by SHARPNESS rather than brightness, which is the cue that sent three earlier detectors onto
+  // canopy ribs and lift shafts. Walking Laplacian energy up the frame does find a boundary in 45 frames.
+  // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
+  // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
+  // to report an unknown one, so its west number is not used.
   // LLOYD WAS RIGHT, THERE IS A WALK ALONG THE BALCONY, AND IT SETTLES THE PARAPET (2026-09-09,
   // tools/balcony_walk.py, tools/deck_cloud.py, tools/coping_cloud.py, tools/parapet_arrival.py).
   // Lloyd: "in one of the videos I referenced I walk along the balcony." He said it twice and he was
