@@ -1113,6 +1113,26 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // across captures (108, 178 and 192 mm) and opening 2 has only one capture; none of those is moved.
 // Every shift is a LOWER bound, because a follow gain of 0.37 remains and a following instrument
 // understates. Do not read a small residual on the next re-measure as confirmation: part of it is the echo.
+// AND THE OPENINGS ARE NOW BOUNDED BY LIGHT THAT ALREADY WENT THROUGH THEM (2026-09-09,
+// tools/opening_bound.py). Three lamps deep in the room behind this wall were triangulated from the hall
+// floor, and every one of the 36 rays that found them entered through an opening, so each ray cleared the
+// sill under it, the head over it and both jambs beside it. The reveal is a tube 0.9 m deep and a rising
+// ray is highest where it leaves, so tracing each ray to the wall face and again 0.9 m deeper turns those
+// arrivals into bounds. Nothing is searched for, nothing is followed, and the drawn values are used only
+// to say which part of a picture the lamp search may look in.
+//   opening  8  rays run h 9.683-9.853 u 30.009-30.986 at the face, h 10.204-10.364 u 30.551-30.761 deeper
+//   opening  9  rays run h 9.779-9.939 u 33.736-34.256 at the face, h 10.301-10.458 u 33.887-34.248 deeper
+//   opening 11  rays run h 9.822-9.961 u 40.948-41.264 at the face, h 10.370-10.468 u 41.525-41.674 deeper
+// THE HEAD IS AT LEAST 10.468 and the SILL AT MOST 9.683, so openY [8.99, 11.35] clears both, by 0.882
+// and 0.693 m. State plainly what that does and does not do: it confirms the aperture is genuinely open
+// over its whole drawn depth, and it does NOT resolve the lean. The fitted-gain readings that wanted the
+// head 40 to 205 mm low would put it on 11.145 to 11.310, all of which still clear 10.468, so this cannot
+// choose between them and 11.35. openY is unchanged.
+// THE JAMBS ARE THE TIGHT PART, and this is the first independent check they have had. A jamb standing
+// anywhere inside the u range a surviving ray occupies would have blocked that ray. Opening 11's rays
+// reach u 41.674 at depth while its east jamb is drawn on 42.118, and they enter as far west as 40.948
+// while its west jamb is drawn on 40.906: that jamb cannot be more than 42 mm east of where this file
+// puts it. Openings 8 and 9 bound theirs to 193 mm and 241 mm the same way. All three drawn pairs pass.
 // THE GAIN IS NOW FITTED PER JAMB INSTEAD OF ASSUMED, AND THE TABLE ABOVE SURVIVES IT (2026-09-09,
 // tools/wall_gainfit.py, OPEN_SHIFT in tools/wall_edges.py). Everything above rests on one measured gain,
 // 0.37, applied to every jamb in every capture. That is an assumption, and on the end galleries the same

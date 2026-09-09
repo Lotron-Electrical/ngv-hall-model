@@ -92,90 +92,95 @@ def dist_to(P, C, v):
     return float(np.linalg.norm(w - (w @ v) * v))
 
 
-which = int(sys.argv[1]) if len(sys.argv) > 1 else None
-todo = [which - 1] if which else range(len(OPENINGS))
-seen = set()
-cams = {}
-for cls in CLASSES:
-    try:
-        fr = U.load_class(cls)
-    except Exception:
-        continue
-    for f, v in fr.items():
-        if f not in seen:
-            seen.add(f)
-            cams[f] = (cls, v[0], v[1])
-print(len(cams), 'distinct posed frames offered to the search')
+def main():
+    which = int(sys.argv[1]) if len(sys.argv) > 1 else None
+    todo = [which - 1] if which else range(len(OPENINGS))
+    seen = set()
+    cams = {}
+    for cls in CLASSES:
+        try:
+            fr = U.load_class(cls)
+        except Exception:
+            continue
+        for f, v in fr.items():
+            if f not in seen:
+                seen.add(f)
+                cams[f] = (cls, v[0], v[1])
+    print(len(cams), 'distinct posed frames offered to the search')
 
-for oi in todo:
-    u0, u1 = OPENINGS[oi]
-    rays = []
-    for f, (cls, cam, ip) in cams.items():
-        qc = cam.center - O
-        if float(qc @ HD) < 0.5:
-            continue                                # must be out in the hall looking at this wall
-        if abs(float(qc @ HU) - 0.5 * (u0 + u1)) > 22.0:
-            continue
-        q = aperture(cam, u0, u1)
-        if q is None or q[:, 0].min() < 0 or q[:, 0].max() > cam.w or q[:, 1].min() < 0 or q[:, 1].max() > cam.h:
-            continue
-        img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
-        if img is None:
-            continue
-        for r in rays_for(cam, cv2.GaussianBlur(img, (3, 3), 0), u0, u1):
-            rays.append((f,) + r)
-    if len(rays) < 4:
-        continue
-    cs = np.array([r[1] for r in rays])
-    base = float(np.linalg.norm(cs.max(0) - cs.min(0)))
-    best = None
-    for i in range(len(rays)):
-        for j in range(i + 1, len(rays)):
-            if np.linalg.norm(rays[i][1] - rays[j][1]) < 1.0:
+    for oi in todo:
+        u0, u1 = OPENINGS[oi]
+        rays = []
+        for f, (cls, cam, ip) in cams.items():
+            qc = cam.center - O
+            if float(qc @ HD) < 0.5:
+                continue                                # must be out in the hall looking at this wall
+            if abs(float(qc @ HU) - 0.5 * (u0 + u1)) > 22.0:
                 continue
-            P = closest_point([rays[i][1:], rays[j][1:]])
+            q = aperture(cam, u0, u1)
+            if q is None or q[:, 0].min() < 0 or q[:, 0].max() > cam.w or q[:, 1].min() < 0 or q[:, 1].max() > cam.h:
+                continue
+            img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                continue
+            for r in rays_for(cam, cv2.GaussianBlur(img, (3, 3), 0), u0, u1):
+                rays.append((f,) + r)
+        if len(rays) < 4:
+            continue
+        cs = np.array([r[1] for r in rays])
+        base = float(np.linalg.norm(cs.max(0) - cs.min(0)))
+        best = None
+        for i in range(len(rays)):
+            for j in range(i + 1, len(rays)):
+                if np.linalg.norm(rays[i][1] - rays[j][1]) < 1.0:
+                    continue
+                P = closest_point([rays[i][1:], rays[j][1:]])
+                inl = [r for r in rays if dist_to(P, r[1], r[2]) < 0.12]
+                if best is None or len(inl) > len(best[1]):
+                    best = (P, inl)
+        if best is None or len(best[1]) < 4:
+            print('opening %2d: %3d blobs from %2d frames, baseline %.1f m, no consistent point'
+                  % (oi + 1, len(rays), len(set(r[0] for r in rays)), base))
+            continue
+        P = closest_point([r[1:] for r in best[1]])
+        for _ in range(3):
             inl = [r for r in rays if dist_to(P, r[1], r[2]) < 0.12]
-            if best is None or len(inl) > len(best[1]):
-                best = (P, inl)
-    if best is None or len(best[1]) < 4:
-        print('opening %2d: %3d blobs from %2d frames, baseline %.1f m, no consistent point'
-              % (oi + 1, len(rays), len(set(r[0] for r in rays)), base))
-        continue
-    P = closest_point([r[1:] for r in best[1]])
-    for _ in range(3):
+            if len(inl) < 4:
+                break
+            P = closest_point([r[1:] for r in inl])
         inl = [r for r in rays if dist_to(P, r[1], r[2]) < 0.12]
-        if len(inl) < 4:
-            break
-        P = closest_point([r[1:] for r in inl])
-    inl = [r for r in rays if dist_to(P, r[1], r[2]) < 0.12]
-    qq = P - O
-    pu, pd, ph = float(qq @ HU), float(qq @ HD), float(P[1] - O[1])
-    cin = np.array([r[1] for r in inl])
-    spread = float(np.linalg.norm(cin.max(0) - cin.min(0)))
-    rms = float(np.sqrt(np.mean([dist_to(P, r[1], r[2]) ** 2 for r in inl])))
-    print('opening %2d: %3d blobs from %2d frames; a point on u %.3f d %.3f h %.3f'
-          % (oi + 1, len(rays), len(set(r[0] for r in rays)), pu, pd, ph))
-    print('            %d rays agree within %.3f m rms, from cameras %.1f m apart'
-          % (len(inl), rms, spread))
-    print('            it sits %.3f m behind the wall face, the room is drawn 2.000 m deep'
-          % (DN - pd))
-    if 'draw' in sys.argv:
-        # THE DRAWING BACK, which is the step that refuted three earlier instruments in this project and
-        # is therefore not optional. The triangulated point is projected into the frames that voted for
-        # it, beside the aperture it was found through.
-        import os
-        outd = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/corridor'
-        os.makedirs(outd, exist_ok=True)
-        for r in inl[:3]:
-            cls, cam, ip = cams[r[0]]
-            im = cv2.imread(ip)
-            ap = aperture(cam, u0, u1)
-            cv2.polylines(im, [np.round(ap).astype(np.int32)], True, (255, 120, 0), 3)
-            px, py, pz = cam.project(np.asarray([P]))
-            cv2.circle(im, (int(px[0]), int(py[0])), 22, (0, 255, 255), 4)
-            cv2.putText(im, 'd %.2f h %.2f' % (pd, ph), (int(px[0]) + 30, int(py[0])),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 3, cv2.LINE_AA)
-            k = 1400.0 / im.shape[0]
-            cv2.imwrite(os.path.join(outd, 'op%02d-%s.jpg' % (oi + 1, r[0])),
-                        cv2.resize(im, (int(im.shape[1] * k), 1400)), [cv2.IMWRITE_JPEG_QUALITY, 86])
-        print('            drawn back into', min(3, len(inl)), 'of its own frames')
+        qq = P - O
+        pu, pd, ph = float(qq @ HU), float(qq @ HD), float(P[1] - O[1])
+        cin = np.array([r[1] for r in inl])
+        spread = float(np.linalg.norm(cin.max(0) - cin.min(0)))
+        rms = float(np.sqrt(np.mean([dist_to(P, r[1], r[2]) ** 2 for r in inl])))
+        print('opening %2d: %3d blobs from %2d frames; a point on u %.3f d %.3f h %.3f'
+              % (oi + 1, len(rays), len(set(r[0] for r in rays)), pu, pd, ph))
+        print('            %d rays agree within %.3f m rms, from cameras %.1f m apart'
+              % (len(inl), rms, spread))
+        print('            it sits %.3f m behind the wall face, the room is drawn 2.000 m deep'
+              % (DN - pd))
+        if 'draw' in sys.argv:
+            # THE DRAWING BACK, which is the step that refuted three earlier instruments in this project and
+            # is therefore not optional. The triangulated point is projected into the frames that voted for
+            # it, beside the aperture it was found through.
+            import os
+            outd = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/corridor'
+            os.makedirs(outd, exist_ok=True)
+            for r in inl[:3]:
+                cls, cam, ip = cams[r[0]]
+                im = cv2.imread(ip)
+                ap = aperture(cam, u0, u1)
+                cv2.polylines(im, [np.round(ap).astype(np.int32)], True, (255, 120, 0), 3)
+                px, py, pz = cam.project(np.asarray([P]))
+                cv2.circle(im, (int(px[0]), int(py[0])), 22, (0, 255, 255), 4)
+                cv2.putText(im, 'd %.2f h %.2f' % (pd, ph), (int(px[0]) + 30, int(py[0])),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 3, cv2.LINE_AA)
+                k = 1400.0 / im.shape[0]
+                cv2.imwrite(os.path.join(outd, 'op%02d-%s.jpg' % (oi + 1, r[0])),
+                            cv2.resize(im, (int(im.shape[1] * k), 1400)), [cv2.IMWRITE_JPEG_QUALITY, 86])
+            print('            drawn back into', min(3, len(inl)), 'of its own frames')
+
+
+if __name__ == '__main__':
+    main()
