@@ -35,7 +35,14 @@ import numpy as np
 D = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/leveljson'
 DRAWS = [('a', 8.92), ('b', 9.06), ('c', 9.20)]
 END = os.environ.get('END', 'east')
-CAPS = ['walk', 'night', 'day4k', 'b1', 'b3', 'b6g', 'b7s']
+# THE PAN CLASSES ARE IN THIS LIST FOR ONE REASON: RANGE. Every capture above reads the parapet from the
+# hall floor, 28 to 40 m away, where the 0.09 m in dispute is a handful of pixels and, worse, where the
+# instrument mostly reads the drawing back (fitted gain 0.66 to 0.70). b3p stands ON the east gallery, a
+# couple of metres from the parapet it is measuring. Its poses are worse in absolute terms, 0.100 m of
+# position error against the accepted frames' centimetres, but that error is spent on a target ten times
+# closer, so what reaches the measurement is ten times smaller. This is the first time any capture has
+# looked at this edge from beside it rather than from across the room.
+CAPS = ['walk', 'night', 'day4k', 'b1', 'b3', 'b6g', 'b7s', 'b1p', 'b3p', 'b5p', 'b7sp', 'b6gp']
 KEY = 'top parapet top'
 DECK = 8.34
 
