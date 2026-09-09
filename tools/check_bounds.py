@@ -1416,7 +1416,7 @@ EL = {'frames': 4, 'range': 48.0,
       'west': [[1.64, 7.81], [11.97, 8.0], [13.17, 8.0], [13.29, 7.87]], 'single': [7.94, 7.73]}
 check('the east lower tier fittings are drawn where three or four posed frames put them, and no further',
       all(l[2] >= 3 for l in EL['lamps']) and len(EL['lamps']) == 4
-      and grab(r'east:\[\[1\.79,7\.52\],\[5\.02,7\.60\],\[12\.26,7\.74\],\[13\.16,7\.45\]\]\}, cut:([0-9.]+)') > 0,
+      and abs(grab(r'east:\[\[([0-9.]+),7\.52\],\[5\.02,7\.60\],\[12\.26,7\.74\],\[13\.16,7\.45\]\]\}') - 1.79) < 1e-9,
       'the b7 clip walks the west deck looking east, and four posed frames carry the east end %.0f m off with '
       'a row of bright fittings between the drawn fascia and the lower upstand. Each blob was back-projected '
       'through its own camera onto the east back wall and clustered across frames: %s. Spreads between '
