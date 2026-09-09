@@ -1409,6 +1409,44 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE SCAN CANNOT ADJUDICATE THIS MODEL (2026-09-10, tools/bake_vs_model.mjs + tools/bake_distance.py).
+BK = {'verts': 112764, 'distinct': 18946, 'spacing': 0.015, 'chunks': 56, 'surfaces': 52,
+      'unscanned': 52, 'tested': 0, 'ctrl': 'canopy-procedural', 'ctrlarea': 869.5,
+      'ctrlnear': 2, 'ctrldist': 0.511, 'bar': 0.100, 'withdrawn': 3,
+      'selfcompare': 333493, 'selfnoise': 0.000}
+check('the strongest test available here was run, and the scan cannot adjudicate this model anywhere',
+      BK['tested'] == 0 and BK['unscanned'] == BK['surfaces'],
+      'only three things ever catch an error and the first is a REDUNDANCY THE TARGET ITSELF PROVIDES. '
+      'This file carries the hall twice: the analytic model placed by rays and photometry, and the baked '
+      'scan built from photographs, which is what a visitor actually looks at. Where they overlap they '
+      'must agree. The answer is that the scan is TOO THIN: %d vertices but only %d DISTINCT POSITIONS '
+      'for a hall fifty metres long. Where it exists it is fine, %.0f mm between neighbours; it simply is '
+      'not in most places.'
+      % (BK['verts'], BK['distinct'], 1000 * BK['spacing']),
+      'tools/bake_distance.py')
+check('the control failed and the run concluded nothing, which is the right outcome and not a shortfall',
+      BK['ctrldist'] > BK['bar'] and BK['ctrlnear'] < 30,
+      'a sample point on %s, %.1f square metres of surface the scan certainly overlaps, finds %d scan '
+      'vertices within a metre and its nearest one %.3f m away. An instrument that cannot find an 870 '
+      'square metre canopy is in no position to adjudicate a 30 mm wall, so all %d analytic surfaces come '
+      'back UNSCANNED and %d rows that a looser first version of the rule had printed as CONTRADICTS were '
+      'WITHDRAWN: door-reveal, corridor-upstand and opening-sill are not accused of anything. That first '
+      'rule vetoed on a control that contradicts but not on one that comes back unscanned, which is the '
+      'same disqualification wearing a different hat.'
+      % (BK['ctrl'], BK['ctrlarea'], BK['ctrlnear'], BK['ctrldist'], BK['surfaces'], BK['withdrawn']),
+      'tools/bake_distance.py')
+check('and two faults of mine had to be fixed before the question could even be asked',
+      BK['selfcompare'] > 0 and BK['distinct'] < BK['verts'],
+      'splitting scan from model by VERTEX COUNT put canopy-glass-pieces and an unnamed mesh on the scan '
+      'side and split the scan itself, so the canopy was compared with ITSELF: %d points and a noise of '
+      '%.3f, which measures nothing. The split is by name now. And the scan vertices are repeated once '
+      'per triangle corner, so its resolution first read as 0.000 m; distinct positions only, or the '
+      'number that sets the floor under every claim is a lie. WHAT THIS MEANS FOR EVERY FUTURE ATTEMPT: '
+      'the bake accuracy lives in its TEXTURE, not its vertices, and there is no second geometric opinion '
+      'inside this file. Every number in the balconies, walls and corridor rests on the ray and '
+      'photometric instruments and on nothing else. Do not rebuild this route.'
+      % (BK['selfcompare'], BK['selfnoise']),
+      'tools/bake_vs_model.mjs')
 # AND ASKED OF EACH SURFACE SEPARATELY (2026-09-10, tools/surface_match.mjs + surface_pick.py +
 # surface_match.py + surface_hidden.py).
 SF = {'named': 30, 'onscreen': 17, 'medianhidden': 70.2, 'ninetenths': 3, 'tiny': 13, 'tinypx': 500,

@@ -3199,6 +3199,35 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE ROUTE THAT LOOKED BEST OF ALL, AND IS CLOSED (2026-09-10, tools/bake_vs_model.mjs,
+  // tools/bake_distance.py). THE SCAN CANNOT ADJUDICATE THIS MODEL, ANYWHERE.
+  // WHY IT LOOKED SO GOOD. This project has learnt that only three things ever catch an error, and the
+  // first is a REDUNDANCY THE TARGET ITSELF PROVIDES. This file carries the hall twice: the analytic
+  // model, every quad placed by a ray or a photometric instrument, and the baked scan, a photogrammetric
+  // mesh built from photographs, which the visibility run above showed is what a visitor actually looks
+  // at. Two descriptions of one building from different evidence, in one file. Where they overlap they
+  // must agree, and where they do not, one of them is wrong. That is the strongest test available here
+  // and nobody had run it.
+  // TWO FAULTS OF MINE BEFORE IT COULD EVEN BE ASKED. Splitting scan from model by VERTEX COUNT put
+  // canopy-glass-pieces and an unnamed mesh on the scan side and split the scan itself, so the canopy was
+  // compared with ITSELF: 333493 points and a noise of 0.000, which measures nothing. The split is by
+  // name now. And the scan's vertices are repeated once per triangle corner, so its resolution first read
+  // as 0.000 m; distinct positions only, or the number that sets the floor under every claim is a lie.
+  // THE ANSWER IS THE SCAN IS TOO THIN. It carries 112764 vertices but only 18946 DISTINCT POSITIONS for
+  // a hall fifty metres long. Where it exists it is fine, 15 mm between neighbours. It just is not in
+  // most places: a sample point on canopy-procedural, 870 square metres of surface the scan certainly
+  // overlaps, finds TWO scan vertices within a metre and its nearest one 0.511 m away.
+  // SO THE CONTROL FAILED AND THE RUN CONCLUDES NOTHING, WHICH IS THE RIGHT OUTCOME. An instrument that
+  // cannot find an 870 square metre canopy is in no position to adjudicate a 30 mm wall. All 52 analytic
+  // surfaces come back UNSCANNED, and three that a first, looser version of the rule had printed as
+  // CONTRADICTS were withdrawn: door-reveal, corridor-upstand and opening-sill are NOT accused of
+  // anything. That first rule vetoed on a control that contradicts but not on one that comes back
+  // unscanned, which is the same disqualification wearing a different hat.
+  // AND WHAT IT MEANS FOR EVERY FUTURE ATTEMPT, WHICH IS THE POINT OF WRITING IT DOWN. The bake's
+  // accuracy lives in its TEXTURE, not in its vertices: it is a coarse shell carrying photographs. There
+  // is no second geometric opinion inside this file. Every number in the balconies, the walls and the
+  // corridor rests on the ray and photometric instruments above and on nothing else, and no amount of
+  // comparing the model with the scan will ever change that. Do not rebuild this.
   // AND THEN ASKED OF EACH SURFACE SEPARATELY, WHICH IS WHERE THE UNCOMFORTABLE ANSWER IS (2026-09-10,
   // tools/surface_match.mjs, tools/surface_pick.py, tools/surface_match.py, tools/surface_hidden.py).
   // WHY THE WHOLE-FRAME TEST WAS NOT ENOUGH. It can say "this picture agrees" and nothing finer, and a
@@ -5076,7 +5105,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 234 bounds, all satisfied.
+  // 237 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
