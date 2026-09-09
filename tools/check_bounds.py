@@ -1409,6 +1409,54 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE WEST LOWER FRONT, ASKED WITH LIGHT THAT GOT OUT OF IT (2026-09-10, tools/west_recess.py).
+WR = {'frames': 859, 'sources': 5, 'phantoms': 9, 'nrays': 1483, 'rrays': 769,
+      'null_med': 1.074, 'thresh': 1.799, 'open_lo': 6.30, 'open_hi': 6.80,
+      'band_rays': 134, 'band_hits': 36, 'null_rate_hi': 0.05, 'dlo': 7.11, 'dhi': 8.22,
+      'prev_lo': 5.458, 'prev_hi': 6.842, 'fit_u': 2.191, 'fit_h': 7.083, 'fit_depth': 2.003,
+      'back_depth': 3.830, 'back_rays': 65, 'back_hits': 0, 'back_climb': 1.38,
+      'fit_climb': 0.38, 'back_rng': 17.0, 'fit_rng': 28.2, 'back_px': 5.0, 'fit_px': 3.7}
+check('the west lower front is open where this file draws a deck slab, and light out of it says so',
+      WR['band_hits'] > 0 and WR['open_lo'] >= 6.30 and WR['open_hi'] <= 6.85,
+      'this file draws the lower gallery as a DECK ON THE END FACE: apron 5.40 to 6.33 solid, deck slab '
+      'and upstand 6.33 to 6.85 solid, rail to 7.16, soffit 8.08. Seven clips describe a RECESS SET BACK '
+      'instead, and the unseeded brightness scan found no edge anywhere in that band, which is what a '
+      'face with nothing on it looks like. So the question was changed: there are LIGHTS behind that '
+      'face and a hall camera can only see them THROUGH the opening. For each of %d frames, the height '
+      'where the ray to a source crosses the face plane was computed and the photograph asked whether '
+      'the source is really there. The face reads OPEN from h %.2f to %.2f: %d of %d rays crossing there '
+      'see it, against a phantom rate no higher than %.2f, and the seen rays cross over d %.2f to %.2f '
+      'so it is not one local hole.'
+      % (WR['frames'], WR['open_lo'], WR['open_hi'], WR['band_hits'], WR['band_rays'],
+         WR['null_rate_hi'], WR['dlo'], WR['dhi']),
+      'tools/west_recess.py')
+check('the threshold came from a control, and the band confirms the old bound rather than extending it',
+      WR['thresh'] > WR['null_med'] and (WR['open_hi'] - WR['open_lo']) < (WR['prev_hi'] - WR['prev_lo']),
+      'the same photometry runs on PHANTOM points, the same lamps slid along d to where nothing is drawn '
+      'and nothing was fitted; %d phantom sightlines score %.3f at the median and %.3f on their 95th, '
+      'and that 95th IS the threshold, so it is calibrated by a control instead of chosen. The band is '
+      '%.2f m wide against the %.3f m the earlier 33-ray bound carried and comes from the SAME fitting, '
+      'so it does not extend that bound: it confirms it by a different question, photometric visibility '
+      'with a null where the first was ray convergence. What it adds is inside: those rays cross the '
+      'face on h %.2f to %.2f and ARRIVE on h %.3f %.3f m in, so whatever the head is, it stands above '
+      '%.3f at that depth, which is a floor on the inside of the recess rather than on its mouth.'
+      % (WR['nrays'], WR['null_med'], WR['thresh'], WR['open_hi'] - WR['open_lo'],
+         WR['prev_hi'] - WR['prev_lo'], WR['open_lo'], WR['open_hi'], WR['fit_h'],
+         WR['fit_depth'], WR['fit_h']),
+      'tools/west_recess.py')
+check('and the four lamps drawn on the west back wall are unconfirmed rather than refuted',
+      WR['back_hits'] == 0 and WR['back_climb'] > 1.6 * WR['fit_climb'],
+      'they are seen in NONE of the %d rays that reached the right height, and the photometry FAVOURS '
+      'them: they stand %.1f m away filling %.1f px where the fitting stands %.1f m away filling %.1f px '
+      'and is seen 27 times in a hundred. But the geometry does not favour them. A ray to a back lamp '
+      'must climb %.2f m inside the recess after crossing the face, against %.2f m for the fitting, and '
+      'a recess only has to be shallower or shorter than that climb needs for the light never to get out '
+      'with the lamp exactly where it is drawn. So they stay, marked: nothing in %d frames has ever seen '
+      'them and nothing here can tell absence from a ceiling in the way. Deleting them would be acting '
+      'on an absence with a known blind spot, which is how the wrong things get removed.'
+      % (WR['back_rays'], WR['back_rng'], WR['back_px'], WR['fit_rng'], WR['fit_px'],
+         WR['back_climb'], WR['fit_climb'], WR['frames']),
+      'tools/west_recess.py')
 # THE CONTRAST RULER TURNED SIDEWAYS (2026-09-10, tools/opening_jambs.py, tools/jamb_parallax.py).
 OJ = {'jamb_lines': 9, 'jamb_lo': 20.0, 'jamb_hi': 34.9, 'never': 7, 'ustep': 0.03,
       'bad_reach': 1.10, 'bad_walk': 3.414, 'pier_lo': 2.324, 'pier_hi': 2.576,
