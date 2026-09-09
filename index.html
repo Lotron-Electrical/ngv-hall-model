@@ -3199,6 +3199,33 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE SLAB THICKNESS, PUT UNDER A RULER FOR THE FIRST TIME, AND THE RULER REFUSED (2026-09-10,
+  // tools/slab_ruler.py).
+  // WHY THIS NUMBER. The walk-through audit ended with a blind-spot list, and gallery-fascia was the
+  // worst surface on it that this goal names: 1.97 m from the nearest step anybody took. It is the band
+  // on the hall-facing edge of each end gallery, h 8.080 to 8.340, and that 0.26 m is ENDW.slab, which
+  // is arithmetic and not a measurement. Nothing in this file had ever measured it.
+  // THE TRICK. Do not measure either edge; measure the SEPARATION of the two. A common error in the frame
+  // origin, the camera height or the deck level moves both edges together and cancels out of a separation
+  // exactly. The photographs are sampled along a vertical sweep on the fascia plane, across the whole
+  // hall, every 10 mm, and stacked with each frame normalised to its own mean. West: 194 floor frames.
+  // East: 290. The control is an invented plane 2.5 m into the hall where there is no fascia, and the
+  // second control is the other end, because a thickness seen at one end and not the other is not a
+  // thickness.
+  // THE FIRST APERTURE WAS WRONG AND ITS OWN OUTPUT SHOWED IT. Sweeping h 7.40 to 9.10 and taking the two
+  // strongest gradients anywhere found the west edges on 8.930 and 8.850, which is the PARAPET TOP, drawn
+  // on 9.097 and already measured by end_face_scan.py. A shadowed band under a deck cannot outshout a
+  // lit parapet edge. The search was confined to the band the target was DECLARED in before the run,
+  // 7.83 to 8.59, with the invented-plane control confined to the same window so it stayed fair.
+  // AND THEN THE RULE FIRED. Both ends beat their invented plane, west 0.427 against 0.349 and east 0.230
+  // against 0.184, neither by much. West puts its two edges 0.090 m apart and east 0.220 m apart. They
+  // disagree by 0.130 m, which is thirteen sweep steps, so by the rule written before the run they are
+  // not measuring one thickness and NO NUMBER IS CLAIMED FROM EITHER. The drawn 0.260 m stands exactly
+  // as untested as it was, and that is the honest size of the result.
+  // WHAT IT MEANS FOR THE NEXT ATTEMPT. Neither end put an edge near 8.080, the drawn underside; west
+  // found 8.390 and 8.480, both ABOVE the deck, and east 8.230 and 8.450, straddling it. Whatever this
+  // stack is seeing at the gallery edge, it is not two clean lines 0.26 m apart, and the fascia may not
+  // read as a band from the floor at all. The archive's floor cameras do not resolve it this way.
   // AND THE OTHER SIDE OF THAT ARGUMENT: NOBODY EVER WALKED THROUGH ANYTHING (2026-09-10,
   // tools/walk_through.py).
   // WHY IT HAD TO BE ASKED. The body-in-the-wall test is one-sided by construction and said so: it can
@@ -5168,7 +5195,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 243 bounds, all satisfied.
+  // 246 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

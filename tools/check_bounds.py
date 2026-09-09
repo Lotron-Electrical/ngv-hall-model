@@ -1409,6 +1409,47 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE SLAB THICKNESS UNDER A RULER, AND THE RULER REFUSED (2026-09-10, tools/slab_ruler.py).
+SL = {'drawn': 0.260, 'lo': 8.080, 'hi': 8.340, 'step': 0.010, 'window': [7.83, 8.59],
+      'westframes': 194, 'eastframes': 290, 'westpeak': 0.427, 'westnull': 0.349,
+      'eastpeak': 0.230, 'eastnull': 0.184, 'westsep': 0.090, 'eastsep': 0.220,
+      'westedges': [8.390, 8.480], 'eastedges': [8.230, 8.450],
+      'wideedges': [8.930, 8.850], 'parapet': 9.097, 'nulloff': 2.5}
+check('the slab thickness was measured as a separation so every common height error cancels',
+      abs(SL['hi'] - SL['lo'] - SL['drawn']) < 1e-9,
+      'gallery-fascia was the worst surface on the blind-spot list that the goal names, 1.97 m from the '
+      'nearest step anybody took. It is the band on the hall-facing edge of each end gallery, h %.3f to '
+      '%.3f, and that %.3f m is ENDW.slab, which is arithmetic and not a measurement. So the two edges are '
+      'not measured, their SEPARATION is: a common error in the frame origin, the camera height or the '
+      'deck level moves both together and cancels out of a separation exactly. The photographs are '
+      'sampled on the fascia plane across the whole hall every %.0f mm and stacked, %d floor frames west '
+      'and %d east, against an invented plane %.1f m into the hall and against the other end.'
+      % (SL['lo'], SL['hi'], SL['drawn'], 1000 * SL['step'], SL['westframes'], SL['eastframes'],
+         SL['nulloff']),
+      'tools/slab_ruler.py')
+check('the first aperture found the parapet instead of the fascia, and was confined to the declared band',
+      SL['wideedges'][0] > SL['hi'] and abs(SL['wideedges'][0] - SL['parapet']) < 0.2,
+      'sweeping h 7.40 to 9.10 and taking the two strongest gradients anywhere found the west edges on '
+      '%.3f and %.3f, which is the PARAPET TOP drawn on %.3f and already measured by end_face_scan.py. A '
+      'shadowed band under a deck cannot outshout a lit parapet edge, and asking it to was my error. The '
+      'search was confined to the band the target was DECLARED in before the run, %.2f to %.2f, with the '
+      'invented-plane control confined to the same window so the comparison stayed fair.'
+      % (SL['wideedges'][0], SL['wideedges'][1], SL['parapet'], SL['window'][0], SL['window'][1]),
+      'tools/slab_ruler.py')
+check('and the pre-registered rule fired: the two ends disagree, so no thickness is claimed',
+      abs(SL['westsep'] - SL['eastsep']) > 2 * SL['step'],
+      'both ends beat their invented plane, west %.3f against %.3f and east %.3f against %.3f, neither by '
+      'much. West puts its two edges %.3f m apart and east %.3f m apart. They disagree by %.3f m, which '
+      'is thirteen sweep steps, so by the rule written before the run they are not measuring one '
+      'thickness and NO NUMBER IS CLAIMED FROM EITHER. The drawn %.3f m stands exactly as untested as it '
+      'was. Neither end put an edge near %.3f, the drawn underside: west found %.3f and %.3f, both ABOVE '
+      'the deck, and east %.3f and %.3f, straddling it. Whatever this stack sees at the gallery edge is '
+      'not two clean lines %.2f m apart, and the floor cameras of this archive do not resolve the fascia '
+      'this way.'
+      % (SL['westpeak'], SL['westnull'], SL['eastpeak'], SL['eastnull'], SL['westsep'], SL['eastsep'],
+         abs(SL['westsep'] - SL['eastsep']), SL['drawn'], SL['lo'], SL['westedges'][0],
+         SL['westedges'][1], SL['eastedges'][0], SL['eastedges'][1], SL['drawn']),
+      'tools/slab_ruler.py')
 # AND NOBODY EVER WALKED THROUGH ANYTHING (2026-09-10, tools/walk_through.py).
 WK = {'steps': 1491, 'captures': 12, 'tris': 1171, 'names': 52, 'medstep': 0.118,
       'crossed': 'gallery-rail', 'real': 24, 'turned': 27.1, 'spread': 10.0, 'angles': 8,
