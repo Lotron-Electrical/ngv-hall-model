@@ -20,6 +20,10 @@ REVEAL = -0.99        # the back of the reveal: FACE minus openDepth 0.9
 BACK = -2.99          # the corridor's back wall as drawn: REVEAL minus width 2.0
 
 rows = []
+# The re-gated sets were tried here on 2026-09-09 and withdrawn the same day: they were built by subsetting
+# the register's RAW output rather than its refined model, and they carried camera heights from -5.62 to
+# 12.68 m. This census is the thing that caught it, by reporting a camera 11 m inside the wall. The census
+# must be re-asked once the registrar's own widened gate has been run (--standing-floors, --pan-tolerant).
 for name in ('walk', 'night', 'day4k', 'b1', 'b3', 'b6g', 'b7s'):
     spec = U.CLASSES[name]
     if not os.path.isdir(spec['model']):

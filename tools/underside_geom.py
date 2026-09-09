@@ -338,17 +338,21 @@ B2 = "E:/sitecapture-captures/ngv-video/balcony2"
 # registered, all refused elsewhere for 7-9 inliers, but those six settle the question the clip was cut
 # for: they stand on the EAST UPPER BALCONY (u 49.1-49.4, d 13.4-13.7, h 9.6-9.8, looking west), not
 # behind the north wall. tools/b6g_where.py prints them.
-# THE RE-GATED SETS (2026-09-09). The acceptance gate that produced the "-accepted" models was built for
-# floor walks and threw away most of Lloyd's balcony footage: an inlier cut of 30 refuses the median frame
-# of three of these four clips, there was no standing band for the LOWER balcony at all, and a walking-speed
-# continuity rule refused a standing operator who pans. tools/regate.py fixes those three and lifts the four
-# clips from 102 accepted frames to 296 without re-registering anything. These classes read the result, and
-# they exist alongside the strict ones on purpose so the two can be compared rather than swapped blindly.
-for _t in ("b1", "b3", "b6g", "b7s"):
-    CLASSES[_t + "r"] = {"prefixes": None, "model": B2 + "-register/work/model-%s-regated" % _t,
-                         "img": B2 + "-register/images-colour-%s-regated/" % _t,
-                         "frames": B2 + "/%s/images/" % _t, "factor": 1.0,
-                         "note": "clip %s re-gated 2026-09-09 (tools/regate.py)" % _t}
+# THE RE-GATED SETS WERE WITHDRAWN THE SAME DAY THEY WERE ADDED (2026-09-09), and the reason is worth
+# keeping. The DIAGNOSIS behind them is right: the acceptance gate that produced the "-accepted" models was
+# written for floor walks and threw away two thirds of Lloyd's balcony footage for reasons unrelated to pose
+# quality (an inlier cut of 30 that refuses the median frame of three of four clips, no standing band for
+# the lower balcony, and a walking-speed continuity chain applied to an operator standing still and
+# panning). That is all confirmed and is now fixed inside register_day4k.py itself.
+# The EXPORT was wrong. tools/regate_export.py built the wider sets by subsetting work/reg-<prefix>, and
+# reg-<prefix> is the register's raw output, not the refined model. Measured: the strict 25 b3 frames read
+# from model-b3-accepted match their own report to 45 mm, while the same frames read from reg-b3 disagree by
+# a median of 0.295 m and a maximum of 10.90 m, and the re-gated model built from it carried camera heights
+# from -5.62 to 12.68 m, which is below the floor and above the roof. Every measurement taken through those
+# models is void, including the ones that appeared to overturn the east parapet.
+# The right way is to widen the gate in the registrar and re-run its final stage with --skip-match, so the
+# extra frames go through the same refinement the accepted ones did. register_day4k.py now takes
+# --standing-floors and --pan-tolerant for exactly that.
 for _t in ("b1", "b3", "b4", "b5", "b6s", "b7s", "b6g"):
     CLASSES[_t] = {"prefixes": None, "model": B2 + "-register/work/model-%s-accepted" % _t,
                    "img": B2 + "-register/images-colour-%s-accepted/" % _t, "frames": B2 + "/%s/images/" % _t,
