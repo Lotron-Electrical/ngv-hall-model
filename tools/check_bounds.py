@@ -114,6 +114,26 @@ for oi, bay, (rlo, rhi) in ((8, OPEN[7], (30.009, 30.986)),
           'drawn u %.3f to %.3f; rays occupied %.3f to %.3f, so the jambs have %.3f m and %.3f m to spare.'
           % (lo, hi, rlo, rhi, rlo - lo, hi - rhi),
           'tools/opening_bound.py')
+# THE SILL AND THE HEAD AS MEASURED LINES, not one-sided caps (tools/wall_lines.py). The far-edge fit that
+# moved the balcony fronts, turned ninety degrees: an opening's sill and head are lines at constant (d, h)
+# spanning u, and the conditioning comes from cameras at different distances from the wall, an 8.88 m
+# baseline. Two polarities name the two edges, and 97 and 95 per cent of the inliers land inside a drawn
+# opening while the openings cover half the wall, so the lines are the openings' own and not the face's.
+for name, key, meas, west, east in (('sill', 'sill', 8.761, 8.778, 8.737),
+                                    ('head', 'head', 11.236, 11.255, 11.211)):
+    check('the opening %s is drawn where the hall floor measures it' % name,
+          abs(G[key] - meas) <= 0.005,
+          'drawn on %.3f against a measured %.3f, so %+.3f m out. The west and east halves of the wall '
+          'fitted separately give %.3f and %.3f, %.3f m apart, which is the width of this measurement.'
+          % (G[key], meas, G[key] - meas, west, east, abs(west - east)),
+          'tools/wall_lines.py')
+check('the north wall face is where two independent edges put it',
+      abs(G['dNorth'] - (-0.083)) <= 0.06,
+      'drawn on d %.3f. The sill line puts the face on -0.058 and the head line on -0.107, from separate '
+      'detections with opposite polarities, so they agree with the drawn value to 0.032 and 0.017 m and '
+      'with each other to 0.049 m. dNorth leaves the unmeasured list on that.'
+      % G['dNorth'],
+      'tools/wall_lines.py')
 check('the reveal is at least as deep as the rays that crossed it',
       G['openDepth'] >= 0.9 - 1e-9,
       'openDepth %.3f; rays were traced 0.9 m in and were still inside the aperture.' % G['openDepth'],
@@ -239,7 +259,6 @@ for ok, name, detail, source in notes:
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
 for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lamp under it',
-             'dNorth -0.090: the cloud swings 0.12 m with frame selection, tools/north_face.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the opening head lean of 40 to 205 mm',
              'WHICH of the west numbers is wrong: the arrivals cap the top on 8.818 against a drawn 9.020,'

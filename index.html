@@ -1211,7 +1211,30 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // The samplers in open_levels and end_levels were both widened today to follow the stretch each camera
  // can actually see, so every number in this block is from the new sampler and is not directly comparable
  // with one taken before it.
- openY:[8.99,11.35], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ // THE SILL AND THE HEAD, MEASURED FROM THE HALL FLOOR AS LINES RATHER THAN LEVELS (2026-09-09,
+ // tools/wall_lines.py). The far-edge fit that measured both balcony fronts is general: a balcony front is
+ // a line at constant (u, h) spanning d, and an opening's sill and head are lines at constant (d, h)
+ // spanning u, which is the same two-unknown equation with its columns swapped. The conditioning now comes
+ // from cameras at different DISTANCES FROM THE WALL, and the hall-floor clips give an 8.88 m baseline.
+ // TWO POLARITIES, AND THEY NAME THE TWO EDGES. Under a sill the wall is lit masonry and the opening above
+ // it is dark, so the sill is a bright-below dark-above step; over a head it is the other way round. A
+ // detector told to find one cannot find the other.
+ //   sill  579 of 1,782 rays inside 60 mm, median 15 mm, on d -0.058 h 8.761
+ //   head  244 of 706 rays inside 60 mm, median 17 mm, on d -0.107 h 11.236
+ // THE SPLIT THAT MATTERS HERE IS ALONG THE WALL, not by distance. Distance is also a quality gradient:
+ // from 14 m an opening is a few dozen pixels wide, so a disagreement there is noise rather than a second
+ // feature, and the further half does disagree. Splitting the detections into the west and east halves of
+ // the wall has no such gradient and both halves hold:
+ //   sill  west (-0.082, 8.778) against east (-0.023, 8.737): 0.059 m apart in d, 0.041 m in h
+ //   head  west (-0.121, 11.255) against east (-0.090, 11.211): 0.031 m and 0.044 m
+ // AND THE DETECTIONS ARE SPECIFIC TO THE OPENINGS, which is what says the line is theirs and not some
+ // feature running the whole face: 97 per cent of the sill inliers and 95 per cent of the head inliers sit
+ // inside a drawn opening, and the openings cover half the wall. Eleven of the twelve carry sill inliers.
+ // WHAT MOVES AND WHAT DOES NOT. openY 8.99 / 11.35 becomes 8.761 / 11.236, so the openings sit 0.17 m
+ // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
+ // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
+ // that has been in the unmeasured list all day is now confirmed rather than changed.
+ openY:[8.761,11.236], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
