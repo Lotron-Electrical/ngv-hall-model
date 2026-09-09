@@ -3151,6 +3151,35 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THREE HUNDRED AND NINE CAMERAS STAND IN THESE GALLERIES AND NOT ONE OF THEM LOOKS AT THE BACK WALL
+  // (2026-09-10, tools/gallery_backwall.py).
+  // WHAT PROMPTED IT. Going through the balcony clips by eye, the gallery interiors plainly show
+  // DOORWAYS in a back wall. This file draws a door in the WEST gallery back wall and nothing of the
+  // kind in the east: the east back wall is a blank quad from the deck to the canopy carrying an exit
+  // sign and three lamps. A missing door is a hole in the balconies rather than a number slightly off,
+  // so it was worth building a picture of that wall from the photographs and looking.
+  // THE INSTRUMENT WAS THE ONE THAT WORKED ON THE NORTH WALL, turned into a map instead of a verdict:
+  // rule the back wall plane into 50 mm cells, let every posed camera that can see a cell contribute its
+  // brightness, and draw the median as an elevation in world coordinates. The model's own exit sign and
+  // lamps get marked on it, so if they land on nothing the map is not registered and nothing in it counts.
+  // IT COULD NOT BE BUILT, AND THE REASON IS WORTH MORE THAN THE MAP WOULD HAVE BEEN. 286 posed frames
+  // stand inside the east gallery and 23 inside the west. Every single one of the 309 faces OUT over the
+  // hall: their forward direction along the hall runs -0.68 to -1.00, where +1 would be straight at the
+  // back wall. Not one camera in the archive looks at either back wall.
+  // THIS IS THE REGISTRAR'S BLIND SPOT AND IT IS STRUCTURAL, not bad luck. The solver matches frames
+  // against a model of the HALL, so a frame aimed at the wall beside the operator has almost nothing in
+  // it to match and does not solve. The frames that SHOW these walls are exactly the ones with no pose,
+  // and the frames that HAVE a pose are exactly the ones looking away. wall_courses.py said this in its
+  // header a day ago; this puts a number on it.
+  // ONE CAUSE, TWO DEAD ENDS, AND THEY ARE THE SAME CAUSE. The ashlar route died in the previous run
+  // because the frames that show a wall running down to the deck carry no pose. This dies because the
+  // frames that show the back wall carry no pose. It is one hole in the dataset, and naming it once is
+  // worth more than meeting it again in a third disguise.
+  // WHAT THAT MEANS FOR WHAT IS DRAWN THERE. The east exit sign and the three east wall lamps were
+  // placed from FLOOR frames across the hall, sighting into a recess from tens of metres away, and this
+  // run cannot check them. And the doorways I can see with my own eyes in the unposed frames cannot be
+  // placed at all: with no pose there is no way to say which gallery, or where on the wall, so nothing
+  // is added to the model on the strength of having seen them. They are recorded as seen and unplaced.
   // FOUR WINDOWS CHOSEN BY EYE, NONE OF THEM USABLE, AND THE ROUTE IS NOW CLOSED PROPERLY
   // (2026-09-10, tools/wall_courses.py on b7_000320, b7_000390 twice and b7_000810).
   // THE PRESCRIPTION WAS TO LOOK, so the clips were looked at: a coarse grid of the whole of b7, then
@@ -4615,7 +4644,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 193 bounds, all satisfied.
+  // 196 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

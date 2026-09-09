@@ -1409,6 +1409,39 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# NOBODY EVER LOOKED AT A GALLERY BACK WALL WITH A POSE (2026-09-10, tools/gallery_backwall.py).
+BW = {'east_in': 286, 'west_in': 23, 'facing': 0, 'fwd_lo': -1.00, 'fwd_hi': -0.68,
+      'cell': 0.05, 'exit_h': 10.69, 'lamp_h': [10.5, 10.6, 10.5]}
+check('a map of the gallery back wall could not be built, and the reason is the finding',
+      BW['facing'] == 0 and BW['fwd_hi'] < 0,
+      'the balcony clips plainly show DOORWAYS in a gallery back wall, and this file draws a door in the '
+      'WEST back wall and nothing of the kind in the east, where the wall is a blank quad from the deck '
+      'to the canopy. So the wall plane was ruled into %.0f mm cells to build an elevation from the '
+      'photographs. %d posed frames stand inside the east gallery and %d inside the west, and every one '
+      'of the %d faces OUT over the hall: forward direction along the hall from %+.2f to %+.2f, where +1 '
+      'would be straight at the back wall. Not one camera in the archive looks at either back wall.'
+      % (1000 * BW['cell'], BW['east_in'], BW['west_in'], BW['east_in'] + BW['west_in'],
+         BW['fwd_lo'], BW['fwd_hi']),
+      'tools/gallery_backwall.py')
+check('and it is the registrar blind spot, which is structural rather than bad luck',
+      BW['east_in'] + BW['west_in'] > 300,
+      'the solver matches frames against a model of the HALL, so a frame aimed at the wall beside the '
+      'operator has almost nothing in it to match and does not solve. The frames that SHOW these walls '
+      'are exactly the ones with no pose and the frames that HAVE a pose are exactly the ones looking '
+      'away. wall_courses.py said this in its header a day ago and this puts a number on it. It is also '
+      'ONE cause behind TWO dead ends: the ashlar route died because the frames showing a wall down to '
+      'the deck carry no pose, and this dies because the frames showing the back wall carry no pose.',
+      'tools/gallery_backwall.py')
+check('so what is drawn on that wall rests on floor frames, and what I saw is not drawn at all',
+      abs(BW['exit_h'] - 10.69) < 1e-9,
+      'the east exit sign on h %.2f and the three east wall lamps on h %s were placed from FLOOR frames '
+      'across the hall, sighting into a recess from tens of metres away, and this run cannot check them '
+      'from inside. The doorways visible by eye in the unposed frames cannot be placed at all: with no '
+      'pose there is no saying which gallery or where on the wall, so nothing is added to the model on '
+      'the strength of having seen them. They are recorded as seen and unplaced, which is the whole of '
+      'what the evidence supports.'
+      % (BW['exit_h'], ', '.join('%.1f' % v for v in BW['lamp_h'])),
+      'tools/gallery_backwall.py')
 # FOUR WINDOWS CHOSEN BY EYE, NONE USABLE (2026-09-10, tools/wall_courses.py).
 EYE = {'runs': [('b7 320 0.40 0.95 0.58 0.99', 0.73, 47.0),
                 ('b7 810 0.15 0.72 0.745 0.995', 0.59, 54.0),
