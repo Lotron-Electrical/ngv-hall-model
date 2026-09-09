@@ -67,7 +67,8 @@ HWIN = int(os.environ.get('HWIN', '40'))
 # known d the ray equation vd*(u* - cu) - vu*(d* - cd) = 0 gives u* directly, one unknown per ray, and
 # there is nothing left to slide.
 ANCHORD = os.environ.get('ANCHORD', '')
-CONTRAST, THRESH = 18.0, 0.05
+CONTRAST = float(os.environ.get('CONTRAST', '18.0'))
+THRESH = 0.05
 # Support and reach are knobs because coverage, not precision, is what limits this. The first pass found
 # only the middle four openings, and a line nobody can see is not a line that is wrong.
 MINSUP = int(os.environ.get('MINSUP', '40'))
@@ -92,7 +93,18 @@ def rays_of(cam, pix):
 
 
 frames = {}
-for cls in ('walk', 'night', 'day4k'):
+# THE CLASSES ARE SETTABLE BECAUSE THAT IS THE TEST FOR WHAT THIS DETECTOR IS FINDING. Every jamb line
+# comes back 0.117 m behind the measured wall face, and two explanations fit equally well from where the
+# cameras stood: a real rebate in the masonry, or the depth to which light entering from above stops
+# reaching the reveal returns. Both parities agreeing to 2 mm rules out a sideways lighting effect but not
+# an overhead one, because light from above shadows both returns at the same depth.
+# A REBATE IS GEOMETRY AND A SHADOW IS LIGHT. Geometry reads the same by day and by night; a shadow line
+# does not, because after dark this hall is lit by uplights and wall washers from below and the sides
+# rather than through the stained glass overhead. So fit the same jambs on the day walk alone and on the
+# night walk alone. Same depth, it is stone. Different depth, it is a shadow and no rebate should ever be
+# drawn on it.
+CLASSES = os.environ.get('CLASSES', 'walk night day4k').split()
+for cls in CLASSES:
     try:
         for k, v in U.load_class(cls).items():
             frames.setdefault(k, v)

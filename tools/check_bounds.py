@@ -345,6 +345,36 @@ check('the balcony front tops are the same height at every averaging window',
          1000 * (max(WINDOWS['west']) - min(WINDOWS['west'])),
          1000 * (max(WINDOWS['east']) - min(WINDOWS['east']))),
       'tools/soffit_back.py')
+# AND A THIRD, WHICH IS NOT A FIT AT ALL, tools/front_anchor.py (2026-09-09). Fix the station and each
+# ray gives the height directly, then take the height the most rays agree on. Anchored on the station its
+# own fit measured, the day walk gives 9.808 west against a shipped 9.799 and 9.868 east against 9.865.
+# TWO MISTAKES ARE RECORDED IN THAT TOOL RATHER THAN TIDIED AWAY. It first took the MEDIAN of the
+# anchored heights and came back 0.21 m low at both ends, because the ladder catches several edges and a
+# median sits between them instead of on one; a line is found by consensus, not by averaging. And it then
+# anchored both ends on the DRAWN face, which put the east 0.12 m low, because the shipped east height was
+# derived at u 48.397 and along the median ray 0.34 m of station is worth 0.12 m of height.
+# THE POINT OF ANCHORING IS THAT IT LETS THE NIGHT WALK IN. A stone edge reads the same under any light; a
+# boundary that is really where the light stops does not, and after dark this hall is lit from below and
+# the sides rather than through the stained glass. The night set is only 92 usable rays against the day's
+# 600 and spans 15 m of hall against 37, so it can never carry a free two-unknown fit. Anchored, it can.
+FRONT3 = (('west', 9.808, 9.799, None), ('east', 9.868, 9.865, 9.834))
+check('a third estimator, anchored rather than fitted, gives the same balcony fronts',
+      max(abs(a - b) for _s, a, b, _n in FRONT3) <= 0.02,
+      'the consensus height at a fixed station gives %.3f west against a shipped %.3f and %.3f east '
+      'against %.3f: %.0f mm and %.0f mm. That is a third method on these two numbers, after the single '
+      'fit with its range test and the peel.'
+      % (FRONT3[0][1], FRONT3[0][2], FRONT3[1][1], FRONT3[1][2],
+         1000 * abs(FRONT3[0][1] - FRONT3[0][2]), 1000 * abs(FRONT3[1][1] - FRONT3[1][2])),
+      'tools/front_anchor.py')
+check('the east balcony front reads the same by day and by night',
+      abs(FRONT3[1][1] - FRONT3[1][3]) <= 0.06,
+      'the day walk anchors it on %.3f and the night walk on %.3f, %.0f mm apart, from lighting states '
+      'that share nothing: daylight through the stained glass overhead against uplights and wall washers '
+      'after dark. An edge that survives that is stone, not a boundary the lights drew. The west end '
+      'cannot take this test, its night frames yielding 2 detections.'
+      % (FRONT3[1][1], FRONT3[1][3], 1000 * abs(FRONT3[1][1] - FRONT3[1][3])),
+      'tools/front_anchor.py')
+
 check('the balcony front tops survive a second instrument',
       max(abs(a - b) for _s, a, b, _n in FRONTAGAIN) <= 0.02,
       'the peel gives west %.3f against the single fit on %.3f and east %.3f against %.3f, so %.0f mm '
@@ -497,10 +527,13 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' drawn -0.090 and the residual is lowest between -0.08 and -0.02, and it is 50 per cent'
              ' worse at the jamb depth, so dNorth stands and the jamb -0.207 is NOT the wall face,'
              ' tools/face_depth_scan.py',
-             'STILL OPEN: what the jamb detector is actually finding 0.117 m back. Both parities give the'
-             ' same depth to 2 mm, which rules out a directional lighting effect between the two returns'
-             ' but NOT an overhead one, since light entering from above shadows both reveal returns at'
-             ' the same depth. A rebate and a shadow line fit the fit equally well',
+             'STILL OPEN in physics but CLOSED in consequence: what the jamb detector finds 0.117 m back.'
+             ' The day-against-night test that settled the balcony front cannot run here: the 22 night'
+             ' frames on that band of wall yield ZERO usable columns, even with a 3 grey level bar and an'
+             ' 8 sample window, so there is no second lighting state to compare. But it does not matter'
+             ' for anything this model draws. A rebate back edge and a shadow on the reveal return BOTH'
+             ' lie in the jamb plane, and that is a plane of constant u, so both give the same station.'
+             ' The openings were moved on the station and the station is invariant to the answer',
              'the opening head lean of 40 to 205 mm',
              'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'
              ' 0.20 m lower and a face 0.20 m over all fitted the same rays, and the upstand-top line fit'

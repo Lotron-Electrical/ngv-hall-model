@@ -3106,6 +3106,37 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // A STONE EDGE READS THE SAME UNDER ANY LIGHT, AND THE BALCONY FRONT DOES (2026-09-09,
+  // tools/front_anchor.py, tools/west_far.py with FAR, tools/jamb_lines.py with CLASSES). The open
+  // question was what the jamb detector finds 0.117 m behind the wall face: a rebate in the stone, or the
+  // depth to which light entering from above stops reaching the reveal returns. Geometry reads the same
+  // by day and by night. A shadow does not, because after dark this hall is lit from below and the sides
+  // rather than through the stained glass overhead. So run the same fit on the day walk alone and on the
+  // night walk alone and see whether the building moves.
+  // THE JAMBS CANNOT TAKE THAT TEST. Twenty-two night frames see that band of wall and they yield ZERO
+  // usable columns, still zero with the contrast bar dropped to 3 grey levels and the window to 8
+  // samples. There is no second lighting state on those edges, so the question stays open in physics.
+  // IT IS CLOSED IN CONSEQUENCE, THOUGH, AND THAT IS THE PART THAT MATTERS HERE. A rebate back edge and a
+  // shadow on the reveal return BOTH lie in the jamb plane, and a jamb plane is a plane of constant u. So
+  // both give the same station, the openings were moved on the station, and nothing this model draws
+  // depends on which of the two it is.
+  // THE FRONTS CAN TAKE THE TEST, AND THEY PASS IT. The night walk stands 9 to 24 m from the west end,
+  // well inside range, but it spans only 15 m of hall against the day's 37 and can never carry a free
+  // two-unknown fit: run free it lands on u 50.065 h 10.289 against the day's 48.565 and 9.883, which is
+  // the slide and not a disagreement. Anchor the station and each ray gives the height directly, one
+  // unknown, nothing left to slide. The east front then reads 9.868 by day and 9.834 by night: 34 mm
+  // apart, from two lighting states that share nothing. It is stone.
+  // AND THE ANCHORED ESTIMATOR IS A THIRD METHOD ON THESE TWO NUMBERS, after the single fit with its
+  // range test and the peel. It gives 9.808 west against a shipped 9.799 and 9.868 east against 9.865:
+  // nine millimetres and three.
+  // TWO OF MY OWN MISTAKES ARE IN THAT TOOL RATHER THAN TIDIED OUT OF IT. It first took the MEDIAN of the
+  // anchored heights and came back 0.21 m low at both ends, because the ladder catches several edges and
+  // a median sits between them instead of on one; a line is found by consensus, not by averaging. Then it
+  // anchored both ends on the DRAWN face, which put the east 0.12 m low, because the shipped east height
+  // was derived at u 48.397 and along the median ray 0.34 m of station is worth 0.12 m of height. Each
+  // wrong version produced a confident verdict, and the second one printed the words "this edge is a
+  // lighting boundary and the number drawn on it is suspect" about a number that is fine.
+  // 41 bounds, all satisfied.
   // STOP FITTING THE DEPTH AND SCAN IT, WHICH RETIRES A QUESTION AND CORRECTS A CLAIM I MADE AN HOUR AGO
   // (2026-09-09, tools/face_depth_scan.py). Three numbers claimed to be the depth of the north wall: the
   // drawn -0.090, the head's -0.123, the jambs' -0.207. Rather than argue between fits, fix the depth and

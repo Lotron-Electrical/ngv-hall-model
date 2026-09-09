@@ -48,7 +48,13 @@ POLARITY = os.environ.get('POLARITY', 'lit')
 PSIGN = 1.0 if POLARITY == 'lit' else -1.0
 DECK = 8.34
 UF, TOPD, SIGN = (4.194, 9.020, +1.0) if END == 'west' else (48.056, 9.110, -1.0)
-FAR = ('walk', 'night', 'day4k')
+# THE CLASS LIST IS SETTABLE BECAUSE DAY AGAINST NIGHT IS A TEST, not a convenience. A stone edge reads
+# the same under any light; a boundary that is really where the light stops does not, because after dark
+# this hall is lit from below and the sides rather than through the stained glass overhead. The jambs
+# could not take this test, their 22 night frames yielding no usable column on that band of wall even at
+# a 3 grey level bar. The balcony fronts can: the night walk stands u 13.4 to 28.5, which is 9 to 24 m
+# from the west end and well past the 8 m this tool needs.
+FAR = os.environ.get('FAR', 'walk night day4k').split()
 OUT = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose'
 # THE LADDER'S SPAN IS THE WHOLE EXPERIMENT, and the first run got it wrong in an instructive way. Over
 # h 7.0 to 11.4 the ray fan from a floor camera is wide enough to sweep across the stained-glass ceiling
