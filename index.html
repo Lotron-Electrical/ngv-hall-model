@@ -2768,7 +2768,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:1.0, n:1, pitch:0, plinth:[0.6,0.6,1.0], glass:[0.55,0.55,0.75], gap:0.15}}, topSouthDoor:{east:[50.2,51.2,2.3]}, topNorthDoor:{west:[2.1,3.1,2.3], east:[49.15,50.15,2.3]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:1.0, n:1, pitch:0, plinth:[0.6,0.6,1.0], glass:[0.55,0.55,0.75], gap:0.15}}, topSouthDoor:{}, topNorthDoor:{west:[2.1,3.1,2.3], east:[48.118,49.291,3.15]}, topNorthExit:{east:[48.74,49.19,11.14,11.34]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -5274,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 261 bounds, all satisfied.
+  // 264 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5764,23 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST GALLERY'S NORTH END, SEEN AND MEASURED, AND A DOOR I HAD PUT AT THE WRONG END (2026-09-10,
+  // tools/gallery_north_end.py). b6 frames 1236 to 1332 walk the east upper gallery toward a wall that
+  // faces the camera: a lit doorway with a green light in its head, two dark rectangles the size of the
+  // corridor openings to its right, the tapestry low on the same wall past the round column. Which wall
+  // that is turns on which side the hall is, and posed cameras settle it: through b7s and b3 looking -u
+  // the +d side lands on the right, through b1 looking +d the +u side does. The hall is on the RIGHT in
+  // these frames, so the camera looks -d and the wall is the NORTH wall: the rectangles are openings 12
+  // and 11 seen through the gallery glass, the tapestry is north-2 under openings 11 and 10, and the door
+  // is the corridor mouth, twin of the west one. The block below that read the same frames as "dead
+  // ahead looking south" had it backwards, and its south door is withdrawn. Then the wall was used as a
+  // ruler: image x along one plane is a projective function of u, three known jambs fix it, and the
+  // back-wall corner predicted from the openings lands 6 px and 29 px from the corner read (40 asked).
+  // Door jambs u 48.118 and 49.291, head 11.487 off opening 12's head, spreads 0.03 to 0.06 across the
+  // two frames. What does not fit: the hall-side jamb is 0.06 m inside the glass line and the coping is
+  // drawn 0.45 wide by eye, so the parapet end covers the door's lower corner in this file. The jamb is
+  // measured and the coping is not, so the door moves and the coping waits for a frame that measures it.
+  // Opening 12's visible bottom read 9.15 and 8.81 against the 8.74 sill and is not used from this deck.
   // THE WALL THICKNESS FROM THE DECKS, THE SECOND ROUTE, AND IT REFUSED TOO (2026-09-10,
   // tools/reveal_depth_deck.py). From an end deck the far reveal of the nearest openings faces the camera
   // square, hall arris to corridor arris, which is the view nobody took from inside the openings. The
@@ -5857,6 +5874,9 @@ function buildEndWalls(root){
   //   3. A LIT DOORWAY AT THE SOUTH END OF THE EAST GALLERY, in the south wall between the vitrine row and
   //      the parapet (b6_001242, 001250, 001300: dead ahead looking south, about a metre wide and a little
   //      over two tall). Position by eye.
+  //      WITHDRAWN THE SAME DAY: that camera looked NORTH. With the hall on its right it faces -d (posed
+  //      cameras fix the handedness, tools/gallery_north_end.py), so this is the north door, measured
+  //      under topNorthDoor, and topSouthDoor.east is gone: no frame shows a door in the south end.
   { const cop=(W.coping&&W.coping[side])||0; if(cop>0){ const uI=uS+s*cop, hT=fl[1]+ups;
     quad([[uS,0,hT],[uI,0,hT],[uI,D,hT],[uS,D,hT]],upstandMat,'gallery-coping');
     quad([[uI,0,fl[1]],[uI,D,fl[1]],[uI,D,hT],[uI,0,hT]],upstandMat,'gallery-parapet'); } }
@@ -5886,9 +5906,18 @@ function buildEndWalls(root){
   // its corridor mouth, and the corridor this file builds runs the length of the wall. So the east gallery's
   // north end gets the mirror of the west doorway, 1.76 to 2.76 m from its own end wall, and the corridor
   // runs through to it. The sign is the only thing seen; the doorway under it is symmetry, and says so.
+  // SEEN AND MEASURED THE SAME DAY (tools/gallery_north_end.py, b6_001248 and 001320 undistorted with the
+  // b6g intrinsics): the doorway itself, lit, with the green light in its head, faces the camera in the
+  // frames that walk this gallery with the hall on the right. Openings 12 and 11 beside it are the ruler
+  // along the wall and the back-wall corner is the control (6 px and 29 px). Jambs u 48.118 and 49.291
+  // (half-ranges 0.04 and 0.06), head 11.487 (0.03), so doorH 3.15, not the 2.3 borrowed from the west.
+  // The hall-side jamb stands 0.06 m inside the glass line, which the by-eye 0.45 coping cannot fit: that
+  // conflict is left standing and written down below rather than tuned away. topNorthExit.east puts the
+  // sign where the frame has it, in the head on the +u side, by eye.
   { const ND=W.topNorthDoor&&W.topNorthDoor[side]; if(ND){ const [u0,u1,doorH]=ND, dN=F.dNorth+0.01;
     quad([[u0,dN,fl[1]],[u1,dN,fl[1]],[u1,dN,fl[1]+doorH],[u0,dN,fl[1]+doorH]],doorMat,'gallery-door-leaf');
-    quad([[(u0+u1)/2-0.25,dN+0.01,10.97],[(u0+u1)/2+0.25,dN+0.01,10.97],[(u0+u1)/2+0.25,dN+0.01,11.17],[(u0+u1)/2-0.25,dN+0.01,11.17]],exitLitMat,'exit-sign'); } }
+    { const X=W.topNorthExit&&W.topNorthExit[side], [xa,xb,ha,hb]=X||[(u0+u1)/2-0.25,(u0+u1)/2+0.25,10.97,11.17];   /* the west sign is over its door by eye; the east sign is in the door head on the +u side, b6_001248 */
+      quad([[xa,dN+0.01,ha],[xb,dN+0.01,ha],[xb,dN+0.01,hb],[xa,dN+0.01,hb]],exitLitMat,'exit-sign'); } } }
   // THREE WAYS TO MEASURE THIS CEILING, ALL THREE REFUSED (2026-09-09, tools/soffit_edge.py,
   // tools/soffit_reach.py, tools/soffit_sil.py). Recorded because a refusal that is not written down
   // gets attempted again, and because the reason turns out to be general.

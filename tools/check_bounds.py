@@ -1409,6 +1409,38 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE EAST GALLERY'S NORTH END, SEEN AND MEASURED, AND A DOOR I HAD PUT AT THE WRONG END (2026-09-10,
+# tools/gallery_north_end.py).
+NE = {'frames': {1248: {'ctrl': 6, 'u0': 49.227, 'u1': 48.079, 'head': 11.516},
+                 1320: {'ctrl': 29, 'u0': 49.355, 'u1': 48.157, 'head': 11.458}},
+      'ctrl_px': 40, 'spread': 0.15, 'u0': 49.291, 'u1': 48.118, 'head': 11.487, 'floor': 8.34, 'glass': 48.056}
+_ne = NE['frames']
+_hr = lambda k: (max(v[k] for v in _ne.values()) - min(v[k] for v in _ne.values())) / 2
+_door = re.search(r'topNorthDoor:\{west:\[[0-9.,]+\], east:\[([0-9.]+),([0-9.]+),([0-9.]+)\]\}', src)
+_dr = [float(x) for x in _door.groups()] if _door else [0, 0, 0]
+check('the east gallery north door is drawn where two b6 frames measure it off openings 12 and 11',
+      all(v['ctrl'] <= NE['ctrl_px'] for v in _ne.values()) and max(_hr('u0'), _hr('u1'), _hr('head')) < NE['spread']
+      and abs(_dr[0] - NE['u1']) < 1e-9 and abs(_dr[1] - NE['u0']) < 1e-9 and abs(_dr[2] - round(NE['head'] - NE['floor'], 2)) < 1e-9,
+      'b6_001248 and 001320 walk the east gallery with the hall on the right, so they look -d and the far wall is '
+      'the north wall; openings 12 and 11 in it fix a projective ruler along the wall and the back-wall corner '
+      'predicted from them lands %d and %d px from the corner read (%d asked). Door jambs u %.3f and %.3f, head '
+      '%.3f, half-ranges %.3f, %.3f and %.3f across the frames, and the file draws those numbers (doorH %.2f).'
+      % (_ne[1248]['ctrl'], _ne[1320]['ctrl'], NE['ctrl_px'], NE['u1'], NE['u0'], NE['head'], _hr('u1'), _hr('u0'),
+         _hr('head'), NE['head'] - NE['floor']),
+      'tools/gallery_north_end.py')
+check('the south door drawn on the east gallery from the same frames is withdrawn',
+      re.search(r'topSouthDoor:\{\}', src) is not None,
+      'the block that put a lit doorway in the east gallery south end read frames that look north (the hall on '
+      'the right), so the door it saw is the north door; no frame shows a door in the south end and none is drawn.',
+      'tools/gallery_north_end.py')
+_cop = grab(r'coping:\{west:[0-9.]+, east:([0-9.]+)\}')
+check('the measured jamb and the by-eye coping disagree and the disagreement is written down, not tuned away',
+      NE['u1'] - NE['glass'] < _cop and abs(_cop - 0.45) < 1e-9,
+      'the door\'s hall-side jamb measures %.3f, %.3f m inside the glass line %.3f, and the coping is drawn %.2f '
+      'wide by eye, so the parapet end covers the door\'s lower corner by %.2f m. The jamb is measured and the '
+      'coping is not; the coping keeps its by-eye width until a frame measures it, and this bound keeps the '
+      'conflict visible.' % (NE['u1'], NE['u1'] - NE['glass'], NE['glass'], _cop, _cop - (NE['u1'] - NE['glass'])),
+      'tools/gallery_north_end.py')
 # THE WALL THICKNESS FROM THE DECKS, THE SECOND ROUTE, AND IT REFUSED TOO (2026-09-10, tools/reveal_depth_deck.py).
 RDD = {'east_frames': 163, 'west_frames': 7, 'op11': {'n': 10, 'wins': 5, 'med': 0.780, 'half': 0.245},
        'beat': 0.70, 'minfr': 8, 'spreadmax': 0.15, 'drawn': 0.90}
