@@ -2922,6 +2922,38 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // THE WITHDRAWN BOUND COMES BACK, BECAUSE THE FIT ALREADY HELD THE RANGE (2026-09-09,
+  // tools/far_edge_range.py). It was pulled an hour earlier for a real reason: a crossing height is an
+  // occlusion bound only if the feature lies BEYOND the face plane, and the detector never tested that.
+  // The answer was in the fit and had been thrown away. An edge spanning the hall is a LINE (u*, h*), so
+  // fitting it localises the feature in three dimensions rather than only in height, and the distance
+  // along each ray to that line is the range.
+  // TWO ERRORS WERE FIXED TO GET THERE, and both had been quietly softening the earlier estimate.
+  //   THE RESIDUAL WAS NOT IN METRES. vh*u* - vu*h* minus the camera term is the perpendicular distance
+  //   multiplied by sqrt(vu^2 + vh^2), which for a ray tipped out of the u-h plane is well under one, so
+  //   an 80 mm threshold meant a different threshold for every ray. Dividing through makes it metres.
+  //   AND ONE FIT OVER EVERYTHING CANNOT BE CHECKED. The cameras span 37 m of hall, so splitting them by
+  //   distance gives two independent experiments on the same edge.
+  // WHAT IT RETURNS, and it is the cleanest thing on these balconies today:
+  //   west  366 inliers within 50 mm, MEDIAN 10 mm, edge on u 4.160 h 9.799
+  //         near half (4.154, 9.802) against far half (4.258, 9.773): 0.10 m apart in u, 0.03 m in h
+  //   east  660 inliers within 50 mm, median 15 mm, edge on u 48.397 h 9.865
+  //         near half (48.474, 9.889) against far half (48.169, 9.816): 0.31 m and 0.07 m
+  //   and 100 per cent of the inliers at BOTH ends put the edge beyond the face plane, by 0.03 m west and
+  //   0.35 m east along the ray. The sightline crossed the plane before it arrived, so nothing solid could
+  //   have stood above the edge at that station. That is the missing half and the bound now rests on it.
+  // THE GAP IT EXPOSES IS 0.40 m AND IS NOT BEING CLOSED SILENTLY. The tallest thing the sim draws on
+  // either deck is the upper rail on 9.400, and the measured edge is 9.799 west and 9.865 east, so the
+  // model stops 0.40 m short of a real horizontal feature that runs the width of the hall at both ends.
+  // Either the balcony front is that much taller than drawn, or the deck under it is that much higher, or
+  // the edge is something the model does not carry at all. The MEASUREMENT is solid to 10 to 15 mm and
+  // survives a split of the cameras; the IDENTITY is an inference, so it is written into the unmeasured
+  // list and nothing is moved on it.
+  // IT ALSO MAKES THE WEST FAILURE A SHAPE RATHER THAN A PUZZLE. The deck arrivals cap a SOLID parapet on
+  // 8.818 and the hall floor puts an edge on 9.799. Both hold at once only if the thing on that deck is a
+  // LOW SOLID with an OPEN rail above it, because light passes between balusters and the arrival test
+  // assumes it cannot. The sim draws the solid 0.20 m too tall and its rail 0.40 m too short, which is one
+  // coherent correction rather than two contradictions.
   // THE HALL FLOOR CAN READ THE WEST END, AND BOTH ENDS AGREE ON ONE EDGE (2026-09-09, tools/west_far.py).
   // The failing west bound says the parapet stands 0.202 m into light that arrived and cannot say WHICH of
   // the top, the deck or the face is wrong, because sixteen cameras inside a hand's width of one station

@@ -184,15 +184,31 @@ for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
           '0.242, so the gap between the two ends is not a lens artefact.'
           % (drawn_top, G['deck'], G[upk], npts, uface, p5, over, 1.5 * POSE_MISS),
           'tools/gallery_arrival.py')
-# THE EDGE BOTH ENDS SEE IS NOT A BOUND, AND THE REASON IS THE POINT (tools/west_far.py). Walking the
-# face plane's height ladder, narrowed to h 8.2-10.0 so the ray fan cannot reach the stained-glass ceiling
-# junction, the pooled brightness falls steeply at h 9.590 west and 9.550 east: two ends, 161 and 214
-# floor frames, agreeing to 40 mm, with 537 and 917 RANSAC inlier rays and 54 and 44 mm residuals.
-# THAT WOULD BE AN OCCLUSION BOUND IF THE DETECTED FEATURE LAY BEYOND THE FACE PLANE, because then the
-# sightline crossed it and nothing solid could have stood there. Drawn back on w1_000021 the detections
-# sit high in the frame against the dark upper wall, and NOTHING IN THIS TOOL TESTS THEIR RANGE. A feature
-# nearer than the face plane gives a crossing height that is arithmetic, not evidence. So it is recorded
-# below and asserted nowhere. Adding it as a passing check would have been the easy half of the work.
+# THE EDGE BOTH ENDS SEE, NOW WITH A RANGE, so it is a bound after all (tools/far_edge_range.py).
+# It was withdrawn this evening because a crossing height is an occlusion bound only if the feature lies
+# BEYOND the face plane, and the detector never tested that. The fit already contained the answer: an edge
+# spanning the hall is a line (u*, h*) and fitting it localises the feature in 3D rather than only in
+# height. Two errors were fixed to get there. The residual was not in metres, it was the perpendicular
+# distance times sqrt(vu^2 + vh^2), so an 80 mm threshold meant something different for every ray. And one
+# fit over everything cannot be checked, so the cameras are split by distance into two independent
+# experiments on the same edge.
+#   west  366 inliers within 50 mm, median 10 mm, edge on u 4.160 h 9.799
+#         near half (4.154, 9.802) against far half (4.258, 9.773): 0.10 m apart in u, 0.03 m in h
+#   east  660 inliers within 50 mm, median 15 mm, edge on u 48.397 h 9.865
+#         near half (48.474, 9.889) against far half (48.169, 9.816): 0.31 m and 0.07 m
+#   and 100 per cent of the inliers at BOTH ends put the edge beyond the face plane, by 0.03 m west and
+#   0.35 m east along the ray. The sightline crossed the plane before it arrived, so nothing solid stood
+#   above the edge at that station. That is the missing half, and the bound stands on it.
+for side, uface, edge in (('west', 4.194, 9.799), ('east', 48.056, 9.865)):
+    check('the %s balcony front is under the edge the hall floor sees' % side,
+          G['deck'] + G['railTop'] <= edge,
+          'the tallest thing the sim draws on that deck is the upper rail on %.3f, the deck %.3f plus '
+          '%.3f. The measured edge crosses u %.3f on h %.3f, so the bracket is %.3f to %.3f, %.3f m wide. '
+          'The sim sits at the bottom of it by 0.40 m, which is recorded as a gap below and not silently '
+          'closed, because the edge is measured and its IDENTITY is inferred.'
+          % (G['deck'] + G['railTop'], G['deck'], G['railTop'], uface, edge,
+             G['deck'] + G['railTop'], edge, edge - (G['deck'] + G['railTop'])),
+          'tools/far_edge_range.py')
 check('the south tapestries hang in front of the south wall',
       all(d < G['dSouth'] for d in southtap),
       'wall face d %.3f; tapestries on %s. Measured surface 15.262.'
@@ -241,9 +257,11 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              'and the two west instruments only agree if the parapet is NOT the solid the sim draws: the'
              ' deck arrivals cap a solid on 8.818 while the hall floor sees an edge on 9.59. A low solid'
              ' upstand with an open rail above it satisfies both. Nothing is drawn that way yet.',
-             'the far edge is NOT yet a bound on the rail. Its crossing height is only evidence if the'
-             ' feature lies beyond the face plane, and tools/west_far.py does not test the range of what'
-             ' it detected. Until it does, the upper rail on 9.400 has nothing over it'):
+             'WHAT the measured edge is. It is 1.459 m above the drawn deck at the west and 1.525 m at'
+             ' the east, and the sim draws nothing within 0.40 m of it: its upper rail tops out on 9.400.'
+             ' Either the balcony front is 0.4 m taller than drawn, or the deck under it is 0.4 m higher,'
+             ' or the edge is something the model does not carry at all. The measurement is solid to'
+             ' 10-15 mm and split-validated; the identity is not, tools/far_edge_range.py'):
     print('   ' + line)
 print('')
 if fails:
