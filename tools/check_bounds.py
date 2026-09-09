@@ -63,7 +63,15 @@ G['cBack'] = G['dNorth'] - G['cWidth']
 
 lamps = re.search(r'lamps:\[(\[.*?\])\]\}', src)
 LAMPS = [[float(x) for x in t.split(',')] for t in re.findall(r'\[([-0-9.,]+)\]', lamps.group(1))] if lamps else []
-MEASURED_LAMPS = [[30.642, -1.093, 10.374], [34.139, -2.144, 10.990], [42.043, -1.824, 10.908]]
+# RE-RUN 2026-09-09 after the openings moved 0.147 m and the wall face moved to -0.030. The aperture
+# gate that decides which rays may vote for a lamp depends on both, so the old array was built on
+# superseded geometry. Re-run, the three collapse onto one level.
+MEASURED_LAMPS = [[30.524, -2.068, 10.942], [34.139, -2.049, 10.935], [42.043, -1.824, 10.908]]
+OLD_LAMPS = [[30.642, -1.093, 10.374], [34.139, -2.144, 10.990], [42.043, -1.824, 10.908]]
+# the near-far parallax test on each lamp's own ray bundle: measured?, best depth, height, ratio,
+# leverage (tools/lamp_v.py)
+LAMPV = {8: (True, -2.368, 11.117, 5.6, 5.69), 9: (True, -1.849, 10.807, 3.3, 12.52),
+         11: (False, -1.624, 10.793, 1.8, 1.54)}
 
 southtap = []
 for t in tap['tapestries']:
@@ -82,12 +90,39 @@ def check(name, ok, detail, source):
 
 
 # --- the room behind the wall -------------------------------------------------------------------
-check('corridor is deep enough for the lamp inside it',
-      G['cBack'] <= -2.144 + 0.062,
-      'back wall drawn on d %.3f; the deepest triangulated lamp sits on d -2.144 with 0.062 m ray '
-      'agreement, so the wall can be no shallower than -2.082. Clearance %.3f m.'
-      % (G['cBack'], -2.082 - G['cBack']),
+check('corridor is deep enough for the lamps inside it',
+      G['cBack'] <= min(L[1] for L in MEASURED_LAMPS) + 0.062,
+      'back wall drawn on d %.3f; the deepest triangulated lamp sits on d %.3f with about 0.05 m ray '
+      'agreement, so the wall can be no shallower than %.3f. Clearance %.3f m.'
+      % (G['cBack'], min(L[1] for L in MEASURED_LAMPS),
+         min(L[1] for L in MEASURED_LAMPS) + 0.062,
+         min(L[1] for L in MEASURED_LAMPS) + 0.062 - G['cBack']),
       'tools/corridor_lamp.py')
+check('the lamps agree with each other on a level, which they never did before',
+      max(L[2] for L in MEASURED_LAMPS) - min(L[2] for L in MEASURED_LAMPS) <= 0.10,
+      'the three heights now span %.0f mm across 11.5 m of corridor, where the array shipped until '
+      'tonight spanned %.0f mm in height and %.0f in depth. That array was computed before the openings '
+      'moved and before the wall face moved, and the aperture gate depends on both. One of its lamps was '
+      'a metre out in depth and 0.57 m out in height. Three lamps on one level 11.5 m apart is what a '
+      'corridor is lit like.'
+      % (1000 * (max(L[2] for L in MEASURED_LAMPS) - min(L[2] for L in MEASURED_LAMPS)),
+         1000 * (max(L[2] for L in OLD_LAMPS) - min(L[2] for L in OLD_LAMPS)),
+         1000 * (max(L[1] for L in OLD_LAMPS) - min(L[1] for L in OLD_LAMPS))),
+      'tools/corridor_lamp.py')
+check('the back wall sits inside the bracket the testable lamps allow',
+      min(v[1] for v in LAMPV.values() if v[0]) <= G['cBack'] <= max(v[1] for v in LAMPV.values() if v[0]),
+      'a POINT can be tested where a line cannot: a line in that room is separated only by cameras at '
+      'different distances and the slot collapses that to a leverage of 1.32, while a point is separated '
+      'by the angular spread of the rays that see it. Lamp 8 gives the sharpest signal anything has '
+      'produced inside the corridor, its two camera halves agreeing to 6 mm on d %.3f against 242 mm at '
+      'the end of the sweep on a null never past 43, a ratio of %.1f on a leverage of %.2f. Lamp 9 '
+      'carries a softer minimum on %.3f. Lamp 11 refuses, its leverage only %.2f. So the lamp plane is '
+      'bracketed between %.3f and %.3f and the wall drawn on %.3f sits inside it. Bracketed, not pinned, '
+      'and nothing is moved on it.'
+      % (LAMPV[8][1], LAMPV[8][3], LAMPV[8][4], LAMPV[9][1], LAMPV[11][4],
+         min(v[1] for v in LAMPV.values() if v[0]), max(v[1] for v in LAMPV.values() if v[0]),
+         G['cBack']),
+      'tools/lamp_v.py')
 check('the three corridor lamps are drawn where they were measured',
       len(LAMPS) == 3 and all(abs(a - b) < 0.001
                               for L, M in zip(sorted(LAMPS), sorted(MEASURED_LAMPS))
@@ -95,8 +130,8 @@ check('the three corridor lamps are drawn where they were measured',
       '%d lamps in WALLF.corridor' % len(LAMPS),
       'tools/corridor_lamp.py')
 check('the corridor ceiling is above its own lamps',
-      G['cCeil'] > 10.990,
-      'ceiling drawn on %.3f, the highest lamp measured inside the room on 10.990. Clearance %.3f m. '
+      G['cCeil'] > max(L[2] for L in MEASURED_LAMPS),
+      'ceiling drawn on %.3f, the highest lamp measured inside the room on 10.942. Clearance %.3f m. '
       'This is the ONLY constraint on that ceiling and it is one-sided.' % (G['cCeil'], G['cCeil'] - 10.990),
       'tools/corridor_lamp.py')
 
@@ -716,7 +751,17 @@ for ok, name, detail, source in notes:
     print('        %s' % source)
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
-for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. AND THERE IS NOW A'
+for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. A POINT IN THERE CAN'
+             ' BE TESTED WHERE A LINE CANNOT, and that is the one crack in this room: a line is separated'
+             ' only by cameras at different distances, which the slot collapses, while a point is'
+             ' separated by the angular spread of the rays that see it. Lamp 8 gives 6 mm of half-to-half'
+             ' agreement on d -2.368 against 242 mm at the end of its sweep, a ratio of 5.6, the sharpest'
+             ' signal anything has produced inside that corridor. Lamp 9 gives a softer minimum on -1.849'
+             ' and lamp 11 refuses on a leverage of 1.54, so the lamp plane is BRACKETED between -1.85 and'
+             ' -2.37 rather than pinned, and the drawn wall sits inside that bracket, tools/lamp_v.py.'
+             ' Every ray voting for any of the three comes from a camera between u 31.3 and 35.3, so the'
+             ' two-sided parallax a point deserves does not exist anywhere in this archive.'
+             ' AND THERE IS NOW A'
              ' NUMBER FOR WHY, statable before any fitting happens. The near-far test that measured the'
              ' north wall and the end walls has power in proportion to the RATIO of its two halves'
              ' distances, and the corridor rays give 1.32 where the north wall gives 2.54 and the end'

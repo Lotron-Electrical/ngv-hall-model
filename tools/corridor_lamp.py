@@ -14,6 +14,7 @@
 # reported only if rays from cameras standing at least a metre apart agree on it, which is the condition
 # the balcony soffit could not meet.
 #   python tools/corridor_lamp.py [opening]
+import os
 import sys
 
 import cv2
@@ -75,6 +76,9 @@ def rays_for(cam, img, u0, u1):
         v = cam.R.T @ np.array([float(un[0]), float(un[1]), 1.0])
         out.append((cam.center.copy(), v / np.linalg.norm(v), area, float(img[int(cy), int(cx)])))
     return out
+
+
+SAVE = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/walls'
 
 
 def closest_point(bundle):
@@ -161,11 +165,18 @@ def main():
               % (len(inl), rms, spread))
         print('            it sits %.3f m behind the wall face, the room is drawn 2.000 m deep'
               % (DN - pd))
+        # SAVE THE BUNDLE, 2026-09-09. A lamp is a POINT, and a point's depth is fixed by the ANGULAR
+        # spread of the rays that see it, which comes from cameras spread ALONG the hall. That is the one
+        # direction this archive has real baseline in, and it is why the lamps could be triangulated at all
+        # when every line in the same room slid. Nothing had ever tested whether an individual lamp's depth
+        # is actually pinned or is itself sliding, and one of these lamps moved a shipped bound tonight.
+        # The bundle is what that test needs, so it is written out here rather than recomputed.
+        np.save(os.path.join(SAVE, 'lamp-%d-bundle.npy' % (oi + 1)),
+                np.array([[r[1][0], r[1][1], r[1][2], r[2][0], r[2][1], r[2][2]] for r in inl], float))
         if 'draw' in sys.argv:
             # THE DRAWING BACK, which is the step that refuted three earlier instruments in this project and
             # is therefore not optional. The triangulated point is projected into the frames that voted for
             # it, beside the aperture it was found through.
-            import os
             outd = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/corridor'
             os.makedirs(outd, exist_ok=True)
             for r in inl[:3]:

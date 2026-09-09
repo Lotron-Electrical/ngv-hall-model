@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.524,-2.068,10.942],[34.139,-2.049,10.935],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -3112,6 +3112,33 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // THE LAMPS WERE STALE, AND RE-RUN THEY AGREE WITH EACH OTHER FOR THE FIRST TIME (2026-09-09,
+  // tools/corridor_lamp.py, tools/lamp_v.py). The three lamps triangulated inside the corridor were
+  // computed before the openings moved 0.147 m and before the wall face moved to -0.030. The aperture
+  // gate that decides which rays may vote for a lamp depends on both, so the array shipped in this file
+  // was built on superseded geometry and nobody had re-run it.
+  // RE-RUN, THE THREE LAMPS COLLAPSE ONTO ONE LEVEL. They land on d -2.068, -2.049 and -1.824 with
+  // heights 10.942, 10.935 and 10.908: a height spread of 34 mm across 11.5 m of corridor, where the
+  // shipped array had them spread over 0.62 m in height and 1.05 m in depth. One shipped lamp was a metre
+  // out in depth and 0.57 m out in height. Three lamps on one level 11.5 m apart is what a corridor's
+  // lighting looks like, and it is the first internally consistent thing this archive has ever said about
+  // the inside of that room.
+  // AND A POINT CAN BE TESTED WHERE A LINE CANNOT, which is why this was worth doing tonight. A line in
+  // there is separated only by cameras at different distances, and the slot collapses that to a leverage
+  // of 1.32. A POINT is separated by the angular spread of the rays that see it. Lamp 8 gives the
+  // sharpest signal anything has produced inside that corridor: its two camera halves agree to 6 mm on
+  // d -2.368 and disagree by 242 mm at the end of the sweep, on a null that never exceeds 43, a ratio of
+  // 5.6 on a leverage of 5.69. Lamp 9 also carries a minimum, softer, on -1.849. Lamp 11 refuses, its
+  // leverage only 1.54.
+  // SO THE DEPTH IS BRACKETED AND NOT PINNED, and the drawn wall sits inside the bracket. The two lamps
+  // that can be tested put the lamp plane between -1.849 and -2.368 and the least-squares triangulations
+  // cluster near -2.05, so the back wall drawn on -2.090 is consistent with all of it and the corridor
+  // width set to 2.06 this evening still holds. Nothing moves but the lamps themselves.
+  // WHAT ALSO CAME OUT IS WHY THE CORRIDOR IS SO HARD, stated as a fact about the cameras rather than
+  // about the room. Every ray that votes for any of these three lamps comes from a camera standing
+  // between u 31.3 and 35.3, a four-metre band, whatever opening the lamp was found through. Two of the
+  // three lamps are seen entirely from one side of themselves, so the two-sided parallax a point deserves
+  // is not available anywhere in this archive.
   // A TEST THAT REFUSED, AND THE GAP IT FOUND ON THE WAY (2026-09-09, tools/west_recess.py,
   // tools/occupancy_audit.py). The west solid parapet moved 0.484 m behind its face this evening on two
   // instruments that agree, the near-far station scan and the arrival cap. Both are photometric. Both
@@ -3276,7 +3303,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 63 bounds, all satisfied.
+  // 65 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
