@@ -258,7 +258,13 @@ for ok, name, detail, source in notes:
     print('        %s' % source)
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
-for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lamp under it',
+for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4, and it is now known WHY:'
+             ' the opening is a collimator. A line behind the wall can only be separated from the rays by'
+             ' cameras at different distances from it, but seeing the whole height ladder through a 1.2 m'
+             ' slot forces the lens far back, so the usable set collapses from an 8.64 m baseline to 1.59 m.'
+             ' The same detector, rays and fit reproduce the measured opening head to 23 mm with the two'
+             ' halves of the wall agreeing to 41 mm, then disagree by 573 mm two metres further back.'
+             ' The control passes and the measurement refuses, so nothing moves, tools/corridor_lines.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'the opening head lean of 40 to 205 mm',
              'WHICH of the west numbers is wrong: the arrivals cap the top on 8.818 against a drawn 9.020,'

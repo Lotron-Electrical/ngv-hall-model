@@ -3106,6 +3106,40 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE OPENING IS A COLLIMATOR, WHICH IS WHY NOTHING HAS EVER MEASURED THAT CORRIDOR (2026-09-09,
+  // tools/corridor_lines.py). The room behind the brick wall was the last part of the goal resting on a
+  // plan. Its floor 8.34, its back wall d -2.09 and its ceiling 11.4 have never been measured; the only
+  // support the ceiling ever had was that it must sit above the highest of three lamps triangulated
+  // inside it on h 10.990. Earlier attempts tried to SEE the room and lost on signal.
+  // THIS TRIED SOMETHING ELSE: not to see the room but to find one line in it. Where the corridor ceiling
+  // meets its back wall there is a horizontal edge at constant (d, h) running the length of the hall,
+  // which is the same object the sill and head were just measured as, and fitting it returns BOTH the
+  // depth of the back wall and the height of the ceiling at once. Its polarity is dark below and bright
+  // above, because the lamps light the ceiling from underneath while the wall below them falls into
+  // shadow, and every detection had to be a ray that crossed the wall plane inside a measured opening.
+  // THE CONTROL PASSES AND THE MEASUREMENT REFUSES, and that pair is the finding. Pointed at the opening
+  // head measured hours earlier, the identical detector, rays, polarity and fit return d -0.134 h 11.259
+  // against the measured -0.090 and 11.236: 23 mm out, 339 of 513 rays inside 60 mm, and the two halves
+  // of the wall agreeing to 41 mm. The instrument works. Pointed two metres further back on the ceiling
+  // junction it returns d -3.718 h 11.700 with 77 per cent inliers and a 24 mm median, and the two halves
+  // of the wall disagree by 0.573 m. A high inlier count on a degenerate problem is worthless.
+  // THE NUMBER THAT EXPLAINS IT IS THE BASELINE. A line at constant (d, h) is separated from the rays
+  // only by cameras standing at different distances from it. The control keeps the whole hall floor,
+  // 8.64 m of baseline, because its target sits IN the aperture. The corridor target sits two metres
+  // BEHIND the aperture, so a lens can only see the whole height ladder through a 1.2 m slot from far
+  // back, and the usable set collapses to d 12.54 to 14.14: a 1.59 m baseline. The slot collimates. With
+  // no baseline the answer slides along the median ray, which is exactly what the halves show.
+  // SO THE CORRIDOR IS NOT MOVED, and it now has a reason rather than an absence. It is not that the
+  // room is too dark; it is that the aperture forbids the baseline, and standing further back to see
+  // through the slot is the same act as destroying the measurement. The only route left is the frames
+  // shot INSIDE that room, and those sets carry the worst poses in the archive, so nothing rests on them
+  // yet. The corridor stays on the unmeasured list in tools/check_bounds.py with this recorded against it.
+  // TWO OF MY OWN MISTAKES ARE LEFT IN THE TOOL RATHER THAN TIDIED AWAY. The first control could never
+  // have found its target: walked on the back plane, its tallest rung produced a wall-plane crossing of
+  // 11.14, below the head on 11.236, so it returned the corridor run's numbers unchanged and looked like
+  // agreement. The second version put the pass/fail bar on all four sub-fits, which failed the control
+  // too; the distance split is a quality gradient as well as a conditioning test, so the bar belongs on
+  // the along-wall split, as it already did on the sill and head. Both are written into the file.
   // LLOYD WAS RIGHT, THERE IS A WALK ALONG THE BALCONY, AND IT SETTLES THE PARAPET (2026-09-09,
   // tools/balcony_walk.py, tools/deck_cloud.py, tools/coping_cloud.py, tools/parapet_arrival.py).
   // Lloyd: "in one of the videos I referenced I walk along the balcony." He said it twice and he was
