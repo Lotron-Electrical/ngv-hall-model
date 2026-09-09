@@ -1133,6 +1133,19 @@ const STONE={course:0.306, block:0.670, joint:0.014, north:{course:0.3044, phase
 // reach u 41.674 at depth while its east jamb is drawn on 42.118, and they enter as far west as 40.948
 // while its west jamb is drawn on 40.906: that jamb cannot be more than 42 mm east of where this file
 // puts it. Openings 8 and 9 bound theirs to 193 mm and 241 mm the same way. All three drawn pairs pass.
+// AND ALL OF IT IS NOW ONE EXECUTABLE TEST (2026-09-09, tools/check_bounds.py). Every bound this
+// archive has produced lived as prose in these comments, and prose does not fail when somebody edits a
+// number. The checker reads the geometry OUT of this file and tools/tapestries.json the way the browser
+// does, evaluates all sixteen bounds, prints the width of each bracket beside its verdict, and exits
+// non-zero on any violation. It currently passes sixteen of sixteen.
+//   THE TIGHTEST BOUND IN THE WHOLE MODEL is the corridor's depth: the back wall is drawn on d -2.090
+//   and a lamp triangulated inside the room sits on -2.144 with 0.062 m of ray agreement, leaving 0.008 m
+//   of clearance. Narrow that room by 10 mm and the test fails.
+//   NEXT TIGHTEST is opening 11's west jamb, 0.042 m, then opening 8's east jamb, also 0.042 m.
+// It was checked against a deliberately drifted copy of this file rather than trusted: narrowing the
+// corridor to 1.8, raising the gallery soffit to 11.9 and moving opening 11's west jamb 0.2 m east makes
+// exactly four bounds fail and the run exit 1. A test that has never failed is not known to work.
+// The five numbers that remain unmeasured are printed by the same run, so they cannot be quietly lost.
 // THE GAIN IS NOW FITTED PER JAMB INSTEAD OF ASSUMED, AND THE TABLE ABOVE SURVIVES IT (2026-09-09,
 // tools/wall_gainfit.py, OPEN_SHIFT in tools/wall_edges.py). Everything above rests on one measured gain,
 // 0.37, applied to every jamb in every capture. That is an assumption, and on the end galleries the same
