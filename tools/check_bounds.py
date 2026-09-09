@@ -637,6 +637,38 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER (2026-09-10, tools/deck_pair.py).
+DP = {'deck': 8.340, 'clips': 7, 'lo': 9.606, 'hi': 9.886, 'spread': 0.280,
+      'gap1': 0.031, 'gap2': 0.006, 'noise': 0.041}
+check('the deck height cannot be had from eye heights, and the spread says so in one line',
+      DP['spread'] > 0.2,
+      'floors[1] is %.3f at both ends and has never been measured at either. The obvious route is the '
+      'poses: deck equals eye height minus however high a phone is carried. %d clips stand on the SAME '
+      'east deck and their median eye heights run %.3f to %.3f, %.0f mm apart on one floor. Carry height '
+      'is a habit rather than a constant and it moves between clips by more than anything worth '
+      'measuring, which is also why the corridor run put a floor 0.6 m below the drawn one on the same '
+      'assumption and was right to refuse to act on it.'
+      % (DP['deck'], DP['clips'], DP['lo'], DP['hi'], 1000 * DP['spread']),
+      'tools/deck_pair.py')
+check('so the difference was taken instead of the height, and every soft term cancelled',
+      DP['gap1'] < DP['noise'] and DP['gap2'] < DP['noise'],
+      'one clip walks onto the EAST gallery and the WEST gallery in the same session, same person, same '
+      'phone, same habit, minutes apart, so subtracting the two medians cancels the carry height exactly '
+      'along with the device and the person. It comes out %.0f mm and %.0f mm on the two posings of that '
+      'clip. They are not two witnesses: b7s and b7sp are the same footage posed twice, so it is ONE '
+      'clip and is reported as one.'
+      % (1000 * DP['gap1'], 1000 * DP['gap2']),
+      'tools/deck_pair.py')
+check('and the noise floor under that was measured rather than assumed',
+      DP['noise'] > max(DP['gap1'], DP['gap2']),
+      'the same clip on the same gallery was split in half, by where along the gallery the operator '
+      'stood and again odd against even frame, and differenced the same way, which says what the method '
+      'invents when the true difference is known to be zero. Those splits reach %.0f mm. The east-west '
+      'gap is smaller, so the two decks are level as far as this can see. It cannot give the height of '
+      'either deck, and if both are wrong by the same amount it says nothing at all: what it confirms is '
+      'the SYMMETRY, on a subtraction where the soft terms cancelled instead of being assumed away.'
+      % (1000 * DP['noise']),
+      'tools/deck_pair.py')
 # THE REVEAL DEPTH HAS NO LEVERAGE, AND THE LAMPS STOOD UP (2026-09-10, tools/reveal_depth.py).
 RD = {'pairs': 225, 'live': 0, 'lo': 0.10, 'hi': 2.20, 'reveal': 0.900, 'slop': 0.3,
       'flat': 95.8, 'swamped': 152, 'vis': 34, 'vishit': 27, 'hid': 191, 'hidhit': 3,
@@ -2335,6 +2367,10 @@ print('it cannot be nearer than d 14.789 whatever any instrument says. dSouth is
 print('AND THE TWO LAMPS THE CORRIDOR CEILING HANGS FROM HAVE NOW BEEN CHECKED, which had never been')
 print('done: they predict their own visibility across every hall frame, seen in 79 per cent of the pairs')
 print('where the geometry says you can see them and 2 per cent where it says you cannot.')
+print('AND THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER, differenced inside one clip so the carry')
+print('height cancels: 6 and 31 mm apart against a noise floor of 41 measured on a known zero. Neither')
+print('deck height is measured by that, only the symmetry between them, which is all anything here can')
+print('reach: seven clips standing on the same deck differ by 280 mm in eye height alone.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')

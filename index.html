@@ -3151,6 +3151,30 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER, AND THAT IS THE ONLY PART OF 8.340 ANYTHING CAN
+  // CHECK (2026-09-10, tools/deck_pair.py).
+  // ENDW.floors[1] is 8.340 at both ends and has never been measured at either. The obvious route is the
+  // poses: people stood on those decks, so deck equals eye height minus however high a phone is carried.
+  // THAT ROUTE IS DEAD AND ONE LINE KILLS IT. Seven clips stand on the SAME east deck and their median
+  // eye heights run 9.606 to 9.886. Two hundred and eighty millimetres apart, on one floor. Carry height
+  // is a habit rather than a constant and it moves between clips by more than anything worth measuring,
+  // which also explains why yesterday's corridor run put a floor 0.6 m below the drawn one on the same
+  // assumption and was right to refuse to act on it.
+  // SO THE DIFFERENCE WAS TAKEN INSTEAD OF THE HEIGHT. One clip walks onto the EAST gallery and the WEST
+  // gallery in the same session: same person, same phone, same habit, minutes apart. Subtract the two
+  // medians and the carry height cancels exactly, and so do the device, the person and the habit. What
+  // is left is the difference between the two decks, and this file draws that difference as zero.
+  // IT COMES OUT 6 mm AND 31 mm on the two posings of that clip. And they are not two witnesses: b7s and
+  // b7sp are the same footage posed twice, so it is ONE clip, said so rather than quoted as agreement.
+  // THE NOISE FLOOR WAS MEASURED RATHER THAN ASSUMED, which is what makes those numbers readable. The
+  // same clip on the same gallery was split in half, by where along the gallery the operator stood and
+  // again odd against even frame, and differenced the same way. Those splits invent up to 41 mm on a
+  // difference known to be zero. The east-west gap is smaller than that, so the two decks are level as
+  // far as this can see.
+  // WHAT IT DOES NOT DO, AND THE LIMIT IS THE PRICE OF THE METHOD. It cannot give the height of either
+  // deck. If both are wrong by the same amount it says nothing whatever. What it confirms is the
+  // SYMMETRY this file asserts, on a subtraction where every soft term cancelled instead of being
+  // assumed away.
   // THE REVEAL DEPTH CANNOT BE MEASURED THIS WAY, AND THE LAMPS IT WAS AIMED THROUGH STOOD UP
   // (2026-09-10, tools/reveal_depth.py).
   // THE TARGET WAS openDepth 0.900, which this file records as "reveal 0.9 +-0.3 (cloud, 2014 photo)".
@@ -4516,7 +4540,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 182 bounds, all satisfied.
+  // 185 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
