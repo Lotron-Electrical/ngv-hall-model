@@ -2922,6 +2922,25 @@ function buildEndWalls(root){
   // captures that were agreeing about the drawing.
   // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
   // refuse themselves.
+  // TRYING TO BREAK THAT TIE FROM THE HALL FLOOR, AND THE RULE IT TAUGHT (2026-09-09,
+  // tools/parapet_join.py). The deck rays cannot separate the parapet's station from its height because
+  // every camera is on the same side of it and a metre apart, so the obvious fix is to add rays from the
+  // hall floor 10 to 40 m away, where the same edge is a silhouette with the opposite polarity and the
+  // baseline is tens of metres instead of one.
+  // THE RULE, and it is general enough to matter to every detector in this file: HALF THIS ARCHIVE IS
+  // ROLLED. The hall-floor clips were shot with the phone held portrait and stored rolled about ninety
+  // degrees, so a LEVEL LINE IN THE ROOM IS A VERTICAL LINE IN THOSE PICTURES. Any detector that walks
+  // image rows or columns crosses such an edge at right angles and finds whatever else is there: drawn
+  // back, the first run's detections sat along a canopy rib and the second's along the lift shaft.
+  // Walking the wall's own height ladder instead follows the geometry rather than the sensor, and it
+  // works on rolled and unrolled captures alike. That is now how the far side is read, and the count went
+  // from 910 stray detections to 2,860 that trace one line across the picture.
+  // AND THE JOIN STILL FAILS. The far rays alone fit a line on u 45.506, which is open air 2.5 m west of
+  // any wall, with a residual twice the near set's. Joined, the best line moves to h 10.016, higher than
+  // the soffit above it. Two detectors that each trace a clean line and do not agree with each other are
+  // not measuring the same edge, so nothing is joined and nothing is moved. The parapet stays exactly
+  // where the deck rays left it: a real disagreement, localised, unresolved, and carried in
+  // tools/check_bounds.py so it cannot be lost.
   // THE SIM SHOT FROM A REAL BALCONY POSE, AND THE ONE THING IT DISAGREES WITH (2026-09-09,
   // tools/pose_pair.py, tools/pose-shot.mjs, tools/parapet_silhouette.py). b7s frames turn out to carry
   // NO ROLL, unlike the hall-floor walks, so the sim can be driven to one of their poses and the render
