@@ -1,34 +1,77 @@
-# A posed frame beside the sim rendered from its pose (tools/pose-shot.mjs). Handles frames shot with
-# the phone on its side: the roll is read off the camera's image-down axis, the sim is rendered
-# upright at the frame's other field of view, and the frame is turned to match.
-#   python tools/pose_pair.py <class> <frame> <hour> <house%> [out_prefix]
-import sys, os, subprocess, cv2, numpy as np
-sys.path.insert(0, 'tools'); import underside_geom as U
-O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
-cls, k, hour, house = sys.argv[1:5]; pref = sys.argv[5] if len(sys.argv) > 5 else k
-S = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose/'; os.makedirs(S, exist_ok=True)
-cam, p = U.load_class(cls)[k]
-C = cam.center; q = C - O; u, d, h = q @ HU, q @ HD, q[1]
-f = cam.R.T @ np.array([0, 0, 1.0]); fu, fd, fh = f @ HU, f @ HD, f[1]; hor = np.hypot(fu, fd); pitch = np.degrees(np.arcsin(fh))
-x0, y0, _ = cam.project(np.asarray([C + f * 10])); x1, y1, _ = cam.project(np.asarray([C + f * 10 + (cam.R.T @ np.array([1.0, 0, 0]))]))
-fx = np.hypot(x1[0] - x0[0], y1[0] - y0[0]) * 10
-down = cam.R.T @ np.array([0, 1.0, 0])     # the image's down axis in the world
-right = cam.R.T @ np.array([1.0, 0, 0])
-if abs(down[1]) >= abs(right[1]):           # upright (or upside down)
-    rot = None if down[1] < 0 else cv2.ROTATE_180; W, H = cam.w, cam.h
-else:                                       # on its side: the image's right axis is the world's up or down
-    rot = cv2.ROTATE_90_CLOCKWISE if right[1] < 0 else cv2.ROTATE_90_COUNTERCLOCKWISE; W, H = cam.h, cam.w
-vfov = 2 * np.degrees(np.arctan(H / 2 / fx))
-while W > 1080 or H > 1920: W, H = W // 2, H // 2   # the page renders 1080 wide at most: a 4K frame's sim came out half-width and clipped (2026-09-09)
-sim = S + pref + '-sim.jpg'
-cmd = ['node', 'tools/pose-shot.mjs', sim, str(W), str(H), '%.2f' % vfov, '%.3f' % u, '%.3f' % d, '%.3f' % h, '%.4f' % (fu / hor), '%.4f' % (fd / hor), '%.2f' % pitch, hour, house]
-print(' '.join(cmd[2:]))
-env = dict(os.environ, CDP_PORT=os.environ.get('CDP_PORT', '9334'))
-r = subprocess.run(cmd, capture_output=True, text=True, env=env); print(r.stdout.strip()[-200:], r.stderr.strip()[-300:])
-for ln in r.stdout.splitlines():
-    if ln.startswith('pick'): print(ln)   # PICK=x,y;... names the mesh under a pixel of the sim
-a = cv2.imread(p); a = cv2.rotate(a, rot) if rot is not None else a
-b = cv2.imread(sim); a = cv2.resize(a, (b.shape[1], b.shape[0]))
-for im, t in [(a, '%s %s (real)' % (cls, k)), (b, 'sim, same pose')]: cv2.putText(im, t, (12, 34), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
-pair = np.vstack([a, b]) if b.shape[1] > b.shape[0] else np.hstack([a, b])
-out = S + pref + '-pair.jpg'; cv2.imwrite(out, pair, [cv2.IMWRITE_JPEG_QUALITY, 86]); print(out, pair.shape, 'rot', rot)
+# 2026-09-09: A VALID PHOTOGRAPH-AND-MODEL PAIR FROM A ROLLED CAMERA.
+#
+# Rendering the model from a real frame's pose is the most direct way to answer whether a thing is built
+# right, and the first attempt from a hall-floor frame produced a pair that did not correspond at all. The
+# cause is not the pose and not the model. THE HALL-FLOOR WALKS WERE SHOT WITH THE PHONE HELD PORTRAIT and
+# stored landscape, so the world is rolled about 90 degrees inside every frame: measured on four of them,
+# the roll about the view axis is -89.6, -91.5, -92.8 and -84.7 degrees. The registered pose carries that
+# roll, so every measurement that projects a point into these frames is correct and always has been.
+# What cannot carry it is the shot script, which drives the sim's own camera and can set yaw and pitch and
+# nothing else. A first-person controller has no roll, so a render from a rolled pose is a different view
+# of the same place, and comparing the two says nothing about the model.
+#
+# The fix is to take the roll out of the PHOTOGRAPH instead of trying to put it into the renderer. Rotating
+# an image by a multiple of 90 degrees about its centre is exactly a change of roll when the principal
+# point is the centre, which it is here (cx 960, cy 540 of 1920x1080), and it is lossless. So the frame is
+# turned upright, its width and height swap, its two fields of view swap with them, and the shot is taken
+# with the upright geometry. Nothing is resampled and no angle is approximated.
+import sys
+
+import cv2
+import numpy as np
+
+sys.path.insert(0, 'tools')
+import underside_geom as U  # noqa: E402
+
+O = np.array([-54.907447, -1.43545, 3.040286])
+HU = np.array([0.975681, 0, 0.219196])
+HD = np.array([0.219196, 0, -0.975681])
+
+cls, stem = sys.argv[1], sys.argv[2]
+outstem = sys.argv[3] if len(sys.argv) > 3 else 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose/pair'
+cam, imgfile = U.load_class(cls)[stem]
+Rw = cam.R
+imw, imh = int(cam.w), int(cam.h)
+fx, fy = float(cam.params[0]), float(cam.params[1])
+
+
+def rotz(deg):
+    t = np.radians(deg)
+    return np.array([[np.cos(t), -np.sin(t), 0.0], [np.sin(t), np.cos(t), 0.0], [0.0, 0.0, 1.0]])
+
+
+best, bestk = -2.0, 0
+for k in range(4):
+    Rk = rotz(90.0 * k) @ Rw
+    up_world = Rk.T @ np.array([0.0, -1.0, 0.0])
+    score = float(up_world @ np.array([0.0, 1.0, 0.0]))
+    if score > best:
+        best, bestk = score, k
+Rk = rotz(90.0 * bestk) @ Rw
+print(stem, 'needs', bestk, 'quarter turns; world up then sits',
+      round(float(np.degrees(np.arccos(min(1.0, best)))), 1), 'deg from image up')
+
+fwd = Rk.T @ np.array([0.0, 0.0, 1.0])
+q = cam.center - O
+cu, cd, cy = float(q @ HU), float(q @ HD), float(cam.center[1] - O[1])
+fu, fd = float(fwd @ HU), float(fwd @ HD)
+n = float(np.hypot(fu, fd))
+pitch = float(np.degrees(np.arctan2(float(fwd[1]), n)))
+if bestk % 2 == 1:
+    rw, rh, vf = imh, imw, 2.0 * np.degrees(np.arctan(imw / 2.0 / fx))
+else:
+    rw, rh, vf = imw, imh, 2.0 * np.degrees(np.arctan(imh / 2.0 / fy))
+print('   width', rw, 'height', rh, 'vfov', round(float(vf), 1))
+print('   u', round(cu, 2), 'd', round(cd, 2), 'h', round(cy, 2),
+      'forward u', round(fu / n, 3), 'd', round(fd / n, 3), 'pitch', round(pitch, 1))
+
+im = cv2.imread(imgfile)
+# CLOCKWISE, and the reason is worth stating because the first attempt came out upside down and the
+# printed diagnostic still said the world's up was 2.3 degrees from the image's up. The pose maths is in
+# camera coordinates where the image y axis points DOWN, so the quarter turn that fixes the camera frame
+# is the opposite sense to the one that fixes the picture. The check on this is the picture itself, not
+# the number: a diagnostic that agrees with a wrong answer is how the follow bias hid for two days.
+for _ in range(bestk):
+    im = cv2.rotate(im, cv2.ROTATE_90_CLOCKWISE)
+cv2.imwrite(outstem + '-photo.jpg', im, [cv2.IMWRITE_JPEG_QUALITY, 92])
+print('   wrote the upright photograph', outstem + '-photo.jpg', im.shape)
