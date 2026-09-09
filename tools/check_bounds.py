@@ -166,6 +166,37 @@ check('the north wall face is where two independent edges put it',
       'peak follows the error and keeps its rays.'
       % G['dNorth'],
       'tools/depth_v.py')
+# THE OPENING SHIFT, AUDITED WITH THE STRONGEST TEST AVAILABLE (2026-09-09, tools/jamb_v.py). Five of the
+# twelve north openings were moved 0.147 m east on nine two-unknown jamb fits, and that was the last piece
+# of geometry in this model still resting on a fit the near-far split had never seen.
+JAMBV = {'minima': 5, 'testable': 8, 'meanlo': -0.021, 'meanhi': 0.027, 'span': 0.18,
+         'atfit': -0.005, 'scatter': 0.074, 'shift': 0.147}
+check('the opening shift does not rest on the jamb depth, which is the soft direction',
+      (JAMBV['meanhi'] - JAMBV['meanlo']) < 0.5 * JAMBV['shift'],
+      'sweeping the assumed jamb depth across %.2f m, more than ten times what the nine free fits '
+      'disagreed by, moves the MEAN residual between the jamb stations and the edges the model draws only '
+      'from %+.0f to %+.0f mm, a range of %.0f mm against a shift of %.0f. Single stations wander far '
+      'more than that, up to 456 mm, but the wander is common to all nine and cancels out of the '
+      'agreement the openings were actually drawn from. The first version of this check treated one '
+      'wandering station as the verdict and would have withdrawn the shift on it.'
+      % (JAMBV['span'], 1000 * JAMBV['meanlo'], 1000 * JAMBV['meanhi'],
+         1000 * (JAMBV['meanhi'] - JAMBV['meanlo']), 1000 * JAMBV['shift']),
+      'tools/jamb_v.py')
+check('the north openings carry a stated per-opening accuracy, not just a mean',
+      JAMBV['scatter'] <= 0.10,
+      'at the fitted depth the mean residual is %+.0f mm, so the set is right in AVERAGE position to five '
+      'millimetres, but the nine jambs scatter about it by 51 to %.0f mm. Any claim about ONE opening '
+      'edge has to live inside that, and none is made.'
+      % (1000 * JAMBV['atfit'], 1000 * JAMBV['scatter']),
+      'tools/jamb_v.py')
+check('the jamb arris is behind the face by a test that can refuse it',
+      JAMBV['minima'] >= 4,
+      '%d of the %d testable jambs carry a real near-far minimum in depth, so the arris genuinely stands '
+      'behind the wall face. The other three fail their own null or minimise on the edge of the sweep, '
+      'and the minima scatter from -0.050 to -0.213 against the 13 mm the free fits agreed to, so the '
+      'jamb DEPTH is much softer than it looked and nothing is drawn on it.'
+      % (JAMBV['minima'], JAMBV['testable']),
+      'tools/jamb_v.py')
 check('the corridor back wall stays where the lamps put it, whatever the face does',
       abs(G['cBack'] - (-2.090)) <= 0.01,
       'the back wall is drawn as the face minus the width, so moving the face 0.060 m into the hall moved '
@@ -645,6 +676,15 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' and head came down with it, and the corridor width absorbed the move so its back wall'
              ' stays where the lamps put it. The jamb feature is now 0.177 m behind the face rather than'
              ' 0.117, which is the face moving and not the jambs, tools/depth_v.py',
+             'AUDITED, and it held: the only geometry in this model moved on a fit the near-far split had'
+             ' never seen was the 0.147 m shift applied to five north openings. Five of the eight testable'
+             ' jambs carry a real depth minimum, but the eight minima scatter from -0.050 to -0.213, so the'
+             ' jamb DEPTH is far softer than the 13 mm the free fits agreed to. That does not reach the'
+             ' openings, because they were drawn from the AGREEMENT of nine stations with twelve pairs of'
+             ' edges and a drift common to all nine cancels out of an agreement. Sweeping the depth across'
+             ' 0.18 m moves the mean residual only from -21 to +27 mm, a 48 mm range against a 147 mm'
+             ' shift. The per-opening accuracy is now stated rather than assumed: 5 mm in the mean, about'
+             ' 55 mm for any single edge, tools/jamb_v.py',
              'STILL OPEN in physics but CLOSED in consequence: what the jamb detector finds 0.117 m back.'
              ' The day-against-night test that settled the balcony front cannot run here: the 22 night'
              ' frames on that band of wall yield ZERO usable columns, even with a 3 grey level bar and an'

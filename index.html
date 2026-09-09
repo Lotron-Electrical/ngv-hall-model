@@ -3112,6 +3112,30 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // I AUDITED A CHANGE THAT WAS ALREADY SHIPPED, BECAUSE IT WAS THE LAST ONE MADE ON THE WEAK TEST
+  // (2026-09-09, tools/jamb_v.py). Five of the twelve north openings were moved 0.147 m east this
+  // afternoon on nine jamb line fits. Those were two-unknown fits, and every other two-unknown fit put
+  // through the near-far split today has either been overturned or sharpened by it. A shipped change
+  // deserves the strongest instrument, not the one that was to hand when it was made.
+  // FIVE OF THE EIGHT TESTABLE JAMBS CARRY A REAL DEPTH MINIMUM, so the arris genuinely does stand behind
+  // the face. The other three fail their own null or minimise on the sweep's edge, and the eight minima
+  // scatter from -0.050 to -0.213, which is far wider than the 13 mm the free fits agreed to. The jamb
+  // DEPTH is therefore much softer than it looked.
+  // AND THE FIRST VERSION OF THIS TOOL DREW THE WRONG CONCLUSION FROM THAT, which is worth keeping. One
+  // jamb's station wanders 456 mm as the assumed depth is swept, against a shift of 147, and the tool
+  // printed that the shift was an assumption dressed as a measurement and had to come out. That is the
+  // wrong question. Nothing here is drawn from one jamb's absolute station: the openings were drawn from
+  // the AGREEMENT between nine stations and twelve pairs of edges, and a drift shared by all nine cancels
+  // out of an agreement completely.
+  // ASKED PROPERLY, THE SHIFT SURVIVES AND IT SURVIVES FOR A REASON. Sweeping the assumed depth across
+  // 0.18 m, more than ten times what the free fits disagreed by, the mean residual between the nine jamb
+  // stations and the edges the model now draws runs only -21 to +27 mm. A 48 mm range against a 147 mm
+  // shift, so the quantity the openings rest on is one these rays hold firmly even where they hold the
+  // depth loosely. The weak direction of this fit is not the direction anything was drawn on.
+  // WHAT THIS ALSO GIVES IS THE FIRST HONEST PER-OPENING ACCURACY. At the fitted depth the mean residual
+  // is 5 mm, but the nine jambs scatter about it by 51 to 74 mm. So the north openings are right in
+  // AVERAGE position to about 5 mm and individually to about 55 mm, and any future claim about one
+  // opening's edge has to live inside that.
   // I CALLED THE NORTH WALL'S DEPTH UNMEASURABLE THIS AFTERNOON AND THE INSTRUMENT WAS TOO BLUNT
   // (2026-09-09, tools/depth_v.py). tools/face_depth_scan.py fixed the depth, solved each ray's height on
   // its own and counted how many landed inside 60 mm of the consensus. The count came back flat within
@@ -3174,7 +3198,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 53 bounds, all satisfied.
+  // 56 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
