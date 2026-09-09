@@ -2821,6 +2821,29 @@ function buildEndWalls(root){
   quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
   quad([[uF,0,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],handMat,'gallery-handrail');
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THREE WAYS TO MEASURE THIS CEILING, ALL THREE REFUSED (2026-09-09, tools/soffit_edge.py,
+  // tools/soffit_reach.py, tools/soffit_sil.py). Recorded because a refusal that is not written down
+  // gets attempted again, and because the reason turns out to be general.
+  //   REACH IS NOT THE PROBLEM. A pure geometry census over a grid of candidate edges, u across the whole
+  //   gallery depth and h from 9.4 to 13.4, asked which candidates any deck frame can see at all. The
+  //   drawn edge (u 48.056 h 11.10) is inside 11 of the 163 east deck frames and 7 of the 16 west ones,
+  //   and at the face station the reachable band runs up to h 13.4. So the footage does contain it.
+  //   BRIGHTNESS CANNOT READ IT, AND THIS IS THE GENERAL PART. Every level in this file so far has been
+  //   read by sampling a wall plane and finding a step. Above the deck THE FACE PLANE IS OPEN AIR: there
+  //   is nothing at u 48.056 and h 11 to reflect light, so a pixel on that path shows whatever stands
+  //   thirty metres behind it. The step the first run chose is real and it is the lit west end wall over
+  //   its dark gallery, drawn back on b7s_000152 to make sure. A level on an open plane is not readable
+  //   by looking at the plane.
+  //   TRIANGULATION IS UNCONDITIONED. The east deck frames stand u 48.99 to 49.38, a 0.40 m baseline
+  //   against a 1.1 m unknown, and the least squares duly returned the camera cloud itself (u 49.194,
+  //   h 9.660, sitting between the cameras rather than above them).
+  //   THE SILHOUETTE READ IS THE RIGHT IDEA AND STILL FAILS HERE. The soffit is an occlusion, not a
+  //   surface, so the boundary was searched for in image space with no world geometry in the search.
+  //   Six frames produced a reading, they disagree by 0.700 m, and each frame's own columns disagree by
+  //   0.56 to 1.68 m. Drawn back on b6g_001002 the found boundaries sit on stained glass panes and on the
+  //   screen of a phone another visitor is holding. It is not finding the soffit.
+  // head 11.1 and soffitDepth 2.1 are therefore still UNMEASURED, and no number from any of the three is
+  // used anywhere in this file.
   // WHICH FRAMES CAN SEE WHAT IS OVER A BALCONY (2026-09-09, tools/balcony_up.py, tools/balcony_look.py).
   // Lloyd: "You can see how the ceiling goes above that balcony as well right? You can see that in the
   // balcony videos." So the 366 posed balcony frames were sorted by where the camera stands and which way
