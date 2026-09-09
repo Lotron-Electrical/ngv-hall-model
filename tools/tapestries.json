@@ -105,24 +105,24 @@
    "confidence": "medium",
    "corners": [
     [
-     -43.2228,
+     -43.24926129988692,
      2.2346,
-     -10.1008
+     -9.983004305519312
     ],
     [
-     -37.9054,
+     -37.931839257057106,
      2.2346,
-     -8.9061
+     -8.788394958714235
     ],
     [
-     -37.9054,
-     7.1946,
-     -8.9061
+     -37.931839257057106,
+     7.194600000000001,
+     -8.788394958714235
     ],
     [
-     -43.2228,
-     7.1946,
-     -10.1008
+     -43.24926129988692,
+     7.194600000000001,
+     -9.983004305519312
     ]
    ],
    "identification": "by elimination only: no usable image of this bay; the other three of the four >5 m works are placed",
@@ -147,29 +147,30 @@
    "confidence": "low",
    "corners": [
     [
-     -14.2842,
+     -14.310573748195635,
      2.0646,
-     -3.5991
+     -3.4816533961744316
     ],
     [
-     -9.0741,
+     -9.10047184867629,
      2.0646,
-     -2.4286
+     -2.3111545384872976
     ],
     [
-     -9.0741,
+     -9.10047184867629,
      7.0646,
-     -2.4286
+     -2.3111545384872976
     ],
     [
-     -14.2842,
+     -14.310573748195635,
      7.0646,
-     -3.5991
+     -3.4816533961744316
     ]
    ],
    "identification": "high: NCC 0.51-0.65 vs 0.10-0.18",
    "placement": "ortho NCC 2026-09-08 (agent-ref-walls, tools/tap_id.py): box u 38.18-43.52 h 3.50-8.50, +-0.05 m"
   }
  ],
- "identified": "2026-09-07, bandpass NCC of rectified day-4K balcony frames against the NGV collection images (scratchpad kemp/identification.json)"
+ "identified": "2026-09-07, bandpass NCC of rectified day-4K balcony frames against the NGV collection images (scratchpad kemp/identification.json)",
+ "south_face_note": "2026-09-09: the two south tapestries were drawn on d 15.383, which is 19 mm BEHIND the stone face 15.364, i.e. inside the wall. 30,207 points triangulated from the walk clips (tools/wall_planes.py) put their visible surface on d 15.257 and 15.267 in the two bays at h 6, so both corners are moved to 15.262. The two bays agree on the offset to 10 mm and DISAGREE on the lean (-0.002 against -0.015 m per metre of height), so no lean is applied."
 }

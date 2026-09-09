@@ -2417,6 +2417,21 @@ new GLTFLoader().load('model.glb',g=>{
   const cap2=new THREE.Mesh(new THREE.PlaneGeometry(27.8,15.8),capM);
   cap2.rotation.y=Math.PI/2; cap2.position.set(-60.6,6.2,0.35);
   g.scene.add(cap2); solids.push(cap2);}
+ // THE SOUTH PAIR WAS DRAWN INSIDE THE WALL, AND IS NOW ON ITS MEASURED FACE (2026-09-09,
+ // tools/wall_planes.py). Matching the two walk clips against THEMSELVES, which is the trick that worked
+ // on b4 and failed through the openings, gives 134,402 triangulated points down the length of the hall.
+ // 30,207 of them land on the two south tapestries, and they say the visible surface stands on d 15.257
+ // in the west bay and 15.267 in the east at h 6, ten millimetres apart from independent point sets of
+ // 1,737 and 28,470. Both corners are therefore moved to 15.262, a shift of 0.121 m into the hall.
+ // WHY THIS IS NOT A CLOSE CALL: they were drawn on 15.383, which is 19 mm BEHIND the stone face 15.364,
+ // so a hanging textile was buried in the masonry it hangs on. Any plausible bias in the instrument is
+ // far smaller than the correction; the sparse bare-stone points in the same cloud sit about 31 mm in
+ // front of the drawn face, so even taken at face value that would leave the tapestries 90 mm proud.
+ // WHAT IS NOT APPLIED: the two bays agree on the offset and DISAGREE on the lean, -0.002 against -0.015 m
+ // per metre of height, so the surface is moved flat and no tilt is introduced. dSouth 15.364 itself is
+ // NOT moved: the only points that could test it are bare stone, and at the heights that matter they are
+ // both sparse and contaminated by the fixtures that hang a metre off this wall. The north pair keeps its
+ // drawn d -0.053, because this cloud put only 547 points anywhere near that wall.
  // The four Roger Kemp tapestries on the long walls. The bake sees them as a smear (the phone
  // frames are 6-10 m off and the selection score favours the stone), so each one is the NGV
  // collection image on a plane 30 mm proud of the wall, on the rectangle measured off the wall
