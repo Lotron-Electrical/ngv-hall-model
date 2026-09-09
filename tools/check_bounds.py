@@ -637,6 +637,42 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# EVERY POSED CAMERA AGAINST EVERY DRAWN WALL (2026-09-10, tools/pose_containment.py).
+PC = {'frames': 1442, 'pass': 1439, 'fail': 3, 'clip': 'b6s', 'uMax': 51.906, 'badu': 62.913,
+      'dSouth': 15.364, 'badd': 23.688, 'east_clear': 2.523, 'south_clear': 0.575,
+      'bound': 14.789, 'gallw': 3.33, 'galle': 49.38, 'wface': 4.194, 'eface': 48.056}
+check('every posed camera was put against every wall this file draws, and nearly all of them pass',
+      PC['pass'] == PC['frames'] - PC['fail'],
+      'a camera centre is the one measurement with no instrument in it: no edge found, no gradient '
+      'fitted, no window chosen, so that point is free space. corridor_inside.py asked that of one wall; '
+      'this asks it of the whole envelope, %d posed frames against both ends, the south side, the north '
+      'wall thickness, the floor and the room behind the wall. %d pass: none inside the north wall '
+      'thickness, none below the floor, none past the west end, none beyond the corridor back wall.'
+      % (PC['frames'], PC['pass']),
+      'tools/pose_containment.py')
+check('three frames are not in the building, and they are all one clip',
+      PC['badu'] > PC['uMax'] and PC['badd'] > PC['dSouth'],
+      'b6s_000396 puts its lens on u %.3f where the building ends on %.3f, eleven metres outside it, and '
+      'b6s_001048 and b6s_001260 stand on d %.3f and 23.224 where the hall is %.3f wide, eight metres '
+      'past the south wall. Those are the only three posed %s frames there are. A camera that cannot be '
+      'where it says it is refutes itself and not a wall, so what matters is the names. This also '
+      'corrects the note written yesterday: the range quoted there for the b6 frames ran to +23.69, '
+      'which is these two broken poses, and the sound b6 and b7 standpoints are u %.2f and %.2f, INSIDE '
+      'the west and east gallery recesses near their south ends rather than loose on the south side of '
+      'the hall. The conclusion is untouched, the description of it was wrong.'
+      % (PC['badu'], PC['uMax'], PC['badd'], PC['dSouth'], PC['clip'], PC['gallw'], PC['galle']),
+      'tools/pose_containment.py')
+check('and the south wall picks up the first hard number it has ever had',
+      PC['bound'] < PC['dSouth'] and abs(PC['dSouth'] - PC['south_clear'] - PC['bound']) < 0.002,
+      'a pass here is worth what the clearance says and no more, which is why the clearance is printed '
+      'beside every line: nobody came within %.3f m of the east end, so the east end was never in '
+      'danger. The south side is the exception. dSouth %.3f has been refused twice by instruments that '
+      'tried to measure it from imagery. Frame w5_000257 of the night clip stands %.3f m short of it, '
+      'and a person cannot stand inside a wall, so the south wall cannot be nearer than d %.3f. One '
+      'sided, not tight, %.3f m of the drawn figure still unsupported on that side, and the first '
+      'constraint on dSouth that involves no instrument at all.'
+      % (PC['east_clear'], PC['dSouth'], PC['south_clear'], PC['bound'], PC['south_clear']),
+      'tools/pose_containment.py')
 # NOBODY HAS EVER STOOD IN THE CORRIDOR WITH A POSED CAMERA (2026-09-10, corridor_inside.py).
 CI = {'posed': 416, 'behind': 146, 'inop': 146, 'clear': 0, 'deepest': -0.452, 'back': -2.350,
       'reveal': 0.900, 'high': 10.12, 'ceil': 10.947, 'b6lo': 13.401, 'b6hi': 23.688,
@@ -2255,7 +2291,10 @@ print('No posed camera in this archive has ever been inside it. All 146 frames b
 print('in the thickness of an opening, the deepest 0.452 m back where the reveal alone is 0.900 deep, so')
 print('the containment test that would refute the room cannot reach it. Depth, ceiling and floor rest on')
 print('the lamp locus and inference. The tool that claimed a clip was shot in there is corrected: those')
-print('frames stand on the south side of the hall.')
+print('frames stand in the end gallery recesses near their south ends, and three more of that clip are')
+print('not in the building at all.')
+print('THE SOUTH WALL, MEANWHILE, HAS ITS FIRST HARD NUMBER: a night frame stands 0.575 m short of it, so')
+print('it cannot be nearer than d 14.789 whatever any instrument says. dSouth is drawn 15.364.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')

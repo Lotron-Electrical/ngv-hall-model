@@ -3151,6 +3151,33 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // EVERY POSED CAMERA PUT AGAINST EVERY WALL THIS FILE DRAWS, AND THREE OF THEM ARE NOT IN THE
+  // BUILDING (2026-09-10, tools/pose_containment.py).
+  // A CAMERA CENTRE IS THE ONE MEASUREMENT WITH NO INSTRUMENT IN IT. No edge is found, no gradient
+  // fitted, no window chosen: a phone was at that point, so that point is free space. corridor_inside.py
+  // asked that of one wall yesterday. This asks it of the whole envelope, 1442 posed frames against both
+  // ends, the south side, the north wall thickness, the floor and the room behind the wall.
+  // 1439 PASS. None stands inside the north wall thickness, none below the floor, none past the west end
+  // and none beyond the corridor back wall.
+  // THREE FAIL, AND ALL THREE ARE THE SAME CLIP. b6s_000396 puts its lens on u 62.913 where the building
+  // ends on 51.906, eleven metres outside it. b6s_001048 and b6s_001260 stand on d 23.688 and 23.224
+  // where the hall is 15.364 wide, eight metres past the south wall. Those are the only three posed b6s
+  // frames there are. A camera that cannot be where it says it is refutes itself and not a wall, so what
+  // matters is the names, and they are written down so nothing downstream treats them as evidence.
+  // AND THAT CORRECTS WHAT WAS WRITTEN HERE YESTERDAY. The note above says every posed b6 frame stands
+  // on d +13.40 to +23.69. The +23.69 end of that range is these two broken poses, and quoting them
+  // inside a real range made junk look like data. The sound b6 and b7 standpoints are u 49.13 to 49.38
+  // and u 3.19 to 3.33, which is INSIDE the east and west gallery recesses near their south ends, not
+  // loose on the south side of the hall. The conclusion it was supporting is untouched: none of them is
+  // in the corridor. The description of where they are was wrong and is fixed.
+  // A PASS HERE IS WORTH WHAT THE CLEARANCE SAYS AND NO MORE, which is why the clearance is printed
+  // beside every line. Nobody came within 2.5 m of the east end, so the east end was never in danger.
+  // EXCEPT ON THE SOUTH SIDE, WHERE IT PAYS OUT A NUMBER NOBODY WAS LOOKING FOR. dSouth 15.364 has been
+  // refused twice by instruments that tried to measure it from imagery, and it has sat on the unmeasured
+  // list all day. Frame w5_000257 of the night clip stands 0.575 m short of it. A person cannot stand
+  // inside a wall, so THE SOUTH WALL CANNOT BE NEARER THAN d 14.789. It is one sided, it is not tight,
+  // and 0.575 m of the drawn figure is still unsupported on that side. It is also the first constraint
+  // this file has ever had on dSouth that involves no instrument at all.
   // NOBODY HAS EVER STOOD IN THE CORRIDOR WITH A POSED CAMERA, AND A TOOL HERE SAID OTHERWISE
   // (2026-09-10, tools/corridor_inside.py re-run against the room this file now draws).
   // THE TEST WAS STALE, WHICH IS THE WHOLE REASON TO RUN IT. corridor_inside.py hard-coded the room it
@@ -4460,7 +4487,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 176 bounds, all satisfied.
+  // 179 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
