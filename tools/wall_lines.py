@@ -42,7 +42,21 @@ EDGE = os.environ.get('EDGE', 'sill')
 DRAWN = SILL if EDGE == 'sill' else HEAD
 HS = np.arange(DRAWN - 1.5, DRAWN + 1.5, 0.005)
 US = np.arange(3.0, 47.0, 0.4)
-HWIN, CONTRAST, THRESH = 40, 18.0, 0.06
+# HWIN is settable so this number can face the window-invariance test, which caught a gradient
+# masquerading as an edge on the balcony face (2026-09-09). A real edge is a step and the position
+# of a step does not depend on how many samples are averaged either side of it; a gradient's
+# apparent peak walks with the window. Every shipped number measured by a step detector owes this
+# test, including the ones already in the model.
+HWIN = int(os.environ.get('HWIN', '40'))
+# BAND narrows the RANSAC window so the invariance test compares the SAME FEATURE at two windows rather
+# than the detector's global winner at each. That distinction was learned the hard way here: run wide at
+# HWIN 20 the sill search lands on h 7.898, and its own tests say what that is. 48 per cent of its inliers
+# sit inside openings that cover 50 per cent of the wall, so it has no opening specificity at all, and its
+# range puts it 0.74 m IN FRONT of the wall face. It is a masonry course on the solid wall, which is
+# exactly what a short averaging window is prone to lock onto. That is not evidence against the sill; it
+# is a different object. Invariance only means something between candidates that both pass the other
+# tests, so the band is narrowed and the question becomes whether the sill itself moves.
+CONTRAST, THRESH = 18.0, 0.06
 sift = None
 
 
@@ -143,7 +157,8 @@ for a, b in zip(ii, jj):
     if abs(np.linalg.det(A)) < 1e-9:
         continue
     c = np.linalg.solve(A, y)
-    if not (-2.5 < c[0] < 1.5 and DRAWN - 1.5 < c[1] < DRAWN + 1.5):
+    _b = float(os.environ.get('BAND', '1.5'))
+    if not (-2.5 < c[0] < 1.5 and DRAWN - _b < c[1] < DRAWN + _b):
         continue
     n = int((perp(R, c[0], c[1]) < THRESH).sum())
     if n > bestn:

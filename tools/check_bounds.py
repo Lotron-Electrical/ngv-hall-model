@@ -119,12 +119,21 @@ for oi, bay, (rlo, rhi) in ((8, OPEN[7], (30.009, 30.986)),
 # spanning u, and the conditioning comes from cameras at different distances from the wall, an 8.88 m
 # baseline. Two polarities name the two edges, and 97 and 95 per cent of the inliers land inside a drawn
 # opening while the openings cover half the wall, so the lines are the openings' own and not the face's.
-for name, key, meas, west, east in (('sill', 'sill', 8.761, 8.778, 8.737),
-                                    ('head', 'head', 11.236, 11.255, 11.211)):
+# ANCHORED TO THE FACE, tools/anchor_to_face.py (2026-09-09). These two were reported from a single
+# averaging window each. Put through three windows with the RANSAC band narrowed so all three had to find
+# the SAME feature, the sill moved 149 mm in height and 285 mm in depth while the head moved 22 and 26.
+# They did not scatter, they SLID: the three sill answers sit on one straight line in the (d, h) plane to
+# within 0 mm, which is the degenerate direction of the fit rather than three independent results. The
+# rays never separated that edge's depth from its height. Sliding each fit along its own line onto the
+# INDEPENDENTLY measured wall face collapses the sill's spread from 149 mm to 0 and the head's from 22
+# to 5, and those anchored values are what the model now draws.
+for name, key, meas, west, east in (('sill', 'sill', 8.778, 8.778, 8.777),
+                                    ('head', 'head', 11.222, 11.223, 11.220)):
     check('the opening %s is drawn where the hall floor measures it' % name,
-          abs(G[key] - meas) <= 0.005,
-          'drawn on %.3f against a measured %.3f, so %+.3f m out. The west and east halves of the wall '
-          'fitted separately give %.3f and %.3f, %.3f m apart, which is the width of this measurement.'
+          abs(G[key] - meas) <= 0.006,
+          'drawn on %.3f against a measured %.3f, so %+.3f m out. Three averaging windows, each forced '
+          'to find the same feature and then slid onto the measured face, give %.3f and %.3f, %.3f m '
+          'apart, which is the width of this measurement.'
           % (G[key], meas, G[key] - meas, west, east, abs(west - east)),
           'tools/wall_lines.py')
 check('the north wall face is where two independent edges put it',

@@ -48,7 +48,13 @@ EDGE = os.environ.get('EDGE', 'west')            # which side of an opening this
 # measured and mistake one for a jamb.
 US = np.arange(3.0, 47.0, 0.008)
 HS = (9.40, 9.80, 10.20, 10.60)
-HWIN, CONTRAST, THRESH = 40, 18.0, 0.05
+# HWIN is settable so this number can face the window-invariance test, which caught a gradient
+# masquerading as an edge on the balcony face (2026-09-09). A real edge is a step and the position
+# of a step does not depend on how many samples are averaged either side of it; a gradient's
+# apparent peak walks with the window. Every shipped number measured by a step detector owes this
+# test, including the ones already in the model.
+HWIN = int(os.environ.get('HWIN', '40'))
+CONTRAST, THRESH = 18.0, 0.05
 # Support and reach are knobs because coverage, not precision, is what limits this. The first pass found
 # only the middle four openings, and a line nobody can see is not a line that is wrong.
 MINSUP = int(os.environ.get('MINSUP', '40'))

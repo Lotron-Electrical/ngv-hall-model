@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.761,11.236], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.778,11.222], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -3106,6 +3106,38 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE NEW TEST TURNED ON MY OWN SHIPPED NUMBERS, AND THE SILL DID NOT SURVIVE IT (2026-09-09,
+  // tools/wall_lines.py with HWIN and BAND, tools/anchor_to_face.py). Window invariance had just caught a
+  // gradient on the balcony face. Every geometry number shipped today was measured by a step detector at
+  // ONE averaging window and had never faced it, so they were all put through it.
+  // THE FIRST RUN LOOKED CATASTROPHIC AND WAS NOT. Run wide at a short window the sill search lands on
+  // h 7.898, nearly a metre from the shipped 8.761. Its own tests say what that is: 48 per cent of its
+  // inliers sit inside openings that cover 50 per cent of the wall, so it has no opening specificity at
+  // all, and its range puts it 0.74 m IN FRONT of the wall face. It is a masonry course on the solid
+  // wall, which is what a short window is prone to lock onto. That is not evidence against the sill, it
+  // is a different object, and the lesson is that invariance only means something between candidates that
+  // both pass the other tests. The RANSAC band was narrowed so all three windows had to find the SAME
+  // feature, and all three then did, with 96 to 98 per cent opening specificity every time.
+  // AND THEN THE REAL FAULT SHOWED. Forced onto the same feature the three sill answers are (-0.058,
+  // 8.761), (-0.246, 8.859) and (-0.343, 8.910): 149 mm of height and 285 mm of depth, against a head
+  // that held to 22 and 26. But they do not scatter, they SLIDE. The ratio of the steps between
+  // consecutive pairs is -0.52 and -0.53, and a least squares line through all three misses none of them
+  // by as much as a millimetre. Three points on one straight line in the (d, h) plane is not noise, it is
+  // the DEGENERATE DIRECTION of the fit: the rays never separated that edge's depth from its height, so
+  // what was measured was one combination of the two and the window merely chose where along the line to
+  // stop. A number was shipped this afternoon with a 15 mm residual for something the data never pinned.
+  // THE FIX NEEDED NO NEW IMAGERY, ONLY THE THING ALREADY KNOWN. The wall face was measured
+  // independently, twice, by edges of opposite polarity. Slide each fit along its own degenerate line
+  // until it reaches that face and the free parameter is gone. The sill's three windows collapse from a
+  // 149 mm spread onto 8.778, 8.777 and 8.778: ONE MILLIMETRE. The head, which was never badly
+  // conditioned, tightens from 22 mm to 5 and lands on 11.222.
+  // So openY moves from [8.761, 11.236] to [8.778, 11.222]. Small moves, 17 mm and 14 mm, but the
+  // reported precision behind them changes completely: they were single-window readings on a degenerate
+  // pair and they are now three-window readings anchored on an independently measured plane.
+  // THIS IS THE CORRIDOR'S DISEASE CAUGHT SOMEWHERE THERE IS A CURE. The room behind the wall died of the
+  // same degeneracy this morning, its answer sliding along the median ray with every subset stopping
+  // somewhere else on it. There nothing could anchor it. Here the anchor had been measured hours earlier.
+  // 37 bounds, all satisfied.
   // THE THIRD LINE WAS A GRADIENT, AND WINDOW INVARIANCE IS THE TEST THAT CAUGHT IT (2026-09-09,
   // tools/soffit_back.py with HWIN settable). An hour ago this file recorded a strong unexplained edge
   // 0.2 m above each balcony front top: 384 rays west with the near and far camera halves agreeing to
