@@ -1409,6 +1409,43 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE CORRIDOR FLOOR, CHECKED BY THE MEN WHO STOOD ON IT (2026-09-10, tools/corridor_floor.py).
+CF = {'drawn': 8.340, 'inwall': 315, 'north': 0, 'carry': [1.521, 1.966], 'carryn': 888,
+      'walk': 1.789, 'night': 1.600,
+      'rows': [['b1', 45, 9.816, 7.849, 8.294, 'lowered'], ['b1p', 103, 9.802, 7.836, 8.281, 'lowered'],
+               ['b4', 29, 9.907, 7.940, 8.385, 'consistent'], ['b5', 24, 9.955, 7.989, 8.434, 'consistent'],
+               ['b5p', 49, 10.073, 8.107, 8.551, 'consistent']],
+      'width': 0.445, 'openings': [4, 5, 10]}
+check('the corridor is the registrar blind spot exactly, and that is now a measured fact',
+      CF['north'] == 0 and CF['inwall'] > 300,
+      'of %d posed frames standing inside the wall slab, %d face north into the corridor. Nothing '
+      'photographs its back wall and, per walk_through.py, nothing walks its floor. The corridor floor '
+      'is drawn on %.3f because the end gallery deck is %.3f, an assumption written as a number, and it '
+      'had never had an independent check.'
+      % (CF['inwall'], CF['north'], CF['drawn'], CF['drawn']),
+      'tools/corridor_floor.py')
+check('the check uses the carry RANGE and the one asymmetry that makes a range usable',
+      CF['carry'][0] < CF['night'] < CF['walk'] < CF['carry'][1],
+      'the carry-height constant had died on its own control, %.3f m against %.3f m on the same floor, '
+      'so this uses the range the archive actually shows, %.3f to %.3f m over %d floor frames. A MAN CAN '
+      'LOWER THE PHONE, BUT HE CANNOT LOWER HIS FEET: the tallest tenth of each capture is the nearest '
+      'thing to him standing upright, and the floor under it is that height less the carry range. A '
+      'bracket entirely above the drawn floor refutes it; one entirely below is no verdict.'
+      % (CF['walk'], CF['night'], CF['carry'][0], CF['carry'][1], CF['carryn']),
+      'tools/corridor_floor.py')
+check('the corridor floor is consistent with every capture that stood upright and refuted by none',
+      all(r[3] <= CF['drawn'] <= r[4] for r in CF['rows'] if r[5] == 'consistent')
+      and not any(r[3] > CF['drawn'] for r in CF['rows']),
+      'consistent with %s, refuted by none. %s bracket below the drawn floor, which is a man leaning out '
+      'through opening 4 with the phone lowered and is exactly the case the rule declines to read. The '
+      'bracket is %.3f m wide, which is the whole of what this can say: a corridor floor drawn more than '
+      'about %.2f m higher than %.3f would have shown here, and none of the men in openings %s were '
+      'standing on one. The first independent check the corridor floor has had, a bracket rather than a '
+      'measurement, and it speaks only for the floor under those three openings.'
+      % (', '.join('%s (%.3f to %.3f)' % (r[0], r[3], r[4]) for r in CF['rows'] if r[5] == 'consistent'),
+         ' and '.join(r[0] for r in CF['rows'] if r[5] == 'lowered'), CF['width'], 0.5 * CF['width'],
+         CF['drawn'], ', '.join(str(o) for o in CF['openings'])),
+      'tools/corridor_floor.py')
 # THE SLAB THICKNESS UNDER A RULER, AND THE RULER REFUSED (2026-09-10, tools/slab_ruler.py).
 SL = {'drawn': 0.260, 'lo': 8.080, 'hi': 8.340, 'step': 0.010, 'window': [7.83, 8.59],
       'westframes': 194, 'eastframes': 290, 'westpeak': 0.427, 'westnull': 0.349,

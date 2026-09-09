@@ -3199,6 +3199,28 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // THE CORRIDOR FLOOR, CHECKED BY THE MEN WHO STOOD ON IT (2026-09-10, tools/corridor_floor.py).
+  // WHAT WAS KNOWN FIRST. The corridor floor is drawn on 8.340 because the end gallery deck is 8.340,
+  // and model_consistency.py records that moving one moves the other. That is an assumption written as
+  // a number. walk_through.py put it 1.59 m from the nearest step anybody took, and a census run this
+  // turn found that of 315 posed frames standing inside the wall slab, ZERO face north into the
+  // corridor. The registrar's blind spot covers the corridor exactly: nothing photographs its back wall
+  // and nothing walks its floor, and both of those are now measured facts rather than suspicions.
+  // BUT 315 CAMERAS STOOD IN THE OPENINGS, every one held by a man whose feet were on that floor. The
+  // carry-height instrument had already died on its own control, the two hall-floor captures putting
+  // the camera 1.789 m and 1.600 m up on the same floor, so this does not use a constant. It uses the
+  // RANGE the archive actually shows, 1.521 to 1.966 m over 888 floor frames, and it uses the one
+  // asymmetry that makes a range usable: A MAN CAN LOWER THE PHONE, BUT HE CANNOT LOWER HIS FEET. So the
+  // tallest tenth of each capture is the nearest thing to him standing upright, and the floor under it
+  // is bracketed by that height less the carry range. A bracket entirely ABOVE the drawn floor refutes
+  // it; a bracket entirely below is no verdict, because the phone went down and the feet did not.
+  // THE RESULT. Consistent with b4 (7.940 to 8.385), b5 (7.989 to 8.434) and b5p (8.107 to 8.551), and
+  // refuted by none. b1 and b1p bracket 7.84 to 8.29, below the drawn floor, which is a man leaning
+  // out through opening 4 with the phone lowered and is exactly the case the rule declines to read. The
+  // bracket is 0.445 m wide, which is the whole of what this can say: A CORRIDOR FLOOR DRAWN MORE THAN
+  // ABOUT 0.22 m HIGHER THAN 8.340 WOULD HAVE SHOWN HERE, and none of the men in openings 4, 5 and 10
+  // were standing on one. It is the first independent check the corridor floor has had, it is a bracket
+  // and not a measurement, and it speaks only for the floor under those three openings.
   // THE SLAB THICKNESS, PUT UNDER A RULER FOR THE FIRST TIME, AND THE RULER REFUSED (2026-09-10,
   // tools/slab_ruler.py).
   // WHY THIS NUMBER. The walk-through audit ended with a blind-spot list, and gallery-fascia was the
@@ -5195,7 +5217,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 246 bounds, all satisfied.
+  // 249 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
