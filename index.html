@@ -3112,6 +3112,33 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // THE BEST-CONDITIONED POINT BEHIND THIS WALL WAS THROWN AWAY FOR NOT LOOKING LIKE A LAMP (2026-09-09,
+  // tools/point_v.py). The corridor search runs one blob hunt per opening and returns the strongest point
+  // its rays agree on. It found EIGHT. Three sat about two metres back at about eleven up, were called
+  // lamps and were kept; the other five were passed over without a word. That was a failure of attention,
+  // not of method: a point that triangulates is a measurement whatever it turns out to be.
+  // ALL EIGHT HAVE NOW TAKEN THE PARALLAX TEST and three carry a real depth minimum. Two are the lamps
+  // already known. The third is the one that was discarded, and it is not close: opening 7's point agrees
+  // to 18 mm between its two camera halves and disagrees by 2,074 mm at the end of its sweep, on a null of
+  // 23. A ratio of 88 where the best lamp gives 6 and every line in that room gives under 3. It is the
+  // strongest measurement this archive has ever made of anything behind the brick wall, and it sat unused
+  // for an afternoon because it was at the wrong height to be a lamp.
+  // WHAT IT MEASURES IS THE REVEAL, WHICH NOTHING HAD EVER PUT A POINT IN. It sits 0.629 m behind the
+  // wall face, on u 26.483, at h 11.359. Two things follow and neither was known this morning.
+  // FIRST, THE REVEAL'S LOWER BOUND NEARLY DOUBLES. openDepth is drawn 0.9 with a plus or minus 0.3 that
+  // came from reading a 2014 photograph off a point cloud. It was not unsupported: a lens leaned 0.362 m
+  // in through an opening, and that has bounded it since. This is a different principle, a triangulated
+  // point rather than a camera position, and it puts something bright 0.629 m inside. The drawn 0.9
+  // survives; the bottom of its error bar, 0.6, now barely does.
+  // SECOND, THE SOFFIT OVER THAT OPENING IS NOT FLAT AT THE HEAD. This point stands 0.194 m ABOVE the
+  // measured head, inside the volume the model draws as solid stone over the reveal. A blob finder found
+  // it, and masonry does not light up, so the likeliest reading is a fitting recessed into the reveal
+  // soffit rather than a splayed head. One point cannot tell a recess from a splay, so nothing is redrawn
+  // on it, but the flat soffit is now a known contradiction rather than an untested assumption.
+  // AND THE TWO CORRIDOR LAMPS KEEP THEIR BRACKET RATHER THAN TIGHTENING IT. The parallax minima put them
+  // on d -2.368 and -1.849 while their own least-squares points sit on -2.068 and -2.049: the two
+  // estimators disagree by 0.30 and 0.20 m in opposite directions on the same rays, which is the honest
+  // uncertainty on a lamp's depth and is why the deeper of them does not move the back wall.
   // THE LAMPS WERE STALE, AND RE-RUN THEY AGREE WITH EACH OTHER FOR THE FIRST TIME (2026-09-09,
   // tools/corridor_lamp.py, tools/lamp_v.py). The three lamps triangulated inside the corridor were
   // computed before the openings moved 0.147 m and before the wall face moved to -0.030. The aperture
@@ -3303,7 +3330,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 65 bounds, all satisfied.
+  // 68 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

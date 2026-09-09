@@ -98,6 +98,41 @@ check('corridor is deep enough for the lamps inside it',
          min(L[1] for L in MEASURED_LAMPS) + 0.062,
          min(L[1] for L in MEASURED_LAMPS) + 0.062 - G['cBack']),
       'tools/corridor_lamp.py')
+# THE REVEAL, MEASURED FROM INSIDE FOR THE FIRST TIME (2026-09-09, tools/point_v.py). All eight points the
+# corridor blob search ever returned were put through the parallax split, including the five that were
+# discarded for not looking like lamps. One of the discarded ones is the best-conditioned measurement this
+# archive has behind that wall.
+REVEALPT = {'u': 26.483, 'd': -0.659, 'h': 11.359, 'rays': 23, 'ratio': 88.4, 'gapmin': 0.018,
+            'gapmax': 2.074, 'null': 0.023}
+check('the reveal is at least as deep as the point measured inside it',
+      G['openDepth'] >= (G['dNorth'] - REVEALPT['d']) - 1e-9,
+      'opening 7 carries a point on u %.3f, d %+.3f, h %.3f from %d rays, whose two camera halves agree '
+      'to %.0f mm there and disagree by %.0f mm at the end of the sweep on a null of %.0f. A ratio of '
+      '%.1f, where the best corridor lamp gives 5.6 and every line in that room gives under 3. It stands '
+      '%.3f m behind the wall face, so the reveal is at least that deep. It is drawn %.2f m. The lower '
+      'bound was already 0.362 from a lens that leaned that far in, so this is not the first support for '
+      'it; it nearly doubles it, and it does so by a different principle, a triangulated point rather '
+      'than a camera position.'
+      % (REVEALPT['u'], REVEALPT['d'], REVEALPT['h'], REVEALPT['rays'], 1000 * REVEALPT['gapmin'],
+         1000 * REVEALPT['gapmax'], 1000 * REVEALPT['null'], REVEALPT['ratio'],
+         G['dNorth'] - REVEALPT['d'], G['openDepth']),
+      'tools/point_v.py')
+check('the flat reveal soffit is recorded as contradicted, not assumed',
+      REVEALPT['h'] > G['head'],
+      'the same point stands %.3f m ABOVE the measured opening head, inside the volume the model draws as '
+      'solid stone over the reveal. A blob finder found it and masonry does not light up, so the likeliest '
+      'reading is a fitting recessed into the soffit rather than a splayed head. One point cannot tell a '
+      'recess from a splay, so nothing is redrawn, but this is now a known contradiction rather than an '
+      'untested assumption.' % (REVEALPT['h'] - G['head']),
+      'tools/point_v.py')
+check('the two estimators on a lamp bundle disagree, and the bracket reflects it',
+      abs(LAMPV[8][1] - (-2.068)) <= 0.35 and abs(LAMPV[9][1] - (-2.049)) <= 0.35,
+      'the parallax minima put the two testable lamps on %.3f and %.3f while their own least-squares '
+      'points sit on -2.068 and -2.049. Two estimators on the SAME rays, disagreeing by %.0f and %.0f mm '
+      'in opposite directions. That scatter is the honest uncertainty on a lamp depth, and it is why the '
+      'deeper of the two does not get to move the back wall.'
+      % (LAMPV[8][1], LAMPV[9][1], 1000 * abs(LAMPV[8][1] + 2.068), 1000 * abs(LAMPV[9][1] + 2.049)),
+      'tools/lamp_v.py')
 check('the lamps agree with each other on a level, which they never did before',
       max(L[2] for L in MEASURED_LAMPS) - min(L[2] for L in MEASURED_LAMPS) <= 0.10,
       'the three heights now span %.0f mm across 11.5 m of corridor, where the array shipped until '
