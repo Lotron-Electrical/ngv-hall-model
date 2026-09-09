@@ -3151,6 +3151,27 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // I CHOSE THE FRAMES BY EYE, AND WHAT I FOUND WAS A HOLE IN THE PROVENANCE OF A BOUND ALREADY HERE
+  // (2026-09-10, tools/wall_courses.py re-run).
+  // YESTERDAY'S CONCLUSION WAS THAT THE RULER NEEDS A PERSON TO CHOOSE THE WINDOW, so this time the
+  // frames were looked at. b7_000320 is as good a view of coursed ashlar as the clip has: a sharp
+  // ceiling junction, a long well-lit run of stone, joints visible to the eye.
+  // THE COUNTER RETURNED A PITCH SPREAD OF 73 PER CENT OF A COURSE ON IT, and the annotated output shows
+  // why: the ticks land at roughly twice the true joint density in the upper part of the window, because
+  // the wall is steeply oblique there and the courses converge down the frame. A second window, chosen
+  // independently on b7_000810, returned 59 per cent.
+  // THE BOUND IN THIS FILE REPORTS 2.5 PER CENT, and the window that produced it is written down
+  // NOWHERE. wall_courses.py takes its window on the command line and the bound records only the answer.
+  // So the count of 16.8 courses cannot be re-derived by anybody, including by whoever ran it.
+  // THAT IS NOT A REFUTATION AND IT IS NOT BEING TREATED AS ONE. A worse window gives a worse spread,
+  // and these two were picked by eye from a different starting point, so the original may well have been
+  // the better choice. What it means is narrower and still worth fixing: a number in this model rests on
+  // a decision that is not in the repository. The tool now prints its own exact invocation.
+  // AND THE METHOD ITSELF IS THE DEEPER FAULT. A median pitch is only a ruler if the pitch is constant.
+  // On a wall seen at an angle it is not, so a pixel span divided by a median pitch is the average of
+  // something that is changing. COUNTING the joints between two features has no such problem: a count
+  // survives perspective, a pitch does not. The tool now refuses to let a bad pitch pass quietly and
+  // says to count instead whenever its strips disagree by more than a tenth of a course.
   // THE COURSE COUNT CANNOT BE EXTENDED TO THE DECK WITHOUT A HUMAN CHOOSING THE FRAME, AND THE REASON
   // IS STRUCTURAL (2026-09-10, tools/course_reach.py).
   // THE PRIZE WAS REAL AND THE BOUND IS SHARP. tools/wall_courses.py counted 16.8 courses, 5.15 m, from
@@ -4568,7 +4589,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 188 bounds, all satisfied.
+  // 190 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

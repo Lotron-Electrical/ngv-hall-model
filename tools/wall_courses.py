@@ -85,6 +85,16 @@ if not report:
 P = np.array(allpitch, dtype=np.float64)
 pitch = float(np.median(P))
 print('%s %s   frame %d x %d,   window x %d-%d  y %d-%d' % (CLIP, name[0], W, H, gx0, gx1, gy0, gy1))
+# THE WINDOW IS THE MEASUREMENT AND IT WAS NOT BEING RECORDED (2026-09-10). This tool takes its window
+# on the command line, so a result printed without that line cannot be re-derived by anybody, including
+# by whoever printed it. The first count made with it went into the model as a bound and the window
+# behind it is written down nowhere; two independently chosen windows on the same clip later returned
+# pitch spreads of 59 and 73 per cent against the 2.5 that bound reports, and there is no way to tell
+# whether that is a worse window or a different answer. So the exact invocation is now part of the
+# output, and any bound quoting this tool has to quote the line as well.
+print('   REPRODUCE THIS EXACTLY WITH:')
+print('   python tools/wall_courses.py %s %d %s %s %s %s <out.jpg>'
+      % (CLIP, FR, X0, X1, Y0, Y1))
 print('')
 print('   strip   x      joints   first row   last row   pitch px')
 for si, xc, n, r0, r1, p in report:
@@ -92,8 +102,20 @@ for si, xc, n, r0, r1, p in report:
 print('')
 print('   %d gaps over %d strips, median pitch %.1f px, quartiles %.1f to %.1f'
       % (len(P), len(report), pitch, np.percentile(P, 25), np.percentile(P, 75)))
+spreadfrac = (np.percentile(P, 75) - np.percentile(P, 25)) / pitch
 print('   spread %.0f%% of a course, which is what perspective and joint quality cost here'
-      % (100 * (np.percentile(P, 75) - np.percentile(P, 25)) / pitch))
+      % (100 * spreadfrac))
+# A MEDIAN PITCH IS ONLY A RULER IF THE PITCH IS CONSTANT, and on a wall seen at a steep angle it is
+# not: the courses converge down the frame, so dividing a pixel span by a median is measuring the
+# average of a thing that is changing. COUNTING the joints between two features has no such problem,
+# because a count is a count whatever the perspective does to the spacing.
+if spreadfrac > 0.10:
+    print('')
+    print('   DO NOT USE THE PITCH FROM THIS WINDOW. The strips disagree by %.0f per cent of a course,'
+          % (100 * spreadfrac))
+    print('   which means the pitch is not constant across it, and a span divided by a median pitch is')
+    print('   then the average of something that is changing. COUNT the joints between the two features')
+    print('   instead and multiply by %.3f: a count survives perspective, a pitch does not.' % COURSE)
 print('')
 print('   ONE COURSE IS %.3f m (measured: north joints h = 0.080 + 0.304k, south 0.119 + 0.309k, from'
       % COURSE)

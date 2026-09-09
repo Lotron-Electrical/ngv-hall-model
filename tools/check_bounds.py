@@ -1409,6 +1409,7 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+RUL = {'spread_a': 0.73, 'spread_b': 0.59, 'hand': 0.025, 'frame_a': 320, 'frame_b': 810}
 CRS = {'course': 0.306, 'strips': 7, 'agree': [60.0, 60.5, 61.0, 61.5], 'counted': 16.8,
        'metres': 5.15, 'frame_w': 2160, 'frame_h': 3840, 'endtop_captures': 5, 'endtop_resid': -0.009}
 check('the end wall stack is confirmed by counting stone, and it has no room left in it',
@@ -1425,6 +1426,27 @@ check('the end wall stack is confirmed by counting stone, and it has no room lef
       % (CRS['course'], CRS['frame_w'], CRS['frame_h'], CRS['strips'],
          ', '.join('%.1f' % v for v in CRS['agree']), CRS['counted'], CRS['metres'], G['deck'],
          13.5 - G['deck'], CRS['metres'], CRS['endtop_captures'], CRS['endtop_resid']),
+      'tools/wall_courses.py')
+check('and that count rests on one hand-chosen window that nobody wrote down',
+      RUL['spread_a'] > 0.5 and RUL['spread_b'] > 0.5,
+      'wall_courses.py takes its window on the command line and the bound above does not record which '
+      'window produced it, so the count cannot be re-derived by anyone, including by whoever ran it. '
+      'Two independently chosen windows on the same clip were tried on 2026-09-10 and returned pitch '
+      'spreads of %.0f and %.0f per cent of a course, against the %.1f per cent that bound reports. That '
+      'does NOT refute the count: a worse window gives a worse spread and these were chosen by eye from '
+      'a different starting point. What it does mean is that the number rests on a choice that is not in '
+      'the repository. The tool now prints its own exact invocation so this cannot recur, and any bound '
+      'quoting it must quote that line too.'
+      % (100 * RUL['spread_a'], 100 * RUL['spread_b'], 100 * RUL['hand']),
+      'tools/wall_courses.py')
+check('and a pitch is the wrong thing to divide by when the wall is seen at an angle',
+      RUL['spread_a'] > 0.10,
+      'a median pitch is only a ruler if the pitch is constant, and on a wall seen at a steep angle it '
+      'is not: the courses converge down the frame, so a pixel span divided by a median is the average '
+      'of something that is changing. COUNTING the joints between two features has no such problem, '
+      'because a count is a count whatever perspective does to the spacing. wall_courses.py now says so '
+      'in its own output whenever the strips disagree by more than 10 per cent of a course, rather than '
+      'printing a metre figure that looks the same either way.',
       'tools/wall_courses.py')
 check('a count is a separation and never a height, and it is said before it is used',
       CRS['metres'] > 0,
