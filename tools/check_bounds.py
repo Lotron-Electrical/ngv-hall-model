@@ -133,9 +133,20 @@ for name, key, meas, west, east in (('sill', 'sill', 8.778, 8.778, 8.777),
           abs(G[key] - meas) <= 0.006,
           'drawn on %.3f against a measured %.3f, so %+.3f m out. Three averaging windows, each forced '
           'to find the same feature and then slid onto the measured face, give %.3f and %.3f, %.3f m '
-          'apart, which is the width of this measurement.'
+          'apart. THAT SPREAD IS NOT THE ACCURACY: it is the agreement between three windows anchored on '
+          'the SAME assumed depth, and the depth scan shows the anchor itself is only good to about '
+          '0.05 m. At a sensitivity of 0.69 m of height per metre of depth that is +-0.035 m on this '
+          'number, and the millimetre figure quoted when it was first anchored was an overstatement.'
           % (G[key], meas, G[key] - meas, west, east, abs(west - east)),
           'tools/wall_lines.py')
+# AND THE PRECISION CLAIMED FOR THIS ONE WAS WRONG, tools/face_depth_scan.py (2026-09-09). Stop fitting
+# the depth and SCAN it: fix d, and each ray gives the height directly with nothing left to slide. Swept
+# across the head rays the inlier count is flat, staying within 2 per cent of its peak from d -0.190 to
+# +0.080, a band 270 mm wide. These rays do not measure the depth of this wall at all; they measure one
+# combination of depth and height, 0.69 m of height for every metre of depth. The count does peak exactly
+# on the drawn -0.090 and the residual is lowest between -0.08 and -0.02, which is why the drawn value
+# stands, but "the sill line puts the face on -0.058 and the head line on -0.107" was never two
+# measurements of a depth. It was two arbitrary points on the same slide.
 check('the north wall face is where two independent edges put it',
       abs(G['dNorth'] - (-0.083)) <= 0.06,
       'drawn on d %.3f. The sill line puts the face on -0.058 and the head line on -0.107, from separate '
@@ -478,12 +489,18 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' still has its axis 0.38 of the way toward the hall. The operator stood in the holes and'
              ' filmed the room he had come from, tools/opening_facing.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
-             'NEW question, opened by the window audit: the north wall FACE has three depths on it now.'
-             ' The model draws -0.090; the head, put through three windows, averages -0.123; the nine'
-             ' jamb lines average -0.207. The head and the jambs are different orientations of the same'
-             ' fit reading the same wall and they disagree by 84 mm. Part of that is a real recess at'
-             ' the jamb arris and part may be a bias in one of the two, and nothing separates them yet,'
-             ' so dNorth is NOT moved, tools/wall_lines.py, tools/jamb_lines.py',
+             'RESOLVED, and the question was ill-posed: the north wall face appeared to have three depths'
+             ' on it, drawn -0.090, head -0.123, jambs -0.207. Scanning the depth instead of fitting it'
+             ' shows the head rays do not constrain it: the inlier count is flat within 2 per cent from'
+             ' -0.190 to +0.080, a 270 mm band. There was never a disagreement about a measured'
+             ' quantity, because one side of it was not measuring one. The count peaks exactly on the'
+             ' drawn -0.090 and the residual is lowest between -0.08 and -0.02, and it is 50 per cent'
+             ' worse at the jamb depth, so dNorth stands and the jamb -0.207 is NOT the wall face,'
+             ' tools/face_depth_scan.py',
+             'STILL OPEN: what the jamb detector is actually finding 0.117 m back. Both parities give the'
+             ' same depth to 2 mm, which rules out a directional lighting effect between the two returns'
+             ' but NOT an overhead one, since light entering from above shadows both reveal returns at'
+             ' the same depth. A rebate and a shadow line fit the fit equally well',
              'the opening head lean of 40 to 205 mm',
              'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'
              ' 0.20 m lower and a face 0.20 m over all fitted the same rays, and the upstand-top line fit'
