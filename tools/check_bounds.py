@@ -1409,6 +1409,53 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE MODEL PUT BACK IN FRONT OF THE CAMERAS (2026-09-10, tools/render_match.py + render_match.mjs).
+RM = {'poses': 10, 'captures': 6, 'mismatched': 90, 'bar': 0.2424, 'beat': 6,
+      'best': 0.4447, 'flatpeak': 0.4081, 'flatexp': 0.3964, 'tile': 60, 'boot': 400,
+      'eligible': 6, 'consistent': 3, 'boundlo': 0.94, 'boundhi': 1.76,
+      'nearmm': 39, 'nearrange': 2.4, 'balcrate': 0.31, 'k1': 0.04,
+      'ranges': [2.4, 2.8, 13.7], 'needed': 5.7, 'got': 2.4, 'solver': [0.17, 0.58]}
+check('the model was put back in front of the cameras that photographed the room, and it was measured',
+      RM['beat'] > RM['mismatched'] * 0.0 and RM['beat'] <= RM['poses'],
+      'every instrument here measured ONE quantity: a level, a jamb, a depth, a hit rate. This puts the '
+      'sim camera exactly where a real camera stood, renders the LIVE sandbox and asks how far the render '
+      'must be slid to land on the photograph. %d poses over %d captures and two days, all chosen BLIND '
+      'before a picture was opened: the frames whose projected openings, or projected gallery front, fill '
+      'most of the picture, no capture allowed more than two and no two frames of the same three metres '
+      'of wall. The control is every render against every OTHER frame photograph: %d mismatched pairs '
+      'reaching %.4f, and %d of the %d true pairs beat all of them, the best reaching %.4f.'
+      % (RM['poses'], RM['captures'], RM['mismatched'], RM['bar'], RM['beat'], RM['poses'], RM['best']),
+      'tools/render_match.py')
+check('the first run was wrecked by three faults and every one of them was mine',
+      RM['k1'] > 0.0,
+      'the renders carried the page HUD, because I hid a LIST of element names copied from another tool '
+      'and it missed the button bar and the install panel; it is now the complement, canvas visible and '
+      'everything else hidden, which cannot miss. The photographs carry distortion of k1 near %.2f, which '
+      'moves a corner about thirty pixels while the whole search window is thirty-four, so it is removed '
+      'with the solver own coefficients. And the big one: THE SIM CAMERA HAS NO ROLL AND THE ARCHIVE IS '
+      'HANDHELD. Both hall-floor captures are portrait video in a landscape buffer, ninety degrees over, '
+      'and a balcony clip is tilted sixteen. I was correlating pictures with the same pictures on their '
+      'side. The fix renders a SQUARE circumscribing the frame on the same angular scale, turns it by the '
+      'roll the solver published, and cuts the frame out of the middle.'
+      % RM['k1'],
+      'tools/render_match.py')
+check('the peak is flat, so the run delivers a bound and not a correction, and no wall is accused',
+      RM['consistent'] <= RM['eligible'] and RM['boundlo'] < RM['boundhi'],
+      'on the night frame the score where a PERFECT model would land is %.4f against a best-anywhere of '
+      '%.4f: three per cent better and a whole degree away, so reading the peak as a displacement would '
+      'be reading noise. A CLAIM MUST NOT BE SMALLER THAN ITS OWN SPREAD, so the spread came from the '
+      'pair itself: %d px tiles resampled %d times, each resample finding its own peak. %d of the %d '
+      'eligible pairs are CONSISTENT with a model and a pose that are both right, and the output is a '
+      'BOUND of %.2f to %.2f degrees, which is %d mm on the north wall seen from %.1f m and %.2f m per '
+      'ten metres of range on the balcony frames. The three that were not consistent do not accuse a '
+      'wall: they stand %.1f, %.1f and %.1f m out, and a wall displaced by a fixed distance subtends an '
+      'angle that shrinks with range, so they would have to disagree by %.1f to one and they disagree by '
+      '%.1f. What is left is per-frame and the size of the solver own hold-out of %.2f to %.2f degrees.'
+      % (RM['flatexp'], RM['flatpeak'], RM['tile'], RM['boot'], RM['consistent'], RM['eligible'],
+         RM['boundlo'], RM['boundhi'], RM['nearmm'], RM['nearrange'], RM['balcrate'],
+         RM['ranges'][0], RM['ranges'][1], RM['ranges'][2], RM['needed'], RM['got'],
+         RM['solver'][0], RM['solver'][1]),
+      'tools/render_match.py')
 # THE CLOSURE VERIFIED IN THE SHIPPED PAGE (2026-09-10, tools/watertight.mjs).
 WT = {'tris': 2008, 'names': 94, 'baked': 14, 'edges': 3390, 'shared': 2594,
       'once': 780, 'tjunction': 188, 'tj_m': 498.3, 'boundary': 592, 'b_m': 1571.4,
