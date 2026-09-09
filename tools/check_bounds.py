@@ -637,6 +637,45 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE HALL WIDTH PUT TO THE CLOUD, AND THE CONTROL THAT FAILED (2026-09-10, tools/wall_plane.py).
+WPL = {'n_lo': -0.178, 'n_hi': -0.017, 'n_known': -0.030, 'n_spread': 0.361, 'n_halves': 0.531,
+       'n_clean': 0, 's_clean': 5, 's_fit': 15.275, 's_lean': 0.0197, 's_leanmm': 79,
+       's_meds': [15.317, 15.296, 15.275, 15.258, 15.237], 's_tight_lo': 0.017, 's_tight_hi': 0.032,
+       'fin_frames': 4, 'fin_d': 15.24}
+check('the cloud cannot place a long wall, and the north wall is what proves it',
+      WPL['n_clean'] == 0,
+      'the north face is known to 1 to 2 mm by the near-far V test on d %+.3f, an instrument sharing '
+      'nothing with a point cloud, so the identical band-by-band fit was run there FIRST. It fails: the '
+      'medians scatter %+.3f to %+.3f across the height bands, the spread inside a band reaches %.3f m, '
+      'and the west and east halves of the same band disagree by up to %.3f m. Not one north band is both '
+      'tight and consistent. A cloud that cannot reproduce a number already known to 2 mm has not earned '
+      'the right to move one that is unknown.'
+      % (WPL['n_known'], WPL['n_lo'], WPL['n_hi'], WPL['n_spread'], WPL['n_halves']),
+      'tools/wall_plane.py')
+check('the south answer looked tight and was thrown away, and that is the point of the control',
+      abs(G['dSouth'] - 15.364) < 1e-6,
+      '%d south bands come back tight, spreads of %.3f to %.3f m with the halves agreeing to within '
+      '0.029, and they put the wall on d %.3f, which is %.0f mm in front of the drawn %.3f. Applied, that '
+      'would have moved the hall width and every balcony d with it. It is NOT applied, because those five '
+      'medians fall MONOTONICALLY with height, %s, a lean of %.4f m per metre and %d mm across the four '
+      'metres of clean band. No ashlar wall leans 20 mm per metre. That is a registration tilt or a '
+      'grazing-angle bias and the 89 mm sits inside it. A tight number from a biased instrument is more '
+      'dangerous than a loose one.'
+      % (WPL['s_clean'], WPL['s_tight_lo'], WPL['s_tight_hi'], WPL['s_fit'],
+         1000 * (G['dSouth'] - WPL['s_fit']), G['dSouth'],
+         ', '.join('%.3f' % v for v in WPL['s_meds']), WPL['s_lean'], WPL['s_leanmm']),
+      'tools/wall_plane.py')
+check('and only four posed frames in the whole archive face the south fins, which is the real limit',
+      WPL['fin_frames'] < 10,
+      'of every posed floor frame here, %d see three or more south glazing fins whole, and that count is '
+      'itself the measure of how little this capture ever faced that wall. On night w6_000074 and walk '
+      'w1_000131 the fins drawn on d %.2f land on real vertical members and the drawn doorway lands on '
+      'the real doorway, which refuses a gross error and cannot see 89 mm. dSouth stays on %.3f and the '
+      'reason it cannot be improved is now measured rather than inherited. What would measure it is the '
+      'near-far V test pointed at the fins own vertical edges; depth_v.py is hard-wired to two targets '
+      'today and would have to be opened up.'
+      % (WPL['fin_frames'], WPL['fin_d'], G['dSouth']),
+      'tools/wall_plane.py')
 # THE CLOUD CENSUS, THE AUDIT OF THE DELETION, AND THE HOLE THAT MEASURES THE RECESS (2026-09-10,
 # tools/end_cloud_census.py, tools/end_gap.py).
 CLOUD = {'clip_models': {'b1': 0, 'b3': 0, 'b4': 389, 'b5': 644, 'b6g': 63, 'b6s': 10, 'b7s': 110},

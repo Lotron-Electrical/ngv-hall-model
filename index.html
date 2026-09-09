@@ -3151,6 +3151,37 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE HALL'S OWN WIDTH WAS PUT TO THE CLOUD AND THE CONTROL FAILED, SO THE ANSWER WAS THROWN AWAY
+  // (2026-09-10, tools/wall_plane.py). This is a negative result and it is the useful kind: it retires a
+  // whole class of future attempts, and it stopped an 89 mm move that would have been wrong.
+  // WHY dSouth WAS WORTH ATTACKING. 15.364 is the south wall of this hall and it has never been moved by
+  // a measurement. Every balcony d, both end walls' 15.364 span and the whole hall width rest on it. The
+  // reason it was left alone is in this file: when the tapestries were placed, the only points that could
+  // test the wall were bare stone and "at the heights that matter they are both sparse and contaminated
+  // by the fixtures that hang a metre off this wall". But "the heights that matter" meant the tapestry
+  // band, four to eight metres up, which is exactly where the truss and the speakers live. Above nine
+  // metres the wall is bare ashlar with nothing hung on it and nobody had asked that part of the cloud.
+  // THE CONTROL IS THE WHOLE DESIGN. The north wall face is known to 1 to 2 mm by an instrument that
+  // shares nothing with a point cloud, the near-far V test on d -0.030. So the identical band-by-band fit
+  // was run on the north wall FIRST. It fails: the north medians scatter from -0.017 to -0.178 across the
+  // height bands, the spread inside a band reaches 0.36 m, and the west and east halves of the same band
+  // disagree by up to 0.53 m. NO north band is both tight and consistent. A cloud that cannot reproduce a
+  // number already known to 2 mm has not earned the right to move one that is unknown.
+  // AND THE SOUTH ANSWER LOOKED GOOD, WHICH IS THE TRAP. Five south bands come back tight, spreads of 17
+  // to 32 mm with the halves agreeing to 3 to 29 mm, and they put the wall on d 15.275, which is 89 mm in
+  // front of the drawn 15.364. Applied, that would have moved the hall's width. It is not applied,
+  // because those five medians fall MONOTONICALLY with height: 15.317, 15.296, 15.275, 15.258, 15.237,
+  // a lean of 0.0197 m for every metre of height, 79 mm across the four metres of clean band. No ashlar
+  // wall leans 20 mm per metre. That is a tilt in the registration or a grazing-angle bias, and the 89 mm
+  // sits inside it. A tight number produced by a biased instrument is more dangerous than a loose one.
+  // WHAT WAS LOOKED AT INSTEAD. Of every posed floor frame in the archive, only FOUR see three or more of
+  // the south glazing fins whole, which is itself the measure of how little this capture faces that wall.
+  // On night w6_000074 and walk w1_000131 the fins drawn on d 15.24 land on real vertical members and the
+  // drawn doorway lands on the real doorway. That is an eyeball bound and not a measurement: it refuses a
+  // gross error and cannot see 89 mm.
+  // SO dSouth STAYS ON 15.364, and the reason it cannot be improved is now measured rather than inherited.
+  // What would measure it is the near-far V test that settled the north face, pointed at the fins' own
+  // vertical edges; tools/depth_v.py is hard-wired to two targets today and would have to be opened up.
   // THE DELETION WAS AUDITED AGAINST THE CERTIFIED CLOUD, AND A HOLE IN THAT CLOUD MEASURES THE RECESS
   // (2026-09-10, tools/end_cloud_census.py, tools/end_gap.py).
   // FIRST THE CENSUS, and it kills a hope rather than confirming one. tools/end_cloud.py had only ever
@@ -4139,7 +4170,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 141 bounds, all satisfied.
+  // 144 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
