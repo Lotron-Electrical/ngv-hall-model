@@ -3189,6 +3189,57 @@ function buildEndWalls(root){
   // apertures reliably enough to be used, and the east lower tier stays drawn from the west's evidence
   // and marked as such. What the run cost was one instrument; what it bought is that the next person
   // does not spend a day rebuilding it.
+  // EVERY HORIZONTAL LINE IN THE BALCONIES, THE WALLS AND THE CORRIDOR, AUDITED AT ONCE, AND MOST OF
+  // THEM SCORE NO BETTER THAN LINES I MADE UP (2026-09-10, tools/line_audit.py, tools/rail_sweep.py).
+  // WHY A GLOBAL AUDIT. Every run for days has taken one quantity, built an instrument, and come back
+  // with confirm or refuse. That moves a number but it cannot say WHICH number to go after next, so the
+  // order of the work has been my hunches. This asks one question of every horizontal line in the three
+  // things the goal names, at the same time, and ranks them.
+  // THE MEASUREMENT AND THE TRAP IT AVOIDS. A line drawn in the right place sits on a real edge, so read
+  // the wall 60 mm above and 60 mm below it IN METRES and take the step. Nothing here searches for an
+  // edge, so nothing can FOLLOW one: follow_test.py measured that the old finder gave back the model's
+  // own number about 45 per cent of the time. And because a busy wall would flatter every line, each line
+  // is scored against ITSELF measured at offsets of 0.15 to 0.60 m in the same frames on the same samples.
+  // CALIBRATED AT BOTH ENDS, WHICH IS WHAT MAKES THE RANKING READABLE. Six INVENTED lines, heights where
+  // this file draws nothing at all, score 0.83 to 0.97, median 0.94. That is what a line that is not
+  // there looks like. The positive control, the north opening sill, the edge of a hole and the best
+  // measured level in this model, scores 1.52 on 5209 readings. And the top of the list is not a surprise
+  // to anyone who has read this file: the EAST and WEST SOLID UPSTAND TOPS score 3.11 and 1.46, and they
+  // are exactly the lines this project has always said are the only balcony lines the floor imagery can
+  // resolve. The instrument agrees with the record where the record is strongest.
+  // AND THEN THE RESULT. Of the twenty lines this model draws, three sit on a real edge, two are weak,
+  // and TWELVE score no higher than the best line I invented. The corridor floor reads 1.07 and its
+  // ceiling 1.01, which matches what this file already admits: both rest on one lamp locus crossing one
+  // back wall. The north opening head reads 1.24, weak, which is also expected and already on record
+  // because its own soffit shadows it.
+  // A LOW SCORE IS NOT A REFUTATION AND THE LIST SAYS SO. A line between two surfaces of the same tone,
+  // or one this wall hides, scores nothing whether it is right or wrong. What a low score IS is a
+  // statement that the drawn position rests on nothing photometric, and that is a queue worth working in
+  // order instead of by hunch.
+  // THE BOTTOM OF THAT QUEUE IS THE GLASS RAIL TOP, ON BOTH FACES, AND IT WAS FOLLOWED UP THE SAME DAY.
+  // East 0.73 and west 0.74, LOWER than every one of the six invented lines. tools/rail_sweep.py then
+  // walked h from the deck up past the rail on both end faces, with the SOLID UPSTAND TOP inside the walk
+  // as a control that has to appear. It does, strongly: 3.66 times the sweep median on the east and 2.13
+  // on the west, and on the east it is the peak of the entire walk. So the sweep can find the one edge on
+  // that face which is known to exist.
+  // WHERE THE RAIL IS DRAWN, THERE IS NOTHING. The drawn rail top reads 0.89 times its own sweep median
+  // on the east and 0.64 on the west: below the median on both faces, on faces where the control fires
+  // two to four times harder. Glass has no tone of its own, so this could still be the material rather
+  // than the number, and that is why the sweep looked higher up rather than stopping there.
+  // ABOVE THE UPSTAND THE TWO FACES DO NOT AGREE, AND THE HONEST READING IS A CANDIDATE. East: the
+  // strongest height above the upstand is h 9.44, which is deck plus 1.10, on 1.46 times the median.
+  // West: the strongest is h 9.39, deck plus 1.05, but only 1.13 times the median, which is under the bar
+  // this run set before it ran, so the west face reports NO edge above its upstand. The two peaks land 50
+  // mm apart while failing to agree on whether either is real.
+  // NOTHING MOVES, AND HERE IS EXACTLY WHY NOT AND WHAT WOULD. Three things now point the same way: the
+  // drawn 1.525 sits OUTSIDE this file's own recorded bracket of 1.080 to 1.465; the audit puts both
+  // drawn rail tops below invented lines; and the east sweep finds a candidate on 1.10 with the west's
+  // strongest on 1.05, both INSIDE that bracket. That is not enough, because one peak on one face with a
+  // weak echo on the other is not a measurement, and the bracket is a record this run did not re-derive.
+  // The test that would settle it is named rather than left implied: the same sweep run per capture
+  // instead of pooled, so the four captures that see an end can agree or disagree with each other the way
+  // they were made to for the parapet top. Until then the rail stays on 1.459 west and 1.525 east, and it
+  // is now the best-evidenced suspect in the model rather than one of my hunches.
   // THE SOUTH WALL HAD NEVER BEEN TESTED BY ANYTHING, AND IT PASSES (2026-09-10, tools/south_wall.py).
   // THE RULE THIS RUN COST ME TWICE IN A DAY, SO IT GOES FIRST. Do not state what this file draws from
   // its constants or its comments. Read the draw call and every if that gates it. ENDW still carries
@@ -4831,7 +4882,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 214 bounds, all satisfied.
+  // 219 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

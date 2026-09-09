@@ -1409,6 +1409,78 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# EVERY DRAWN LINE AUDITED AT ONCE (2026-09-10, tools/line_audit.py, tools/rail_sweep.py).
+LA = {'segments': 82, 'named': 26, 'step': 0.06,
+      'inv_lo': 0.83, 'inv_hi': 0.97, 'inv_med': 0.94, 'inv_n': 6,
+      'sill': 1.52, 'sill_n': 5209, 'east_up': 3.11, 'west_up': 1.46,
+      'strong': 3, 'weak': 2, 'flat': 15, 'drawn': 20, 'no_better': 12,
+      'cfloor': 1.07, 'cceil': 1.01, 'ohead': 1.24,
+      'e_rail': 0.73, 'w_rail': 0.74,
+      'e_ctl': 3.66, 'w_ctl': 2.13, 'e_drawn': 0.89, 'w_drawn': 0.64,
+      'e_cand': 1.10, 'e_cand_s': 1.46, 'w_cand': 1.05, 'w_cand_s': 1.13, 'bar': 1.25,
+      'rt_east': 1.525, 'rt_west': 1.459, 'brk_lo': 1.080, 'brk_hi': 1.465}
+check('the model was audited line by line, with a control on each end of the scale',
+      LA['inv_hi'] < 1.0 < LA['sill'] and LA['east_up'] > LA['sill'],
+      'every horizontal line in the balconies, the walls and the corridor went through one measurement: '
+      'read the wall %.0f mm above and below it IN METRES and take the step, scored against ITSELF at '
+      'offsets of 0.15 to 0.60 m in the same frames. Nothing searches for an edge, so nothing can FOLLOW '
+      'one, which is the trap follow_test.py measured as about 45 per cent of the old answer. %d INVENTED '
+      'lines, heights where this file draws nothing, score %.2f to %.2f, median %.2f: that is what a line '
+      'that is not there looks like. The positive control, the north opening sill, scores %.2f on %d '
+      'readings. And the top of the list is the EAST and WEST SOLID UPSTAND TOPS on %.2f and %.2f, which '
+      'are exactly the lines this project has always said are the only balcony lines the floor imagery '
+      'can resolve. The instrument agrees with the record where the record is strongest.'
+      % (1000 * LA['step'], LA['inv_n'], LA['inv_lo'], LA['inv_hi'], LA['inv_med'], LA['sill'],
+         LA['sill_n'], LA['east_up'], LA['west_up']),
+      'tools/line_audit.py')
+check('and twelve of the twenty lines it draws score no higher than the best line I invented',
+      LA['no_better'] > LA['drawn'] / 2 and LA['cfloor'] < 1.10 and LA['cceil'] < 1.10,
+      'three lines sit on a real edge, two are weak, and %d of the %d score no higher than the best of '
+      'the invented ones. The corridor floor reads %.2f and its ceiling %.2f, which matches what this '
+      'file already admits, that both rest on one lamp locus crossing one back wall. The north opening '
+      'head reads %.2f, weak, also expected and on record because its own soffit shadows it. A low score '
+      'is NOT a refutation: a line between two surfaces of the same tone, or one the wall hides, scores '
+      'nothing whether it is right or wrong. It is a statement that the drawn position rests on nothing '
+      'photometric, and that is a queue to work in order instead of by hunch.'
+      % (LA['no_better'], LA['drawn'], LA['cfloor'], LA['cceil'], LA['ohead']),
+      'tools/line_audit.py')
+check('the glass rail top comes last on both faces, below every line I made up',
+      LA['e_rail'] < LA['inv_lo'] and LA['w_rail'] < LA['inv_lo'],
+      'east %.2f and west %.2f against invented lines running %.2f to %.2f. That is the bottom of the '
+      'whole audit, and it is the one number in the balconies that has never had any instrument on it: '
+      'the drawn %.3f east sits OUTSIDE the bracket of %.3f to %.3f this file already records.'
+      % (LA['e_rail'], LA['w_rail'], LA['inv_lo'], LA['inv_hi'], LA['rt_east'],
+         LA['brk_lo'], LA['brk_hi']),
+      'tools/line_audit.py')
+check('so it was swept, and the sweep proves itself on the one edge that face is known to have',
+      LA['e_ctl'] > LA['bar'] and LA['w_ctl'] > LA['bar'] and
+      LA['e_drawn'] < 1.0 and LA['w_drawn'] < 1.0,
+      'rail_sweep.py walks h from the deck up past the rail on both end faces with the SOLID UPSTAND TOP '
+      'inside the walk as a control that has to appear. It does: %.2f times the sweep median on the east '
+      'and %.2f on the west, and on the east it is the peak of the entire walk. Where the rail is drawn '
+      'there is nothing: %.2f times its own median on the east and %.2f on the west, BELOW the median on '
+      'both faces where the control fires two to four times harder. Glass has no tone of its own, so that '
+      'could be the material rather than the number, which is why the sweep looked higher rather than '
+      'stopping there.'
+      % (LA['e_ctl'], LA['w_ctl'], LA['e_drawn'], LA['w_drawn']),
+      'tools/rail_sweep.py')
+check('and the candidate it found is not acted on, with the test that would settle it named',
+      LA['e_cand_s'] > LA['bar'] > LA['w_cand_s'] and
+      LA['brk_lo'] <= LA['e_cand'] <= LA['brk_hi'] and LA['rt_east'] > LA['brk_hi'],
+      'above the upstand the two faces do NOT agree. East: the strongest height is deck plus %.2f on '
+      '%.2f times the median. West: the strongest is deck plus %.2f but only %.2f times, under the bar '
+      'of %.2f this run set before it ran, so the west reports no edge above its upstand at all. The two '
+      'peaks land 50 mm apart while failing to agree that either is real. Three things now point one way: '
+      'the drawn %.3f is outside the recorded bracket %.3f to %.3f, the audit puts both drawn rail tops '
+      'below invented lines, and the sweep candidates %.2f and %.2f are both INSIDE that bracket. It is '
+      'still not enough, because one peak on one face with a weak echo is not a measurement and the '
+      'bracket was not re-derived here. THE TEST THAT WOULD SETTLE IT: the same sweep run PER CAPTURE '
+      'rather than pooled, so the four captures that see an end can agree or disagree with each other the '
+      'way they were made to for the parapet top. Until then the rail stays on %.3f west and %.3f east, '
+      'and it is the best-evidenced suspect in the model rather than one of my hunches.'
+      % (LA['e_cand'], LA['e_cand_s'], LA['w_cand'], LA['w_cand_s'], LA['bar'], LA['rt_east'],
+         LA['brk_lo'], LA['brk_hi'], LA['e_cand'], LA['w_cand'], LA['rt_west'], LA['rt_east']),
+      'tools/rail_sweep.py')
 # THE SOUTH WALL, TESTED FOR THE FIRST TIME (2026-09-10, tools/south_wall.py).
 SW = {'posed': 1568, 'facing': 328, 'walk_facing': 137, 'nframes': 237, 'sframes': 242,
       'nholes': 12, 'sholes': 0, 'of': 12, 'blind_found': 8,
