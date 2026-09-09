@@ -3112,6 +3112,30 @@ function buildEndWalls(root){
   // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
   // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
   // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // A TEST THAT REFUSED, AND THE GAP IT FOUND ON THE WAY (2026-09-09, tools/west_recess.py,
+  // tools/occupancy_audit.py). The west solid parapet moved 0.484 m behind its face this evening on two
+  // instruments that agree, the near-far station scan and the arrival cap. Both are photometric. Both
+  // read brightness on a wall. A systematic fault in how this archive reads that particular end would be
+  // carried by both, so a third instrument sharing nothing with them was worth building.
+  // A POSED CAMERA CENTRE IS A PLACE A LENS PHYSICALLY WAS, and nobody stands inside a solid. If any lens
+  // sat in the volume between the old face plane and the new one, at that parapet's height, the recess
+  // would be confirmed by occupancy, without reading a single pixel value. The east, measured flush by
+  // the same scan, is the control: its equivalent volume is solid and must be empty.
+  // IT CAME BACK EMPTY AT BOTH ENDS. Across 1,398 posed lenses not one stands in either band. No camera
+  // in this archive was ever that close to either parapet at that height, so occupancy can neither
+  // confirm nor deny the recess. The recess still rests on two instruments, not three, and that is
+  // written down here so it is not later remembered as three.
+  // BUT WRITING THE TEST MADE A REAL GAP OBVIOUS. The occupancy audit checks the long walls, the end
+  // walls, the floor, the gallery slabs and the corridor. It has never checked the PARAPETS. The west
+  // solid moved half a metre this evening and nothing in the harness would have noticed if it had been
+  // drawn straight through a camera. They are in the audit now, each end tested on the plane its own
+  // solid actually stands on rather than on the face, and both come back clean.
+  // AND THE AUDIT'S OWN SUMMARY WAS STALE, which the re-run exposed. It claimed 1,565 cameras across 14
+  // classes with a worst excursion of two millimetres. It now reads 1,568 across 15 and finds three real
+  // contradictions, every one of them a b6s frame: two put eight metres through the south wall and one
+  // puts eleven through the east end wall. That is the registration this file already records as posing
+  // its clip outside the building, and nothing rests on it, but the summary said none and there were
+  // three.
   // THE OPENING HEAD LEAN COMES OFF THE UNMEASURED LIST, AND IT WAS NEVER A LEAN (2026-09-09,
   // tools/head_lean.py). Forty to two hundred and five millimetres of disagreement between the twelve
   // opening heads has sat unexplained all day. It was put on that list while the wall's depth was an
@@ -3252,7 +3276,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 62 bounds, all satisfied.
+  // 63 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

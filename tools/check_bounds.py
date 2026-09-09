@@ -679,11 +679,34 @@ check('the south tapestries sit on their measured plane',
       'measured 15.257 and 15.267 in the two bays from 1,737 and 28,470 points; drawn %s'
       % ', '.join('%.3f' % d for d in southtap),
       'tools/wall_planes.py')
-check('nobody stood inside a solid',
-      True,
-      '1,565 posed cameras across 14 classes, the worst excursion 0.002 m against a 0.200 m allowance. '
-      'Re-run tools/occupancy_audit.py to re-derive it.',
+# THE PARAPETS WERE NEVER IN THIS AUDIT, and the gap was found by a test that refused (2026-09-09,
+# tools/west_recess.py, tools/occupancy_audit.py). The occupancy test went looking for a lens inside the
+# west parapet to confirm by occupancy what two photometric instruments had already found about the
+# recess. It came back empty and settled nothing. But writing it made the gap plain: the audit checked
+# the walls, the end walls, the floor, the gallery slabs and the corridor, and never the parapets. The
+# west solid moved 0.484 m this evening and nothing would have noticed if it had been drawn through a
+# camera. The parapets are in it now, each end tested on the plane its solid actually stands on.
+# AND THE PROSE THAT USED TO SIT HERE WAS STALE. It claimed 1,565 cameras across 14 classes and a worst
+# excursion of 2 mm. The audit now reads 1,568 across 15 and finds three real contradictions, all of them
+# b6s frames that this archive already knows are posed outside the building.
+OCC = {'cams': 1568, 'classes': 15, 'contradictions': 3, 'badclass': 'b6s', 'parapet_hits': 0}
+check('nobody stood inside a solid, and the parapets are finally among the solids',
+      OCC['parapet_hits'] == 0,
+      '%d posed cameras across %d classes. %d cameras beat the 0.200 m allowance and every one of them is '
+      'a %s frame: two put 8 m through the south wall and one puts 11 m through the east end wall, which '
+      'is the registration already recorded as posing that clip outside the hall, and nothing in this '
+      'model rests on it. NO camera is inside either gallery parapet, which is a check that did not exist '
+      'until this evening.'
+      % (OCC['cams'], OCC['classes'], OCC['contradictions'], OCC['badclass']),
       'tools/occupancy_audit.py')
+check('the occupancy test that refused is kept as a refusal',
+      True,
+      'looking for a lens inside the volume the west parapet used to occupy found none, and none in the '
+      'east control either, so occupancy can neither confirm nor deny the recess. No camera in this '
+      'archive stood that close to either parapet at that height. The recess still rests on the near-far '
+      'station scan and the arrival cap, which is two instruments and not three, and this is written down '
+      'so that it is not later remembered as a third.',
+      'tools/west_recess.py')
 
 print('MEASURED BOUNDS ON THE BALCONIES, THE WALLS AND THE ROOM BEHIND THE BRICK WALL')
 print('')

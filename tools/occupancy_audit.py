@@ -60,6 +60,12 @@ FACE = grab(r'face:([0-9.]+)')
 WFACE = UMIN + FACE
 EFACE = UMAX - FACE
 OPENDEPTH = grab(r'openDepth:([0-9.]+)')
+LOWUP = grab(r'lowUpstand:([0-9.]+)')
+PARTHICK = 0.30                      # how thick a solid parapet is assumed to be, deliberately thin
+UPS = {'west': grab(r'upstands:\{west:([0-9.]+)'),
+       'east': grab(r'upstands:\{west:[0-9.]+,\s*east:([0-9.]+)\}')}
+SETB = {'west': grab(r'upstandSet:\{west:([0-9.]+)'),
+        'east': grab(r'upstandSet:\{west:[0-9.]+,\s*east:([0-9.]+)\}')}
 CWIDTH = grab(r'corridor:\{width:([0-9.]+)')
 print('openings', len(OPEN), 'sill', OPENY[0], 'head', OPENY[1])
 print('gallery floors', FLOORS, 'slab', SLAB, 'parapet faces u', round(WFACE, 3), 'and', round(EFACE, 3))
@@ -108,6 +114,21 @@ for cls, stem, cu, cd, cy in rows:
         if UMIN <= cu <= WFACE or EFACE <= cu <= UMAX:
             if fl - SLAB < cy < fl and 0.0 < cd < DS:
                 tests.append(('an end gallery slab', min(cy - (fl - SLAB), fl - cy), cls, stem, cu, cd, cy))
+    # THE GALLERY PARAPETS, ADDED 2026-09-09 AFTER A TEST THAT REFUSED FOUND THE GAP. tools/west_recess.py
+    # went looking for a lens inside the west parapet, to confirm by occupancy what two photometric
+    # instruments had already found. It came back empty, which settled nothing, but in writing it the gap
+    # was obvious: this audit checks the walls, the end walls, the floor, the gallery slabs and the
+    # corridor, and it has never checked the parapets. The west solid moved 0.484 m this evening and
+    # nothing here would have noticed if it had been drawn through a camera.
+    # The solid stands on its own plane, which is NOT the face plane at the west end, so each end is
+    # tested where it is actually drawn rather than where the face is.
+    for side, uface, sgn in (('west', WFACE, +1.0), ('east', EFACE, -1.0)):
+        usolid = uface - sgn * SETB.get(side, 0.0)
+        for fl, up in ((FLOORS[0], LOWUP), (FLOORS[1], UPS.get(side, LOWUP))):
+            near, far = sorted((usolid, usolid - sgn * PARTHICK))
+            if near <= cu <= far and fl <= cy <= fl + up and 0.0 < cd < DS:
+                tests.append(('a %s gallery parapet' % side,
+                              min(cu - near, far - cu, cy - fl, fl + up - cy), cls, stem, cu, cd, cy))
     # THE CORRIDOR'S OWN WALLS. Its back wall stands one width past the reveal; past that is outside the
     # building's modelled volume altogether.
     if cd < DN - OPENDEPTH - CWIDTH:
