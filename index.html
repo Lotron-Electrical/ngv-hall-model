@@ -2884,6 +2884,31 @@ function buildEndWalls(root){
   // do carry a dark overhead band across the top of the picture (b7s_000132, standing 1.07 m behind the
   // east parapet), which is this soffit seen from under it, but its edge sits outside the frame, so it
   // gives a sightline and not a height. head 11.1 and soffitDepth 2.1 are therefore UNCHANGED.
+  // AND THEN THE SAME TRICK THAT CRACKED THE CORRIDOR PUT A CEILING ON THIS ONE (2026-09-09,
+  // tools/gallery_lamp.py). Three instruments failed on this edge because they all went looking for a
+  // BOUNDARY in a picture. This one never does. It triangulates the galleries' own light fittings from
+  // the hall floor, where the whole gallery face is in frame and the frames are twenty metres apart, and
+  // then uses the fact that those rays ARRIVED.
+  //   EAST, six fittings, each from 56 to 82 rays with 26 to 93 mm ray agreement:
+  //     u 48.854  d  8.887  h 13.151      u 48.855  d 9.227  h 13.138      u 49.374  d 8.688  h 13.103
+  //     u 48.887  d  5.819  h 13.081      u 49.558  d 4.849  h 12.912      u 48.973  d 6.591  h 12.780
+  //   WEST, one under the soffit, u 2.638 d 5.685 h 13.129 from 34 rays, and one clear of it at
+  //     u 1.664 d 2.425 h 10.116 from 33 rays, which is a fitting this file does not carry.
+  // THE BOUND, and it is the first hard statement anything has made about this ceiling. Each of those
+  // fittings stands under the drawn soffit and was photographed from the hall, so no slab blocked the
+  // sightline. The slab is horizontal and the ray is rising, so a ray already above the slab where it
+  // crosses the gallery face stays above it; a slab HIGHER than that crossing would have caught the same
+  // ray on its underside. Every lamp therefore caps the ceiling rather than raising it. The tightest ray
+  // in the east crosses the face on h 11.633 and in the west on 11.825.
+  //   the ceiling over the EAST deck cannot sit above h 11.633
+  //   the ceiling over the WEST deck cannot sit above h 11.825
+  // The deck cameras stand under it as high as h 10.23, so the east gallery ceiling is bracketed between
+  // 10.23 and 11.633 and the drawn 11.1 sits inside that bracket with room on both sides. head 11.1
+  // therefore STAYS, no longer as an unmeasured number but as one inside a measured bracket 1.4 m wide.
+  // The fittings at h 12.78 to 13.15 also settle the line below this one: they are seen from the hall
+  // floor standing 0.8 to 1.5 m inside the parapet, which can only happen if the space over the soffit is
+  // open to the glass roof, exactly as this file builds it. They are not drawn, because the canopy's own
+  // spotlights are already built and a second set would double them.
   // the soffit is a 2.1 m deep front canopy (w2_000252: its lit edge on 11.1, its underside for 2.1 m, then the lit
   // back wall rising past it; d4_000049: the exit light on the back wall on 11.07 with stone above it to the canopy)
   { const uS=uF+s*W.soffitDepth; quad([[uF,0,W.head],[uS,0,W.head],[uS,D,W.head],[uF,D,W.head]],topSoffitMat,'gallery-soffit'); }
