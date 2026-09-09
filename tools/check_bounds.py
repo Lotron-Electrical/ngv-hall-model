@@ -637,6 +637,45 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# A THIRD INSTRUMENT ON THE OPENING 3 MOVE (2026-09-10, head_lean.py re-windowed, open3_window.py).
+OW = {'head_was': 2, 'head_now': 11, 'nb_lo': 8, 'nb_hi': 45, 'sill_now': 8.770, 'gap': 0.000,
+      'null': 0.012, 'stops': 82, 'any': 27, 'firm': 16, 'run_lo': 11.750, 'run_hi': 12.500,
+      'run_c': 12.125, 'moved_c': 12.0935, 'drawn_c': 11.3135, 'res': 0.375}
+check('the move had a consequence in a tool nobody had looked at, and it points the same way',
+      OW['head_now'] > 4 * OW['head_was'],
+      'head_lean.py selects its rays by u window, so an opening drawn in the wrong place makes it fit '
+      'rays that came off the PIER. Where opening 3 used to be drawn it found %d head rays against %d to '
+      '%d in its neighbours, and no sill consensus whatever. Re-windowed onto the moved position the '
+      'SAME rays answer: the head count goes to %d and the sill returns h %.3f with a near-far split of '
+      '%.0f mm on a null of %.0f. Those rays were detected by a wall edge detector that knew nothing '
+      'about where any opening was drawn, so this is not the photographs being asked twice.'
+      % (OW['head_was'], OW['nb_lo'], OW['nb_hi'], OW['head_now'], OW['sill_now'],
+         1000 * OW['gap'], 1000 * OW['null']),
+      'tools/head_lean.py')
+check('and a swept window shows it answers there rather than everywhere',
+      OW['firm'] < 0.3 * OW['stops'] and OW['run_lo'] < OW['moved_c'] < OW['run_hi']
+      and not (OW['run_lo'] < OW['drawn_c'] < OW['run_hi']),
+      'a window slid until it finds something will find something, so the window was swept across the '
+      'whole bay in 50 mm steps, %d stops, each asked the identical question with the identical code. '
+      '%d produce any consensus and %d survive their own near-far split, %.0f per cent of the bay, so '
+      'the test is selective rather than automatic, and opening 5 with 31 rays returns nothing. The firm '
+      'stops run u %.3f to %.3f: the moved centre %.4f sits %.3f m from the middle of that run and the '
+      'drawn centre %.4f sits %.3f m from it, outside the run entirely.'
+      % (OW['stops'], OW['any'], OW['firm'], 100.0 * OW['firm'] / OW['stops'], OW['run_lo'],
+         OW['run_hi'], OW['moved_c'], abs(OW['moved_c'] - OW['run_c']), OW['drawn_c'],
+         abs(OW['drawn_c'] - OW['run_c'])),
+      'tools/open3_window.py')
+check('and what that agreement is worth is stated rather than implied',
+      OW['res'] > 0.3,
+      'the firm run is %.3f m wide, so this localises the opening to about %.2f m and no better, nowhere '
+      'near the 0.780 the shift itself was measured to. It cannot refine the move. What it could do is '
+      'refuse it, and it did not. Separately, head_lean.py counted the twelve openings from ZERO while '
+      'every tool written since counts from one, so its published outlier "opening 3" is the opening on '
+      'u 15.23, which the newer tools call opening 4: two openings carried one name in one repository, '
+      'which is how a corroboration gets claimed that was never there. It now counts from one and reads '
+      'the array out of index.html rather than keeping its own copy.'
+      % (OW['run_hi'] - OW['run_lo'], OW['res']),
+      'tools/open3_window.py')
 # THE BLACK BAND NAMED, AND THE BAR DELETED (2026-09-10, rail_over.py with rail_band.py).
 RO = {'back': 0.164, 'eye': 9.810, 'thick': 0.06, 'subtend': 18, 'seen': 49, 'glass': 47,
       'hand': 0, 'solid': 0, 'ctrl_e': 0.51, 'ctrl_w': 0.63, 'band_n': 29, 'band_hits': 1,
@@ -2171,7 +2210,9 @@ print('AND ONE OPENING HAS NOW MOVED. Opening 3 of the twelve in the north wall 
 print('interior read BRIGHTER than the stone beside it, it sat 0.784 m off a rhythm the other eleven keep')
 print('to 0.115, the photographs put it 0.780 m east of where it was drawn while eleven controls stayed')
 print('put, and no jamb had ever been measured within 9 m of it. It moved. That is the first time a piece')
-print('of this model has changed position rather than been deleted on a measurement.')
+print('of this model has changed position rather than been deleted on a measurement. A third instrument')
+print('has since agreed with it: rays detected years ago by a wall edge detector, re-windowed onto the')
+print('new position, answer there and not where the opening used to be drawn.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')

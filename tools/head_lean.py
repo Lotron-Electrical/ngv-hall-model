@@ -18,15 +18,27 @@
 # head and NOT in the sill. Their DIFFERENCE, the opening height, cancels everything common and keeps only
 # what is genuinely different between the openings, and neither edge alone can separate those.
 #   nothing here needs new imagery: it is entirely a better question put to rays already on disk
+import io
 import os
+import re
 
 import numpy as np
 
 WALLS = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/walls'
 DNORTH = -0.030
-OPEN = [[4.098, 5.310], [7.697, 8.911], [10.707, 11.920], [15.227, 16.440], [18.917, 20.130],
-        [22.565, 23.778], [26.213, 27.426], [29.963, 31.175], [33.642, 34.853], [37.177, 38.383],
-        [40.906, 42.118], [44.526, 45.739]]
+# THE OPENINGS ARE READ OUT OF index.html AT RUN TIME, not copied in (2026-09-10). This tool selects its
+# rays by u window, so an opening drawn in the wrong place makes it fit rays that came off the PIER. That
+# is not hypothetical: opening 3 moved 0.780 m east today (tools/opening_shift.py) and the window this
+# tool used before the move returned 2 head rays where its neighbours return 8 to 45, and no sill
+# consensus at all. Re-windowing the SAME rays, which carry their own u and were detected with no
+# knowledge of the opening array, is an independent check on that move.
+def _openings():
+    src = io.open('index.html', encoding='utf-8').read()
+    m = re.search(r'const WALLF=\{openings:\[(.*?)\],\s*\n', src, re.S)
+    return [[float(a), float(b)] for a, b in re.findall(r'\[([0-9.]+),([0-9.]+)\]', m.group(1))]
+
+
+OPEN = _openings()
 INSET = 0.15              # stay clear of the jamb corners, where the head detector meets the jamb
 DRAWN = {'head': 11.165, 'sill': 8.740}
 TOL = 0.05
@@ -61,11 +73,13 @@ for edge in ('head', 'sill'):
         sel = np.logical_and(UU > lo + INSET, UU < hi - INSET)
         sub = rays[sel]
         if len(sub) < 24:
-            print('   %2d        %6.2f to %6.2f  %5d   too few rays to ask' % (i, lo, hi, len(sub)))
+            print('   %2d        %6.2f to %6.2f  %5d   too few rays to ask'
+              % (i + 1, lo, hi, len(sub)))
             continue
         value, n = consensus(sub, DNORTH, DRAWN[edge])
         if value is None:
-            print('   %2d        %6.2f to %6.2f  %5d   no consensus in the window' % (i, lo, hi, len(sub)))
+            print('   %2d        %6.2f to %6.2f  %5d   no consensus in the window'
+              % (i + 1, lo, hi, len(sub)))
             continue
         dist = np.abs(sub[:, 0] - DNORTH)
         cut = float(np.median(dist))
@@ -77,7 +91,7 @@ for edge in ('head', 'sill'):
         null = abs(vodd - veven) if (vodd is not None and veven is not None) else float('nan')
         rows.append((i, float((lo + hi) / 2), value, n, gap, null))
         print('   %2d        %6.2f to %6.2f  %5d  %7.3f      %+6.0f mm    %5.0f mm  %5.0f mm'
-              % (i, lo, hi, n, value, 1000 * (value - DRAWN[edge]), 1000 * gap, 1000 * null))
+              % (i + 1, lo, hi, n, value, 1000 * (value - DRAWN[edge]), 1000 * gap, 1000 * null))
     if not rows:
         continue
     per[edge] = {r[0]: r[2] for r in rows}
@@ -106,7 +120,7 @@ sills = np.array([per['sill'][i] for i in common])
 print('THE SILL IS THE CONTROL. %d openings answered on both edges.' % len(common))
 print('   opening   head        sill       the opening height between them')
 for i, a, b in zip(common, heads, sills):
-    print('   %2d       %7.3f     %7.3f     %7.3f m' % (i, a, b, a - b))
+    print('   %2d       %7.3f     %7.3f     %7.3f m' % (i + 1, a, b, a - b))
 corr = float(np.corrcoef(heads, sills)[0, 1])
 tall = heads - sills
 print('')

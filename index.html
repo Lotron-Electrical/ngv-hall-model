@@ -3151,6 +3151,27 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // A THIRD INSTRUMENT AGREED WITH THE OPENING 3 MOVE, AND IT WAS ASKED IN A WAY THAT COULD REFUSE
+  // (2026-09-10, tools/head_lean.py re-windowed, tools/open3_window.py).
+  // THE MOVE HAD A CONSEQUENCE NOBODY HAD LOOKED FOR. head_lean.py selects its rays by u window, so an
+  // opening drawn in the wrong place makes it fit rays that came off the PIER. Where opening 3 used to
+  // be drawn it found 2 head rays, against 8 to 45 in its neighbours, and no sill consensus at all.
+  // RE-WINDOWED ONTO THE MOVED POSITION, THE SAME RAYS ANSWER. The head count goes from 2 to 11 and the
+  // sill returns h 8.770 with a near-far split of 0 mm on a null of 12. Those rays were detected long
+  // ago by a wall edge detector that knew nothing about where any opening was drawn, so this is not the
+  // photographs being asked twice.
+  // AND THEN THE OBVIOUS OBJECTION WAS PUT TO IT, because a window slid until it finds something will
+  // find something, and this file has been caught by that before. The window was swept across the whole
+  // bay in 50 mm steps, 82 stops, each asked the identical question with the identical code. 27 stops
+  // produce any consensus and 16 survive their own near-far split, which is 20 per cent of the bay: the
+  // test is selective, not a rubber stamp, and opening 5 with 31 rays returns nothing at all.
+  // THE FIRM STOPS RUN u 11.750 TO 12.500. The moved centre 12.094 sits 0.032 m from the middle of that
+  // run. The drawn centre 11.313 sits 0.812 m from it and outside the run entirely.
+  // WHAT IT IS WORTH, STATED PLAINLY. The firm run is 0.750 m wide, so this localises the opening to
+  // about 0.38 m and no better; it is nowhere near the 0.780 the shift was measured to. It cannot refine
+  // the move. What it can do, and did, is refuse it, and it did not: a third line of evidence, on rays
+  // rather than pixels or arithmetic, puts the opening where the other two put it and not where this
+  // file used to draw it.
   // THE BLACK BAND HAS A NAME, AND NAMING IT COST THIS MODEL A SURFACE (2026-09-10,
   // tools/rail_over.py with tools/rail_band.py).
   // IT WAS gallery-handrail, an opaque Lambert quad drawn across the whole width of the gallery on
@@ -4282,6 +4303,11 @@ function buildEndWalls(root){
   // head and the sill together. A difference in how the openings were BUILT moves the head alone.
   // THEY CORRELATE +0.96, AND ONE OPENING CARRIES MOST OF IT. Opening 3 stands 73 mm high on its head and
   // 38 mm high on its sill, high on both, which is the common-mode signature and not a taller opening.
+  // AMENDED 2026-09-10: THAT "OPENING 3" IS NOT THE OPENING EVERYTHING ELSE CALLS OPENING 3.
+  // head_lean.py counted the twelve from ZERO and every tool written since counts from one, so the
+  // outlier named here is the opening on u 15.23 to 16.44, which the newer tools call opening 4. Two
+  // different openings carried one name inside one file, which is exactly how a corroboration gets
+  // claimed that was never there. head_lean.py now counts from one and reads the array out of this file.
   // SO THE INVARIANT IS THE ANSWER. Head minus sill cancels everything that moves both, and it runs 2.423
   // to 2.461 across five openings, a 38 mm spread where the head alone spreads 79. On the four that agree
   // with each other it is 2.423 to 2.440, a spread of 17 mm about 2.430. THE OPENINGS ARE 2.43 M TALL, and
@@ -4407,7 +4433,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 170 bounds, all satisfied.
+  // 173 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
