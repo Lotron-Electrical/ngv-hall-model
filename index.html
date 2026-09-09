@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.778,11.222], openDepth:0.9, corridor:{width:2.0, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:2.06, floor:8.34, ceil:11.4, lamps:[[30.642,-1.093,10.374],[34.139,-2.144,10.990],[42.043,-1.824,10.908]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); width no longer from the plan alone: three lamps inside the room are TRIANGULATED (tools/corridor_lamp.py, 2026-09-09), the deepest 2.054 m behind the wall face against the drawn 2.000; floor CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py); ceiling UNMEASURED; its ceiling from the downlight seen through the opening in the deck frame d4_000120 (h 11.29-11.46 across the corridor's depth, 2026-09-09), the lamp's u measured, its depth assumed mid-corridor */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -1273,7 +1273,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[10.707,11.920],[15.227,16.44
  // Grille 2 reads about 0.09 m west in the captures that resolve it, but only one capture resolves BOTH
  // its edges, so that cannot be applied as a shift the way the north openings were. The south wall is
  // where it is drawn; what stands on it is not measured.
- dNorth:-0.090, dSouth:15.364, uMin:0.344, uMax:51.906};
+ dNorth:-0.030, dSouth:15.364, uMin:0.344, uMax:51.906};
 const WALL_SHIFT={north:0.060, south:0.223};   // metres the scan's wall faces move towards the room
 // THE STONE ITSELF (Lloyd, 2026-09-07: "give them proper texture so we don't have to see the gross
 // smeared images"): tools/stone.jpg, a tileable limestone tile built to the photograph's stone
@@ -3106,6 +3106,40 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // AND MOVING THE FACE IMMEDIATELY BROKE SOMETHING, WHICH IS THE BOUNDS DOING THEIR JOB. The corridor's
+  // back wall is drawn as the face minus the room's width, so pulling the face 0.060 m into the hall
+  // pulled the back wall 0.060 m with it and put it IN FRONT of a lamp that was triangulated inside the
+  // room on d -2.144. A lamp cannot hang inside a wall. The back wall was never measured from the face,
+  // though: it was placed by those lamps, so it is the WIDTH that has to absorb the move, not the wall.
+  // The corridor width goes 2.00 to 2.06 and the back wall stays exactly where the lamps put it, -2.090.
+  // I CALLED THE NORTH WALL'S DEPTH UNMEASURABLE THIS AFTERNOON AND THE INSTRUMENT WAS TOO BLUNT
+  // (2026-09-09, tools/depth_v.py). tools/face_depth_scan.py fixed the depth, solved each ray's height on
+  // its own and counted how many landed inside 60 mm of the consensus. The count came back flat within
+  // two per cent over a 270 mm band, and I read that as "these rays do not measure the depth of this
+  // wall". That reading was wrong, and the reason is worth keeping: a COUNT is a poor conditioning test,
+  // because a wrong plane moves every ray's answer the same way before it spreads them, so the consensus
+  // peak simply follows the error and keeps most of its rays. Flat count, no information about the plane.
+  // THE END WALLS HANDED ME A SHARPER TEST AN HOUR LATER AND IT WAS NEVER TURNED ROUND ON THIS ONE. Split
+  // the rays by how far the camera stood from the plane. A wrong plane costs a shallow ray a different
+  // amount of height than a steep one, so near and far cameras agree only where the plane really is. And
+  // a null split, odd rays against even, runs beside it to say what the machinery does on its own.
+  // DONE THAT WAY THE WALL ANSWERS, AND TWO EDGES ANSWER THE SAME. The sill puts the plane on d -0.030
+  // with its halves 1 mm apart there against 26 mm at the far end of the sweep, on a null that never
+  // exceeds 3, a ratio of 9.1. The head, a different ladder, an opposite polarity and a quarter of the
+  // rays, lands on the SAME -0.030, 2 mm against 55, null 15, ratio 3.7. Two edges of one wall, fitted
+  // separately, agreeing on a plane to better than the step of the sweep.
+  // SO THE FACE MOVES 0.060 M INTO THE HALL, and the sill and head come down with it because they were
+  // anchored onto the drawn plane this afternoon and the locus carries about half a metre of height per
+  // metre of depth. openY becomes 8.740 and 11.165, from 8.778 and 11.222.
+  // THE CORRIDOR TOOK THE SAME TEST AND REFUSED IT AGAIN, and this refusal is the stronger one, because
+  // the sharper test can tell a degenerate fit from a noisy one and it says degenerate: ratio 2.5 against
+  // a bar of 3, with its best plane sitting on the EDGE of the sweep, which is the two halves converging
+  // as the plane nears the cameras rather than the feature being found.
+  // AND THERE IS NOW A NUMBER FOR WHY THAT ROOM CANNOT BE MEASURED. The test's power is the RATIO of the
+  // two halves' distances, and it can be stated before any fitting: the corridor's far half stands 1.32
+  // times as distant as its near half, against 2.54 for the north wall and 42 over 5 on the end walls.
+  // Every camera that can see into that room stands 12.6 to 16.7 m away because the opening collimates
+  // them, so the two halves are the same instrument twice. The locus stands.
   // THE MODEL PUT EVERY EDGE OF AN END WALL ON ONE PLANE AND NOBODY HAD EVER CHECKED (2026-09-09,
   // tools/end_face_scan.py). The apron, the lower upstand, the rail, the fascia, the solid upstand and the
   // stone over the head are all drawn on a single station uF. Two free line fits made today put two edges
@@ -3140,7 +3174,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 52 bounds, all satisfied.
+  // 53 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

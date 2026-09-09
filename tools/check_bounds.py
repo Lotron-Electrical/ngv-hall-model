@@ -131,16 +131,20 @@ for oi, bay, (rlo, rhi) in ((8, OPEN[7], (30.009, 30.986)),
 # rays never separated that edge's depth from its height. Sliding each fit along its own line onto the
 # INDEPENDENTLY measured wall face collapses the sill's spread from 149 mm to 0 and the head's from 22
 # to 5, and those anchored values are what the model now draws.
-for name, key, meas, west, east in (('sill', 'sill', 8.778, 8.778, 8.777),
-                                    ('head', 'head', 11.222, 11.223, 11.220)):
+# SUPERSEDED THE SAME EVENING, and for the better: the anchor is no longer assumed. tools/depth_v.py
+# splits the rays by camera distance and finds a real minimum, and the sill and head land on the SAME
+# plane d -0.030 from separate ladders of opposite polarity, so these heights are now read on a MEASURED
+# depth rather than slid onto a drawn one. The uncertainty falls from the 0.05 m the drawn plane carried
+# to about the 0.02 m step of that sweep, so roughly 14 mm on a sensitivity of 0.69 m per metre.
+for name, key, meas, west, east in (('sill', 'sill', 8.740, 8.778, 8.777),
+                                    ('head', 'head', 11.165, 11.223, 11.220)):
     check('the opening %s is drawn where the hall floor measures it' % name,
           abs(G[key] - meas) <= 0.006,
           'drawn on %.3f against a measured %.3f, so %+.3f m out. Three averaging windows, each forced '
           'to find the same feature and then slid onto the measured face, give %.3f and %.3f, %.3f m '
-          'apart. THAT SPREAD IS NOT THE ACCURACY: it is the agreement between three windows anchored on '
-          'the SAME assumed depth, and the depth scan shows the anchor itself is only good to about '
-          '0.05 m. At a sensitivity of 0.69 m of height per metre of depth that is +-0.035 m on this '
-          'number, and the millimetre figure quoted when it was first anchored was an overstatement.'
+          'apart, but that spread was never the accuracy: it was three windows sharing one ASSUMED depth. '
+          'The depth is now measured, both edges landing on d -0.030, so these are read on a real plane '
+          'and carry roughly 14 mm from the 0.02 m step of that sweep.'
           % (G[key], meas, G[key] - meas, west, east, abs(west - east)),
           'tools/wall_lines.py')
 # AND THE PRECISION CLAIMED FOR THIS ONE WAS WRONG, tools/face_depth_scan.py (2026-09-09). Stop fitting
@@ -152,12 +156,23 @@ for name, key, meas, west, east in (('sill', 'sill', 8.778, 8.778, 8.777),
 # stands, but "the sill line puts the face on -0.058 and the head line on -0.107" was never two
 # measurements of a depth. It was two arbitrary points on the same slide.
 check('the north wall face is where two independent edges put it',
-      abs(G['dNorth'] - (-0.083)) <= 0.06,
-      'drawn on d %.3f. The sill line puts the face on -0.058 and the head line on -0.107, from separate '
-      'detections with opposite polarities, so they agree with the drawn value to 0.032 and 0.017 m and '
-      'with each other to 0.049 m. dNorth leaves the unmeasured list on that.'
+      abs(G['dNorth'] - (-0.030)) <= 0.02,
+      'drawn on d %.3f. The near-far split with its own null finds a real minimum for BOTH edges and puts '
+      'them on the same plane: the sill on -0.030 with its halves 1 mm apart there against 26 mm by the '
+      'far end of its sweep on a null of 3, a ratio of 9.1, and the head on -0.030 with 2 mm against 55 '
+      'on a null of 15, a ratio of 3.7. Separate ladders, opposite polarities, a quarter of the rays '
+      'between them, one plane. The count-based scan that called this unmeasurable was reading a blunt '
+      'statistic: a wrong plane moves every ray the same way before it spreads them, so the consensus '
+      'peak follows the error and keeps its rays.'
       % G['dNorth'],
-      'tools/wall_lines.py')
+      'tools/depth_v.py')
+check('the corridor back wall stays where the lamps put it, whatever the face does',
+      abs(G['cBack'] - (-2.090)) <= 0.01,
+      'the back wall is drawn as the face minus the width, so moving the face 0.060 m into the hall moved '
+      'it too, and it landed IN FRONT of the deepest triangulated lamp on d -2.144. That wall was never '
+      'measured from the face; it was placed by those lamps. So the WIDTH absorbed the move, 2.00 to '
+      '2.06, and the wall stayed on %.3f.' % G['cBack'],
+      'tools/corridor_lamp.py')
 # THE JAMBS, MEASURED, tools/jamb_lines.py (2026-09-09). The same two-unknown line fit turned a third
 # way: a jamb is a VERTICAL line at constant (u, d) spanning h, so a ray meets one when
 # vd*(u* - cu) - vu*(d* - cd) = 0, and the conditioning comes from cameras spread ALONG the hall, which
@@ -200,7 +215,7 @@ check('the jamb fits do not slide with the averaging window',
       % (1000 * max(abs(a - b) for a, b in JAMBWIN)),
       'tools/jamb_lines.py')
 check('the visible jamb arris is behind the wall face, not on it',
-      abs(abs(-0.207 - G['dNorth']) - 0.117) <= 0.03,
+      abs(abs(-0.207 - G['dNorth']) - 0.177) <= 0.03,
       'the nine jamb lines average d -0.207 against a face drawn on %.3f, so the arris the detector finds '
       'stands %.3f m back. That is not a fitting artefact: fixing the depth to the face and solving for '
       'the station alone fragments each jamb into two or three lines spread over 0.33 m, where the free '
@@ -590,7 +605,15 @@ for ok, name, detail, source in notes:
     print('        %s' % source)
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
-for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. Two counted reasons'
+for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. AND THERE IS NOW A'
+             ' NUMBER FOR WHY, statable before any fitting happens. The near-far test that measured the'
+             ' north wall and the end walls has power in proportion to the RATIO of its two halves'
+             ' distances, and the corridor rays give 1.32 where the north wall gives 2.54 and the end'
+             ' walls give 42 over 5. Every camera that can see into that room stands 12.6 to 16.7 m off'
+             ' it because the opening collimates them, so the two halves are the same instrument twice.'
+             ' Run anyway it scores 2.5 against a bar of 3 and its best plane sits on the EDGE of the'
+             ' sweep, which is the halves converging as the plane nears the cameras and not the feature'
+             ' being found, tools/depth_v.py. Two counted reasons'
              ' stand behind that. FROM THE HALL FLOOR the opening collimates: seeing the whole ladder'
              ' through a 1.2 m slot forces the lens far back and the usable set collapses from an 8.64 m'
              ' baseline to 1.59 m, tools/corridor_lines.py. FROM INSIDE THE OPENINGS there is no imagery'
@@ -612,14 +635,16 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' same place, and the day-against-night test that could tell them apart has no night'
              ' imagery of that room to run on',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
-             'RESOLVED, and the question was ill-posed: the north wall face appeared to have three depths'
-             ' on it, drawn -0.090, head -0.123, jambs -0.207. Scanning the depth instead of fitting it'
-             ' shows the head rays do not constrain it: the inlier count is flat within 2 per cent from'
-             ' -0.190 to +0.080, a 270 mm band. There was never a disagreement about a measured'
-             ' quantity, because one side of it was not measuring one. The count peaks exactly on the'
-             ' drawn -0.090 and the residual is lowest between -0.08 and -0.02, and it is 50 per cent'
-             ' worse at the jamb depth, so dNorth stands and the jamb -0.207 is NOT the wall face,'
-             ' tools/face_depth_scan.py',
+             'RESOLVED, and the first answer was wrong. The count-based scan called the north wall depth'
+             ' unmeasurable because the inlier count stayed flat over a 270 mm band. A count is a blunt'
+             ' conditioning test: a wrong plane moves every ray the same way before it spreads them, so'
+             ' the consensus peak follows the error and keeps its rays. The near-far split with its own'
+             ' null finds a real minimum, and BOTH edges land on the same plane d -0.030, the sill with'
+             ' 1 mm of half-to-half agreement against 26 mm by the end of its sweep on a null of 3, the'
+             ' head with 2 mm against 55 on a null of 15. The face moved 0.060 m into the hall, the sill'
+             ' and head came down with it, and the corridor width absorbed the move so its back wall'
+             ' stays where the lamps put it. The jamb feature is now 0.177 m behind the face rather than'
+             ' 0.117, which is the face moving and not the jambs, tools/depth_v.py',
              'STILL OPEN in physics but CLOSED in consequence: what the jamb detector finds 0.117 m back.'
              ' The day-against-night test that settled the balcony front cannot run here: the 22 night'
              ' frames on that band of wall yield ZERO usable columns, even with a 3 grey level bar and an'
