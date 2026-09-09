@@ -2734,7 +2734,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], upstand:0.68, upstands:{west:0.68, east:0.77}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.1, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.89,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.68, east:0.77}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.1, soffitDepth:2.1, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -3179,10 +3179,26 @@ function buildEndWalls(root){
   // camera and a top 0.28 m higher fit the same rays. Nothing here is moved on that. What is now known is
   // WHERE to look, which is more than the four instruments that spent the afternoon on the soffit
   // produced, and the pair shot is the artefact to look at.
+  // THE TOP OF THIS FRONT IS NOW MEASURED, AND IT IS 0.40 m HIGHER THAN THIS FILE DREW IT (2026-09-09,
+  // tools/west_far.py, tools/far_edge_range.py, tools/front_open.py). From the hall floor, walking the
+  // face plane's own height ladder narrowed to h 8.2-10.0 so the ray fan cannot reach the stained-glass
+  // ceiling junction, a bright-below dark-above step fits a horizontal line at both ends:
+  //   west 366 rays inside 50 mm, median 10 mm, on u 4.160 h 9.799, near and far camera halves 0.03 m apart
+  //   east 660 rays inside 50 mm, median 15 mm, on u 48.397 h 9.865, the halves 0.07 m apart
+  //   every inlier at both ends puts it BEYOND the face plane, so the sightline crossed the plane first
+  // The detector's parity names it: bright below and dark above is the top of the LIT FRONT, not the top
+  // of the dark recess, which has the opposite parity and was never eligible. So rails[1] = 1.06 becomes
+  // railTops, 1.459 west and 1.525 east, which is what the two ends actually measure.
+  // AND THE FRONT IS OPEN UP THERE, which is why the deck arrivals could cap a SOLID on 8.818 at the same
+  // time. All 39 lenses set back from the two faces stand BELOW their measured top edge, the lowest by
+  // 0.24 m west and 0.36 m east, and every one of them photographs hall floor with people on it. A solid
+  // front to that height would let the lowest of them see nothing but ceiling. Light crossed the face as
+  // low as h 8.70, which is 0.86 m below the lens itself.
   const ups=(W.upstands&&W.upstands[side]!==undefined)?W.upstands[side]:W.upstand;
+  const rTop=(W.railTops&&W.railTops[side]!==undefined)?W.railTops[side]:W.rails[1];
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+ups],[uF,0,fl[1]+ups]],upstandMat,'gallery-parapet');
-  quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
-  quad([[uF,0,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]-0.06],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],handMat,'gallery-handrail');
+  quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],railMat,'gallery-rail');
+  quad([[uF,0,fl[1]+rTop-0.06],[uF,D,fl[1]+rTop-0.06],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],handMat,'gallery-handrail');
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
   // THREE WAYS TO MEASURE THIS CEILING, ALL THREE REFUSED (2026-09-09, tools/soffit_edge.py,
   // tools/soffit_reach.py, tools/soffit_sil.py). Recorded because a refusal that is not written down

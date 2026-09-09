@@ -50,7 +50,8 @@ G = {
     'gHead': grab(r'head:([0-9.]+), soffitDepth'),
     'upWest': grab(r'upstands:\{west:([0-9.]+)'),
     'upEast': grab(r'upstands:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
-    'railTop': grab(r'rails:\[[0-9.]+,\s*([0-9.]+)\]'),
+    'railWest': grab(r'railTops:\{west:([0-9.]+)'),
+    'railEast': grab(r'railTops:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
 }
 G['cBack'] = G['dNorth'] - G['cWidth']
 
@@ -199,15 +200,19 @@ for side, upk, uface, p5, npts in (('east', 'upEast', 48.056, 9.078, 1941),
 #   and 100 per cent of the inliers at BOTH ends put the edge beyond the face plane, by 0.03 m west and
 #   0.35 m east along the ray. The sightline crossed the plane before it arrived, so nothing solid stood
 #   above the edge at that station. That is the missing half, and the bound stands on it.
-for side, uface, edge in (('west', 4.194, 9.799), ('east', 48.056, 9.865)):
-    check('the %s balcony front is under the edge the hall floor sees' % side,
-          G['deck'] + G['railTop'] <= edge,
-          'the tallest thing the sim draws on that deck is the upper rail on %.3f, the deck %.3f plus '
-          '%.3f. The measured edge crosses u %.3f on h %.3f, so the bracket is %.3f to %.3f, %.3f m wide. '
-          'The sim sits at the bottom of it by 0.40 m, which is recorded as a gap below and not silently '
-          'closed, because the edge is measured and its IDENTITY is inferred.'
-          % (G['deck'] + G['railTop'], G['deck'], G['railTop'], uface, edge,
-             G['deck'] + G['railTop'], edge, edge - (G['deck'] + G['railTop'])),
+# AND THE SIM NOW DRAWS THAT EDGE RATHER THAN STOPPING 0.40 m UNDER IT. The identity question that kept
+# it out of the model is answered by the detector's parity: a bright-below dark-above step is the top of
+# the LIT FRONT, and the top of the dark recess above it has the opposite parity and was never eligible.
+# tools/front_open.py supplies the rest: all 39 lenses set back from the two faces stand BELOW their own
+# measured top edge and every one of them photographs hall floor, so the front is OPEN up there, which is
+# how the deck arrivals can cap a solid on 8.818 at the same time without contradiction.
+for side, key, uface, edge in (('west', 'railWest', 4.194, 9.799), ('east', 'railEast', 48.056, 9.865)):
+    drawn = G['deck'] + G[key]
+    check('the %s balcony front is drawn where the hall floor measures it' % side,
+          abs(drawn - edge) <= 0.005,
+          'front drawn on %.3f, the deck %.3f plus %.3f. The measured edge crosses u %.3f on h %.3f, so '
+          'this is %+.3f m out. It was 0.40 m out until this evening.'
+          % (drawn, G['deck'], G[key], uface, edge, drawn - edge),
           'tools/far_edge_range.py')
 check('the south tapestries hang in front of the south wall',
       all(d < G['dSouth'] for d in southtap),
@@ -257,11 +262,11 @@ for line in ('the corridor floor 8.34, and its ceiling 11.4 which only has a lam
              'and the two west instruments only agree if the parapet is NOT the solid the sim draws: the'
              ' deck arrivals cap a solid on 8.818 while the hall floor sees an edge on 9.59. A low solid'
              ' upstand with an open rail above it satisfies both. Nothing is drawn that way yet.',
-             'WHAT the measured edge is. It is 1.459 m above the drawn deck at the west and 1.525 m at'
-             ' the east, and the sim draws nothing within 0.40 m of it: its upper rail tops out on 9.400.'
-             ' Either the balcony front is 0.4 m taller than drawn, or the deck under it is 0.4 m higher,'
-             ' or the edge is something the model does not carry at all. The measurement is solid to'
-             ' 10-15 mm and split-validated; the identity is not, tools/far_edge_range.py'):
+             'the west upstand is still drawn on 0.68 against an arrival cap of 0.478. That cap is'
+             ' one-sided and from one clip, so it is not a value and the upstand is NOT moved on it; the'
+             ' bound below fails and says so, tools/gallery_arrival.py',
+             'and whether the front the hall floor measures is glass, balusters or a solid with a deep'
+             ' recess behind it. All three pass light the same way from where the cameras stood'):
     print('   ' + line)
 print('')
 if fails:
