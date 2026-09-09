@@ -66,10 +66,15 @@ frames = U.load_class(cls)
 # onto the bright side of an asymmetric edge.
 cand = []
 for fr, (cam, ip) in frames.items():
-    pts = np.array([O + uF * HU + dd * HD + np.array([0, 9.02, 0]) for dd in (2.5, 7.5, 12.5)])
+    # THE FILTER USED TO ASK FOR THREE POINTS SPREAD ACROSS THE WHOLE 15 m WIDTH and refused a frame that
+    # could not see at least two of them. A camera standing a metre from the parapet never can: from 0.89 m
+    # away it sees about a metre of the line. So the only frames in the archive that look at an end level
+    # from arm's length were refused for being CLOSE, and every parapet reading has come from 28 to 40 m
+    # away. The test is now whether the line is visible ANYWHERE, sampled finely across the whole wall.
+    pts = np.array([O + uF * HU + dd * HD + np.array([0, 9.02, 0]) for dd in np.linspace(0.05, 15.31, 121)])
     x, y, z = cam.project(pts)
-    if (z <= 0.5).any(): continue
-    if ((x > 40) * (x < cam.w - 40) * (y > 40) * (y < cam.h - 40)).sum() < 2: continue
+    vis = (z > 0.5) * (x > 40) * (x < cam.w - 40) * (y > 40) * (y < cam.h - 40)
+    if vis.sum() < 3: continue
     small = cv2.imread(ip, cv2.IMREAD_REDUCED_GRAYSCALE_4)
     if small is None: continue
     cand.append((float(cv2.Laplacian(small, cv2.CV_32F).var()), fr))
@@ -85,15 +90,26 @@ for fr in order:
     if used >= maxf: break
     img = None
     for name, hv in LEVELS:
-        ds = np.linspace(2.5, 12.5, 21)
-        pts = np.array([O + uF * HU + dd * HD + np.array([0, hv, 0]) for dd in ds])
-        up = np.array([O + uF * HU + dd * HD + np.array([0, hv + 0.25, 0]) for dd in ds])
-        x, y, z = cam.project(pts); xu, yu, zu = cam.project(up)
         win = window(hv)
         if win <= 0.0:
             acc[name] = None; continue                    # its neighbour is too close to separate
+        # SAMPLE ALONG WHAT THIS CAMERA CAN SEE, not along a fixed slice of the wall. A coarse pass finds
+        # the stretch of the level actually in frame, then the samples are spread evenly across THAT. A
+        # camera across the hall gets the whole wall as before; a camera a metre away gets the metre it can
+        # see, at a spacing fine enough to still carry 41 looks along the edge. Without this the near
+        # frames could never reach the eight-of-twenty-one visibility test and were dropped unread.
+        d0 = np.linspace(0.05, 15.31, 121)
+        p0 = np.array([O + uF * HU + dd * HD + np.array([0, hv, 0]) for dd in d0])
+        cx, cyy, cz = cam.project(p0)
+        seen = (cz > 0.5) * (cx > 40) * (cx < cam.w - 40) * (cyy > 40) * (cyy < cam.h - 40)
+        if seen.sum() < 3: continue
+        lo, hi = float(d0[seen].min()), float(d0[seen].max())
+        ds = np.linspace(lo, hi, 41)
+        pts = np.array([O + uF * HU + dd * HD + np.array([0, hv, 0]) for dd in ds])
+        up = np.array([O + uF * HU + dd * HD + np.array([0, hv + 0.25, 0]) for dd in ds])
+        x, y, z = cam.project(pts); xu, yu, zu = cam.project(up)
         ok = (z > 0.5) * (zu > 0.5) * (x > 40) * (x < cam.w - 40) * (y > 40) * (y < cam.h - 40)
-        if ok.sum() < 8: continue
+        if ok.sum() < 12: continue
         if img is None:
             img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
             if img is None: break

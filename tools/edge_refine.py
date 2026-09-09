@@ -19,6 +19,11 @@
 import numpy as np
 
 
+import os as _os
+
+MAXR = int(_os.environ.get('MAXR', 90))
+
+
 def find_edge(img, x, y, ux, uy, mpp, win, iters=4, min_contrast=10.0, max_travel=None):
     """Offset in metres from (x, y) along (ux, uy) to the strongest brightness edge, or None.
 
@@ -27,7 +32,18 @@ def find_edge(img, x, y, ux, uy, mpp, win, iters=4, min_contrast=10.0, max_trave
     being clipped: a reading that has walked two windows away is a different feature, not this one.
     """
     R = int(round(win / mpp))
-    if R < 4 or R > 90:
+    # THE UPPER CAP USED TO BE 90 PIXELS AND IT WAS THROWING AWAY THE BEST FRAMES IN THE ARCHIVE
+    # (2026-09-09). The window is set in METRES, so its size in pixels grows as the camera gets closer, and
+    # a fixed pixel cap therefore refuses a frame for being NEAR. Measured: b7s stands 0.86 to 1.00 m
+    # behind an end parapet, the only capture in the archive that sees one from arm's length rather than
+    # across 28 to 40 m of hall, and there a 0.25 m window is 490 to 566 px. All 12 of those frames, and
+    # all 27 pan-chained ones, were refused before a single pixel was read. That is a large part of why
+    # every parapet reading has come from the far side of the room, and why the fitted follow gain there
+    # runs 0.66 to 0.70: a distant instrument has little to go on but the line it started from.
+    # The cap is now a parameter and still DEFAULTS TO 90, because raising it silently would change every
+    # number ever taken with this finder, and the point of the fixed-point rewrite was that the instrument
+    # stops moving underneath the measurements. A caller that wants the near field asks for it by name.
+    if R < 4 or R > MAXR:
         return None
     if max_travel is None:
         max_travel = 2.0 * win

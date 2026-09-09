@@ -2768,8 +2768,33 @@ function buildEndWalls(root){
   // the floor walk at gain 0.20 and 0.37, would put west 0.634 and east 0.751, which keeps the asymmetry
   // and lowers both by about 40 mm. That is a hint, not a measurement, and it is written down so a future
   // pass can test it rather than rediscover it.
-  // WHAT WOULD SETTLE IT: a capture standing on one gallery and looking ALONG its own parapet, which no
-  // clip in the archive does. Not more analysis of these frames.
+  // WHAT WOULD SETTLE IT: a capture standing on one gallery and looking ALONG its own parapet.
+  // THAT CAPTURE EXISTS AND THE INSTRUMENT WAS REFUSING IT (2026-09-09, tools/parapet_near.py). b7s walks
+  // both upper galleries and stands 0.86 to 1.00 m behind a parapet in twelve frames, twenty-seven with
+  // the pan-chained ones. Two rules threw all of them away before a pixel was read:
+  //   the edge finder capped its search radius to 90 px, and the window is set in METRES, so from 0.9 m
+  //     away a 0.25 m window is 490 to 566 px and the frame was refused FOR BEING NEAR;
+  //   the frame filter required the level to be visible across the whole 15 m width, which a camera a
+  //     metre away cannot satisfy, because it sees about a metre of the line.
+  // That is why every parapet reading in this file came from 28 to 40 m away, and it is most of why the
+  // fitted gain out there is 0.66 to 0.70: a distant instrument has little to go on but its own line.
+  // Both are fixed. MAXR in tools/edge_refine.py makes the pixel cap a parameter, still defaulting to 90
+  // so no existing number moves silently, and end_levels now samples along the stretch each camera can
+  // actually see instead of a fixed slice of the wall.
+  // THE NEAR-FIELD ANSWER, three draws, gain fitted, cap raised:
+  //   EAST  b7s  9.161  gain 0.49  residual 0.004   |  b7sp 9.143  gain 0.52  residual 0.007
+  //         the two agree within 18 mm and imply an upstand of 0.812
+  //   WEST  both readings return a gain of 1.14 and 1.16, above the physical limit, so they are refused as
+  //         noise. Up close the bluestone coursing is resolved and there is an edge every 0.304 m for the
+  //         search to land on, which is the same trap that governs the opening sill.
+  // READ THE EAST RESULT FOR EXACTLY WHAT IT IS. b7sp is b7s plus its pan-chained frames and shares its
+  // anchors, so this is ONE capture read two ways, not two captures agreeing. It does not meet the
+  // three-capture standard used everywhere else in this file. What it does do is bracket: the only
+  // low-gain far reading (walk, gain 0.20) gives 9.091 and the only near reading gives 9.14 to 9.16, and
+  // the shipped 9.11 sits between them. The east upstand 0.77 therefore STAYS, no longer resting on
+  // captures that were agreeing about the drawing.
+  // The west stays 0.68 and stays unmeasured: its one low-gain far reading is 8.974 and its near readings
+  // refuse themselves.
   const ups=(W.upstands&&W.upstands[side]!==undefined)?W.upstands[side]:W.upstand;
   quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+ups],[uF,0,fl[1]+ups]],upstandMat,'gallery-parapet');
   quad([[uF,0,fl[1]+ups],[uF,D,fl[1]+ups],[uF,D,fl[1]+W.rails[1]],[uF,0,fl[1]+W.rails[1]]],railMat,'gallery-rail');
