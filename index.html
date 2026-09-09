@@ -3106,6 +3106,32 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
+  // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
+  // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
+  // the lens far back, so the set collapsed and the answer slid along the median ray. What I did not see
+  // this morning is that the BASELINE IS ONLY NEEDED BY A TWO-UNKNOWN FIT. Fix the depth and each ray
+  // gives the height on its own, one unknown, independent of every other ray, nothing to slide along.
+  // DONE THAT WAY THE ROOM ANSWERS SHARPLY. On the drawn back wall the 215 rays that came through the
+  // openings put a feature on h 10.803 from the west half of the wall and 10.803 from the east, 10.801
+  // from the nearer cameras and 10.805 from the further. Four millimetres across all four splits, where
+  // the free fit's halves disagreed by 573 mm. That is the first real signal anything has ever got out of
+  // that room, and it is the anchoring and not new imagery that got it.
+  // THE DEPTH IS STILL NOT MEASURABLE, and the sweep says so plainly: the ray count is flat, 83 to 90,
+  // across the whole range from d -3.6 to -1.2. So what this yields is a LOCUS and not a point,
+  // h = 10.806 - 0.565*(d + 2.090), and quoting a single number off it would be the same mistake the sill
+  // taught this afternoon.
+  // AND THE LAMPS CUT THAT LOCUS, WHICH IS WHERE IT GETS INTERESTING. Three lamps were triangulated
+  // inside that room and the highest hangs on h 10.990. A ceiling cannot be underneath a lamp. On the
+  // drawn back wall the feature sits on 10.806, which is 0.184 m BELOW that lamp. So if this feature is
+  // the ceiling meeting the back wall, the drawn room is wrong and that wall stands at least 2.42 m
+  // behind the face rather than the drawn 2.09.
+  // NOTHING IS MOVED, AND THE REASON IS NAMED. The feature is sharp but unidentified. A boundary where
+  // the lamps stop washing the back wall would sit in exactly the same place and would move with the
+  // lighting, and the day-against-night test that settled the balcony front has no night imagery of that
+  // room to run on. A conditional contradiction is not a measurement, and it is written down as what it
+  // is: the strongest thing this archive has ever said about the corridor, and still not enough to draw.
+  // 41 bounds, all satisfied.
   // A STONE EDGE READS THE SAME UNDER ANY LIGHT, AND THE BALCONY FRONT DOES (2026-09-09,
   // tools/front_anchor.py, tools/west_far.py with FAR, tools/jamb_lines.py with CLASSES). The open
   // question was what the jamb detector finds 0.117 m behind the wall face: a rebate in the stone, or the

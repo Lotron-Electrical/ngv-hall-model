@@ -78,7 +78,12 @@ CONTROL = os.environ.get('CONTROL', '') == '1'
 # one target apart, which is the whole point.
 SURF = DNORTH if CONTROL else DBACK
 TARGD, TARGH = (DNORTH, HEAD) if CONTROL else (DBACK, CEIL)
-HS = np.arange(TARGH - 0.9, TARGH + 0.9, 0.005)
+# HBAND is settable because the narrow ladder that made the FIT fair also throws away most of the hall.
+# A two-unknown fit needs a tight ladder so the fan cannot reach a neighbouring edge; the anchored method
+# that follows does not fit two unknowns at all, so it can afford a wide one, and a wide one is what lets
+# the nearer cameras contribute at all.
+HBAND = float(os.environ.get('HBAND', '0.9'))
+HS = np.arange(TARGH - HBAND, TARGH + HBAND, 0.005)
 
 
 def rays_of(cam, pix):
@@ -161,7 +166,10 @@ R = np.array([[r[0], r[1], r[2], r[3]] for r in rows], float)
 UU = np.array([r[4] for r in rows])
 HX = np.array([r[6] for r in rows])
 os.makedirs(OUT, exist_ok=True)
-np.save(os.path.join(OUT, 'corridor-ceiling-rays.npy'), np.column_stack([R, UU, HX]))
+# TAGGED BY MODE, because the control and the measurement were writing to the same file and the last one
+# to run silently owned it.
+np.save(os.path.join(OUT, 'corridor-%s-rays.npy' % ('ctl' if CONTROL else 'ceiling')),
+        np.column_stack([R, UU, HX]))
 BASE = float(R[:, 0].max() - R[:, 0].min())
 print('cameras stand between d %.2f and %.2f, a %.2f m baseline; the rays cross the wall plane between'
       % (R[:, 0].min(), R[:, 0].max(), BASE))

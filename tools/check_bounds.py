@@ -508,16 +508,27 @@ for ok, name, detail, source in notes:
     print('        %s' % source)
 print('')
 print('STILL UNMEASURED, and not tested here because nothing in the archive can test them:')
-for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4, and there are now TWO'
-             ' counted reasons rather than an absence. FROM THE HALL FLOOR the opening is a collimator:'
-             ' seeing the whole height ladder through a 1.2 m slot forces the lens far back, so the'
-             ' usable set collapses from an 8.64 m baseline to 1.59 m. The same detector, rays and fit'
-             ' reproduce the measured opening head to 23 mm with the two halves of the wall agreeing to'
-             ' 41 mm, then disagree by 573 mm two metres further back, tools/corridor_lines.py. FROM'
-             ' INSIDE THE OPENINGS there is no imagery at all: 317 posed lenses stand in north apertures'
-             ' and not one of them points into the room. The most inward-facing frame in the whole set'
-             ' still has its axis 0.38 of the way toward the hall. The operator stood in the holes and'
-             ' filmed the room he had come from, tools/opening_facing.py',
+for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.4. Two counted reasons'
+             ' stand behind that. FROM THE HALL FLOOR the opening collimates: seeing the whole ladder'
+             ' through a 1.2 m slot forces the lens far back and the usable set collapses from an 8.64 m'
+             ' baseline to 1.59 m, tools/corridor_lines.py. FROM INSIDE THE OPENINGS there is no imagery'
+             ' at all: 317 posed lenses stand in north apertures and not one points into the room, the'
+             ' most inward-facing still 0.38 of the way toward the hall, tools/opening_facing.py',
+             'BUT THERE IS A REAL FEATURE IN THERE, found by anchoring instead of fitting'
+             ' (tools/corridor_locus.py). A baseline is what a TWO-unknown fit needs; fix the depth and'
+             ' each ray gives the height on its own with nothing to slide along. Done that way the 215'
+             ' rays through the openings agree sharply: at the drawn back wall the west and east halves'
+             ' both give h 10.803 and the nearer and further halves 10.801 and 10.805, four millimetres'
+             ' across all four. That is the first real signal anything has ever got from that room',
+             'AND IT CONTRADICTS THE DRAWN ROOM, conditionally. The rays cannot fix the DEPTH: the count'
+             ' is flat across the whole sweep, so what they give is a locus, h = 10.806 - 0.565*(d +'
+             ' 2.090). On the drawn back wall that puts the feature on 10.806, which is 0.184 m BELOW'
+             ' the highest lamp triangulated inside the room. A ceiling cannot be under a lamp. So IF'
+             ' this feature is the ceiling meeting the back wall, that wall is at least 2.42 m behind'
+             ' the face rather than the drawn 2.09. Nothing is moved on it, because the feature has not'
+             ' been identified: a boundary where the lamps stop lighting the back wall would sit in the'
+             ' same place, and the day-against-night test that could tell them apart has no night'
+             ' imagery of that room to run on',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
              'RESOLVED, and the question was ill-posed: the north wall face appeared to have three depths'
              ' on it, drawn -0.090, head -0.123, jambs -0.207. Scanning the depth instead of fitting it'
