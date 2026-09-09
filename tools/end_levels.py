@@ -22,6 +22,14 @@ if _os.environ.get('LEVELS_SET'):
     _o = dict(kv.split('=') for kv in _os.environ['LEVELS_SET'].split(','))
     LEVELS = [(n, float(_o.get(n, h))) for n, h in LEVELS]
 cls, end = sys.argv[1], sys.argv[2]
+# THE TWO ENDS CAN BE DRAWN AT DIFFERENT HEIGHTS, and once they are, one shared LEVELS table silently
+# measures one of them against a line the model no longer draws. That happened the moment ENDW gained a
+# per-end upstand: the east parapet moved to 9.11 in index.html while this file went on searching around
+# 9.02. Whatever the right value turns out to be, the tool has to search where the model draws, so the
+# per-end levels are stated here and picked by the end under test. UPSTANDS mirrors ENDW.upstands.
+UPSTANDS = {'west': 0.68, 'east': 0.77}
+DECK = 8.34
+LEVELS = [(n, (DECK + UPSTANDS[end]) if n == 'top parapet top' else h) for n, h in LEVELS]
 maxf = int(sys.argv[3]) if len(sys.argv) > 3 else 40
 uF = float(sys.argv[4]) if len(sys.argv) > 4 else FACE[end]   # a 4th argument overrides the face, so the
 # same measurement can be swept across face positions. That sweep is the discriminator: an offset that

@@ -338,6 +338,17 @@ B2 = "E:/sitecapture-captures/ngv-video/balcony2"
 # registered, all refused elsewhere for 7-9 inliers, but those six settle the question the clip was cut
 # for: they stand on the EAST UPPER BALCONY (u 49.1-49.4, d 13.4-13.7, h 9.6-9.8, looking west), not
 # behind the north wall. tools/b6g_where.py prints them.
+# THE RE-GATED SETS (2026-09-09). The acceptance gate that produced the "-accepted" models was built for
+# floor walks and threw away most of Lloyd's balcony footage: an inlier cut of 30 refuses the median frame
+# of three of these four clips, there was no standing band for the LOWER balcony at all, and a walking-speed
+# continuity rule refused a standing operator who pans. tools/regate.py fixes those three and lifts the four
+# clips from 102 accepted frames to 296 without re-registering anything. These classes read the result, and
+# they exist alongside the strict ones on purpose so the two can be compared rather than swapped blindly.
+for _t in ("b1", "b3", "b6g", "b7s"):
+    CLASSES[_t + "r"] = {"prefixes": None, "model": B2 + "-register/work/model-%s-regated" % _t,
+                         "img": B2 + "-register/images-colour-%s-regated/" % _t,
+                         "frames": B2 + "/%s/images/" % _t, "factor": 1.0,
+                         "note": "clip %s re-gated 2026-09-09 (tools/regate.py)" % _t}
 for _t in ("b1", "b3", "b4", "b5", "b6s", "b7s", "b6g"):
     CLASSES[_t] = {"prefixes": None, "model": B2 + "-register/work/model-%s-accepted" % _t,
                    "img": B2 + "-register/images-colour-%s-accepted/" % _t, "frames": B2 + "/%s/images/" % _t,
