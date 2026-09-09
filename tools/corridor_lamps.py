@@ -10,7 +10,7 @@
 # blob is a ray from that camera centre. Rays from different cameras through the same lamp meet. Cluster
 # them, take the least-squares closest point, and keep only points that land BEHIND the wall.
 #   python tools/corridor_lamps.py <class> [max_frames] [threshold]
-import sys, os, json, cv2, numpy as np
+import sys, os, io, json, cv2, numpy as np
 sys.path.insert(0, 'tools'); import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286]); HU = np.array([0.975681, 0, 0.219196]); HD = np.array([0.219196, 0, -0.975681])
 DN = -0.090
@@ -85,16 +85,44 @@ for oi in sorted({r[0] for r in rays}):
     q = X - O
     out.append((oi + 1, len(g), base, float(q @ HU), float(q @ HD), float(q[1]), res))
 print('')
-print('%-8s %5s %8s %8s %8s %8s %8s' % ('opening', 'rays', 'baseline', 'u', 'd', 'h', 'miss'))
+# THE CONTROL THIS TOOL ALWAYS HAD AND NEVER PRINTED (2026-09-10). A lamp found through opening N is
+# seen through a hole 1.2 m wide standing on a known u, so the point it triangulates to MUST land within
+# about that hole's own u span. If it lands eight metres down the wall, the rays were not all looking at
+# the same lamp and the cluster is an accident of geometry. This is the same internal-redundancy control
+# that killed the fin measurement on tools/fin_v.py the same day: a near-far split and a miss residual
+# test whether an answer is STABLE, and only a redundancy the target itself provides tests whether it is
+# the right answer. Every row now carries its own opening's u span and a verdict.
+print('%-8s %5s %8s %8s %8s %8s %8s   %-15s %s'
+      % ('opening', 'rays', 'baseline', 'u', 'd', 'h', 'miss', 'its own u span', 'verdict'))
+kept = []
 for oi, n, bl, u, d, h, res in out:
-    print('%-8d %5d %8.2f %8.2f %8.2f %8.2f %8.3f' % (oi, n, bl, u, d, h, res))
+    u0, u1 = OPEN[oi - 1]
+    inside = (u0 - 0.6) <= u <= (u1 + 0.6)
+    if inside:
+        kept.append((oi, n, bl, u, d, h, res))
+    print('%-8d %5d %8.2f %8.2f %8.2f %8.2f %8.3f   %6.2f-%-8.2f %s'
+          % (oi, n, bl, u, d, h, res, u0, u1,
+             'lands in its own opening' if inside else 'LANDS %.1f m AWAY, dropped'
+             % (u - u0 if u < u0 else u - u1)))
+print('')
+print('   %d of %d triangulations land in the opening they were found through' % (len(kept), len(out)))
+out = kept
 behind = [r for r in out if r[4] < DN and r[6] < 0.6]
 print('')
 if behind:
     ds = [r[4] for r in behind]; hs = [r[5] for r in behind]
     print('%d openings put a light BEHIND the wall face:' % len(behind))
-    print('  depth  d %.2f to %.2f   (the model draws the corridor d -0.99 to -2.99)' % (min(ds), max(ds)))
-    print('  height h %.2f to %.2f   (the model draws the ceiling 11.4)' % (min(hs), max(hs)))
+    # the comparison values are READ from index.html, because this file used to quote the corridor as
+    # d -0.99 to -2.99 with a ceiling of 11.4 and the model has since moved to width 1.420 on 10.947. A
+    # tool that compares against numbers the model no longer draws reports a disagreement that is its own.
+    src = io.open('index.html', encoding='utf-8').read()
+    import re as _re
+    cw = float(_re.search(r'corridor:\{width:([0-9.]+)', src).group(1))
+    cc = float(_re.search(r'corridor:\{width:[0-9.]+,\s*floor:[0-9.]+,\s*ceil:([0-9.]+)', src).group(1))
+    fa = float(_re.search(r'face:(-?[0-9.]+)', src).group(1))
+    print('  depth  d %.2f to %.2f   (the model now draws the corridor back wall about %.2f m behind the'
+          ' face, width %.3f)' % (min(ds), max(ds), cw, cw))
+    print('  height h %.2f to %.2f   (the model now draws the ceiling %.3f)' % (min(hs), max(hs), cc))
 else:
     print('nothing triangulates behind the wall with a miss under 0.6 m: no lamp is resolved this way')
 if os.environ.get('LAMP_JSON'):

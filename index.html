@@ -3151,6 +3151,37 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE TWO TIGHTEST FITS IN THE CORRIDOR RUN ARE THE TWO MOST OBVIOUSLY WRONG (2026-09-10,
+  // tools/corridor_lamps.py). The control that killed the fin measurement this morning was turned on the
+  // corridor the same day, and the corridor is the one thing in this model that had no redundancy at all.
+  // TWELVE OPENINGS ARE TWELVE WINDOWS ONTO ONE ROOM, which is a redundancy this file has owned since the
+  // lamps were first triangulated and has never used. A lamp found through opening N is seen through a
+  // hole 1.2 m wide standing on a known u, so the point it triangulates to MUST land within about that
+  // hole's own u span. If it lands eight metres down the wall, the rays were not all looking at the same
+  // lamp and the cluster is an accident. The tool had every number needed to check that and printed none
+  // of it. It does now, on every row.
+  // FOUR OF ELEVEN SURVIVE. Across the day walk, the night walk and the 4K day capture, eleven clusters
+  // were reported and seven land outside the opening they were found through, by 1.4, 2.2, 6.9, 7.9, 12.9,
+  // 19.7 and 35.5 metres.
+  // AND THE TWO BEST-FITTING OF THE WHOLE RUN ARE THE WORST. The 4K capture's two clusters carry misses of
+  // 0.128 and 0.132 m, the tightest numbers anywhere in the run, and they land 19.7 and 35.5 m from their
+  // own openings on d +13.05 and +12.67. That is not behind the north wall, it is over by the SOUTH wall.
+  // They are the hall's own lights, fitted beautifully. A miss residual measures how well rays agree with
+  // each other and says nothing about whether they were pointed at the same object, which is the identical
+  // lesson the fins taught this morning about a near-far split.
+  // WHAT IS LEFT AFTER THE CONTROL. Exactly one triangulation both lands in its own opening and holds a
+  // miss under 0.6 m: the day walk through opening 4, on u 15.73, d -0.11, h 9.17. It sits 0.08 m behind
+  // the wall face, not 1.42 m, and 9.17 high, not 10.947. A fitting 80 mm behind a face is a light in the
+  // reveal, not a light on a back wall or a ceiling.
+  // SO THE CORRIDOR'S 1.420 AND 10.947 HAVE NO SURVIVING LAMP UNDER THEM. They are not changed, because
+  // one dropped cluster is not a replacement for another, and because the deletion this file made today
+  // was earned by 33 rays and a swept void while this is earned by nothing. What changes is the honesty of
+  // the support: those two numbers rest on a single crossing, this file has said so, and now the lamp
+  // evidence behind that crossing has been put through a control and did not survive it.
+  // THE TOOL WAS ALSO COMPARING AGAINST A MODEL THAT NO LONGER EXISTS. It printed "the model draws the
+  // corridor d -0.99 to -2.99" and "the ceiling 11.4", which were the numbers on 2026-09-09. The corridor
+  // has been 1.420 wide on a ceiling of 10.947 since. It now reads both out of this file at run time, so
+  // a disagreement it reports is the model's and not its own.
   // A NEAR-FAR SPLIT AND A NULL BOTH TEST WHETHER AN ANSWER IS STABLE. NEITHER TESTS WHETHER IT IS
   // RIGHT (2026-09-10, tools/fin_v.py). The south wall was attacked a second time, with the instrument
   // named at the end of the cloud run, and it produced the most convincing wrong answer in this file.
@@ -4203,7 +4234,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 147 bounds, all satisfied.
+  // 150 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

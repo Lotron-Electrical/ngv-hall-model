@@ -637,6 +637,45 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE CORRIDOR LAMPS PUT THROUGH THE SAME CONTROL (2026-09-10, tools/corridor_lamps.py).
+CLAMP = {'clusters': 11, 'kept': 4, 'strays': [1.4, 2.2, 6.9, 7.9, 12.9, 19.7, 35.5],
+         'best_miss': [0.128, 0.132], 'best_d': [13.05, 12.67], 'best_away': [19.7, 35.5],
+         'survivor_u': 15.73, 'survivor_d': -0.11, 'survivor_h': 9.17, 'survivor_miss': 0.135,
+         'face': -0.030, 'stale_d': -2.99, 'stale_ceil': 11.4}
+check('twelve openings are twelve windows onto one room, and that redundancy was never used',
+      CLAMP['kept'] < CLAMP['clusters'] / 2.0,
+      'a lamp found through opening N is seen through a hole 1.2 m wide standing on a known u, so the '
+      'point it triangulates to MUST land within about that span. The tool had every number needed to '
+      'check it and printed none of it. Checked now: %d clusters were reported across the day walk, the '
+      'night walk and the 4K capture, and %d land outside the opening they were found through, by %s '
+      'metres. Only %d survive.'
+      % (CLAMP['clusters'], CLAMP['clusters'] - CLAMP['kept'],
+         ', '.join('%.1f' % v for v in CLAMP['strays']), CLAMP['kept']),
+      'tools/corridor_lamps.py')
+check('and the two best-fitting clusters in the whole run are the two most obviously wrong',
+      min(CLAMP['best_miss']) < CLAMP['survivor_miss'] and min(CLAMP['best_d']) > 10.0,
+      'the 4K capture two clusters carry misses of %.3f and %.3f m, the tightest anywhere in the run, and '
+      'they land %.1f and %.1f m from their own openings on d %+.2f and %+.2f. That is not behind the '
+      'north wall, it is over by the SOUTH wall: they are the hall own lights, fitted beautifully. A miss '
+      'residual measures how well rays agree with each other and says nothing about whether they were '
+      'pointed at the same object, which is what the fins taught the same day about a near-far split.'
+      % (CLAMP['best_miss'][0], CLAMP['best_miss'][1], CLAMP['best_away'][0], CLAMP['best_away'][1],
+         CLAMP['best_d'][0], CLAMP['best_d'][1]),
+      'tools/corridor_lamps.py')
+check('so the corridor width and ceiling have no surviving lamp under them',
+      abs(G['cWidth'] - 1.420) < 1e-6 and abs(G['cCeil'] - 10.947) < 1e-6,
+      'exactly one triangulation both lands in its own opening and holds a miss under 0.6 m: the day walk '
+      'through opening 4, on u %.2f, d %+.2f, h %.2f, miss %.3f. It sits %.2f m behind the wall face '
+      '%+.3f, not %.3f, and %.2f high, not %.3f. A fitting 80 mm behind a face is a light in the reveal. '
+      'The two numbers are NOT changed, because one dropped cluster is not a replacement for another and '
+      'because the deletion made today was earned by 33 rays and a swept void while this is earned by '
+      'nothing. What changes is the honesty of their support. The tool was also comparing against a model '
+      'that no longer exists, quoting the corridor as d %.2f on a ceiling of %.1f, which were the numbers '
+      'on 2026-09-09; it reads both out of index.html at run time now.'
+      % (CLAMP['survivor_u'], CLAMP['survivor_d'], CLAMP['survivor_h'], CLAMP['survivor_miss'],
+         abs(CLAMP['survivor_d'] - CLAMP['face']), CLAMP['face'], G['cWidth'], CLAMP['survivor_h'],
+         G['cCeil'], CLAMP['stale_d'], CLAMP['stale_ceil']),
+      'tools/corridor_lamps.py')
 # A SPLIT AND A NULL TEST STABILITY, NOT CORRECTNESS (2026-09-10, tools/fin_v.py).
 FINV = {'pooled': 15.105, 'drawn': 15.240, 'near': 15.115, 'far': 15.130, 'nullo': 15.095,
         'nulle': 15.105, 'resid': 4.66, 'settings': [15.105, 15.115, 15.115, 15.115],
