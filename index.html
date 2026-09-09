@@ -5274,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 257 bounds, all satisfied.
+  // 258 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5764,18 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE WALL THICKNESS AT THE OPENINGS, AND WHY NO PHOTOGRAPH IN THE ARCHIVE CAN GIVE IT (2026-09-10,
+  // tools/reveal_depth.py). openDepth 0.90 is the thickness of the brick wall the goal names and the
+  // biggest shape in every balcony frame, and it rests on a lower bound of 0.422 m (a lens that leaned
+  // through an opening) with the rest read by eye. The instrument built for it sweeps each reveal plane
+  // from the hall arris to the corridor arris in every frame standing inside an opening and reads their
+  // SEPARATION, stone against dark, with an invented plane in the open air of the aperture as the null.
+  // IT READ NOTHING, AND THE REASON IS COUNTED. 317 frames stand in the openings. 132 of them have the
+  // hall arris at least half in view. The corridor arris band is in view in NONE, the best frame showing
+  // 8% of it: every camera stands 0.25 to 0.45 m into the reveal and looks at the hall, forward d
+  // component +0.38 or more in all 317, so the corridor arris is half a metre behind the operator's
+  // shoulder. Nobody turned round. The 0.90 stays as it was, untested above its 0.422 bound, and the
+  // next clip shot from an opening should turn the phone into the reveal for two seconds.
   // THE WEST GALLERY SEEN FROM ACROSS THE HALL, AND A SOUTH GALLERY THAT IS NOT THERE (2026-09-10,
   // b5_000072, b5_000085, b1_000069, b4_000297, all posed, ladders projected through their own cameras).
   // WHAT PROMPTED IT. Lloyd's b5 clip, shot from north opening 6 looking south-west, shows a long dark

@@ -1,33 +1,54 @@
-# 2026-09-10: HOW DEEP IS THE REVEAL, MEASURED BY WHERE A LAMP BEHIND IT STOPS BEING VISIBLE.
+# 2026-09-10: THE WALL THICKNESS AT THE OPENINGS, READ FROM INSIDE THEM.
 #
-# openDepth is 0.900 m and index.html records where it came from: "reveal 0.9 +-0.3 (cloud, 2014 photo)".
-# A third of a metre of stated slop on a number that sets how thick the north wall is, and nothing has
-# ever tested it. It is also the last soft thing between the hall and the room behind the wall.
+# WHAT THIS NUMBER IS. The twelve openings in the north wall are drawn with stone reveals openDepth
+# deep, 0.90 m, from the hall face on d -0.030 back to the corridor arris on -0.930. That is the
+# thickness of the brick wall the goal names, and it is the biggest single shape in every balcony
+# picture Lloyd sent. It is not a measurement: the provenance carries a LOWER bound of 0.422 m from a
+# lens that leaned through an opening (a camera cannot be inside stone), and the 0.90 above that bound
+# was read by eye. Nothing has measured the arris where the reveal meets the corridor.
 #
-# AN OPENING IS A TUBE, AND A TUBE IS AN OCCLUDER WITH A KNOWN SHAPE. Light from something behind the
-# wall reaches a lens only if the sightline clears BOTH ends of that tube: the aperture on the hall face
-# and the aperture at the back of the reveal. Straight on, both are easy. As the camera moves along the
-# hall the sightline goes oblique, and the back aperture cuts the view off while the front one is still
-# wide open. WHERE it cuts off depends on one number and that number is the depth of the tube.
+# WHO CAN SEE IT. 315 posed frames stand inside the openings, and the pan sets (b1p, b5p) turn the phone
+# around inside them, which is the one place the pan poses are good: their own quality file puts the
+# position error on 0.056 and 0.051 m median with the reveal half a metre away. From inside an opening
+# the reveal is a stone face beside the camera running from the hall arris back to the corridor arris,
+# and beyond the corridor arris the ray runs on into the unlit corridor. Stone against dark. The soffit
+# ruler died on dark against dark; this is the opposite case, and it is the reason to try a picture
+# boundary once more.
 #
-# AND THERE ARE TWO BRIGHT POINTS BEHIND IT TO WATCH. tools/corridor_lamps.py triangulated two lamps
-# inside the room, on u 30.527 and 34.140, and this file draws them. A lamp is not faint signal in a dark
-# aperture: it is a specular blob far brighter than anything near it, so whether it arrived is decided by
-# a ratio against its own surroundings and not by an edge, a gradient or a fitted line.
+# HOW. For every frame standing inside an opening, sample the photograph along sweeps in d ON each reveal
+# plane (u = jamb) at seven heights between sill and head, from 0.30 m in front of the hall face to
+# 0.70 m behind the drawn corridor arris. Each frame is read ON ITS OWN, because stacking frames whose
+# poses differ by 50 mm on a target 500 mm away would blur the edge away; and it is read as a SEPARATION,
+# hall arris to corridor arris on the same sweep, so a pose shift common to both cancels.
 #
-# THE MEASUREMENT. For every hall camera and each lamp, predict from the geometry whether the lamp is
-# visible for an assumed reveal depth, then look in the photograph and see. Sweep the assumed depth and
-# take the one that agrees with the photographs most often.
+# THE DECISION RULE, FIXED BEFORE THE NUMBERS ARE OPENED.
+#   1. Hall arris = strongest gradient within 0.15 m of the drawn -0.030. Corridor arris = strongest
+#      gradient within 0.35 m of the drawn -0.930. Both declared here. A frame that does not show both
+#      inside the picture is not read.
+#   2. THE NULL, per frame: the same sweep on an invented plane in the open air of the aperture, 0.60 m
+#      from the jamb (or 0.95 m when the camera stands within 0.20 m of the first), judged in the same
+#      corridor band. A frame whose real plane does not beat its invented plane is a miss.
+#   3. A jamb is LIVE when eight or more frames read it and the real plane beats the invented one in
+#      seventy percent of them or more.
+#   4. THE SECOND CONTROL is agreement: two live jambs or more from two different openings, medians
+#      within 0.10 m of each other. And A CLAIM MUST NOT BE SMALLER THAN ITS OWN SPREAD: a jamb whose
+#      10th-to-90th percentile half-width exceeds 0.15 m is reported but not used.
+#   5. The number claimed is the median over the live jambs, to no better than 0.05 m.
 #
-# THE CONTROLS, stated before it runs.
-#   THE CURVE MUST PEAK. If agreement is flat across the sweep the tube is not what decides visibility
-#   here and no depth is reported, however good the best score looks.
-#   THE TWO LAMPS ARE SEPARATE INSTRUMENTS. They sit behind different openings and are seen by different
-#   frames, so they are run apart and only agreement between them counts.
-#   THE DETECTOR IS CHECKED WHERE THE ANSWER IS KNOWN. Frames whose sightline misses the opening
-#   altogether, by more than a metre, must read as not-seen; if they do not, the detector is finding
-#   lamps that cannot be there and nothing downstream means anything.
-#   python tools/reveal_depth.py
+# WHAT IT CANNOT DO. It reads the openings people stood in (4, 5 and 10) and no other; it assumes the
+# jamb u values, which body_in_wall.py holds to the same 0.100 m; and if the corridor behind the arris
+# is as bright as the stone, the band holds noise and the null says so.
+#
+# THE RESULT, AND WHY IT IS A COUNT AND NOT A SHRUG (2026-09-10, first run). NO FRAME READS ANY REVEAL:
+# 317 frames offered, none with the sweep in view. The census behind that, run the same hour: 132 frames
+# have the HALL arris of a reveal at least half in view, and the CORRIDOR arris band is in view in none of
+# them, the best of the 317 showing 8% of it. Every camera standing in an opening stands 0.25 to 0.45 m
+# into the reveal and looks at the hall (forward d component +0.38 or more in all 317), so the corridor
+# arris is 0.5 m behind the operator's shoulder and cannot enter a frame that is not turned round. Nobody
+# turned round. The wall thickness openDepth 0.90 therefore stays untested by photograph, with the reason
+# now counted rather than suspected: the archive holds no frame that looks back into a reveal. The lower
+# bound of 0.422 m from the body argument stands, and nothing above it is a measurement.
+#   hwq run --gb 3 --label "reveal depth" -- python -u tools/reveal_depth.py
 import io
 import re
 import sys
@@ -41,226 +62,179 @@ import underside_geom as U
 O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
-CLASSES = ('walk', 'night', 'day4k')
+CLASSES = ('b1', 'b1p', 'b4', 'b5', 'b5p')
+DSTEP = 0.010
+FRONTW = 0.15
+BACKW = 0.35
+HS = (9.0, 9.3, 9.6, 9.9, 10.2, 10.5, 10.8)
+MINFR = 8
+BEAT = 0.70
+TOL = 0.10
+SPREADMAX = 0.15
+MARGIN = 20
+NULLOFF = (0.60, 0.95)
+INSET = 0.12
+
+src = io.open('index.html', encoding='utf-8').read()
+mo = re.search(r'const WALLF=\{openings:\[(.*?)\],\s*\n', src, re.S)
+OPEN = [(float(a), float(b)) for a, b in re.findall(r'\[([0-9.]+),([0-9.]+)\]', mo.group(1))]
+DN = float(re.search(r'dNorth:(-?[0-9.]+)', src).group(1))
+DEPTH = float(re.search(r'openDepth:\s*([0-9.]+)', src).group(1))
+DR = DN - DEPTH
+DS = np.arange(DN + 0.30, DR - 0.70 - 1e-9, -DSTEP)
 
 
-def model():
-    src = io.open('index.html', encoding='utf-8').read()
-
-    def g(pat):
-        return float(re.search(pat, src).group(1))
-
-    mo = re.search(r'const WALLF=\{openings:\[(.*?)\],\s*\n', src, re.S)
-    ml = re.search(r'lamps:\[(.*?)\]\}', src, re.S)
-    return {'dNorth': g(r'dNorth:(-?[0-9.]+)'), 'reveal': g(r'openDepth:\s*([0-9.]+)'),
-            'sill': g(r'openY:\[([0-9.]+),'), 'head': g(r'openY:\[[0-9.]+,([0-9.]+)\]'),
-            'openings': [[float(a), float(b)]
-                         for a, b in re.findall(r'\[([0-9.]+),([0-9.]+)\]', mo.group(1))],
-            'lamps': [[float(a), float(b), float(c)] for a, b, c in
-                      re.findall(r'\[([0-9.]+),(-?[0-9.]+),([0-9.]+)\]', ml.group(1))]}
-
-
-M = model()
-DN, SILL, HEAD = M['dNorth'], M['sill'], M['head']
-print('THE WALL AND THE LAMPS index.html DRAWS, read at run time')
-print('   wall face d %.3f, reveal %.3f deep, openings between h %.3f and %.3f'
-      % (DN, M['reveal'], SILL, HEAD))
-for i, L in enumerate(M['lamps']):
-    print('   lamp %d on u %.3f  d %.3f  h %.3f' % (i + 1, L[0], L[1], L[2]))
-
-
-def world(u, d, h):
-    return O + u * HU + d * HD + np.array([0.0, h, 0.0])
-
-
-def cross(C, X, dplane):
-    """where the segment from the camera to the lamp crosses a plane of constant d, as (u, h)"""
-    cd, xd = float((C - O) @ HD), float((X - O) @ HD)
-    if abs(xd - cd) < 1e-9:
-        return None
-    t = (dplane - cd) / (xd - cd)
-    P = C + t * (X - C)
-    return float((P - O) @ HU), float(P[1] - O[1])
-
-
-def clears(C, X, op, depth):
-    """does the sightline clear both ends of the tube, and by what margin in metres"""
-    u0, u1 = op
-    m = []
-    for dp in (DN, DN - depth):
-        c = cross(C, X, dp)
-        if c is None:
-            return None
-        u, h = c
-        m.append(min(u - u0, u1 - u, h - SILL, HEAD - h))
-    return min(m)
-
-
-def blob(im, cam, X):
-    """is there a bright point where the lamp projects, against the ring around it"""
-    x, y, z = cam.project(np.asarray([X]))
-    if z[0] <= 0.5:
-        return None
-    px, py = float(x[0]), float(y[0])
-    if not (12 < px < cam.w - 13 and 12 < py < cam.h - 13):
-        return None
-    core = im[int(py) - 2:int(py) + 3, int(px) - 2:int(px) + 3].astype(float)
-    ring = im[int(py) - 12:int(py) + 13, int(px) - 12:int(px) + 13].astype(float)
-    if core.size < 9 or ring.size < 100:
-        return None
-    c, r = float(core.mean()), float(np.median(ring))
-    # A LAMP IS BRIGHT IN ABSOLUTE TERMS AS WELL AS RELATIVE ONES, or the brightest noise in a dark
-    # aperture is a lamp in every frame.
-    return (c > r + 25.0 and c > 60.0), c, r
-
-
-rows = []
-for cname in CLASSES:
-    try:
-        frames = U.load_class(cname)
-    except Exception:
-        continue
-    for k, (cam, ip) in sorted(frames.items()):
-        q = cam.center - O
-        cd, ch = float(q @ HD), float(q[1])
-        if ch > 3.0 or cd < 3.0:
+def sweep(cam, img, uplane):
+    """mean-normalised intensity along d on the plane u = uplane, or None if the sweep is not in view."""
+    got = np.zeros(len(DS))
+    cnt = np.zeros(len(DS))
+    for h in HS:
+        pts = np.array([O + uplane * HU + d * HD + np.array([0.0, h, 0.0]) for d in DS])
+        x, y, z = cam.project(pts)
+        ok = z > 0.05
+        ok = np.logical_and(ok, x > MARGIN)
+        ok = np.logical_and(ok, x < cam.w - MARGIN)
+        ok = np.logical_and(ok, y > MARGIN)
+        ok = np.logical_and(ok, y < cam.h - MARGIN)
+        if ok.sum() < 0.9 * len(DS):
             continue
-        im = None
-        for li, L in enumerate(M['lamps']):
-            X = world(L[0], L[1], L[2])
-            op = min(M['openings'], key=lambda o: abs(0.5 * (o[0] + o[1]) - L[0]))
-            if im is None:
-                im = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
-                if im is None:
-                    break
-            b = blob(im, cam, X)
-            if b is None:
-                continue
-            rows.append((li, k, cam.center, X, op, b[0], b[1], b[2]))
+        xi = np.clip(x.astype(int), 0, img.shape[1] - 1)
+        yi = np.clip(y.astype(int), 0, img.shape[0] - 1)
+        v = img[yi, xi].astype(np.float64)
+        got[ok] += v[ok]
+        cnt[ok] += 1
+    if (cnt > 0).sum() < 0.9 * len(DS) or cnt.max() < 3:
+        return None
+    out = np.full(len(DS), np.nan)
+    nz = cnt > 0
+    out[nz] = got[nz] / cnt[nz]
+    if np.isnan(out).any():
+        return None
+    return out - out.mean()
 
-print('')
-print('%d lamp-and-frame pairs where the lamp projects into the picture' % len(rows))
-if len(rows) < 40:
-    raise SystemExit('   too few to measure anything')
 
-# THE DETECTOR IS CHECKED FIRST, on sightlines that miss the opening by more than a metre at the face.
-far = []
-for li, k, C, X, op, seen, c, r in rows:
-    fc = cross(C, X, DN)
-    if fc is None:
-        continue
-    if min(fc[0] - op[0], op[1] - fc[0], fc[1] - SILL, HEAD - fc[1]) < -1.0:
-        far.append(seen)
-if len(far) >= 20:
-    print('   THE DETECTOR CHECK: %d sightlines miss the opening by over a metre and cannot be showing'
-          % len(far))
-    print('   this lamp. %.0f per cent of them read as a lamp anyway.' % (100.0 * np.mean(far)))
-    if np.mean(far) > 0.15:
-        raise SystemExit('   THE DETECTOR FIRES WHERE NO LAMP CAN BE. Nothing below this would mean '
-                         'anything, so no depth is reported.')
-else:
-    print('   THE DETECTOR CHECK could not run: only %d sightlines miss the opening widely.' % len(far))
+def grad(prof):
+    g = np.abs(np.gradient(prof))
+    return np.convolve(g, np.ones(3) / 3.0, mode='same')
 
-# BEFORE THE SWEEP, THE SAME DATA ANSWERS A QUESTION NOBODY HAD ASKED: are the lamps where this file
-# puts them. corridor_lamps.py TRIANGULATED these two points and the model then hung the corridor ceiling
-# and depth on the higher of them, but nothing ever went back and checked them against every frame. That
-# is a straight prediction: at the drawn reveal depth the geometry says the lamp either is or is not down
-# the tube, and the photograph either shows a bright point there or does not.
-vis = [(pr, r[5]) for r, pr in ((r, clears(r[2], r[3], r[4], M['reveal']) > 0) for r in rows)]
-tp = sum(1 for p, s in vis if p and s)
-fn = sum(1 for p, s in vis if p and not s)
-fp = sum(1 for p, s in vis if not p and s)
-tn = sum(1 for p, s in vis if not p and not s)
-print('')
-print('   THE LAMPS THEMSELVES, CHECKED AGAINST EVERY FRAME AT THE DRAWN DEPTH:')
-print('      the geometry says VISIBLE in %d pairs, and a lamp is actually there in %d of them (%.0f per cent)'
-      % (tp + fn, tp, 100.0 * tp / max(tp + fn, 1)))
-print('      it says HIDDEN in %d pairs, and a lamp shows anyway in %d of them (%.0f per cent)'
-      % (fp + tn, fp, 100.0 * fp / max(fp + tn, 1)))
-if tp + fn >= 12 and tp >= 0.6 * (tp + fn) and fp <= 0.15 * (fp + tn):
-    print('      THE TRIANGULATED LAMPS STAND UP. When the model says you can see one down an opening you')
-    print('      usually can, and when it says you cannot you almost never do. The corridor ceiling rests')
-    print('      on the higher of these two points, so this is the first check that point has ever had.')
-elif tp + fn < 12:
-    print('      NOT ENOUGH SIGHTLINES REACH A LAMP to check them this way: %d pairs is not a test.'
-          % (tp + fn))
-else:
-    print('      THE LAMPS DO NOT PREDICT WELL, and since the corridor ceiling rests on the higher of')
-    print('      them that is worth chasing rather than filing.')
 
-DEPTHS = np.arange(0.10, 2.21, 0.05)
+def peak(g, lo, hi):
+    win = np.logical_and(DS >= lo, DS <= hi)
+    i = int(np.argmax(np.where(win, g, -1)))
+    return float(DS[i]), float(g[i])
 
-# ONLY THE PAIRS THE QUESTION CAN DECIDE ARE ALLOWED TO ANSWER IT, and the first run of this got that
-# wrong in a way worth keeping on the record. It scored every pair at every depth and came back 95.8 per
-# cent agreement at ALL of them, flat to a tenth of a point. The reason is arithmetic: 152 of the 225
-# sightlines miss the aperture by over a metre, so they are invisible whatever the tube depth is, and a
-# large majority that cannot change swamps the small minority that can. A score dominated by the easy
-# cases measures how easy they are.
-# So each pair is now predicted across the WHOLE sweep first, and only the pairs whose prediction
-# actually changes somewhere in it are scored. Those are the ones standing at the edge of the tube.
-pred = {}
-for i, (a, k, C, X, op, seen, cc, rr) in enumerate(rows):
-    ps = []
-    for W in DEPTHS:
-        m = clears(C, X, op, W)
-        ps.append(None if m is None else (m > 0))
-    pred[i] = ps
-live = [i for i in pred if len(set(p for p in pred[i] if p is not None)) > 1]
-print('')
-print('   %d of the %d pairs change their prediction somewhere across the sweep. Those are the ones'
-      % (len(live), len(rows)))
-print('   standing at the edge of the tube, and they are the only ones scored.')
-if len(live) < 20:
+
+def main():
+    print('THE DECISION RULE, WRITTEN OUT BEFORE THE NUMBERS ARE OPENED.')
+    print('   Each reveal is a stone face on u = jamb from the hall arris on d %.3f back to the corridor'
+          % DN)
+    print('   arris drawn on %.3f, %.2f m of wall. Every frame standing inside an opening is sampled along'
+          % (DR, DEPTH))
+    print('   sweeps in d ON that plane over %d heights, read on its own, and the number read is the'
+          % len(HS))
+    print('   SEPARATION of the hall arris (strongest gradient within %.2f m of %.3f) and the corridor'
+          % (FRONTW, DN))
+    print('   arris (strongest within %.2f m of %.3f). THE NULL is the same sweep on an invented plane in'
+          % (BACKW, DR))
+    print('   the open air of the aperture, judged in the same band; a jamb is live when %d or more frames'
+          % MINFR)
+    print('   read it and the real plane beats the invented one in %.0f%% of them. Two live jambs from two'
+          % (100 * BEAT))
+    print('   openings within %.2f m, each with a 10th-to-90th half-width under %.2f m, are needed for a'
+          % (TOL, SPREADMAX))
+    print('   claim, and nothing finer than 0.05 m is claimed.')
     print('')
-    print('   NO LEVERAGE, and that is the finding rather than a failure. Almost every sightline to these')
-    print('   lamps either goes straight down an opening or misses it by a mile, so the depth of the')
-    print('   reveal never decides anything. Measuring it needs a camera standing where the aperture edge')
-    print('   just cuts the lamp, and nobody stood there. Nothing changes.')
-    raise SystemExit(0)
-print('')
-print('   assumed depth   lamp 1 agrees   lamp 2 agrees   both')
-best = []
-for wi, W in enumerate(DEPTHS):
-    sc = []
-    for li in (0, 1):
-        ok = tot = 0
-        for i in live:
-            if rows[i][0] != li or pred[i][wi] is None:
+    frames = []
+    for cn in CLASSES:
+        try:
+            fr = U.load_class(cn)
+        except Exception as e:
+            print('   %s: not loaded (%s)' % (cn, e))
+            continue
+        for k, (cam, ip) in sorted(fr.items()):
+            q = cam.center - O
+            frames.append((cn, k, cam, ip, float(q @ HU), float(q @ HD), float(q[1])))
+    print('   %d posed frames offered from %s' % (len(frames), ', '.join(CLASSES)))
+    print('')
+    results = {}
+    for oi, (u0, u1) in enumerate(OPEN, 1):
+        inside = [f for f in frames if u0 + INSET < f[4] < u1 - INSET and -1.3 < f[5] < 0.6
+                  and 8.5 < f[6] < 11.3]
+        if not inside:
+            continue
+        for jname, uj, s in (('west', u0, +1), ('east', u1, -1)):
+            seps, wins, used = [], 0, {}
+            for cn, k, cam, ip, cu, cd, ch in inside:
+                if s * (cu - uj) < INSET:
+                    continue
+                img = cv2.imread(ip, cv2.IMREAD_GRAYSCALE)
+                if img is None:
+                    continue
+                prof = sweep(cam, img, uj)
+                if prof is None:
+                    continue
+                g = grad(prof)
+                df, gf = peak(g, DN - FRONTW, DN + FRONTW)
+                db, gb = peak(g, DR - BACKW, DR + BACKW)
+                unull = None
+                for off in NULLOFF:
+                    if abs(cu - (uj + s * off)) >= 0.20:
+                        unull = uj + s * off
+                        break
+                if unull is None:
+                    continue
+                nprof = sweep(cam, img, unull)
+                if nprof is None:
+                    continue
+                _, nb = peak(grad(nprof), DR - BACKW, DR + BACKW)
+                seps.append(df - db)
+                wins += 1 if gb > nb else 0
+                used[cn] = used.get(cn, 0) + 1
+            if not seps:
                 continue
-            tot += 1
-            ok += int(pred[i][wi] == rows[i][5])
-        sc.append(ok / float(tot) if tot else float('nan'))
-    both = np.nanmean(sc)
-    best.append((both, float(W), sc[0], sc[1]))
-    if abs(W * 100 - round(W * 100)) < 1e-6 and int(round(W * 100)) % 20 == 0:
-        print('      %.2f m        %5.1f per cent   %5.1f per cent   %5.1f'
-              % (W, 100 * sc[0], 100 * sc[1], 100 * both))
-best.sort(reverse=True)
-top, W, s1, s2 = best[0]
-flat = top - min(b[0] for b in best)
-print('')
-print('   THE BEST AGREEMENT IS %.1f per cent AT A REVEAL %.2f m DEEP (lamp 1 %.1f, lamp 2 %.1f).'
-      % (100 * top, W, 100 * s1, 100 * s2))
-print('   across the whole sweep agreement moves %.1f points, from %.1f to %.1f.'
-      % (100 * flat, 100 * min(b[0] for b in best), 100 * top))
-print('   index.html draws %.3f m, stated as plus or minus 0.3 from a 2014 photograph.' % M['reveal'])
-b1 = sorted(best, key=lambda b: -b[2])[0][1]
-b2 = sorted(best, key=lambda b: -b[3])[0][1]
-print('   taken alone lamp 1 prefers %.2f m and lamp 2 prefers %.2f m' % (b1, b2))
-if flat < 0.08:
-    print('   REFUSED: agreement barely moves across the whole sweep, so visibility here is not decided')
-    print('   by the depth of the tube and this cannot measure it. Nothing changes.')
-elif abs(b1 - b2) > 0.40:
-    print('   REFUSED: the two lamps prefer depths %.2f m apart, so they are not measuring one wall.'
-          % abs(b1 - b2))
-    print('   Nothing changes.')
-elif abs(W - M['reveal']) <= 0.30:
-    print('   THE DRAWN DEPTH SURVIVES. The best fit is %.2f m against the drawn %.3f, inside the slop'
-          % (W, M['reveal']))
-    print('   the drawn figure already carries, and the two lamps agree to %.2f m. This does not sharpen'
-          % abs(b1 - b2))
-    print('   the number; it is the first evidence of any kind that it is the right one.')
-else:
-    print('   THE DRAWN DEPTH IS OUTSIDE ITS OWN STATED SLOP: best %.2f m against a drawn %.3f plus or'
-          % (W, M['reveal']))
-    print('   minus 0.3, with the two lamps agreeing to %.2f m. That is worth acting on.' % abs(b1 - b2))
+            seps = np.array(seps)
+            n = len(seps)
+            med = float(np.median(seps))
+            p10, p90 = float(np.percentile(seps, 10)), float(np.percentile(seps, 90))
+            half = 0.5 * (p90 - p10)
+            live = n >= MINFR and wins / n >= BEAT
+            usable = live and half <= SPREADMAX
+            results[(oi, jname)] = dict(n=n, wins=wins, med=med, p10=p10, p90=p90, half=half,
+                                        live=live, usable=usable, used=used)
+            print('   opening %2d %-4s jamb u %.3f: %3d frames (%s), real beats invented in %3d (%.0f%%)'
+                  % (oi, jname, uj, n, ', '.join('%s %d' % t for t in sorted(used.items())), wins,
+                     100.0 * wins / n))
+            print('        separation median %.3f m, 10th to 90th %.3f to %.3f (half-width %.3f): %s'
+                  % (med, p10, p90, half,
+                     'LIVE and usable' if usable else 'live but SPREAD TOO WIDE to use' if live
+                     else 'not live' + ('' if n >= MINFR else ' (too few frames)')))
+    print('')
+    if not results:
+        print('   NO FRAME READS ANY REVEAL. Nothing is concluded and %.2f stands untested.' % DEPTH)
+        return
+    use = {k: r for k, r in results.items() if r['usable']}
+    if len(use) < 2 or len(set(k[0] for k in use)) < 2:
+        print('   FEWER THAN TWO USABLE JAMBS FROM TWO OPENINGS (%d usable), so by the rule above no depth'
+              % len(use))
+        print('   is claimed. The drawn %.2f m stands untested by this.' % DEPTH)
+        return
+    meds = [r['med'] for r in use.values()]
+    if max(meds) - min(meds) > TOL:
+        print('   THE USABLE JAMBS DISAGREE: medians %s spread %.3f m, more than the %.2f m tolerance, so'
+              % (', '.join('%.3f' % m for m in meds), max(meds) - min(meds), TOL))
+        print('   they are not measuring one thickness and no number is claimed. %.2f stands untested.' % DEPTH)
+        return
+    m = float(np.median(meds))
+    print('   %d USABLE JAMBS FROM %d OPENINGS AGREE: medians %s, claimed as %.2f m against %.2f drawn,'
+          % (len(use), len(set(k[0] for k in use)), ', '.join('%.3f' % v for v in meds), round(m, 2), DEPTH))
+    print('   a difference of %+.0f mm.' % (1000 * (m - DEPTH)))
+    if abs(m - DEPTH) <= 0.05:
+        print('   Inside 0.05 m, so the drawn thickness is CONFIRMED rather than corrected, and for the first')
+        print('   time it is a measurement.')
+    else:
+        print('   Outside 0.05 m at every usable jamb independently, so the drawn thickness is wrong by that')
+        print('   much and the file should carry %.2f m.' % round(m, 2))
+
+
+if __name__ == '__main__':
+    main()

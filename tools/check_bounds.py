@@ -1409,6 +1409,21 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE WALL THICKNESS AT THE OPENINGS, AND WHY NO PHOTOGRAPH CAN GIVE IT (2026-09-10, tools/reveal_depth.py).
+RD = {'drawn': 0.90, 'lower': 0.422, 'offered': 317, 'front': 132, 'back': 0, 'bestback': 0.08,
+      'fdmin': 0.38, 'stand': [0.25, 0.45]}
+check('the wall thickness stays untested because no frame looks back into a reveal, and that is counted',
+      RD['back'] == 0 and RD['front'] > 100 and abs(grab(r'openDepth:\s*([0-9.]+)') - RD['drawn']) < 1e-9
+      and RD['lower'] < RD['drawn'],
+      'openDepth %.2f rests on a %.3f m lower bound from a lens that leaned through an opening, the rest by '
+      'eye. reveal_depth.py sweeps each reveal from the hall arris to the corridor arris and reads their '
+      'separation, but of %d frames standing in the openings %d have the hall arris half in view and %d '
+      'have the corridor band in view, the best showing %.0f%% of it: every camera stands %.2f to %.2f m '
+      'into the reveal looking at the hall (forward d %.2f or more), so the corridor arris is behind the '
+      'shoulder. Nobody turned round. The %.2f stays as drawn, untested above %.3f.'
+      % (RD['drawn'], RD['lower'], RD['offered'], RD['front'], RD['back'], 100 * RD['bestback'],
+         RD['stand'][0], RD['stand'][1], RD['fdmin'], RD['drawn'], RD['lower']),
+      'tools/reveal_depth.py')
 # THE WEST GALLERY SEEN FROM ACROSS THE HALL, AND A SOUTH GALLERY THAT IS NOT THERE (2026-09-10,
 # ladders projected into b5_000072, b5_000085, b1_000069 and b4_000297).
 WG = {'frames': ['b5_000072', 'b5_000085', 'b1_000069', 'b4_000297'], 'south': 15.364, 'deck': 8.340,
