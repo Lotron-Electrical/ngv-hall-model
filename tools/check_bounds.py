@@ -637,6 +637,40 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE PHOTOGRAPH AND THE SIM THROUGH THE SAME LENS (2026-09-10, tools/pose_pair.py).
+PAIR = {'frames': 5, 'west_agree_px': 10, 'east_u': 48.22, 'east_d': 5.43, 'east_h': 9.81,
+        'east_face': 48.056, 'behind': 0.164, 'blocked': True, 'deck': 8.34, 'head': 11.09}
+check('the west end from the hall floor lines up, and what differs there is tone and not shape',
+      PAIR['west_agree_px'] <= 12,
+      'the pair is his frame beside this model rendered from that frame OWN solved camera: same position '
+      'in hall coordinates, same forward direction, same pitch, same vertical field of view, same pixel '
+      'size, with the whole interface hidden by walking the DOM rather than by a selector list. On walk '
+      'w1_000084 the ground wall top edge and the canopy lower edge both land within about %d px of the '
+      'photograph. What differs is that this file draws the upper gallery as a bright open void with a '
+      'pale soffit where the photograph shows a nearly uniform dark band with a row of lamps along its '
+      'top. That is materials, not geometry.'
+      % PAIR['west_agree_px'],
+      'tools/pose_pair.py')
+check('and from the east gallery this model puts a solid band across a view that is open in the photograph',
+      PAIR['blocked'],
+      'on b3_000100, standing ON the east deck on u %.2f d %.2f h %.2f and looking west down the hall, '
+      'the photograph is an open view: canopy, both long walls with their opening rows, the truss, the '
+      'carpet, people. The sim from the SAME camera puts a solid black horizontal band across the middle '
+      'of the frame spanning nearly its whole width, with the canopy above it and the floor below it. A '
+      'person standing where Lloyd stood cannot see the hall in this model, and "the balcony sections are '
+      'still not correct" was said about a view from a balcony.'
+      % (PAIR['east_u'], PAIR['east_d'], PAIR['east_h']),
+      'tools/pose_pair.py')
+check('which is the class of error no detector here could ever have reported',
+      abs(PAIR['east_u'] - PAIR['east_face']) < 0.30,
+      'every instrument in this repo was pointed at a level or a plane and asked how far off it was. Not '
+      'one was asked whether you can SEE PAST it, so an occluder in the wrong place returns a clean bill '
+      'from all of them. Which mesh it is has not been named yet and that is the next step rather than a '
+      'guess: the camera stands %.3f m behind the east face plane %.3f, so the candidates are the '
+      'surfaces drawn on and near that plane between the deck on %.2f and the head on %.2f. A raycast '
+      'from that exact standpoint names it in one run.'
+      % (PAIR['behind'], PAIR['east_face'], PAIR['deck'], PAIR['head']),
+      'tools/pose_pair.py')
 # THE CORRIDOR LAMPS PUT THROUGH THE SAME CONTROL (2026-09-10, tools/corridor_lamps.py).
 CLAMP = {'clusters': 11, 'kept': 4, 'strays': [1.4, 2.2, 6.9, 7.9, 12.9, 19.7, 35.5],
          'best_miss': [0.128, 0.132], 'best_d': [13.05, 12.67], 'best_away': [19.7, 35.5],

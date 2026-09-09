@@ -3151,6 +3151,34 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE SIM PUTS A SOLID BAND ACROSS THE VIEW FROM THE EAST GALLERY, AND THE PHOTOGRAPH DOES NOT
+  // (2026-09-10, tools/pose_pair.py). After a day of detectors, this is the instrument that answers the
+  // question Lloyd actually asked, because he was looking at a picture when he asked it.
+  // THE PAIR. His frame on the left, this model rendered from that frame's OWN solved camera on the
+  // right: same position in hall coordinates, same forward direction, same pitch, same vertical field of
+  // view, same pixel size. Nothing is chosen; the pose is read out of the registration. Every piece of
+  // the interface is hidden by walking the DOM rather than by a selector list, so nothing added later
+  // leaks into the render. If the model is right, a feature on row 900 of one is on row 900 of the other.
+  // FROM THE HALL FLOOR THE WEST END IS BROADLY RIGHT. On walk w1_000084, u 24.9 d 2.7 h 1.66, the
+  // ground wall's top edge and the canopy's lower edge both land within about ten pixels of the
+  // photograph's. What differs there is TONE, not shape: this file draws the upper gallery as a bright
+  // open void with a pale soffit where the photograph shows a nearly uniform dark band with a row of
+  // lamps along its top. That is a materials question and it is not geometry.
+  // FROM THE EAST GALLERY IT IS NOT RIGHT AT ALL. On b3_000100, standing ON the east deck at u 48.2 d
+  // 5.4 h 9.81 and looking west down the hall, the photograph is an open view: canopy, both long walls
+  // with their opening rows, the lighting truss, the carpet, people. The sim from the SAME camera puts a
+  // SOLID BLACK HORIZONTAL BAND across the middle of the frame, spanning nearly its whole width, with
+  // the canopy visible above it and the floor visible below it. A person standing where Lloyd stood
+  // cannot see the hall in this model.
+  // THAT IS THE COMPLAINT, RENDERED. "The balcony sections are still not correct" was said about a view
+  // from a balcony, and this is what a view from a balcony looks like here. It is also exactly the class
+  // of error no detector in this repo could ever have reported, because every one of them was pointed at
+  // a level or a plane and asked how far off it was, and none was asked whether you can see past it.
+  // WHICH MESH IT IS HAS NOT BEEN NAMED YET, and that is the next step rather than a guess. The camera
+  // stands 0.164 m behind the east face plane, so the candidates are the surfaces this file draws on and
+  // near that plane between the deck on 8.34 and the head on 11.09. A raycast from that exact standpoint
+  // would name it in one run; the render harness that would carry it is unreliable to start and was not
+  // worth more of the budget than the finding itself.
   // THE TWO TIGHTEST FITS IN THE CORRIDOR RUN ARE THE TWO MOST OBVIOUSLY WRONG (2026-09-10,
   // tools/corridor_lamps.py). The control that killed the fin measurement this morning was turned on the
   // corridor the same day, and the corridor is the one thing in this model that had no redundancy at all.
@@ -4234,7 +4262,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 150 bounds, all satisfied.
+  // 153 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
