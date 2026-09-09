@@ -272,6 +272,22 @@ check('the head sits on the face it belongs to',
       % (HEADFIT[0][1], HEADFIT[1][1]),
       'tools/soffit_back.py')
 
+# BOTH BALCONY FRONT TOPS, CONFIRMED BY A SECOND INSTRUMENT, tools/soffit_back.py (2026-09-09). The
+# fronts were measured from the hall floor with a single fit and a range test. This is a different tool
+# with a different ladder, a peel that takes lines strongest first instead of one winner per column, and
+# its own control, and it recovers both of them: west h 9.790 from 354 rays with a 20 mm median against a
+# measured 9.799, east h 9.870 from 345 rays with 28 mm against 9.865. Two instruments, four numbers,
+# 9 mm and 5 mm apart.
+FRONTAGAIN = (('west', 9.790, 9.799, 354), ('east', 9.870, 9.865, 345))
+check('the balcony front tops survive a second instrument',
+      max(abs(a - b) for _s, a, b, _n in FRONTAGAIN) <= 0.02,
+      'the peel gives west %.3f against the single fit on %.3f and east %.3f against %.3f, so %.0f mm '
+      'and %.0f mm apart on %d and %d rays. Neither tool was tuned to agree with the other.'
+      % (FRONTAGAIN[0][1], FRONTAGAIN[0][2], FRONTAGAIN[1][1], FRONTAGAIN[1][2],
+         1000 * abs(FRONTAGAIN[0][1] - FRONTAGAIN[0][2]),
+         1000 * abs(FRONTAGAIN[1][1] - FRONTAGAIN[1][2]), FRONTAGAIN[0][3], FRONTAGAIN[1][3]),
+      'tools/soffit_back.py')
+
 # --- the long walls -----------------------------------------------------------------------------
 # THE TWO PARAPET TOPS AGAINST THE LIGHT THAT GOT OVER THEM, at matched lens setback so the ends are the
 # same experiment. Only lenses at least 0.6 m behind the face are used: a lens almost on the coping cannot
@@ -439,7 +455,16 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' front puts it on 4.160 and the upstand top on 3.760, and u is the weak direction in both,'
              ' so 0.40 m between them is not a measurement and the face is NOT moved on it',
              'and whether the front the hall floor measures is glass, balusters or a solid with a deep'
-             ' recess behind it. All three pass light the same way from where the cameras stood'):
+             ' recess behind it. All three pass light the same way from where the cameras stood',
+             'NEW and unexplained: a THIRD strong line stands about 0.2 m ABOVE each measured front top,'
+             ' on the face plane, and the model draws nothing there. West h 10.009 on 384 rays with the'
+             ' near and far camera halves agreeing to 6 mm, east h 10.020 on 473 rays with its halves'
+             ' agreeing exactly, and the west inliers spread 26/27/29/18 per cent across the four'
+             ' quarters of the hall width, which is what an END feature must do and a long-wall line'
+             ' cannot. It is NOT applied, for one reason: the two ends sit 11 mm apart while their own'
+             ' fronts sit 66 mm apart, and a parapet feature should differ between the ends by about as'
+             ' much as the parapet does. Until that is explained the rails are not moved,'
+             ' tools/soffit_back.py, tools/rail_specificity.py'):
     print('   ' + line)
 print('')
 if fails:

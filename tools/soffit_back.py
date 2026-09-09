@@ -47,11 +47,33 @@ CONTROL = os.environ.get('CONTROL', '') == '1'
 # face station, which way the bay lies from it, the drawn soffit height, and the measured front top
 UF, SIGN, HEADH, FRONT = ((4.194, -1.0, 11.1, 9.799) if END == 'west'
                           else (48.056, +1.0, 11.1, 9.865))
-HLO = float(os.environ.get('HLO', '9.60' if CONTROL else '9.95'))
-HHI = float(os.environ.get('HHI', '10.10' if CONTROL else '11.40'))
+# TARGET=rail points the same peel at the band around the balcony front top instead of the one under the
+# head. It is here because the CONTROL run found something nobody had accounted for: TWO lines on that
+# face, 9.795 and 9.907, 345 and 306 rays, 13 and 20 mm medians, 108 mm apart. The model draws a single
+# 60 mm handrail band there. Either the rail is thicker than drawn or there is a second element above it,
+# and the way to tell a building feature from an artefact is whether the OTHER end shows the same pair at
+# the same spacing. One implementation, one control, three ladders.
+TARGET = os.environ.get('TARGET', 'soffit')
+if TARGET == 'rail':
+    _dlo, _dhi = FRONT - 0.28, FRONT + 0.38
+elif CONTROL:
+    _dlo, _dhi = 9.60, 10.10
+else:
+    _dlo, _dhi = 9.95, 11.40
+HLO = float(os.environ.get('HLO', '%.3f' % _dlo))
+HHI = float(os.environ.get('HHI', '%.3f' % _dhi))
 HS = np.arange(HLO, HHI, 0.004)
 DS = np.arange(1.0, 14.0, 0.35)              # the line spans the hall, so walk it across d
 HWIN, CONTRAST, THRESH, MINSUP = 40, 20.0, 0.06, 40
+# THE LADDER-NARROWING TRICK HAS A FLOOR, AND IT WAS FOUND BY WALKING INTO IT. Excluding an edge by
+# starting the ladder above it works beautifully when there is room: that is how the head on 11.09 was
+# separated from the front top on 9.799, across a 1.45 m ladder. Tried on a 0.42 m ladder to isolate the
+# line sitting 0.2 m above the front top, it returned ZERO detections at both ends, and that is arithmetic
+# rather than architecture. The step is the mean of HWIN samples below a candidate against HWIN above, so
+# a candidate needs HWIN*0.004 = 0.16 m of ladder on each side and the usable band is the ladder minus
+# 0.32 m. A 0.42 m ladder can only place candidates in its middle 0.10 m, and 10.01 was not in it.
+# So a feature cannot be isolated from one 0.2 m below it without also shrinking HWIN, which is a
+# different detector and would need its own control. Recorded rather than worked around.
 OUT = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/walls'
 
 
@@ -133,14 +155,19 @@ for stem, (cam, ip) in sorted(frames.items()):
             vv = rays_of(cam, [(float(x[sl][k]), float(y[sl][k]))])[0]
             rows.append((cu, ch, float(vv @ HU), float(vv[1]), float(DS[di])))
 
-print('%s %s: %d frames see under this head, %d steps above %.0f grey levels'
-      % (END.upper(), 'CONTROL' if CONTROL else 'SOFFIT', kept, len(rows), CONTRAST))
+print('%s %s, ladder h %.2f to %.2f: %d frames, %d steps above %.0f grey levels'
+      % (END.upper(), 'CONTROL' if CONTROL else TARGET.upper(), HLO, HHI, kept, len(rows), CONTRAST))
 if len(rows) < 120:
     raise SystemExit('too few steps under that soffit; refused')
 R = np.array([[r[0], r[1], r[2], r[3]] for r in rows], float)
 DD = np.array([r[4] for r in rows])
 os.makedirs(OUT, exist_ok=True)
-np.save(os.path.join(OUT, 'soffit-%s%s-rays.npy' % (END, '-ctl' if CONTROL else '')),
+# Saved under the naming tools/far_edge_range.py reads, because that tool carries the RANGE test and the
+# range is the only thing that can say whether a line sits on the balcony face or on something behind it.
+# The columns are the same four it expects: cu, ch, vu, vh.
+POSEDIR = 'E:/sitecapture-captures/ngv-site/agent-ref-walls/shots/pose'
+os.makedirs(POSEDIR, exist_ok=True)
+np.save(os.path.join(POSEDIR, '%s-%s%s-far-rays.npy' % (END, TARGET, '-ctl' if CONTROL else '')),
         np.column_stack([R, DD]))
 print('   cameras stand from u %.2f to %.2f, %.1f m of baseline along the hall'
       % (R[:, 0].min(), R[:, 0].max(), R[:, 0].max() - R[:, 0].min()))
@@ -225,6 +252,14 @@ if CONTROL:
               % (UF, FRONT))
         print('   u %.3f h %.3f, so %+.3f m in height and %+.3f m in station.'
               % (best[0], best[1], best[1] - FRONT, best[0] - UF))
+elif TARGET == 'rail':
+    print('')
+    print('   the balcony front top was measured on h %.3f, and the model draws a 60 mm handrail band'
+          % FRONT)
+    hs = sorted(f[1] for f in found)
+    for i in range(len(hs) - 1):
+        print('   consecutive lines %.3f and %.3f are %.0f mm apart' % (hs[i], hs[i + 1],
+                                                                        1000 * (hs[i + 1] - hs[i])))
 else:
     print('')
     print('   the model draws the head on h %.3f and the soffit %.3f m deep, so its back edge is u %.3f'

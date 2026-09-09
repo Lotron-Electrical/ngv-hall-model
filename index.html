@@ -3106,6 +3106,33 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // BOTH BALCONY FRONTS CONFIRMED BY A SECOND INSTRUMENT, AND A THIRD LINE NOBODY CAN EXPLAIN YET
+  // (2026-09-09, tools/soffit_back.py with TARGET=rail, tools/rail_specificity.py).
+  // The fronts were measured from the hall floor with a single fit and a range test: 9.799 west, 9.865
+  // east. This is a different tool with a different ladder and a PEEL instead of one winner per column,
+  // and it recovers both of them: west 9.790 on 354 rays with a 20 mm median, east 9.870 on 345 rays with
+  // 28 mm. Nine millimetres and five. Neither tool was tuned to agree with the other.
+  // BUT THE PEEL RETURNS THREE LINES IN THAT BAND AT EACH END, NOT ONE. West 9.685, 9.790, 10.009; east
+  // 9.782, 9.870, 10.020. The middle of each triplet is the front already measured. The model draws a
+  // single 60 mm handrail band there and nothing else, so two of the three have no counterpart in it.
+  // THE ONE ABOVE IS THE STRONGEST THING IN THE BAND. West 10.009 on 384 rays with the near and far
+  // camera halves agreeing to 6 mm; east 10.020 on 473 rays with its halves agreeing exactly. And it
+  // spans the hall the way an end feature must: the west inliers fall 26, 27, 29 and 18 per cent across
+  // the four quarters of the hall width, where a line on the north or south wall would pile up at one
+  // side. That test matters because a long-wall line seen by a camera looking down the hall projects
+  // almost where an end line does, and the fit cannot tell them apart on its own.
+  // IT IS STILL NOT APPLIED, FOR ONE REASON. The two ends sit 11 mm apart while their own fronts sit
+  // 66 mm apart. A feature of each parapet should differ between the ends by about as much as the parapet
+  // does; one that is level across the whole building when the parapets are not is something else, and I
+  // cannot say what. railTops stays where the measured fronts put it.
+  // AND THE TRICK THAT SEPARATED THE HEAD HAS A FLOOR, WHICH IS WHERE THIS RAN OUT. Excluding an edge by
+  // starting the ladder above it worked across the 1.45 m ladder that separated the head from the front.
+  // Tried on a 0.42 m ladder to isolate the line 0.2 m above the front, it returned ZERO detections at
+  // both ends, and that is arithmetic and not architecture: the step averages 40 samples below a
+  // candidate against 40 above, so a candidate needs 0.16 m of ladder each side and the usable band is
+  // the ladder minus 0.32 m. A 0.42 m ladder can only place candidates in its middle 0.10 m. Isolating
+  // that line needs a smaller window, which is a different detector and would need its own control.
+  // 36 bounds now, all satisfied.
   // THE HEAD OVER THE TOP GALLERY, MEASURED, AND THE SOFFIT DEPTH REFUSED WITH A NUMBER (2026-09-09,
   // tools/soffit_back.py, tools/apply_head.py). ENDW.head 11.1 and ENDW.soffitDepth 2.1 have sat on the
   // unmeasured list together since they were written, on the grounds that nothing has ever seen the back
