@@ -637,6 +637,42 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE COURSE COUNT CANNOT BE EXTENDED BY A BLIND SEARCH (2026-09-10, tools/course_reach.py).
+CRX = {'counted': 16.8, 'metres': 5.15, 'drawn': 5.16, 'course': 0.306, 'would_be': 8.03,
+       'deck': 8.340, 'junk_courses': 86.9, 'junk_metres': 26.59, 'junk_spread': 0.86,
+       'best': 0.25, 'gate': 0.15, 'hand': 0.025, 'frames': 200, 'gaps': 51, 'eye': 0.26,
+       'clipspread': 0.280}
+check('the bound the course count left behind is sharp, which is why it was worth chasing',
+      abs(CRX['metres'] - CRX['drawn']) < 0.05,
+      'wall_courses.py counted %.1f courses, %.2f m, from the canopy junction down to the BOTTOM EDGE OF '
+      'THE FRAME with the deck still below it, and this file draws that same distance as 13.5 less %.3f '
+      '= %.2f m. The count is all but used up: one more course down there, %.3f m, and the deck is not '
+      'on %.3f but near %.2f.'
+      % (CRX['counted'], CRX['metres'], CRX['deck'], CRX['drawn'], CRX['course'], CRX['deck'],
+         CRX['would_be']),
+      'tools/course_reach.py')
+check('and the first sweep for a better frame returned nonsense, for want of a quality gate',
+      CRX['junk_metres'] > 20,
+      'it reported %.1f courses spanning %.2f m of wall in a single frame, with the gaps between them '
+      'scattering up to %.0f per cent. It was reading every dark line in the picture. wall_courses.py '
+      'only ever trusted a strip when four of seven agreed on a pitch to %.1f per cent, and ashlar is '
+      'regular by definition, so an irregular run is not ashlar.'
+      % (CRX['junk_courses'], CRX['junk_metres'], 100 * CRX['junk_spread'], 100 * CRX['hand']),
+      'tools/course_reach.py')
+check('gated, nothing survives, and the diagnostic says the search was blind rather than the gate strict',
+      CRX['best'] > CRX['gate'] and CRX['eye'] < CRX['clipspread'],
+      'across %d frames the most regular strip found anywhere holds its pitch to %.0f per cent over %d '
+      'gaps, against a gate of %.0f and the %.1f the hand-chosen window managed. A full height strip '
+      'down the middle of a frame is not a strip of ashlar: it crosses the wall, a rail, the deck, a '
+      'cabinet and the ceiling and mixes their dark lines into one pitch. The ruler needs no pose but '
+      'finding where to lay it does, and these frames have none, which is why they were used. So the '
+      'count stands and the deck is not moved. The apparent second witness is not one either: the east '
+      'deck eye heights sit %.2f m lower than a carried phone should, the same direction as the missing '
+      'course, but deck_pair.py showed seven clips on that deck spread %.0f mm, a wider uncertainty than '
+      'the effect it appears to confirm. Two weak things pointing one way are not one strong thing.'
+      % (CRX['frames'], 100 * CRX['best'], CRX['gaps'], 100 * CRX['gate'], 100 * CRX['hand'],
+         CRX['eye'], 1000 * CRX['clipspread']),
+      'tools/course_reach.py')
 # THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER (2026-09-10, tools/deck_pair.py).
 DP = {'deck': 8.340, 'clips': 7, 'lo': 9.606, 'hi': 9.886, 'spread': 0.280,
       'gap1': 0.031, 'gap2': 0.006, 'noise': 0.041}
@@ -2371,6 +2407,11 @@ print('AND THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER, differenced inside o
 print('height cancels: 6 and 31 mm apart against a noise floor of 41 measured on a known zero. Neither')
 print('deck height is measured by that, only the symmetry between them, which is all anything here can')
 print('reach: seven clips standing on the same deck differ by 280 mm in eye height alone.')
+print('THE STONE ITSELF COULD SETTLE THAT DECK and very nearly does: the count from the canopy junction')
+print('runs 5.15 m before the frame ends with the deck still below, against 5.16 drawn, so one more')
+print('course puts the deck near 8.03. Finding a frame whose ashlar reaches the deck needs a person to')
+print('choose it: a blind strip down a frame crosses rail, deck and ceiling and holds its pitch to only')
+print('25 per cent where a hand-chosen window holds 2.5.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')

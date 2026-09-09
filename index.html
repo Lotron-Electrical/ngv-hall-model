@@ -3151,6 +3151,34 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE COURSE COUNT CANNOT BE EXTENDED TO THE DECK WITHOUT A HUMAN CHOOSING THE FRAME, AND THE REASON
+  // IS STRUCTURAL (2026-09-10, tools/course_reach.py).
+  // THE PRIZE WAS REAL AND THE BOUND IS SHARP. tools/wall_courses.py counted 16.8 courses, 5.15 m, from
+  // the canopy junction down to the BOTTOM EDGE OF THE FRAME, with the deck still below it. This file
+  // draws that same distance as 13.5 less 8.340 = 5.16 m. The count is all but used up: ONE more course
+  // down there, 0.306 m, and the deck is not on 8.340 but near 8.03.
+  // SO THE JOB WAS TO FIND A FRAME WHOSE ASHLAR REACHES THE DECK, and that is a search. A run of joints
+  // that STOPS INSIDE THE PICTURE has found a real bottom to the wall; one that runs off the frame edge
+  // is another lower bound like the one already held.
+  // THE FIRST SWEEP RETURNED NONSENSE AND IT IS WORTH SAYING WHAT KIND. It reported 86 courses spanning
+  // 26.59 m of wall in a single frame, with the gaps between them scattering 33 to 86 per cent. It was
+  // reading every dark line in the picture. wall_courses.py only ever trusted a strip when four of seven
+  // agreed on a pitch to 2.5 per cent, and ashlar is regular by definition, so an irregular run is not
+  // ashlar. There was no quality gate on the sweep at all.
+  // GATED, NOTHING SURVIVES, AND THE DIAGNOSTIC SAYS WHY. Across 200 frames of the clip the most regular
+  // strip found anywhere holds its pitch to 25 per cent over 51 gaps. The gate is 15 and the hand-chosen
+  // window managed 2.5. That gap is not the gate being strict; it is the search being blind. A full
+  // height strip down the middle of a frame is not a strip of ashlar: it crosses the wall, a rail, the
+  // deck, a cabinet and the ceiling, and mixes all their dark lines into one pitch.
+  // WHICH IS THE POINT AND THE LIMIT TOGETHER. The ruler works because it needs no pose; finding where
+  // to lay it needs either a pose, which these frames do not have and that is why they were used, or a
+  // person looking. So the count stands where wall_courses.py left it and the deck is not moved.
+  // AND THE APPARENT SECOND WITNESS IS NOT ONE, which is the part worth being careful about. The east
+  // deck eye heights sit about 0.26 m lower over 8.340 than a carried phone should, the same direction
+  // and nearly the same size as the missing course. It is tempting and it is worthless: tools/
+  // deck_pair.py showed seven clips on that one deck spread 280 mm in eye height, so that estimate
+  // carries a wider uncertainty than the 0.31 m effect it appears to confirm. Two weak things pointing
+  // the same way are not one strong thing, and this file has spent the day learning that.
   // THE TWO GALLERY DECKS ARE LEVEL WITH EACH OTHER, AND THAT IS THE ONLY PART OF 8.340 ANYTHING CAN
   // CHECK (2026-09-10, tools/deck_pair.py).
   // ENDW.floors[1] is 8.340 at both ends and has never been measured at either. The obvious route is the
@@ -4540,7 +4568,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 185 bounds, all satisfied.
+  // 188 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
