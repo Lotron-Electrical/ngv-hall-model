@@ -1409,6 +1409,23 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE EAST LOWER TIER SEEN FOR THE FIRST TIME FROM A HEIGHT (2026-09-10, b7s_000604, 000612, 000616, 000876).
+EL = {'frames': 4, 'range': 48.0,
+      'lamps': [[1.79, 7.52, 4, 0.52, 0.16], [5.02, 7.60, 3, 0.46, 0.13], [12.26, 7.74, 4, 0.42, 0.08],
+                [13.16, 7.45, 4, 0.53, 0.84]],
+      'west': [[1.64, 7.81], [11.97, 8.0], [13.17, 8.0], [13.29, 7.87]], 'single': [7.94, 7.73]}
+check('the east lower tier fittings are drawn where three or four posed frames put them, and no further',
+      all(l[2] >= 3 for l in EL['lamps']) and len(EL['lamps']) == 4
+      and grab(r'east:\[\[1\.79,7\.52\],\[5\.02,7\.60\],\[12\.26,7\.74\],\[13\.16,7\.45\]\]\}, cut:([0-9.]+)') > 0,
+      'the b7 clip walks the west deck looking east, and four posed frames carry the east end %.0f m off with '
+      'a row of bright fittings between the drawn fascia and the lower upstand. Each blob was back-projected '
+      'through its own camera onto the east back wall and clustered across frames: %s. Spreads between '
+      'frames of 0.42 to 0.53 m in d and 0.08 to 0.16 m in h are the pose chain over that range and are the '
+      'size of the claim. They mirror the west fittings %s with one more near d 5. A blob near d %.1f seen in '
+      'one frame is not drawn.'
+      % (EL['range'], '; '.join('d %.2f h %.2f in %d of 4' % (l[0], l[1], l[2]) for l in EL['lamps']),
+         ', '.join('%.2f' % w[0] for w in EL['west']), EL['single'][0]),
+      'index.html provenance, 2026-09-10')
 # THE WALL THICKNESS AT THE OPENINGS, AND WHY NO PHOTOGRAPH CAN GIVE IT (2026-09-10, tools/reveal_depth.py).
 RD = {'drawn': 0.90, 'lower': 0.422, 'offered': 317, 'front': 132, 'back': 0, 'bestback': 0.08,
       'fdmin': 0.38, 'stand': [0.25, 0.45]}
