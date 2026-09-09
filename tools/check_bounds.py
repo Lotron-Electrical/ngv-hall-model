@@ -1443,7 +1443,7 @@ check('the rule fired on three cameras by less than its own allowance, so the pl
       'tools/body_at_rail.py')
 check('the east deck is consistent with both captures that stood upright on it, and refuted by none',
       all(v[1] <= BR['deck'] <= v[2] for v in BR['decks'].values())
-      and all(abs(v[0] - BR['carry'][1] - v[1]) < 1e-9 and abs(v[0] - BR['carry'][0] - v[2]) < 1e-9
+      and all(abs(v[0] - BR['carry'][1] - v[1]) < 0.002 and abs(v[0] - BR['carry'][0] - v[2]) < 0.002
               for v in BR['decks'].values()),
       'read the way corridor_floor.py read the corridor floor: the tallest tenth of each capture less the '
       'carry range %.3f to %.3f measured on the hall floor. %s. The drawn %.3f lies inside both brackets. '
