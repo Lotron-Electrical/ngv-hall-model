@@ -279,6 +279,23 @@ check('the head sits on the face it belongs to',
 # measured 9.799, east h 9.870 from 345 rays with 28 mm against 9.865. Two instruments, four numbers,
 # 9 mm and 5 mm apart.
 FRONTAGAIN = (('west', 9.790, 9.799, 354), ('east', 9.870, 9.865, 345))
+# AND A THIRD TEST ON TOP OF THAT: WINDOW INVARIANCE. A real edge is a step, and where a step is does not
+# depend on how many samples are averaged either side of it. A gradual brightening is not a step, but a
+# difference-of-means detector still reports a peak inside it and that peak MOVES with the window. Run at
+# three windows the front tops hold; the line that was reported 0.2 m above them does not, so it is a
+# gradient and was withdrawn rather than drawn. Parity names a feature, the split says one line explains
+# it, the range says it lies beyond the plane, and this says it is an edge at all.
+WINDOWS = {'west': (9.796, 9.814, 9.790), 'east': (9.874, 9.867, 9.870)}
+check('the balcony front tops are the same height at every averaging window',
+      max(max(v) - min(v) for v in WINDOWS.values()) <= 0.03,
+      'across step windows of 15, 25 and 40 samples the west front reads %s and the east %s, spreads of '
+      '%.0f mm and %.0f mm. The line once reported 0.2 m above them moved 44 mm between two of the same '
+      'windows, which is how it was identified as a gradient rather than an edge.'
+      % (', '.join('%.3f' % v for v in WINDOWS['west']),
+         ', '.join('%.3f' % v for v in WINDOWS['east']),
+         1000 * (max(WINDOWS['west']) - min(WINDOWS['west'])),
+         1000 * (max(WINDOWS['east']) - min(WINDOWS['east']))),
+      'tools/soffit_back.py')
 check('the balcony front tops survive a second instrument',
       max(abs(a - b) for _s, a, b, _n in FRONTAGAIN) <= 0.02,
       'the peel gives west %.3f against the single fit on %.3f and east %.3f against %.3f, so %.0f mm '
@@ -456,15 +473,17 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' so 0.40 m between them is not a measurement and the face is NOT moved on it',
              'and whether the front the hall floor measures is glass, balusters or a solid with a deep'
              ' recess behind it. All three pass light the same way from where the cameras stood',
-             'NEW and unexplained: a THIRD strong line stands about 0.2 m ABOVE each measured front top,'
-             ' on the face plane, and the model draws nothing there. West h 10.009 on 384 rays with the'
-             ' near and far camera halves agreeing to 6 mm, east h 10.020 on 473 rays with its halves'
-             ' agreeing exactly, and the west inliers spread 26/27/29/18 per cent across the four'
-             ' quarters of the hall width, which is what an END feature must do and a long-wall line'
-             ' cannot. It is NOT applied, for one reason: the two ends sit 11 mm apart while their own'
-             ' fronts sit 66 mm apart, and a parapet feature should differ between the ends by about as'
-             ' much as the parapet does. Until that is explained the rails are not moved,'
-             ' tools/soffit_back.py, tools/rail_specificity.py'):
+             'WITHDRAWN within the hour: the third line reported 0.2 m above each front top is a GRADIENT'
+             ' and not an edge. It looked convincing, 384 rays west with the camera halves agreeing to'
+             ' 6 mm, and it passed the spread-across-the-hall test. What killed it is window invariance:'
+             ' run at step windows of 25 and 40 samples it reads 10.053 and 10.009, moving 44 mm on a'
+             ' feature claimed to 6 mm, while the front tops beneath it hold to 24 mm and 7 mm across'
+             ' three windows. A difference-of-means detector reports a peak inside any smooth brightening'
+             ' and that peak walks with the window. Nothing was moved on it,'
+             ' tools/soffit_back.py',
+             'STILL OPEN and smaller: a window-invariant line does sit on the WEST face on h 9.9025, from'
+             ' two windows agreeing to 1 mm, about 0.104 m above that front top. The east has no'
+             ' counterpart that survives the same test, so one end is not a building feature yet'):
     print('   ' + line)
 print('')
 if fails:

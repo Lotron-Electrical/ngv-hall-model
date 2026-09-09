@@ -64,7 +64,24 @@ HLO = float(os.environ.get('HLO', '%.3f' % _dlo))
 HHI = float(os.environ.get('HHI', '%.3f' % _dhi))
 HS = np.arange(HLO, HHI, 0.004)
 DS = np.arange(1.0, 14.0, 0.35)              # the line spans the hall, so walk it across d
-HWIN, CONTRAST, THRESH, MINSUP = 40, 20.0, 0.06, 40
+# HWIN is now settable, because the ladder floor above is a floor on HWIN and not on the building. A
+# smaller window can place candidates in a narrower band, at the cost of averaging fewer samples, so it
+# is a DIFFERENT detector and does not inherit the control the wide one passed. It gets its own.
+# AND MAKING IT SETTABLE IMMEDIATELY EARNED ITS KEEP, because it turns the window into a TEST.
+# A real edge is a step, and the position of a step does not depend on how many samples you average
+# either side of it. A gradual brightening is not a step, but a difference-of-means detector still reports
+# a peak somewhere in it, and where that peak lands moves with the window. So running the same ladder at
+# two or three windows separates the two: an edge stays put, a gradient walks.
+# Run on the balcony band that is exactly what happened. Across HWIN 15, 25 and 40 the measured front top
+# holds on 9.796, 9.814 and 9.790 west, a 24 mm spread, and 9.874, 9.867 and 9.870 east, a 7 mm spread.
+# The line reported 0.2 m above it does not: 10.009 at HWIN 40 against 10.053 at HWIN 25, 44 mm on a
+# feature claimed to 6 mm by its own split test. It is a gradient, not an edge, and the strong split
+# agreement that made it look convincing is exactly what a smooth gradient produces.
+# THIS IS A GENERAL TEST AND IT BELONGS ALONGSIDE THE OTHERS. Parity names the feature, the split says one
+# line explains the whole thing, the range says it lies beyond the plane, and window invariance says it is
+# a step at all. Nothing in the first three catches a gradient.
+HWIN = int(os.environ.get('HWIN', '40'))
+CONTRAST, THRESH, MINSUP = float(os.environ.get('CONTRAST', '20.0')), 0.06, 40
 # THE LADDER-NARROWING TRICK HAS A FLOOR, AND IT WAS FOUND BY WALKING INTO IT. Excluding an edge by
 # starting the ladder above it works beautifully when there is room: that is how the head on 11.09 was
 # separated from the front top on 9.799, across a 1.45 m ladder. Tried on a 0.42 m ladder to isolate the

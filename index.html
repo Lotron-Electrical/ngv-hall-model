@@ -3106,6 +3106,30 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE THIRD LINE WAS A GRADIENT, AND WINDOW INVARIANCE IS THE TEST THAT CAUGHT IT (2026-09-09,
+  // tools/soffit_back.py with HWIN settable). An hour ago this file recorded a strong unexplained edge
+  // 0.2 m above each balcony front top: 384 rays west with the near and far camera halves agreeing to
+  // 6 mm, 473 east with its halves agreeing exactly, and inliers spread evenly across all four quarters
+  // of the hall width. Everything the existing tests could ask of it, it passed. It is not an edge.
+  // A REAL EDGE IS A STEP, AND WHERE A STEP IS DOES NOT DEPEND ON HOW MANY SAMPLES YOU AVERAGE EITHER
+  // SIDE OF IT. A gradual brightening is not a step, but a difference-of-means detector still reports a
+  // peak somewhere inside it, and where that peak lands moves with the window. So running the same ladder
+  // at two or three window sizes separates them: an edge stays put, a gradient walks.
+  // RUN THAT WAY THE ANSWER IS IMMEDIATE. Across step windows of 15, 25 and 40 samples the measured front
+  // top holds on 9.796, 9.814 and 9.790 west, a 24 mm spread, and on 9.874, 9.867 and 9.870 east, a 7 mm
+  // spread. The line above it reads 10.053 at one window and 10.009 at another: 44 mm of movement on a
+  // feature its own split test claimed to 6 mm. Withdrawn. Nothing was drawn on it and nothing moves.
+  // AND THE SPLIT AGREEMENT THAT MADE IT CONVINCING IS EXACTLY WHAT A GRADIENT PRODUCES, which is the
+  // part worth remembering. A smooth brightening looks the same to every camera, so every subset of
+  // cameras finds the same peak and the split test reports perfect agreement. Parity names a feature, the
+  // split says one line explains the whole of it, the range says it lies beyond the plane, and NONE of
+  // those three can tell a step from a slope. Window invariance is now the fourth test in this file.
+  // WHAT SURVIVES IS SMALLER AND HONEST. A window-invariant line does sit on the WEST face on h 9.9025,
+  // read as 9.902 and 9.903 at two different windows, about 0.104 m above that front top. The east has no
+  // counterpart that survives the same test, so it is one end and not a building feature yet. And the
+  // front tops themselves come out of this stronger than they went in: two instruments, three windows,
+  // and the worst disagreement anywhere in that set is 24 mm.
+  // 37 bounds now, all satisfied.
   // BOTH BALCONY FRONTS CONFIRMED BY A SECOND INSTRUMENT, AND A THIRD LINE NOBODY CAN EXPLAIN YET
   // (2026-09-09, tools/soffit_back.py with TARGET=rail, tools/rail_specificity.py).
   // The fronts were measured from the hall floor with a single fit and a range test: 9.799 west, 9.865
