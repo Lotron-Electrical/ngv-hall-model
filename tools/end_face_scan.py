@@ -37,8 +37,15 @@ DECK = 8.34
 DRAWNFACE = {'west': 4.194, 'east': 48.056}
 # the free two-unknown fits, each feature's own starting point for the tracker
 SEED = {('west', 'rail top'): (4.160, 9.799), ('west', 'solid upstand top'): (3.760, 9.082),
-        ('east', 'rail top'): (48.397, 9.865), ('east', 'solid upstand top'): (48.005, 9.067)}
-SRC = {'rail top': '%s-walk-front-far-rays.npy', 'solid upstand top': '%s-up-far-rays.npy'}
+        ('east', 'rail top'): (48.397, 9.865), ('east', 'solid upstand top'): (48.005, 9.067),
+        # THE LOWER TIER, fitted for the first time this evening (tools/run_low_band.py). The west end
+        # refused both polarities outright, 5 detections and none, so only the east is here.
+        ('east', 'lower solid top'): (48.417, 6.781), ('east', 'lower rail top'): (47.672, 6.937)}
+SRC = {'rail top': '%s-walk-front-far-rays.npy', 'solid upstand top': '%s-up-far-rays.npy',
+       'lower solid top': '%s-low-far-rays.npy', 'lower rail top': '%s-lowrail-far-rays.npy'}
+# the arrival cap was measured for cameras standing on the 8.34 deck, so it says nothing about a parapet
+# two and a half metres below them. Naming that here rather than quietly applying it anyway.
+CAPPED = ('solid upstand top',)
 SPAN, STEP, WIN, TOL = 0.70, 0.050, 0.150, 0.05
 # the 5th percentile height that light from inside the building reached, against the assumed station, both
 # ends at the matched 0.6 m setback (tools/gallery_arrival.py). A SOLID parapet cannot stand in it. Glass
@@ -90,7 +97,9 @@ def track(R, u0, h0):
 for end in ('west', 'east'):
     print('')
     print('%s END, the face drawn on u %.3f' % (end.upper(), DRAWNFACE[end]))
-    for feat in ('solid upstand top', 'rail top'):
+    for feat in ('solid upstand top', 'rail top', 'lower solid top', 'lower rail top'):
+        if (end, feat) not in SEED:
+            continue
         src = os.path.join(POSEDIR, SRC[feat] % end)
         if not os.path.exists(src):
             print('   %s: no saved rays' % feat)
@@ -128,7 +137,8 @@ for end in ('west', 'east'):
             continue
         for uf, hv, n, hn, hf, gap, null in rows[::2]:
             room = cap_at(end, uf) - hv
-            note = 'yes' if (feat == 'rail top' or room >= -0.05) else 'NO, light got over it'
+            note = ('not applicable' if feat not in CAPPED else
+                    ('yes' if room >= -0.05 else 'NO, light got over it'))
             print('      %7.3f   %7.3f   %5d  %6.3f  %6.3f  %5.0f mm   %5.0f mm    %s'
                   % (uf, hv, n, hn, hf, 1000 * gap, 1000 * null, note))
         gaps = np.array([r[5] for r in rows])
@@ -138,14 +148,24 @@ for end in ('west', 'east'):
         print('      the worst station on this sweep, a ratio of %.1f'
               % (gaps.max() / max(gaps.min(), 1e-6)))
         nulls = np.array([r[6] for r in rows])
+        # A DEFECT IN THE FIRST VERSION OF THIS TOOL, FOUND BY POINTING IT AT THE LOWER TIER. Beating the
+        # null was treated as the whole verdict, and it is only half of one. The lower tier's gap falls
+        # monotonically across the entire sweep with its smallest value on the EDGE, which is the two
+        # halves converging as the plane nears the cameras rather than the feature being found, and the
+        # old line called that "real geometry" because the null was small. A V has to have the minimum
+        # INSIDE it. tools/depth_v.py already carried this check; this one did not, and the four top-tier
+        # results shipped on the old wording were re-run against the new one and all four minimise well
+        # inside their sweeps, so nothing shipped on it was wrong.
+        edge = best[0] in (rows[0][0], rows[-1][0])
         print('      the null split moves %.0f to %.0f mm across the same sweep, so the '
               'near-far V is %s'
               % (1000 * np.nanmin(nulls), 1000 * np.nanmax(nulls),
+                 'NOT a V at all: its minimum sits on the edge of the sweep' if edge else
                  'real geometry' if gaps.max() > 3.0 * np.nanmax(nulls)
                  else 'NOT distinguishable from the tracker recentring'))
         slope = float(np.polyfit([r[0] for r in rows], [r[1] for r in rows], 1)[0])
         print('      the locus runs %+.3f m of height per metre of station' % slope)
-        if feat == 'solid upstand top':
+        if feat in CAPPED:
             ok = [r for r in rows if cap_at(end, r[0]) - r[1] >= -0.05]
             if ok and len(ok) < len(rows):
                 print('      THE ARRIVALS CUT IT. A solid top is only possible from u %.3f to %.3f, because'

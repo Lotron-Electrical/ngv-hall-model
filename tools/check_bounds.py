@@ -54,6 +54,8 @@ G = {
     'setEast': grab(r'upstandSet:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
     'endFace': grab(r'top:13.5, face:([0-9.]+)'),
     'endWest': grab(r'const ENDW=\{west:([0-9.]+)'),
+    'lowRail': grab(r'slab:0.26, rails:\[([0-9.]+)'),
+    'lowUp': grab(r'lowUpstand:([0-9.]+)'),
     'railWest': grab(r'railTops:\{west:([0-9.]+)'),
     'railEast': grab(r'railTops:\{west:[0-9.]+,\s*east:([0-9.]+)\}'),
 }
@@ -483,6 +485,34 @@ def cap_at(side, uf):
 
 
 DRAWNFACE = {'west': 4.194, 'east': 48.056}
+# THE LOWER TIER, fitted for the first time (2026-09-09, tools/run_low_band.py, tools/low_gap.py).
+LOWGAP = {'gap': 0.310, 'spread': 0.022, 'span': 1.60, 'hmove': 0.298, 'solid': 341, 'rail': 91,
+          'westsolid': 0, 'westrail': 5, 'ratio_solid': 1.7, 'ratio_rail': 1.6}
+check('the lower rail is drawn on the one lower-tier quantity that is measured',
+      abs((G['lowRail'] - G['lowUp']) - LOWGAP['gap']) <= 0.02,
+      'neither lower-tier height is a number: both fits fail the near-far test, their gap falling '
+      'monotonically to a minimum on the EDGE of the sweep with worst-to-best ratios of %.1f and %.1f '
+      'where the top tier gave 12 to 70. But both loci carry almost the same slope, so a drift common to '
+      'them cancels out of their DIFFERENCE: across %.2f m of assumed station the two heights move %.3f m '
+      'while the gap moves %.3f. The rail stands %.3f m over the solid, drawn %.3f, and the %.2f upstand '
+      'it is measured from does not move because nothing here measured it.'
+      % (LOWGAP['ratio_solid'], LOWGAP['ratio_rail'], LOWGAP['span'], LOWGAP['hmove'],
+         LOWGAP['spread'], LOWGAP['gap'], G['lowRail'] - G['lowUp'], G['lowUp']),
+      'tools/low_gap.py')
+check('the lower tier was found by two detectors that cannot find each other edge',
+      LOWGAP['solid'] >= 100 and LOWGAP['rail'] >= 50,
+      'the solid top came from %d rays on the shade polarity and the rail top from %d on the lit '
+      'polarity. A detector told to find a dark-below-light edge cannot return a light-below-dark one, so '
+      'the gap between them is two independent findings and not one detector reporting its own window '
+      'twice.' % (LOWGAP['solid'], LOWGAP['rail']),
+      'tools/run_low_band.py')
+check('the west lower tier is refused rather than guessed',
+      LOWGAP['westsolid'] + LOWGAP['westrail'] < 40,
+      'pointed a metre and a half below the band it measured at the top, the same instrument returns %d '
+      'detections above the contrast bar for the west lower solid and %d for the west lower rail. There '
+      'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
+      'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
+      'tools/run_low_band.py')
 check('the east end is the control for the station scan, and it passed',
       abs(SCAN[('east', 'solid')][0] - DRAWNFACE['east']) <= 0.02
       and abs(SCAN[('east', 'rail')][0] - DRAWNFACE['east']) <= 0.02,
