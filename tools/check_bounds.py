@@ -1409,6 +1409,46 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# FOUR WINDOWS CHOSEN BY EYE, NONE USABLE (2026-09-10, tools/wall_courses.py).
+EYE = {'runs': [('b7 320 0.40 0.95 0.58 0.99', 0.73, 47.0),
+                ('b7 810 0.15 0.72 0.745 0.995', 0.59, 54.0),
+                ('b7 390 0.64 0.95 0.555 0.95', 0.61, 60.5),
+                ('b7 390 0.02 0.28 0.42 0.95', 1.00, 65.0)],
+       'counts': [21, 22, 22, 25, 21, 24, 26], 'hand': 0.025,
+       'b6w': 1520, 'b6h': 2032, 'b7w': 2160, 'b7h': 3840}
+check('four windows chosen by eye, and not one of them is usable',
+      min(r[1] for r in EYE['runs']) > 10 * EYE['hand'],
+      'the prescription was to look, so the clips were looked at: a coarse grid of the whole of b7, the '
+      'promising neighbourhoods at full size, then the four frames Lloyd nominated in b6. The four '
+      'windows tried, with their exact invocations, are %s. Their pitch spreads are %s per cent of a '
+      'course against the %.1f the bound above reports.'
+      % ('; '.join(r[0] for r in EYE['runs']),
+         ', '.join('%.0f' % (100 * r[1]) for r in EYE['runs']), 100 * EYE['hand']),
+      'tools/wall_courses.py')
+check('and counting the joints does not rescue it, which had to be checked',
+      max(EYE['counts']) - min(EYE['counts']) > 0.2 * min(EYE['counts']),
+      'counting is meant to be the perspective-proof way to use this ruler, since a count survives what '
+      'a pitch does not. Inside one window the seven strips return %s joints over the SAME rows: %.0f '
+      'per cent disagreement on a number that ought to be an integer everybody agrees on. The annotated '
+      'output says why and it is not the detector. Every balcony view of these walls is steeply oblique, '
+      'so the courses converge down the frame, and a strip long enough to be useful crosses ashlar, then '
+      'a dark ramp, then a doorway, and reads all three as joints.'
+      % (', '.join(str(v) for v in EYE['counts']),
+         100.0 * (max(EYE['counts']) - min(EYE['counts'])) / min(EYE['counts'])),
+      'tools/wall_courses.py')
+check('so the ruler cannot reach the deck from this archive, and that closes the route',
+      EYE['b6h'] < EYE['b7h'],
+      'b6_001242 is the best interior view of a gallery in the archive: it shows the back wall, the '
+      'doorways, the ceiling junction AND the deck line together, which is exactly the span this needs. '
+      'It is %d by %d and soft. The b7 frames are %d by %d and sharp but never show the deck. The clip '
+      'with the right geometry has the wrong resolution and the clip with the right resolution has the '
+      'wrong geometry. What it would take is a sharp, well lit, roughly square-on view of a wall running '
+      'down to the deck, and there is not one. That makes the missing window matter more rather than '
+      'less: four attempts by eye could not come within twenty times the quality the shipped count '
+      'claims, and the window that achieved it is written down nowhere. The count is not refuted and it '
+      'is not reproducible, and both halves of that stand.'
+      % (EYE['b6w'], EYE['b6h'], EYE['b7w'], EYE['b7h']),
+      'tools/wall_courses.py')
 RUL = {'spread_a': 0.73, 'spread_b': 0.59, 'hand': 0.025, 'frame_a': 320, 'frame_b': 810}
 CRS = {'course': 0.306, 'strips': 7, 'agree': [60.0, 60.5, 61.0, 61.5], 'counted': 16.8,
        'metres': 5.15, 'frame_w': 2160, 'frame_h': 3840, 'endtop_captures': 5, 'endtop_resid': -0.009}
