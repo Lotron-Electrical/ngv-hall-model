@@ -3151,6 +3151,33 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // NOBODY HAS EVER STOOD IN THE CORRIDOR WITH A POSED CAMERA, AND A TOOL HERE SAID OTHERWISE
+  // (2026-09-10, tools/corridor_inside.py re-run against the room this file now draws).
+  // THE TEST WAS STALE, WHICH IS THE WHOLE REASON TO RUN IT. corridor_inside.py hard-coded the room it
+  // was checking: width 2.0, ceiling 11.4, wall face d -0.090. Every one of those has since moved. The
+  // back wall went from d -2.990 to d -2.350 and the ceiling from 11.4 to 10.947, and BOTH CHANGES MADE
+  // THIS MODEL EASIER TO REFUTE, because a shallower room is refuted by a deeper camera and a lower
+  // ceiling by a taller one. The one test that could refuse them had never been run against them.
+  // RUN AGAINST TODAY'S ROOM IT REFUSES NOTHING. Of 416 posed frames across every balcony clip, 146 have
+  // their centre north of the wall face. The deepest is d -0.452, against a back wall drawn on -2.350,
+  // and the highest is h 10.12, against a ceiling drawn on 10.947 which clears it by 0.826 m.
+  // BUT THE REASON IT REFUSES NOTHING IS THE FINDING. All 146 of those cameras are INSIDE AN OPENING,
+  // in the thickness of the wall, and none stands clear of one. The deepest sits 0.452 m back where the
+  // reveal alone is 0.900 deep, so not one of them has reached even the back of the reveal, let alone
+  // the room behind it. A test that cannot reach the thing it is testing agrees with everything.
+  // AND THE TOOL'S OWN HEADER CLAIMED THE OPPOSITE. It opened by saying the b6 gallery clip was SHOT
+  // INSIDE the room and that this was the one measurement nobody could argue with. Every posed b6 frame,
+  // b6g b6gp and b6s together, stands on d +13.40 to +23.69. The hall is 15.364 m wide, so those frames
+  // are on the SOUTH side of it, thirteen metres from the north wall and facing the wrong way entirely.
+  // Whatever that clip shows, no posed frame in it can bound this room.
+  // SO WHAT THE CORRIDOR RESTS ON IS NOW STATED HONESTLY: the lamp locus and inference, and nothing
+  // else. The depth, the ceiling and the floor have never been touched by a camera standing in there,
+  // and the header that said they had is corrected in place rather than deleted.
+  // ONE MORE THING THE RUN FLAGGED AND CORRECTLY REFUSED TO ACT ON. Those 146 cameras sit h 9.07 to
+  // 10.12, and a phone carried 1.40 to 1.60 m over a floor would put that floor on h 7.47 to 7.67
+  // against the drawn 8.340. The carry height is the assumption that breaks, not the floor: a person
+  // leaning through an aperture holds the phone out and low, and does not carry it as they walk. The
+  // tool prints the discrepancy and changes nothing, which is the right outcome and is why it prints it.
   // A THIRD INSTRUMENT AGREED WITH THE OPENING 3 MOVE, AND IT WAS ASKED IN A WAY THAT COULD REFUSE
   // (2026-09-10, tools/head_lean.py re-windowed, tools/open3_window.py).
   // THE MOVE HAD A CONSEQUENCE NOBODY HAD LOOKED FOR. head_lean.py selects its rays by u window, so an
@@ -4433,7 +4460,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 173 bounds, all satisfied.
+  // 176 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

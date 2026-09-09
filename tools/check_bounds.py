@@ -637,6 +637,43 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# NOBODY HAS EVER STOOD IN THE CORRIDOR WITH A POSED CAMERA (2026-09-10, corridor_inside.py).
+CI = {'posed': 416, 'behind': 146, 'inop': 146, 'clear': 0, 'deepest': -0.452, 'back': -2.350,
+      'reveal': 0.900, 'high': 10.12, 'ceil': 10.947, 'b6lo': 13.401, 'b6hi': 23.688,
+      'dsouth': 15.364, 'camlo': 9.07, 'floor': 8.340, 'was_w': 2.0, 'was_c': 11.4}
+check('the corridor containment test was stale, and the model had moved toward being refutable',
+      CI['was_c'] > CI['ceil'],
+      'corridor_inside.py hard-coded the room it was checking: width %.1f, ceiling %.1f, wall face '
+      'd -0.090, and every one of those has since moved. The back wall went from d -2.990 to %.3f and '
+      'the ceiling from %.1f to %.3f, and both changes made this model EASIER to refute, because a '
+      'shallower room is refuted by a deeper camera and a lower ceiling by a taller one. The one test '
+      'that could refuse them had never been run against them. It now reads the room out of index.html '
+      'at run time and cannot go stale again.'
+      % (CI['was_w'], CI['was_c'], CI['back'], CI['was_c'], CI['ceil']),
+      'tools/corridor_inside.py')
+check('and run against the room as drawn today it refuses nothing, for a reason that is the finding',
+      CI['clear'] == 0 and CI['inop'] == CI['behind'],
+      'of %d posed frames across every balcony clip, %d have their centre north of the wall face. The '
+      'deepest is d %.3f against a back wall drawn on %.3f, and the highest is h %.2f against a ceiling '
+      'drawn on %.3f which clears it by %.3f m. But all %d of those cameras are INSIDE AN OPENING, in '
+      'the thickness of the wall, and %d stand clear of one. The deepest sits %.3f m back where the '
+      'reveal alone is %.3f deep, so not one has reached even the back of the reveal. A test that cannot '
+      'reach the thing it tests agrees with everything.'
+      % (CI['posed'], CI['behind'], CI['deepest'], CI['back'], CI['high'], CI['ceil'],
+         CI['ceil'] - CI['high'], CI['behind'], CI['clear'], -CI['deepest'], CI['reveal']),
+      'tools/corridor_inside.py')
+check('and the tool header that claimed the room had been walked is corrected',
+      CI['b6lo'] > 0.5 * CI['dsouth'],
+      'it opened by saying the b6 gallery clip was SHOT INSIDE the room and that this was the one '
+      'measurement nobody could argue with. Every posed b6 frame, b6g b6gp and b6s together, stands on '
+      'd +%.3f to +%.3f. The hall is %.3f m wide, so those frames are on the SOUTH side of it, thirteen '
+      'metres from the north wall. Whatever the clip shows, no posed frame in it can bound this room, so '
+      'the depth, ceiling and floor rest on the lamp locus and on inference and nothing else. The run '
+      'also flagged that a phone carried 1.40 to 1.60 m over a floor would put the floor on h 7.47 to '
+      '7.67 against the drawn %.3f, and changed nothing: the carry height is what breaks, because a '
+      'person leaning through an aperture holds the phone out and low rather than carrying it.'
+      % (CI['b6lo'], CI['b6hi'], CI['dsouth'], CI['floor']),
+      'tools/corridor_inside.py')
 # A THIRD INSTRUMENT ON THE OPENING 3 MOVE (2026-09-10, head_lean.py re-windowed, open3_window.py).
 OW = {'head_was': 2, 'head_now': 11, 'nb_lo': 8, 'nb_hi': 45, 'sill_now': 8.770, 'gap': 0.000,
       'null': 0.012, 'stops': 82, 'any': 27, 'firm': 16, 'run_lo': 11.750, 'run_hi': 12.500,
@@ -2213,6 +2250,12 @@ print('put, and no jamb had ever been measured within 9 m of it. It moved. That 
 print('of this model has changed position rather than been deleted on a measurement. A third instrument')
 print('has since agreed with it: rays detected years ago by a wall edge detector, re-windowed onto the')
 print('new position, answer there and not where the opening used to be drawn.')
+print('AND THE CORRIDOR IS STILL THE WEAKEST THING HERE, which is now written down rather than implied.')
+print('No posed camera in this archive has ever been inside it. All 146 frames behind the wall face are')
+print('in the thickness of an opening, the deepest 0.452 m back where the reveal alone is 0.900 deep, so')
+print('the containment test that would refute the room cannot reach it. Depth, ceiling and floor rest on')
+print('the lamp locus and inference. The tool that claimed a clip was shot in there is corrected: those')
+print('frames stand on the south side of the hall.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')
