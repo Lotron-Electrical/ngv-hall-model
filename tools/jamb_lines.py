@@ -54,6 +54,19 @@ HS = (9.40, 9.80, 10.20, 10.60)
 # apparent peak walks with the window. Every shipped number measured by a step detector owes this
 # test, including the ones already in the model.
 HWIN = int(os.environ.get('HWIN', '40'))
+# ANCHORD FIXES THE DEPTH AND SOLVES ONLY FOR THE STATION, and it is here because the sill was caught
+# sliding this evening. A two-unknown fit whose rays cannot separate its two unknowns does not fail
+# loudly; it returns a confident number somewhere along a line, and which point it stops on depends on
+# the averaging window. The sill did exactly that, three windows landing on one straight line in the
+# (d, h) plane to within a millimetre.
+# THE JAMBS ARE THE SAME FIT AND THEY MOVED TEN NUMBERS IN THE SHIPPED MODEL. All nine of them came back
+# on d -0.203 to -0.216 while the wall face is measured on -0.090, so every one sits 0.117 m behind the
+# plane it should be on. If that depth offset is the slide rather than a reveal, it drags the STATION with
+# it, and the station is what the openings were moved on.
+# So the depth is fixed to the independently measured face and only u is solved. For a vertical line at
+# known d the ray equation vd*(u* - cu) - vu*(d* - cd) = 0 gives u* directly, one unknown per ray, and
+# there is nothing left to slide.
+ANCHORD = os.environ.get('ANCHORD', '')
 CONTRAST, THRESH = 18.0, 0.05
 # Support and reach are knobs because coverage, not precision, is what limits this. The first pass found
 # only the middle four openings, and a line nobody can see is not a line that is wrong.
@@ -207,6 +220,15 @@ for _round in range(40):
         live[idx[perp(S, best[0], best[1]) < THRESH]] = False
         continue
     ref = fit(S[sel])
+    if ANCHORD:
+        dfix = float(ANCHORD)
+        Sin = S[sel]
+        uper = Sin[:, 0] + (Sin[:, 2] / np.where(np.abs(Sin[:, 3]) < 1e-9, 1e-9, Sin[:, 3]))             * (dfix - Sin[:, 1])
+        ref = np.array([float(np.median(uper)), dfix])
+        sel = perp(S, ref[0], ref[1]) < THRESH
+        if int(sel.sum()) < MINSUP // 2:
+            live[idx[sel]] = False
+            continue
     res = perp(S[sel], ref[0], ref[1])
     if abs(float(ref[1]) - DNORTH) <= DGATE:
         # THE SPLIT THIS GEOMETRY ACTUALLY DEMANDS, and it is not the one used on the horizontal edges.

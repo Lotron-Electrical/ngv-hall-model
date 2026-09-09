@@ -3106,6 +3106,28 @@ function buildEndWalls(root){
   // But run on the east end, where the face is now settled, it returns a top of 9.581 with quartiles
   // spanning 0.72 m, against a drawn 9.110. A detector that cannot reproduce a known answer does not get
   // to report an unknown one, so its west number is not used.
+  // THE JAMBS TAKE THE SAME AUDIT AND PASS IT, WHICH MATTERS BECAUSE THEY MOVED TEN NUMBERS (2026-09-09,
+  // tools/jamb_lines.py with HWIN and ANCHORD). The sill turned out to be a degenerate fit, three
+  // averaging windows sliding it 149 mm in height and 285 mm in depth along one straight line. The jambs
+  // are the SAME two-unknown fit, and the openings were shifted 0.147 m east on them, so if they had the
+  // same disease a shipped change was wrong. They do not.
+  // THEY HOLD STILL. Across windows of 20 and 40 samples the jambs found by both read 26.280 against
+  // 26.293, 33.630 against 33.642, 23.784 against 23.748, 27.492 against 27.479, and 31.185 against
+  // 31.171. Twelve to thirty-six millimetres of station, and two to ten of depth, where the sill moved
+  // 285. The opening shift rests on numbers that stay where they are put.
+  // AND THE DEPTH THEY REPORT IS REAL, SETTLED POSITIVELY RATHER THAN ASSERTED. All nine sit on d -0.203
+  // to -0.216 while the wall face is drawn on -0.090, and the obvious worry is that the 0.117 m offset is
+  // the slide dragging the station with it. So the depth was FIXED to the measured face and only the
+  // station solved, one unknown per ray with nothing left to slide. That does not tidy the jambs up, it
+  // FRAGMENTS them: each one breaks into two or three lines spread over 0.33 m, because rays that really
+  // meet an edge 0.117 m further back cannot agree about where it is on the wrong plane. The free fit
+  // gives one line per jamb with a 10 mm median and the anchored one cannot. The arris really is recessed.
+  // THAT LEAVES A NEW QUESTION AND IT IS WRITTEN DOWN RATHER THAN SMOOTHED OVER. The north wall face now
+  // has three depths on it: the model draws -0.090, the head across three windows averages -0.123, and
+  // the nine jamb lines average -0.207. The head and the jambs are different orientations of the same fit
+  // reading the same wall, and they disagree by 84 mm. Some of that is a real recess at the jamb arris
+  // and some may be a bias in one of the two. Nothing separates them yet, so dNorth is NOT moved.
+  // 39 bounds, all satisfied.
   // THE NEW TEST TURNED ON MY OWN SHIPPED NUMBERS, AND THE SILL DID NOT SURVIVE IT (2026-09-09,
   // tools/wall_lines.py with HWIN and BAND, tools/anchor_to_face.py). Window invariance had just caught a
   // gradient on the balcony face. Every geometry number shipped today was measured by a step detector at

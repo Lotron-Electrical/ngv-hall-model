@@ -163,6 +163,35 @@ check('the twelve north openings stand where the jambs were measured',
       'offset by a median %+.3f m, worst %+.3f m.' % (sorted(_joff)[len(_joff) // 2],
                                                       max(_joff, key=abs)),
       'tools/jamb_lines.py')
+# THE JAMBS PUT THROUGH THE SAME AUDIT THAT CAUGHT THE SILL, and they pass it (2026-09-09,
+# tools/jamb_lines.py with HWIN and ANCHORD). The sill turned out to be a degenerate fit: three averaging
+# windows slid it 149 mm in height and 285 mm in depth along one straight line. The jambs are the same
+# two-unknown fit and they moved ten numbers in this model, so they owed the same test.
+# THEY DO NOT SLIDE. Across windows of 20 and 40 samples the jambs common to both read 26.280 against
+# 26.293, 33.630 against 33.642, 23.784 against 23.748, 27.492 against 27.479 and 31.185 against 31.171:
+# 12 to 36 mm of station, and 2 to 10 mm of depth where the sill moved 285.
+# AND THE DEPTH THEY REPORT IS REAL, WHICH THE ANCHORING TEST SETTLES POSITIVELY RATHER THAN BY ASSERTION.
+# All nine sit on d -0.203 to -0.216 while the wall face is drawn on -0.090. Forcing the depth onto that
+# face and solving for the station alone does not tidy them up, it FRAGMENTS each jamb into two or three
+# lines spread over 0.33 m, because rays that really meet an edge 0.117 m further back cannot agree about
+# where it is on the wrong plane. The free fit finds one line per jamb with a 10 mm median; the anchored
+# one cannot. So the visible jamb arris genuinely stands about 0.117 m behind the drawn face.
+JAMBWIN = ((26.280, 26.293), (33.630, 33.642), (23.784, 23.748), (27.492, 27.479), (31.185, 31.171))
+check('the jamb fits do not slide with the averaging window',
+      max(abs(a - b) for a, b in JAMBWIN) <= 0.05,
+      'the five jambs found at both windows of 20 and 40 samples move by at most %.0f mm in station, '
+      'against a sill that slid 149 mm in height and 285 mm in depth through the same test. The opening '
+      'shift of +0.147 m rests on these, so it rests on numbers that hold still.'
+      % (1000 * max(abs(a - b) for a, b in JAMBWIN)),
+      'tools/jamb_lines.py')
+check('the visible jamb arris is behind the wall face, not on it',
+      abs(abs(-0.207 - G['dNorth']) - 0.117) <= 0.03,
+      'the nine jamb lines average d -0.207 against a face drawn on %.3f, so the arris the detector finds '
+      'stands %.3f m back. That is not a fitting artefact: fixing the depth to the face and solving for '
+      'the station alone fragments each jamb into two or three lines spread over 0.33 m, where the free '
+      'fit gives one line per jamb with a 10 mm median.' % (G['dNorth'], abs(-0.207 - G['dNorth'])),
+      'tools/jamb_lines.py')
+
 check('every jamb line lies on the north wall rather than out in the hall',
       max(abs(j[1] - G['dNorth']) for j in JAMBS) <= 0.30,
       'the nine fitted depths span d %.3f to %.3f, a %.0f mm band, against a wall face drawn on %.3f. '
@@ -449,6 +478,12 @@ for line in ('the corridor floor 8.34, its back wall d -2.09 and its ceiling 11.
              ' still has its axis 0.38 of the way toward the hall. The operator stood in the holes and'
              ' filmed the room he had come from, tools/opening_facing.py',
              'the north tapestries d -0.053: 547 points near that wall, no sheet',
+             'NEW question, opened by the window audit: the north wall FACE has three depths on it now.'
+             ' The model draws -0.090; the head, put through three windows, averages -0.123; the nine'
+             ' jamb lines average -0.207. The head and the jambs are different orientations of the same'
+             ' fit reading the same wall and they disagree by 84 mm. Part of that is a real recess at'
+             ' the jamb arris and part may be a bias in one of the two, and nothing separates them yet,'
+             ' so dNorth is NOT moved, tools/wall_lines.py, tools/jamb_lines.py',
              'the opening head lean of 40 to 205 mm',
              'ANSWERED: which of the west numbers was wrong. It was the FACE. A top 0.20 m lower, a deck'
              ' 0.20 m lower and a face 0.20 m over all fitted the same rays, and the upstand-top line fit'
