@@ -39,6 +39,25 @@
 # dead for this run, and NOTHING is said about the east, whose window peaked on 10.400 with 0.2 times
 # its plain band and whose per-frame median sat on 9.730. The position agreement is a hint for the next
 # version, which must declare a different null before it runs, not a result of this one.
+#
+# VERSION 2, DECLARED BEFORE ITS RUN (2026-09-10). The first null was the wrong band, and the rule for
+# fixing that is to declare the next one before looking again, not to slide the window until the control
+# passes. The new null is the stone ABOVE THE HEAD, 11.40 to 12.40: sampled on the back wall plane those
+# rays are stopped by the face wall over the gallery opening, which is plain ashlar from any viewpoint
+# across the hall, with no door, no beam edge and no glass in it. Everything else stays exactly as in
+# the first run: the same window, the same factor of 1.5, the same 0.15 m, the west as the control that
+# can kill the run, the east read only if the control lives.
+#
+# THE RESULT OF VERSION 2, AND THE ROUTE CLOSED (2026-09-10, second run). The west step is on 9.820 again,
+# 0.574 again, and the band declared plain this time gives 1.914: the stone above the head is not plain
+# either, because the west wall lamp sits on h 11.4 in it, and the sightlines through the back wall plane
+# up there cross the beam and the canopy edge. Two nulls declared before their runs, two controls dead by
+# their own wording. The lesson is not about the band, it is about the design: on this wall there is no
+# height between the coping and the canopy without an edge in it, so a band null on the same wall can
+# never be plain, and a fair null for this instrument would have to be an invented PLANE elsewhere, which
+# from 20 to 48 m off images the same picture as the real one. That is a null this archive cannot supply,
+# so the route is closed with both runs recorded. What is left is the hint, and it stays a hint: the west
+# step twice on 9.820 against 9.799 drawn, the east per-frame median 9.740 against 9.865 drawn.
 #   python tools/glass_step.py
 import io
 import re
@@ -54,9 +73,9 @@ O = np.array([-54.907447, -1.43545, 3.040286])
 HU = np.array([0.975681, 0, 0.219196])
 HD = np.array([0.219196, 0, -0.975681])
 HSTEP = 0.02
-HS = np.arange(8.90, 11.30 + 1e-9, HSTEP)
+HS = np.arange(8.90, 12.60 + 1e-9, HSTEP)
 WIN = (9.30, 10.40)
-PLAIN = (10.40, 11.00)
+PLAIN = (11.40, 12.40)        # version 2: the face wall above the head, declared before the run
 FACTOR = 1.5
 NEAR = 0.15
 DS = np.linspace(1.0, 12.0, 23)

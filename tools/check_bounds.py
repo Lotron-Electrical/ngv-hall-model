@@ -1411,21 +1411,25 @@ check('so the corridor numbers cannot improve on this archive and should stop be
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
 # THE GLASS SEEN THROUGH FROM THE OPPOSITE DECK, AND A CONTROL THAT FAILED BY ITS OWN WORDING (2026-09-10,
 # tools/glass_step.py).
-GS = {'west': {'n': 56, 'h': 9.820, 'drawn': 9.799, 'g': 0.574, 'plain': 0.564}, 'factor': 1.5, 'near': 0.15,
+GS = {'west': {'n': 56, 'h': 9.820, 'drawn': 9.799, 'g': 0.574, 'plain': 0.564, 'plain2': 1.914}, 'factor': 1.5, 'near': 0.15,
       'east': {'n': 48, 'h': 10.400, 'drawn': 9.865, 'g': 0.119, 'plain': 0.608, 'median': 9.730}}
 check('the glass-step control failed on strength, so nothing was read from the east, though it passed on position',
-      GS['west']['g'] < GS['factor'] * GS['west']['plain'] and abs(GS['west']['h'] - GS['west']['drawn']) <= GS['near']
+      GS['west']['g'] < GS['factor'] * GS['west']['plain'] and GS['west']['g'] < GS['factor'] * GS['west']['plain2']
+      and abs(GS['west']['h'] - GS['west']['drawn']) <= GS['near']
       and abs(grab(r'railTops:\{west:([0-9.]+)') + 8.340 - GS['west']['drawn']) < 1e-9,
       'glass looked through takes light, so the lit back wall of a gallery seen from across the hall carries a '
       'step down on the glass top. The west was the positive control: %d frames put its step on %.3f, %.0f mm '
       'from the drawn %.3f, but with %.3f against %.3f on the band declared plain (%.2f times, %.1f asked), '
       'because that band holds the edge where the lit back wall ends under the beam. The control fails by '
       'its own wording, the instrument is dead for the run, and nothing is said about the east (%d frames, '
-      'window peak on %.3f with %.1f times its band, per-frame median %.3f, drawn %.3f). railTops stay as drawn.'
+      'window peak on %.3f with %.1f times its band, per-frame median %.3f, drawn %.3f). A second null declared '
+      'before its run, the stone above the head, gave %.3f, the west wall lamp and the beam sightlines being in '
+      'it: two nulls, two dead controls, and the route is closed because this wall has no edge-free height '
+      'between coping and canopy. railTops stay as drawn.'
       % (GS['west']['n'], GS['west']['h'], 1000 * abs(GS['west']['h'] - GS['west']['drawn']), GS['west']['drawn'],
          GS['west']['g'], GS['west']['plain'], GS['west']['g'] / GS['west']['plain'], GS['factor'],
          GS['east']['n'], GS['east']['h'], GS['east']['g'] / GS['east']['plain'], GS['east']['median'],
-         GS['east']['drawn']),
+         GS['east']['drawn'], GS['west']['plain2']),
       'tools/glass_step.py')
 # THE EAST LOWER TIER SEEN FOR THE FIRST TIME FROM A HEIGHT (2026-09-10, b7s_000604, 000612, 000616, 000876).
 EL = {'frames': 4, 'range': 48.0,
