@@ -47,6 +47,23 @@ and the height scale carried the wrong sign; both were fixed before any number w
   The hall-side jamb stands 0.06 m inside the glass line 48.056; the coping drawn 0.45 wide by eye cannot
   fit beside it. The jamb is measured, the coping is not; index.html keeps both and says so.
 
+SECOND NOTE, THE SAME DAY: THE SOUTH DOOR IS REAL, AND THE WEST NORTH DOOR WAS NEVER THERE. This
+file's docstring says no frame shows a door in the south end; that was written before the b7 clip was
+placed. The posed b7 frames stand on the EAST deck's south end for 68 to 156 and on the west deck's
+south end from 608; frame 424 repeats the hall view of 160 to 238 (facing west, the south tapestry
+near on the right), and 240 to 372 look up at the canopy, so 300 to 424 never leave the east deck's
+south end. In 376 to 408 a wall solid to the canopy stands on the camera's LEFT and the coping recedes
+on the RIGHT: on that deck only a camera facing south-east sees that (the east back wall left, the
+south wall ahead), and a pan to the right from there ends facing west, as 424 does. What those frames
+show is the east gallery's south end: a round stone column in the SE corner, a DARK unlit doorway in
+the south wall about a metre west of it, a green exit light beside the column, a glass case with a
+marble bust in front of the south wall, a long dark ledge (the coping) on the right. index.html draws
+the south door again from this, dark, with the sign, the bust and the column, all by eye, its height
+borrowed from the measured north door; and the west gallery's north door, sign and bust case, which had
+been built from these same frames read as the west end, are withdrawn, with the corridor's west end an
+estimate once more. A separate check refuted the other reading: through the posed b1p frames 212 to
+214 the west back wall above the west deck is plain lit ashlar with no dark doorway in it.
+
 Run:
   python tools/gallery_north_end.py
 """

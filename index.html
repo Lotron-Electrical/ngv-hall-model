@@ -2665,7 +2665,7 @@ function buildWallDetails(root){
   // situation. What it does rule out is any gross misplacement of the walls, the ends or the gallery decks
   // along every route the six captures took, and it rules out the one-storey-down pose alias having crept
   // into the new pan poses, because a camera aliased down a storey would sit inside a gallery slab.
-  if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=ENDW.topNorthDoor.west[0], ub=ENDW.topNorthDoor.east[1];   /* the ends were 3.0 and 47.0, estimates; now the corridor runs to the doorway the b7 clip shows at the west gallery's north end and to its mirror at the east (ENDW.topNorthDoor), and neither end of this room is measured */
+  if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=ENDW.corridorWest, ub=ENDW.topNorthDoor.east[1];   /* the east end runs to the measured north door of the east gallery (ENDW.topNorthDoor.east); the west end is the estimate 3.0 again (ENDW.corridorWest): the west doorway drawn on 2026-09-10 came from b7 frames that turned out to be the east gallery's south end, and no frame shows the west mouth */
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
    quad([[ua,dR,C.ceil],[ub,dR,C.ceil],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-ceiling');
@@ -2768,7 +2768,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:1.0, n:1, pitch:0, plinth:[0.6,0.6,1.0], glass:[0.55,0.55,0.75], gap:0.15}}, topSouthDoor:{}, topNorthDoor:{west:[2.1,3.1,2.3], east:[48.118,49.291,3.15]}, topNorthExit:{east:[48.74,49.19,11.14,11.34]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{east:{u:[51.2,51.75], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{east:[50.2,51.2,3.15]}, southExit:{east:[51.35,51.8,11.55,11.75]}, cornerColumn:{east:{u:51.55, d:15.0, r:0.28}}, topNorthDoor:{east:[48.118,49.291,3.15]}, corridorWest:3.0, topNorthExit:{east:[48.74,49.19,11.14,11.34]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -5274,7 +5274,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 264 bounds, all satisfied.
+  // 266 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5764,20 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST GALLERY'S SOUTH END, AND THE WEST NORTH DOOR THAT WAS NEVER THERE (2026-09-10, later the
+  // same day, tools/gallery_north_end.py, second note). The b7 frames 376 to 408 had been read as the west
+  // gallery's north end, with a door, a sign and a bust case built there and the corridor run to that
+  // door. They are the east gallery's south end: the posed b7 frames bracket them on the east deck (68
+  // to 156 stand on it, 424 repeats the hall view of 160 to 238, the walk to the west deck comes after),
+  // and a wall solid to the canopy on the camera's left is only possible there facing south-east, with
+  // the east back wall on the left and the south wall ahead. Then a pan to the right lands facing west,
+  // as 424 does. So: the west north door, its sign and the west bust case are withdrawn (no frame shows
+  // that end from inside), the corridor's west end goes back to an estimate, and the south door of the
+  // east gallery, withdrawn this morning because b6's lit door proved to be the north one, is drawn
+  // again from b7 as what it is there: dark, unlit, about a metre west of a round stone column in the
+  // corner, the exit light beside the column, the bust case in front of the south wall. All by eye, the
+  // door's height borrowed from the measured north door. Both doors are now in the file, each from the
+  // frames that show it, and the earlier bound that said no frame shows a south door is replaced.
   // THE EAST GALLERY'S NORTH END, SEEN AND MEASURED, AND A DOOR I HAD PUT AT THE WRONG END (2026-09-10,
   // tools/gallery_north_end.py). b6 frames 1236 to 1332 walk the east upper gallery toward a wall that
   // faces the camera: a lit doorway with a green light in its head, two dark rectangles the size of the
@@ -5890,8 +5904,31 @@ function buildEndWalls(root){
     for(let k=0;k<V.n;k++){ const dc=V.d0+k*V.pitch, uc=uWall-s*pd/2;
       box(uc-pd/2,uc+pd/2,dc-pw/2,dc+pw/2,fl[1],fl[1]+ph,plinthMat,'gallery-plinth');
       box(uc-gd/2,uc+gd/2,dc-gw/2,dc+gw/2,fl[1]+ph,fl[1]+ph+gh,caseMat,'gallery-vitrine'); } } }
+  //      THE SOUTH DOOR, WITHDRAWN AND THEN PUT BACK THE SAME DAY. The withdrawal below was right about
+  //      b6: those frames look north and their lit door is the measured north door. But the b7 clip has a
+  //      SECOND door, and it is this one. b7 frames 300 to 424 never leave the east deck's south end
+  //      (the posed b7s frames 68 to 156 stand there, 424 is the same hall view as 160 to 238, the walk
+  //      to the west deck comes after), and in 376 to 408 the camera faces south-east: the east back wall
+  //      solid on the left, a round stone column in the corner, a DARK unlit doorway in the south wall
+  //      about a metre west of the corner, a green exit light beside the corner, a glass case with a
+  //      marble bust in front of the south wall, and the coping receding on the right. A pan to the
+  //      right from there ends facing west (424), which no other heading allows. So the south door is
+  //      drawn again, dark this time, with the sign, the bust and the column, all by eye; its height is
+  //      the measured north door's and says so. tools/gallery_north_end.py carries the reasoning.
   { const SD=W.topSouthDoor&&W.topSouthDoor[side]; if(SD){ const [u0,u1,doorH]=SD, dS=D-0.01;
-    quad([[u0,dS,fl[1]],[u1,dS,fl[1]],[u1,dS,fl[1]+doorH],[u0,dS,fl[1]+doorH]],litMat,'gallery-door'); } }
+    quad([[u0,dS,fl[1]],[u1,dS,fl[1]],[u1,dS,fl[1]+doorH],[u0,dS,fl[1]+doorH]],doorMat,'gallery-door-leaf'); }
+    const X=W.southExit&&W.southExit[side]; if(X){ const [xa,xb,ha,hb]=X, dS=D-0.02;
+      quad([[xa,dS,ha],[xb,dS,ha],[xb,dS,hb],[xa,dS,hb]],exitLitMat,'exit-sign'); }
+    const B=W.bust&&W.bust[side]; if(B){ const [u0,u1]=B.u, [d0,d1]=B.d, hP=fl[1]+B.plinth, hG=hP+B.glass;
+      const plinthMat=new THREE.MeshLambertMaterial({color:0xe6e2da, side:THREE.DoubleSide, name:'gallery-plinth'});
+      const caseMat=new THREE.MeshBasicMaterial({color:0xd6dee2, side:THREE.DoubleSide, transparent:true, opacity:0.16, depthWrite:false, name:'gallery-vitrine'});
+      const box=(a,b,c0,c1,h0,h1,mat,name)=>{ quad([[a,c0,h1],[b,c0,h1],[b,c1,h1],[a,c1,h1]],mat,name);
+        quad([[a,c0,h0],[a,c1,h0],[a,c1,h1],[a,c0,h1]],mat,name); quad([[b,c0,h0],[b,c1,h0],[b,c1,h1],[b,c0,h1]],mat,name);
+        quad([[a,c0,h0],[b,c0,h0],[b,c0,h1],[a,c0,h1]],mat,name); quad([[a,c1,h0],[b,c1,h0],[b,c1,h1],[a,c1,h1]],mat,name); };
+      box(u0,u1,d0,d1,fl[1],hP,plinthMat,'gallery-plinth'); box(u0+0.03,u1-0.03,d0+0.03,d1-0.03,hP,hG,caseMat,'gallery-vitrine'); }
+    const CC=W.cornerColumn&&W.cornerColumn[side]; if(CC){ const n=12, colMat=new THREE.MeshLambertMaterial({color:0xcfc8b8, side:THREE.DoubleSide, name:'gallery-column'});
+      for(let i=0;i<n;i++){ const a0=i/n*Math.PI*2, a1=(i+1)/n*Math.PI*2, p0=[CC.u+CC.r*Math.cos(a0),CC.d+CC.r*Math.sin(a0)], p1=[CC.u+CC.r*Math.cos(a1),CC.d+CC.r*Math.sin(a1)];
+        quad([[p0[0],p0[1],fl[1]],[p1[0],p1[1],fl[1]],[p1[0],p1[1],W.top],[p0[0],p0[1],W.top]],colMat,'gallery-column'); } } }
   // THE WEST GALLERY'S NORTH END, FROM THE b7 CLIP WALKING IT (2026-09-10, b7_000384, 000396, 000408, none
   // posed, all by eye). Looking north along the west deck the gallery ends on a wall facing the camera with
   // a DARK open doorway in it, a green exit light over the door, and a single glass case with a marble
@@ -5901,6 +5938,14 @@ function buildEndWalls(root){
   // the north wall plane at the gallery level, about a metre wide and 2.3 tall, u 2.1 to 3.1 by eye from
   // where it sits between the back wall corner and the walking line, and the bust case stands near the
   // corner. The west gallery carries no row of vitrines: its back wall is plain ashlar in every b7 frame.
+  // WITHDRAWN THE SAME DAY. Those b7 frames are not the west gallery. The clip's posed frames put 68 to
+  // 156 on the EAST deck's south end and 608 onward on the west deck's south end; 300 to 424 sit between,
+  // 424 repeats the hall view of 160 to 238 (facing west, the south tapestry near on the right), and the
+  // frames in between look up at the canopy, so the camera never left the east deck's south end. What
+  // 376 to 408 show is that end facing south-east: the east back wall on the left, the stone column in
+  // the SE corner, the dark door in the SOUTH wall, the sign, the bust. The west north door, its sign
+  // and the west bust case are gone from the constants; the corridor's west end is an estimate again
+  // (ENDW.corridorWest). Nothing in the archive shows the west gallery's north end from inside it.
   // AND THE SAME AT THE EAST END (2026-09-10, b6_001100, unposed, looking up at the east gallery's north
   // corner): a green exit light sits low against the round column there, the sign the west end carries over
   // its corridor mouth, and the corridor this file builds runs the length of the wall. So the east gallery's

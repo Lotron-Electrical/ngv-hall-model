@@ -1416,7 +1416,7 @@ NE = {'frames': {1248: {'ctrl': 6, 'u0': 49.227, 'u1': 48.079, 'head': 11.516},
       'ctrl_px': 40, 'spread': 0.15, 'u0': 49.291, 'u1': 48.118, 'head': 11.487, 'floor': 8.34, 'glass': 48.056}
 _ne = NE['frames']
 _hr = lambda k: (max(v[k] for v in _ne.values()) - min(v[k] for v in _ne.values())) / 2
-_door = re.search(r'topNorthDoor:\{west:\[[0-9.,]+\], east:\[([0-9.]+),([0-9.]+),([0-9.]+)\]\}', src)
+_door = re.search(r'topNorthDoor:\{(?:west:\[[0-9.,]+\], )?east:\[([0-9.]+),([0-9.]+),([0-9.]+)\]\}', src)
 _dr = [float(x) for x in _door.groups()] if _door else [0, 0, 0]
 check('the east gallery north door is drawn where two b6 frames measure it off openings 12 and 11',
       all(v['ctrl'] <= NE['ctrl_px'] for v in _ne.values()) and max(_hr('u0'), _hr('u1'), _hr('head')) < NE['spread']
@@ -1428,10 +1428,26 @@ check('the east gallery north door is drawn where two b6 frames measure it off o
       % (_ne[1248]['ctrl'], _ne[1320]['ctrl'], NE['ctrl_px'], NE['u1'], NE['u0'], NE['head'], _hr('u1'), _hr('u0'),
          _hr('head'), NE['head'] - NE['floor']),
       'tools/gallery_north_end.py')
-check('the south door drawn on the east gallery from the same frames is withdrawn',
-      re.search(r'topSouthDoor:\{\}', src) is not None,
-      'the block that put a lit doorway in the east gallery south end read frames that look north (the hall on '
-      'the right), so the door it saw is the north door; no frame shows a door in the south end and none is drawn.',
+check('the south door of the east gallery is drawn again, dark, from the b7 frames that show it',
+      re.search(r'topSouthDoor:\{east:\[50\.2,51\.2,3\.15\]\}', src) is not None
+      and re.search(r'southExit:\{east:\[[0-9.,]+\]\}', src) is not None
+      and re.search(r'cornerColumn:\{east:\{u:51\.55, d:15\.0, r:0\.28\}\}', src) is not None,
+      'b6 looks north and its lit door is the measured north door, so the south door was withdrawn this morning; '
+      'but b7 frames 376 to 408, bracketed on the east deck by the posed frames 68 to 156 and by 424 repeating '
+      'the hall view of 160 to 238, face south-east at that deck\'s south end and show a dark unlit doorway in '
+      'the south wall about a metre west of a stone column in the corner, with the exit light beside the column '
+      'and a bust case in front of the wall. Drawn again by eye, dark, with the sign, the bust and the column; '
+      'the height is the measured north door\'s.',
+      'tools/gallery_north_end.py')
+check('the west gallery north door built from those same b7 frames is withdrawn and the corridor west end is an estimate again',
+      re.search(r'topNorthDoor:\{east:', src) is not None and 'topNorthDoor:{west' not in src
+      and abs(grab(r'corridorWest:([0-9.]+)') - 3.0) < 1e-9 and 'ua=ENDW.corridorWest' in src
+      and re.search(r'vitrines:\{east:\{[^}]*\}\}', src) is not None,
+      'the b7 frames 384 to 408 were read as the west gallery north end and a door, a sign and a bust case were '
+      'built there with the corridor run to the door. The clip\'s posed frames put the camera on the east deck\'s '
+      'south end before and after those frames, so they are that end and not the west gallery. The west door, '
+      'its sign and the west bust case are gone from the constants, the corridor west end is the estimate 3.0 '
+      'once more, and no frame in the archive shows the west gallery\'s north end from inside it.',
       'tools/gallery_north_end.py')
 _cop = grab(r'coping:\{west:[0-9.]+, east:([0-9.]+)\}')
 check('the measured jamb and the by-eye coping disagree and the disagreement is written down, not tuned away',
