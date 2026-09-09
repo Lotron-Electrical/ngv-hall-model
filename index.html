@@ -3151,6 +3151,35 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE REVEAL DEPTH CANNOT BE MEASURED THIS WAY, AND THE LAMPS IT WAS AIMED THROUGH STOOD UP
+  // (2026-09-10, tools/reveal_depth.py).
+  // THE TARGET WAS openDepth 0.900, which this file records as "reveal 0.9 +-0.3 (cloud, 2014 photo)".
+  // A third of a metre of stated slop on the number that sets how thick the north wall is, and nothing
+  // had ever tested it.
+  // THE IDEA WAS SOUND: AN OPENING IS A TUBE. Light from behind the wall reaches a lens only if the
+  // sightline clears both ends of it, the aperture on the hall face and the aperture at the back of the
+  // reveal. Go oblique and the back one cuts the view off while the front is still wide open, and where
+  // it cuts depends on the depth. Two lamps triangulated inside the room give bright unambiguous targets.
+  // IT HAS NO LEVERAGE HERE, AND THE NUMBER IS BLUNT: of 225 lamp-and-frame pairs, ZERO change their
+  // prediction anywhere between a reveal 0.10 m deep and one 2.20 m deep. Every sightline to these lamps
+  // either goes straight down an opening or misses it by a mile. Nobody ever stood at the angle where
+  // the back edge just cuts a lamp, so the wall thickness is invisible to this argument. That is the
+  // third dead route recorded today, and they are recorded so they are not rebuilt.
+  // THE FIRST VERSION SAID 95.8 PER CENT AND MEANT NOTHING, which is worth keeping. It scored every pair
+  // at every depth and came back 95.8 flat, identical to a tenth of a point across the whole sweep. The
+  // reason is arithmetic: 152 of the 225 sightlines miss the aperture by over a metre and are invisible
+  // whatever the depth, so a large majority that cannot change swamped the minority that could. A score
+  // dominated by easy cases measures how easy they are. Only pairs whose prediction actually moves are
+  // scored now, and there are none.
+  // BUT THE SAME RUN ANSWERED A QUESTION NOBODY HAD ASKED. corridor_lamps.py TRIANGULATED those two
+  // lamps and this model then hung the corridor ceiling and depth on the higher of them, and nothing
+  // ever went back and checked them. This does: at the drawn depth the geometry says a lamp is visible
+  // in 34 pairs and one is actually there in 27 of them, 79 per cent; it says hidden in 191 pairs and a
+  // lamp shows anyway in 3, 2 per cent. The detector was checked first on 152 sightlines that miss the
+  // opening by over a metre and cannot be showing anything, and it fired on 1 per cent of those.
+  // SO THE TWO POINTS THE CORRIDOR CEILING HANGS FROM PREDICT THEIR OWN VISIBILITY ACROSS EVERY HALL
+  // FRAME ON DISK. It is the first check either of them has ever had. It does not measure the ceiling
+  // and it does not sharpen the depth; it says the thing those numbers rest on is really there.
   // EVERY POSED CAMERA PUT AGAINST EVERY WALL THIS FILE DRAWS, AND THREE OF THEM ARE NOT IN THE
   // BUILDING (2026-09-10, tools/pose_containment.py).
   // A CAMERA CENTRE IS THE ONE MEASUREMENT WITH NO INSTRUMENT IN IT. No edge is found, no gradient
@@ -4487,7 +4516,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 179 bounds, all satisfied.
+  // 182 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

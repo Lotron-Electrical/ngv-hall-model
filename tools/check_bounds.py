@@ -637,6 +637,43 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE REVEAL DEPTH HAS NO LEVERAGE, AND THE LAMPS STOOD UP (2026-09-10, tools/reveal_depth.py).
+RD = {'pairs': 225, 'live': 0, 'lo': 0.10, 'hi': 2.20, 'reveal': 0.900, 'slop': 0.3,
+      'flat': 95.8, 'swamped': 152, 'vis': 34, 'vishit': 27, 'hid': 191, 'hidhit': 3,
+      'detector': 0.01}
+check('the reveal depth cannot be measured by what is visible through an opening',
+      RD['live'] == 0,
+      'openDepth %.3f is recorded as plus or minus %.1f from a 2014 photograph and nothing had tested '
+      'it. An opening is a tube and light reaches a lens only if the sightline clears both ends of it, '
+      'so going oblique should let the back aperture cut a lamp off while the front is still open, and '
+      'where it cuts measures the depth. Of %d lamp-and-frame pairs, %d change their prediction anywhere '
+      'between a reveal %.2f m deep and one %.2f m deep. Every sightline to these lamps either goes '
+      'straight down an opening or misses it by a mile, so nobody stood at the angle where the edge just '
+      'cuts. The route is dead and is recorded so it is not rebuilt.'
+      % (RD['reveal'], RD['slop'], RD['pairs'], RD['live'], RD['lo'], RD['hi']),
+      'tools/reveal_depth.py')
+check('and the first version of that test scored a majority that could not answer the question',
+      RD['swamped'] > 0.6 * RD['pairs'],
+      'it scored every pair at every depth and returned %.1f per cent agreement flat across the whole '
+      'sweep, identical to a tenth of a point. %d of the %d sightlines miss the aperture by over a metre '
+      'and are invisible whatever the depth is, so a large majority that cannot change swamped the '
+      'minority that could. A score dominated by easy cases measures how easy they are. Only pairs whose '
+      'prediction actually moves across the sweep are scored now.'
+      % (RD['flat'], RD['swamped'], RD['pairs']),
+      'tools/reveal_depth.py')
+check('but the two lamps the corridor ceiling hangs from predict their own visibility',
+      RD['vishit'] > 0.6 * RD['vis'] and RD['hidhit'] < 0.1 * RD['hid'],
+      'corridor_lamps.py triangulated those two points and this model then hung the corridor ceiling and '
+      'depth on the higher of them, and nothing ever went back and checked them. At the drawn depth the '
+      'geometry says a lamp is visible in %d pairs and one is actually there in %d of them, %.0f per '
+      'cent; it says hidden in %d pairs and a lamp shows anyway in %d, %.0f per cent. The detector was '
+      'checked first on %d sightlines that miss the opening by over a metre and cannot be showing '
+      'anything, and it fired on %.0f per cent of those. It is the first check either lamp has ever had. '
+      'It does not measure the ceiling and does not sharpen the depth; it says the thing those numbers '
+      'rest on is really there.'
+      % (RD['vis'], RD['vishit'], 100.0 * RD['vishit'] / RD['vis'], RD['hid'], RD['hidhit'],
+         100.0 * RD['hidhit'] / RD['hid'], RD['swamped'], 100 * RD['detector']),
+      'tools/reveal_depth.py')
 # EVERY POSED CAMERA AGAINST EVERY DRAWN WALL (2026-09-10, tools/pose_containment.py).
 PC = {'frames': 1442, 'pass': 1439, 'fail': 3, 'clip': 'b6s', 'uMax': 51.906, 'badu': 62.913,
       'dSouth': 15.364, 'badd': 23.688, 'east_clear': 2.523, 'south_clear': 0.575,
@@ -2295,6 +2332,9 @@ print('frames stand in the end gallery recesses near their south ends, and three
 print('not in the building at all.')
 print('THE SOUTH WALL, MEANWHILE, HAS ITS FIRST HARD NUMBER: a night frame stands 0.575 m short of it, so')
 print('it cannot be nearer than d 14.789 whatever any instrument says. dSouth is drawn 15.364.')
+print('AND THE TWO LAMPS THE CORRIDOR CEILING HANGS FROM HAVE NOW BEEN CHECKED, which had never been')
+print('done: they predict their own visibility across every hall frame, seen in 79 per cent of the pairs')
+print('where the geometry says you can see them and 2 per cent where it says you cannot.')
 print('AND THE BAND THE EAST GALLERY RENDER PUTS ACROSS THE VIEW IS GONE. It was gallery-handrail, an')
 print('opaque bar 60 mm tall drawn on a top edge the rays really did measure, standing 0.164 m from the')
 print('eye of anyone on that deck and covering about a third of the frame. Nothing ever measured a BAR')
