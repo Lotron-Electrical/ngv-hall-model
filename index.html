@@ -3140,6 +3140,44 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE WHOLE NORTH WALL MEASURED AGAINST 263 REAL FRAMES AT ONCE, WITH THE INSTRUMENT'S OWN FALSE
+  // POSITIVE RATE REPORTED BESIDE IT (2026-09-09, tools/overlay_residual.py). Every instrument tonight
+  // fitted one feature from rays, which is slow and only ever answers about the feature it was aimed at.
+  // tools/overlay_walls.py drew the model over three frames and the verdict was that things land on the
+  // real ones, which is an eye's verdict and carries no number.
+  // SO THE PROFILE IS WALKED THROUGH THE DRAWN LINE, IN METRES. For each drawn edge, sample the real
+  // frame along the direction that edge is free to be wrong in, half a metre either side, and find the
+  // strongest brightness step. The offset comes out in metres directly, so no intrinsics and no pixel
+  // conversion enter the answer. 263 walk frames, twelve sills, twelve heads.
+  // THE PIERS BETWEEN THE OPENINGS ARE THE NULL. The first null was blank stone and it returned one
+  // profile in ninety-nine, because blank stone has no twelve-grey-level step in it: the cleanest possible
+  // pass and useless as a bar. A pier carries the same masonry, courses and lighting as the wall beside an
+  // opening, so a line drawn across a pier on the sill's own height asks the honest question, which is
+  // whether this machinery finds a sill where there is no sill.
+  // AND THE WINDOW COMPARISON IS DONE BY THE TOOL, NOT BY EYE. Every feature is measured through a
+  // half-metre window and a quarter-metre one in the same pass and the movement between them is printed.
+  // Doing that comparison by hand afterwards is how a deck fit nearly walked out of here an hour ago with
+  // 100 per cent agreement and its own ladder ceiling for an answer.
+  // THE SILLS HOLD. Eight of twelve sit within 50 mm of where this model draws them, and their medians
+  // over 90 to 203 profiles each are 0, 0, 0, -10, -15, -20, -30 and -50 mm. Three more looked badly wrong
+  // through the wide window, -330, -250 and -200 mm, and every one of them collapses to within 55 mm when
+  // the window is halved. They were the window, and the tool now says so itself instead of leaving it to
+  // be noticed.
+  // ONE SILL IS GENUINELY OFF AND IS NAMED RATHER THAN APPLIED. Opening 1 reads +150 mm through the wide
+  // window and +140 through the narrow, which is as invariant as any confirmation here. It is also the
+  // opening nearest the west gallery, whose deck, upstand and rail all stand inside the same height band a
+  // metre away, so a competing edge is available to it that no other opening has. One opening out of
+  // twelve, with a plausible impostor beside it, is not enough to move a line that eleven others confirm.
+  // THE HEADS CARRY A PATTERN THAT IS NOT A NUMBER. Openings 7, 8 and 9 read -135, -110 and -110 mm and
+  // hold those values through both windows, opening 8 to the millimetre. Openings 1 and 12, at the two
+  // extremes of the hall, read +40 and -30 and are confirmed. A head that is right at both ends and 110 mm
+  // low across the middle is not a single number to correct, so nothing moves, and this is now the north
+  // wall's most specific open discrepancy rather than a vague one.
+  // WHAT THE CONFIRMATIONS ARE WORTH, STATED FROM THE NULL RATHER THAN ASSERTED. Five of the seven pier
+  // nulls fail window invariance, moving 70 to 190 mm, which is a null behaving as a null should. TWO OF
+  // THE SEVEN DO NOT: they return a stable edge within 50 mm on a pier where this model draws nothing at
+  // all. So this instrument produces a convincing false positive roughly two times in seven, and ten
+  // confirmations out of eighteen features has to be read against that and not against zero.
   // 8.34 STAYS UNMEASURED, AND A FIT WITH 100 PER CENT AGREEMENT IS WHAT TALKED ME OUT OF IT
   // (2026-09-09, tools/run_deck_edge.py, tools/run_deck_ladder.py). The gallery deck is the most
   // load-bearing number in this model: the solid upstand, the rail, the fascia, the floor and the ceiling
@@ -3731,7 +3769,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 99 bounds, all satisfied.
+  // 103 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

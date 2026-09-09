@@ -633,6 +633,47 @@ check('the west lower tier is refused rather than guessed',
       'is nothing down there to fit, so the lower tier has no cross-check and everything drawn on it '
       'comes from one end.' % (LOWGAP['westsolid'], LOWGAP['westrail']),
       'tools/run_low_band.py')
+# THE WHOLE NORTH WALL AGAINST 263 POSED FRAMES (2026-09-09, tools/overlay_residual.py).
+RESID = {'frames': 263, 'features': 18, 'invariant': 14, 'confirmed': 10, 'nulls': 7,
+         'null_fail': 5, 'null_stable': 2, 'sill_ok': 8, 'sill_win': 3, 'sill_off': 0.145,
+         'head_lo': -0.110, 'head_mid': (-0.135, -0.110, -0.110), 'head_ends': (0.040, -0.030),
+         'wide': 0.50, 'narrow': 0.30, 'blind': 0.08}
+check('the drawn sills are confirmed against the imagery, not just against their own rays',
+      RESID['sill_ok'] >= 8,
+      'each drawn edge was measured by walking a profile THROUGH it in %d real frames, in metres, so no '
+      'intrinsics enter the answer. %d of the twelve sills sit within 50 mm of where this model draws '
+      'them, over 90 to 203 profiles each, with medians of 0, 0, 0, -10, -15, -20, -30 and -50 mm. Three '
+      'more looked badly wrong through the half-metre window, -330, -250 and -200 mm, and all three '
+      'collapse to within 55 mm when the window is halved: they were the window.'
+      % (RESID['frames'], RESID['sill_ok']),
+      'tools/overlay_residual.py')
+check('the one sill that is genuinely off is named and not applied',
+      True,
+      'opening 1 reads +%.0f mm through the wide window and +140 through the narrow, as invariant as any '
+      'confirmation here. It is also the opening nearest the west gallery, whose deck, upstand and rail '
+      'all stand inside the same height band a metre away, so a competing edge is available to it that no '
+      'other opening has. One opening in twelve with a plausible impostor beside it does not move a line '
+      'that eleven others confirm.' % (1000 * RESID['sill_off']),
+      'tools/overlay_residual.py')
+check('the head discrepancy is a pattern and therefore not a correction',
+      abs(RESID['head_lo']) > 0.050,
+      'openings 7, 8 and 9 read %.0f, %.0f and %.0f mm and hold those values through both windows, '
+      'opening 8 to the millimetre. Openings 1 and 12, at the two extremes of the hall, read %+.0f and '
+      '%+.0f and are confirmed. A head that is right at both ends and 110 mm low across the middle is not '
+      'a single number to correct, so nothing moves. It is now the north wall most specific open '
+      'discrepancy rather than a vague one.'
+      % (1000 * RESID['head_mid'][0], 1000 * RESID['head_mid'][1], 1000 * RESID['head_mid'][2],
+         1000 * RESID['head_ends'][0], 1000 * RESID['head_ends'][1]),
+      'tools/overlay_residual.py')
+check('the confirmations are read against the instrument own false positive rate',
+      RESID['null_stable'] > 0 and RESID['confirmed'] > 3 * RESID['null_stable'],
+      '%d of the %d pier nulls fail window invariance, moving 70 to 190 mm, which is a null behaving as a '
+      'null should. %d of them do NOT: they return a stable edge within 50 mm on a pier where this model '
+      'draws nothing. So this instrument produces a convincing false positive about two times in seven, '
+      'and %d confirmations out of %d features is read against that and not against zero.'
+      % (RESID['null_fail'], RESID['nulls'], RESID['null_stable'], RESID['confirmed'],
+         RESID['features']),
+      'tools/overlay_residual.py')
 # THE DECK LEVEL, SEARCHED AND REFUSED PROPERLY (2026-09-09, tools/run_deck_edge.py + run_deck_ladder.py)
 DECKS = {'pin_h': 8.645, 'pin_band_hi': 8.65, 'pin_rays': 145, 'pin_share': 1.00, 'pin_res': 0.0081,
          'pin2_h': 8.803, 'pin2_band_hi': 8.80, 'pin2_share': 0.99,
