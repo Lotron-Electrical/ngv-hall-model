@@ -3151,6 +3151,50 @@ function buildEndWalls(root){
   // the peel added no third. That is the clearest statement yet of how little of that room is visible:
   // 133 blobs were gathered through the twelve apertures and only two of the points they form are
   // conditioned well enough to be believed past the reveal.
+  // THE RULER TURNED SIDEWAYS: THE OPENINGS GIVEN THEIR OWN JAMBS, AND THE MISSES TURNING OUT TO BE
+  // DEPTH RATHER THAN ERROR (2026-09-10, tools/opening_jambs.py and tools/jamb_parallax.py).
+  // WHY IT WAS WORTH DOING. The twelve openings were positioned on NINE jamb lines and every one of
+  // those lines lies between u 20.0 and 34.9, which is openings 5 to 9. The other seven were carried
+  // into place by a rigid shift with no local evidence under them at all, and that is exactly how
+  // opening 3 came to be 0.78 m out until today. So the contrast ruler that had just recovered the sill
+  // was turned on its side: walk u across each opening in 30 mm steps, sample a column of the wall band
+  // at each stop, and the pooled profile is high, low, high with the jambs at the half-way crossings.
+  // THE NULL WAS WRONG THE FIRST TIME AND THE RUN CAUGHT IT. The control is the same walk centred on a
+  // PIER, which means the walk has to FIT INSIDE a pier. With a round 1.10 m reach it is 3.414 m wide
+  // and the piers here are 2.324 to 2.576 m, so every one of the eleven controls ran straight through
+  // parts of the two openings beside it. Its dips came out 0.211 to 0.515, the bar it set was so high
+  // that only two openings could clear it, and the run refused itself for the wrong reason. The reach
+  // is now DERIVED from the narrowest pier, 0.455 m, so the null is guaranteed to stand on solid stone.
+  // Its dips fell to 0.069 to 0.342 and ten of the twelve openings cleared it.
+  // WHAT THE WALK ALONE COULD SAY, WHICH IS LESS THAN IT LOOKED. The ten centres sit a median 41 mm
+  // from where this file draws them, but they disagree with EACH OTHER by 171 mm between their own
+  // quartiles. A median quoted against that spread is a claim smaller than its own error bar, so
+  // nothing was placed on it. What it gives instead is a bound with no ray fit in it: every opening
+  // that answered lands within 0.251 m of drawn, so none carries an error of opening 3's size.
+  // AND THEN THE MISSES TURNED OUT TO BE ORDERED. The west openings read +0.221 m, the east ones
+  // -0.098 m, and the sign changes in the middle of the hall. Scatter does not do that. An opening is
+  // not a hole in a sheet, it is a tube, and a tube seen from one side shows a dark patch pulled
+  // TOWARDS the viewer, because the rays aimed at the far jamb hit the side of the reveal instead of
+  // going through. Every camera in the pool stands in the hall, so this is what depth looks like.
+  // ZERO DEPTH IS REFUTED AND THAT IS THE SOLID PART. A sheet predicts no shift at all, for any camera
+  // anywhere, which is a control with an independently known answer rather than another stability test.
+  // Forward-modelling the depth through the SAME edge finder that read the measurement, the best fit is
+  // 0.20 m and 0 of 2000 resamples of the openings land on zero. These apertures have depth, which
+  // nothing in this project had shown before, and the ordered misses are therefore NOT evidence that
+  // the openings are misplaced.
+  // THE DEPTH ITSELF IS NOT MEASURED, AND THE RUN CARRIES ITS OWN REASON. The fit wants 0.20 m against
+  // the 0.900 drawn, but the same model there predicts the aperture should READ 0.960 m wide when the
+  // walk read 1.185. A tube narrows what you see as well as shifting it, and the measurement has the
+  // shift without the narrowing. The two reveal faces are not lit alike, and a darker face pulls the
+  // centre of the dark patch sideways without closing the hole down; this run cannot separate that from
+  // geometry. So 0.20 m is a LOWER bound on the built depth rather than a value, and openDepth stays
+  // 0.900. The lamp-occlusion route to the same number died on 0 discriminating pairs out of 225; this
+  // one gets as far as proving the depth is not zero and no further.
+  // WHAT ACTUALLY MOVES: NOTHING IN THE GEOMETRY, AND THE PLACEMENT BOUND TIGHTENS. Raw, the openings
+  // scatter 0.162 m rms from where this file draws them. Take out the parallax that depth alone forces
+  // and the residual falls to 0.085 m rms, and that is now the bound on how far any one of them can be
+  // out. Five of the seven that had no local evidence under them answered and sit inside it. Openings 1
+  // and 2, at the far west end, never cleared the null and are still carried by the rigid shift alone.
   // THE SILL MEASURED AGAIN BY SOMETHING THAT SHARES NO MACHINERY WITH WHAT PLACED IT, AND IT HOLDS
   // (2026-09-10, tools/opening_levels.py).
   // WHY IT WAS WORTH ASKING TWICE. The sill 8.740 and the head 11.165 were both placed by fitting
@@ -4673,7 +4717,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 199 bounds, all satisfied.
+  // 203 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces

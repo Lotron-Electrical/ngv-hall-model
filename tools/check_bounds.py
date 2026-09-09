@@ -1409,6 +1409,69 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE CONTRAST RULER TURNED SIDEWAYS (2026-09-10, tools/opening_jambs.py, tools/jamb_parallax.py).
+OJ = {'jamb_lines': 9, 'jamb_lo': 20.0, 'jamb_hi': 34.9, 'never': 7, 'ustep': 0.03,
+      'bad_reach': 1.10, 'bad_walk': 3.414, 'pier_lo': 2.324, 'pier_hi': 2.576,
+      'bad_null_lo': 0.211, 'bad_null_hi': 0.515, 'bad_pass': 2,
+      'reach': 0.455, 'margin': 0.10, 'null_lo': 0.069, 'null_hi': 0.342, 'bar': 0.295,
+      'answered': 10, 'median': -0.041, 'iqr': 0.171, 'worst': 0.251, 'width': 1.185,
+      'drawn_w': 1.212, 'never_answered': 5}
+check('the sideways ruler was useless until its null was made to stand on stone',
+      OJ['bad_walk'] > OJ['pier_hi'] and OJ['reach'] * 2 + OJ['drawn_w'] < OJ['pier_lo'],
+      'the twelve openings were positioned on %d jamb lines and every one lies between u %.1f and %.1f, '
+      'so %d openings were carried into place by a rigid shift with no local evidence under them, which '
+      'is exactly how opening 3 came to be 0.78 m out. The contrast ruler that recovered the sill was '
+      'turned on its side to fix that. Its control is the same walk centred on a PIER, so the walk has '
+      'to FIT INSIDE a pier: with a round %.2f m reach it is %.3f m wide against piers of %.3f to %.3f, '
+      'and every one of the eleven controls ran through parts of the two openings beside it. Its dips '
+      'came out %.3f to %.3f, the bar was so high only %d openings cleared it, and the run refused '
+      'itself for the wrong reason. The reach is now DERIVED from the narrowest pier, %.3f m, leaving '
+      '%.2f m of stone each side.'
+      % (OJ['jamb_lines'], OJ['jamb_lo'], OJ['jamb_hi'], OJ['never'], OJ['bad_reach'], OJ['bad_walk'],
+         OJ['pier_lo'], OJ['pier_hi'], OJ['bad_null_lo'], OJ['bad_null_hi'], OJ['bad_pass'],
+         OJ['reach'], OJ['margin']),
+      'tools/opening_jambs.py')
+check('and with a clean null it bounds every opening without placing any of them',
+      OJ['null_hi'] < OJ['bad_null_lo'] * 2 and OJ['answered'] == 10 and OJ['iqr'] > abs(OJ['median']),
+      'the null dips fell to %.3f to %.3f and %d of the twelve openings cleared the bar of %.3f. Their '
+      'centres sit a median %+.3f m from where index.html draws them, but they disagree with EACH OTHER '
+      'by %.0f mm between their own quartiles, which is wider than the median is from zero. Quoting that '
+      'median as a placement would be a claim smaller than its own error bar, so nothing was placed on '
+      'it. What it gives is a bound with no ray fit in it: every opening that answered lands within '
+      '%.3f m of drawn, so none carries an error of opening 3 size.'
+      % (OJ['null_lo'], OJ['null_hi'], OJ['answered'], OJ['bar'], OJ['median'], 1000 * OJ['iqr'],
+         OJ['worst']),
+      'tools/opening_jambs.py')
+JP = {'west': 0.221, 'east': -0.098, 'best': 0.20, 'q1': 0.15, 'q3': 0.20, 'zero_frac': 0.0,
+      'rms0': 0.1627, 'rms': 0.0851, 'boots': 2000, 'pred_w': 0.960, 'read_w': 1.185,
+      'drawn_d': 0.900, 'lamp_pairs': 0, 'lamp_of': 225}
+check('the misses are ordered along the hall, and a hole in a sheet cannot produce that',
+      JP['west'] > 0 and JP['east'] < 0 and JP['zero_frac'] < 0.01 and JP['rms'] < JP['rms0'],
+      'the west openings read %+.3f m and the east ones %+.3f m and the sign changes in the middle of '
+      'the hall. Scatter does not do that. An opening is a TUBE, and a tube seen from one side shows a '
+      'dark patch pulled TOWARDS the viewer, because rays aimed at the far jamb hit the side of the '
+      'reveal instead of going through; every camera in the pool stands in the hall. Depth 0 predicts no '
+      'shift at all for any camera anywhere, which is a control with an independently known answer. '
+      'Forward-modelled through the SAME edge finder as the measurement, depth 0 scores %.4f and the '
+      'best depth %.4f, and %.0f of %d resamples of the openings land on zero. These apertures have '
+      'depth, and the ordered misses are NOT evidence that the openings are misplaced.'
+      % (JP['west'], JP['east'], JP['rms0'], JP['rms'], JP['zero_frac'] * JP['boots'], JP['boots']),
+      'tools/jamb_parallax.py')
+check('but the depth is not measured, and what tightens instead is the placement',
+      JP['pred_w'] < JP['read_w'] and JP['best'] < JP['drawn_d'] and JP['rms'] < JP['rms0'],
+      'the fit wants %.2f m, quartiles %.2f to %.2f, against the %.3f index.html draws. But the same '
+      'model there predicts the aperture should READ %.3f m wide when the walk read %.3f: a tube narrows '
+      'what you see as well as shifting it, and the measurement has the shift WITHOUT the narrowing. The '
+      'two reveal faces are not lit alike and a darker face pulls the centre sideways without closing '
+      'the hole down, which this cannot separate from geometry. So %.2f m is a LOWER bound on the built '
+      'depth, not a value, and openDepth stays %.3f; the lamp-occlusion route to the same number died on '
+      '%d discriminating pairs out of %d. What does move is the bound: raw, the openings scatter %.3f m '
+      'rms from drawn, and with the parallax that depth alone forces taken out the residual falls to '
+      '%.3f m rms. Five of the seven openings that had no local evidence answered and sit inside it; '
+      'openings 1 and 2 at the far west never cleared the null and are still carried by the rigid shift.'
+      % (JP['best'], JP['q1'], JP['q3'], JP['drawn_d'], JP['pred_w'], JP['read_w'], JP['best'],
+         JP['drawn_d'], JP['lamp_pairs'], JP['lamp_of'], JP['rms0'], JP['rms']),
+      'tools/jamb_parallax.py')
 # THE SILL READ AGAIN OFF CONTRAST, NOT OFF AN EDGE FIT (2026-09-10, tools/opening_levels.py).
 OL = {'frames': 704, 'lo': 7.60, 'hi': 12.40, 'step': 0.05, 'null': 0.196, 'deep': 9,
       'kept': 7, 'sill': 8.750, 'sq1': 8.650, 'sq3': 8.750, 'head': 11.100, 'hq1': 11.075,
