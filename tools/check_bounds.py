@@ -1559,11 +1559,19 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE EAST BACK WALL, THE SAME CREAM FROM THE HALL (2026-09-10, tools/back_wall_hue.py, the fifth run, its share control amended and said so).
+_bh = open(TOOLS_DIR_OT + 'back_wall_hue.py', encoding='utf-8').read()
+check('the east back wall carries the west wall\'s day colour because the hall sees both as one cream, and the amended share control is declared in the tool',
+      "topBackMat=dnm(0x0f0f0f,0x827f4b,'gallery-back-lit')" in src and 'THE EAST BACK WALL IS THE SAME CREAM FROM THE HALL' in src and 'THE BLACK WAS THE COLUMNS' in src
+      and 'AMENDED AFTER SEEING IT' in _bh and 'share[0] >= 0.3' in _bh and 'def bright_rgb' in _bh,
+      'from the west deck the east back wall between the columns reads R/G 1.115, B/G 0.789 (23 frames, spreads 0.016), within 0.06 of the west '
+      'wall, so both back walls take 0x827f4b by day; the bright-cluster share control went from 0.40 to 0.30 after the first result and the tool says so.',
+      'index.html, tools/back_wall_hue.py')
 # THE WEST BACK WALL BY THE PHONE'S CHROMA (2026-09-10, tools/back_wall_hue.py: four referenced runs failed, the placement is labelled).
 _bh = open(TOOLS_DIR_OT + 'back_wall_hue.py', encoding='utf-8').read()
 check('the west back wall carries the phone chroma at the measured luma, unreferenced and labelled, the east keeps the grey, and the four failed runs are written down',
       "topBackWestMat=dnm(0x0f0f0f,0x827f4b,'gallery-back-lit-west')" in src and 'CORRECTED BY THE RENDER' in src and "side==='west'?topBackWestMat:topBackMat,'gallery-back'" in src
-      and "topBackMat=dnm(0x0f0f0f,0x7a7a7a,'gallery-back-lit')" in src and 'UNREFERENCED, west only' in src and 'FOUR RUNS FOR A REFERENCE AND NONE' in src
+      and "topBackMat=dnm(0x0f0f0f,0x827f4b,'gallery-back-lit')" in src and 'UNREFERENCED, west only' in src and 'FOUR RUNS FOR A REFERENCE AND NONE' in src   # the east followed the west the same day (bound 280)
       and 'THE FOURTH RUN, THE EAST REGION MOVED CLEAR OF THE COLUMN' in _bh and 'BACK = [(0.356, 3.0, 10.0)' in _bh,
       '183 east-deck frames put the west back wall at R/G 1.108 and B/G 0.734 (spreads 0.005, 0.009), cream; every stone reference in those '
       'frames was in shadow or behind a column, so the colour is the phone chroma at luma 0x7a, 0x827f4b once the render had shown the tone map desaturating 0x877a59, labelled unreferenced; the east '

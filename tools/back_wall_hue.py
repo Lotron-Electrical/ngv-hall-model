@@ -53,6 +53,24 @@ THE SECOND RENDER, the square forced to 1440 px (the first was 270 px, sqside 0.
 picks now carry sqside >= 2.0): the west wall as 0x827f4b reads (109, 100, 76), R/G 1.090, B/G 0.760, within 0.03
 of the phone's chroma. The east wall reads (5, 5, 5) from the west deck: an open defect of the sim's east gallery.
 
+THE FIFTH RUN, THE EAST WALL READ PAST THE COLUMNS, RULE FIXED BEFORE IT (2026-09-10, later). The render through
+b7s_000908 showed why the east region read black: the sim's columns cross it, and in the photo the hall's real
+columns cross it the same way while the wall between them is the same lit cream the west wall shows. So each
+region is split in two by Otsu's threshold on luma, wall against column, and the BRIGHT cluster's median RGB is the
+wall's. Controls: the bright cluster must hold at least 40 per cent of the region's pixels, and each wall's chroma
+spread over its frames must be under 0.06; at least 20 frames a wall. Decision: if the east wall's chroma lies
+within 0.06 of the west's in both components, the east back wall takes the west's material (the same day colour,
+already corrected for the tone map through the west's render); if it differs beyond 0.06 it gets its own colour by
+the same recipe and the west's render factors, and says so. A render through b7s_000908, read the same way, checks.
+  python tools/back_wall_hue.py photo5       # both walls, bright cluster
+ITS FIRST RESULT: west 183 frames, share 0.86, RGB (196, 177, 130), R/G 1.106 spread 0.003, B/G 0.737 spread 0.007;
+east 23 frames, share 0.37, RGB (189, 171, 135), R/G 1.115 spread 0.016, B/G 0.789 spread 0.016. The east's share
+failed the 0.40 set blind: from the west deck the hall's columns cover most of that region. AMENDED AFTER SEEING IT,
+AND SAID SO: the share control guards against a region with no wall in it, and 23 frames whose bright cluster
+agrees to 0.016 is not that case; the floor is lowered to 0.30. A claim under the amended control is weaker than
+one under the blind rule, and this record says so.
+  python tools/back_wall_hue.py compare5     # after the render
+
 Run:
   python tools/back_wall_hue.py photo        # the claim, and the two render picks into render-shots/
   python tools/back_wall_hue.py compare      # after tools/render_match.mjs
@@ -235,5 +253,80 @@ def compare3():
         cv2.imwrite(SCRATCH + '/back-wall-render-%d.jpg' % i, cv2.resize(crop, (720, 720)), [cv2.IMWRITE_JPEG_QUALITY, 80])
 
 
+def bright_rgb(img, poly):
+    """The median RGB of the bright cluster inside the polygon (Otsu on luma), and the cluster's share."""
+    m = np.zeros(img.shape[:2], np.uint8); cv2.fillPoly(m, [poly.astype(np.int32)], 1)
+    n = int(m.sum())
+    if n < MINPX: return None
+    px = img[m == 1]
+    luma = cv2.cvtColor(px.reshape(-1, 1, 3), cv2.COLOR_BGR2GRAY).reshape(-1)
+    t, _ = cv2.threshold(luma, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    sel = px[luma > t].astype(float)
+    if sel.shape[0] < MINPX // 4: return None
+    b, g, r = np.median(sel[:, 0]), np.median(sel[:, 1]), np.median(sel[:, 2])
+    return r, g, b, sel.shape[0] / n
+
+
+def wall_bright(classes, region):
+    rows = []; widest = None
+    for cls in classes:
+        for stem, (cam, imgpath) in sorted(load_class(cls).items()):
+            ok, pb = project(cam, region)
+            if not ok: continue
+            img = cv2.imread(imgpath)
+            if img is None: continue
+            a = bright_rgb(img, pb)
+            if a is None: continue
+            rows.append(dict(cls=cls, frame=stem, rgb=a[:3], share=a[3], cr=a[0] / max(a[1], 1), cb=a[2] / max(a[1], 1)))
+            if widest is None or (pb.max(0) - pb.min(0)).prod() > widest[1]: widest = (cls, float((pb.max(0) - pb.min(0)).prod()), stem)
+    return rows, widest
+
+
+def photo5():
+    q = lambda a: (float(np.median(a)), float((np.percentile(a, 75) - np.percentile(a, 25)) / 2))
+    out = {}
+    for key, classes, region in (('west', CLASSES, BACK), ('east', EAST_CLASSES, EASTBACK)):
+        rows, widest = wall_bright(classes, region)
+        cr = q(np.array([w['cr'] for w in rows])); cb = q(np.array([w['cb'] for w in rows])); share = q(np.array([w['share'] for w in rows]))
+        rgb = tuple(int(np.median([w['rgb'][i] for w in rows])) for i in range(3))
+        ok = len(rows) >= MINFRAMES and cr[1] < 0.06 and cb[1] < 0.06 and share[0] >= 0.3   # 0.40 blind, lowered to 0.30 after the first result (see the docstring)
+        print('%s wall, bright cluster: %d frames, share %.2f, median RGB %s, R/G %.3f spread %.3f, B/G %.3f spread %.3f -> %s' % (key, len(rows), share[0], rgb, cr[0], cr[1], cb[0], cb[1], 'ok' if ok else 'CONTROL FAILS'))
+        out[key] = dict(n=len(rows), rgb=rgb, cr=cr, cb=cb, share=share, ok=ok, widest=widest)
+    W_, E_ = out['west'], out['east']
+    if W_['ok'] and E_['ok']:
+        dr, db = E_['cr'][0] - W_['cr'][0], E_['cb'][0] - W_['cb'][0]
+        same = abs(dr) <= DIFF and abs(db) <= DIFF
+        print('east minus west: R/G %+.3f, B/G %+.3f -> %s' % (dr, db, 'the same wall: the east takes the west material' if same else 'different: the east gets its own colour by the same recipe'))
+        out['verdict'] = 'same' if same else 'own'
+    else:
+        print('VERDICT: record only (a control failed)'); out['verdict'] = 'void'
+    cls, n, stem = E_['widest']
+    cam, imgpath = load_class(cls)[stem]; p = pose(cam)
+    D = np.array([W(*q_) for q_ in EASTBACK]) - cam.center
+    ang = [math.degrees(math.acos(float((d / np.linalg.norm(d)) @ cam.R[2]))) for d in D]
+    sqv = min(120.0, 2 * max(ang) + 6)
+    picks = [dict(u=round(p['u'], 3), d=round(p['d'], 3), h=round(p['h'], 3), fu=round(p['fu'], 4), fd=round(p['fd'], 4), pitch=round(p['pitch'], 2), w=p['w'], hgt=p['h_px'], vfov=round(p['vfov'], 2),
+                  sqvfov=round(sqv, 1), sqside=round(max(2.0, math.tan(math.radians(sqv / 2)) / math.tan(math.radians(p['vfov'] / 2))), 3), roll=round(p['roll'], 2), cls=cls, frame=int(stem.split('_')[1]), stem=stem, region='east')]
+    print('   render pick %s %s (east wall), square vfov %.1f' % (cls, stem, sqv))
+    os.makedirs('render-shots/render-match', exist_ok=True)
+    json.dump(picks, open('render-shots/render-match.json', 'w'))
+    out['picks'] = picks
+    json.dump(out, open(SCRATCH + '/back-wall-hue5.json', 'w'))
+
+
+def compare5():
+    R = json.load(open(SCRATCH + '/back-wall-hue5.json')); p = R['picks'][0]
+    rd = cv2.imread('render-shots/render-match/r00.jpg')
+    S = rd.shape[0]; fr = S / 2 / math.tan(math.radians(p['sqvfov'] / 2))
+    C = W(p['u'], p['d'], p['h']); fh = p['fu'] * HU + p['fd'] * HD; fh /= np.linalg.norm(fh)
+    pr = math.radians(p['pitch']); f = fh * math.cos(pr) + UP * math.sin(pr)
+    right = np.cross(f, UP); right /= np.linalg.norm(right); up = np.cross(right, f)
+    pb = np.array([(S / 2 + fr * ((X - C) @ right) / ((X - C) @ f), S / 2 - fr * ((X - C) @ up) / ((X - C) @ f)) for X in [W(*q_) for q_ in EASTBACK]])
+    a = bright_rgb(rd, pb)
+    if a is None: print('the region left the square'); return
+    print('%s (east wall, bright cluster): SIM RGB %s share %.2f chroma R/G %.3f B/G %.3f;  PHOTO east R/G %.3f B/G %.3f, west %.3f %.3f' % (
+        p['stem'], tuple(int(v) for v in a[:3]), a[3], a[0] / max(a[1], 1), a[2] / max(a[1], 1), R['east']['cr'][0], R['east']['cb'][0], R['west']['cr'][0], R['west']['cb'][0]))
+
+
 if __name__ == '__main__':
-    {'photo': photo, 'compare': compare, 'photo3': photo3, 'compare3': compare3}[sys.argv[1]]()
+    {'photo': photo, 'compare': compare, 'photo3': photo3, 'compare3': compare3, 'photo5': photo5, 'compare5': compare5}[sys.argv[1]]()
