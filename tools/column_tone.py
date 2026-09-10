@@ -25,6 +25,16 @@ filling its region, since that void says nothing about the columns' tone. So the
 0.124 / 0.041 = 3.0, and COLUMN_DAY in index.html is 3.0, checked by a render after the push (the sim mode below,
 which lands when the render's c is within the wider side's spread of the claim, else the share is corrected once).
 
+THE CHECK, RENDERED AFTER THE PUSH. With COLUMN_DAY 3.0 live, the same two renders. The Otsu split read b3_000161 as
+column 82 against wall 133 (c 0.617, dark share 0.53): void, because the sim's region carries brick from about
+h 11.4 up (luma 85) where the photo's region is one lit cream, and once the columns brightened the split folded the
+brick into the dark cluster (before, the columns alone were the dark cluster, share 0.12). The check was therefore
+read by fixed luma, chosen after seeing that render and said so: column = the region's pixels under 40, wall = over
+110, brick left out. b3_000161: column 18 (3068 px) against wall 133, c 0.135; b7s_000908: column 11 against wall
+114 (367 px only), c 0.096. Both within the claim's spread (0.124, 0.108): COLUMN_DAY 3.0 stands, no correction.
+What the check exposed for the next instrument: the sim shows brick over the top of the west back-wall region and
+the photo shows cream there, so the west gallery's lit back wall reaches higher than the sim's.
+
 Run:
   python tools/column_tone.py          # the claim and the two renders, and column-tone.json
   python tools/column_tone.py sim      # after the push: the renders again, against the claim
@@ -37,6 +47,7 @@ from underside_geom import load_class
 from back_wall_hue import project, BACK, EASTBACK, CLASSES, EAST_CLASSES, W, HU, HD, UP, SCRATCH
 
 SHARE = (0.10, 0.70)
+SIM_COLUMN_LUMA, SIM_WALL_LUMA = 40, 110   # the check's fixed split in the sim: column under 40, cream over 110, brick (85) left out
 MINFRAMES, AGREE, FACTOR = 15, 0.05, 1.5
 
 
@@ -107,12 +118,30 @@ def read_sims(R):
 
 
 def sim():
-    """THE CHECK after the push: the renders again, against the claim and the wider side's spread."""
+    """THE CHECK after the push: the renders again, against the claim and the wider side's spread. The Otsu split is
+    printed for the record, but the reading is by fixed luma (SIM_COLUMN_LUMA, SIM_WALL_LUMA): in the sim the region
+    carries brick from about h 11.4 up (luma 85), which the Otsu split folds into the dark cluster once the columns
+    brighten; the photo's region is one lit cream. Chosen after the first check render, and said so in THE CHECK."""
     T = json.load(open(SCRATCH + '/column-tone.json'))
     claim = T['claim']; spread = max(T['west']['c'][1], T['east']['c'][1])
     if claim is None: print('no claim on record'); return
-    for s in read_sims(json.load(open(SCRATCH + '/back-wall-hue3.json'))):
-        print('render c %.3f against claim %.3f spread %.3f: %s' % (s, claim, spread, 'lands' if abs(s - claim) <= spread else 'OUTSIDE, correct the share once by %.2fx' % (claim / max(s, 1e-6))))
+    R = json.load(open(SCRATCH + '/back-wall-hue3.json'))
+    read_sims(R)
+    for i, p in enumerate(R['picks']):
+        rd = cv2.imread('render-shots/render-match/r%02d.jpg' % i, 0)
+        if rd is None: continue
+        S = rd.shape[0]; fr = S / 2 / math.tan(math.radians(p['sqvfov'] / 2))
+        C = W(p['u'], p['d'], p['h']); fh = p['fu'] * HU + p['fd'] * HD; fh /= np.linalg.norm(fh)
+        pr = math.radians(p['pitch']); f = fh * math.cos(pr) + UP * math.sin(pr)
+        right = np.cross(f, UP); right /= np.linalg.norm(right); up = np.cross(right, f)
+        region = BACK if p['region'] == 'west' else EASTBACK
+        pb = np.array([(S / 2 + fr * ((X - C) @ right) / ((X - C) @ f), S / 2 - fr * ((X - C) @ up) / ((X - C) @ f)) for X in [W(*q_) for q_ in region]])
+        m = np.zeros(rd.shape, np.uint8); cv2.fillPoly(m, [pb.astype(np.int32)], 1)
+        g = rd[m == 1]; col = g[g < SIM_COLUMN_LUMA]; wall = g[g > SIM_WALL_LUMA]
+        if col.size < 200 or wall.size < 200: print('sim %s: under 200 px of column or wall by fixed luma' % p['stem']); continue
+        s = float(np.median(col)) / max(float(np.median(wall)), 1)
+        print('sim %s by fixed luma: column %.0f (%d px) against wall %.0f (%d px), c %.3f against claim %.3f spread %.3f: %s' % (
+            p['stem'], np.median(col), col.size, np.median(wall), wall.size, s, claim, spread, 'lands' if abs(s - claim) <= spread else 'OUTSIDE, correct the share once by %.2fx' % (claim / max(s, 1e-6))))
 
 
 if __name__ == '__main__':

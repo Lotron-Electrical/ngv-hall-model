@@ -1563,9 +1563,10 @@ TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
 _ct = open(TOOLS_DIR_OT + 'column_tone.py', encoding='utf-8').read()
 check('the columns carry a daylight share of 3.0 measured against the back walls, and the one-render amendment is declared in the file and the tool',
       'const COLUMN_DAY=3.0;' in src and 'AMBIENT+lit.day*COLUMN_DAY' in src and 'THE COLUMNS, THREE TIMES TOO DARK BY DAY' in src
-      and 'acting on the one valid render is an amendment' in src and 'SHARE = (0.10, 0.70)' in _ct and 'MINFRAMES, AGREE, FACTOR = 15, 0.05, 1.5' in _ct and 'AMENDED AFTER SEEING IT' in _ct,
+      and 'acting on the one valid render is an amendment' in src and 'SHARE = (0.10, 0.70)' in _ct and 'MINFRAMES, AGREE, FACTOR = 15, 0.05, 1.5' in _ct and 'AMENDED AFTER SEEING IT' in _ct
+      and 'THE RENDER AFTER: column 18 against wall 133' in src and 'SIM_COLUMN_LUMA, SIM_WALL_LUMA = 40, 110' in _ct and 'THE CHECK, RENDERED AFTER THE PUSH' in _ct,
       'the dark cluster of the back-wall split is the column: 0.147 (104 east-deck frames) and 0.100 (20 west-deck frames) of the wall, claim '
-      '0.124; the render through b3_000161 gave 0.041, so the columns daylight share is 3.0 and a render after the push checks it.',
+      '0.124; the render through b3_000161 gave 0.041, so the columns daylight share is 3.0; the render after the push read 18 against 133 (c 0.135) and 11 against 114 (c 0.096), within the spread.',
       'index.html, tools/column_tone.py')
 # THE EAST FACE IN STRIPS, RECORD ONLY (2026-09-10, tools/face_strips.py: four strips too bright and one too dark of nine, short of seven).
 _fs = open(TOOLS_DIR_OT + 'face_strips.py', encoding='utf-8').read()

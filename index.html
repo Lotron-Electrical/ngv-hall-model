@@ -5859,6 +5859,12 @@ function buildEndWalls(root){
   // deck (104 frames) and 0.100 from the west deck (20 frames), claim 0.124; the render through b3_000161 gave
   // 0.041. COLUMN_DAY 3.0 on the columns' daylight share, the amendment (one valid render, the other void for the
   // sim's own columns filling its region) declared; a render after the push checks it.
+  // THE RENDER AFTER: b3_000161 column 18 against wall 133 (c 0.135), b7s_000908 column 11 against wall 114 (c 0.096),
+  // both within the claim's spread, so 3.0 stands. The Otsu split was void on the render (the sim's region carries
+  // brick from about h 11.4 up, which the split folded into the dark cluster once the columns brightened), so the
+  // check reads by fixed luma, chosen after that render and declared in the tool. And the check showed the next
+  // defect: the photo's region is one lit cream where the sim shows brick over its top, so the west gallery's lit
+  // back wall reaches higher than the sim's. Not measured yet.
   // THE EAST FACE FROM THE HALL, IN STRIPS (2026-09-10, latest, tools/face_strips.py). Thirteen 1 m strips along d,
   // each its own median against the wall strip above it, over 23 west-deck frames, void where a column blackens
   // the wall strip. Nine strips carry a claim: the face reads the lit interior at d 1 to 3 (0.92, 0.56 of the
@@ -6658,7 +6664,9 @@ const COLUMN_ROUGHNESS=0.5;
 // 1.0 was the share, 3.0 is the claim over the render, checked by a render after the push and corrected once if
 // it lands outside the claim's spread. The rule asked for both renders; the east one's split was void because the
 // sim's own columns fill more than 0.70 of that region, and acting on the one valid render is an amendment made
-// after seeing that, and said so here and in the tool.
+// after seeing that, and said so here and in the tool. THE RENDER AFTER: column 18 against wall 133 through
+// b3_000161 (c 0.135) and 11 against 114 through b7s_000908 (c 0.096), both within the claim's spread; kept. Read
+// by fixed luma because the Otsu split folded the sim's brick into the dark cluster; the tool says so.
 const COLUMN_DAY=3.0;
 const GAPS=8;
 const BLOOM_LAYER=2;   // the HDR emitters and their halos; the bloom pass draws this layer alone
