@@ -1234,7 +1234,7 @@ const WALLF={openings:[[4.098,5.310],[7.697,8.911],[11.487,12.700],[15.227,16.44
  // lower and stand 0.115 m taller than they were drawn. dNorth does NOT move: the two edges independently
  // put the wall face on -0.058 and -0.107 against a drawn -0.090, which is 32 mm and 17 mm, so a number
  // that has been in the unmeasured list all day is now confirmed rather than changed.
- openY:[8.740,11.165], openDepth:0.9, corridor:{width:1.420, floor:8.34, ceil:10.947, lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); WIDTH AND CEILING ARE NOW ONE ANSWER, not two assumptions: the anchored ceiling locus (tools/corridor_locus.py) gives the ceiling height for every assumed back-wall depth, and the highest lamp measured inside the room, h 10.945, cuts it -- a ceiling below a lamp is impossible. The curve crosses that lamp on d -2.350 h 10.947 from 82 rays with its four camera splits agreeing to 10 mm, so the back wall stands on d -2.350 and this is the SHALLOWEST admissible room. WIDTH IS MEASURED FROM THE BACK OF THE REVEAL, not from the face: the model draws dB = face + openDepth + width, so 0.9 + 1.420 = 2.320 m of room behind the face. A deeper room with a higher ceiling is equally allowed; 50 mm of lamp-height error moves the wall 86 mm. Was 2.06 and 11.4, which drew the wall on -2.990 and put the drawn ceiling 0.6 m above what the rays read at the drawn depth. Floor 8.34 CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py) */
+ openY:[8.740,11.165], openDepth:0.9, corridor:{width:1.420, floor:8.34, ceil:10.947, backOpenings:[[48.2,49.2,8.34,10.9]], lamps:[[30.527,-2.022,10.916],[34.140,-2.047,10.945]]},   /* reveal 0.9 +-0.3 (cloud, 2014 photo); WIDTH AND CEILING ARE NOW ONE ANSWER, not two assumptions: the anchored ceiling locus (tools/corridor_locus.py) gives the ceiling height for every assumed back-wall depth, and the highest lamp measured inside the room, h 10.945, cuts it -- a ceiling below a lamp is impossible. The curve crosses that lamp on d -2.350 h 10.947 from 82 rays with its four camera splits agreeing to 10 mm, so the back wall stands on d -2.350 and this is the SHALLOWEST admissible room. WIDTH IS MEASURED FROM THE BACK OF THE REVEAL, not from the face: the model draws dB = face + openDepth + width, so 0.9 + 1.420 = 2.320 m of room behind the face. A deeper room with a higher ceiling is equally allowed; 50 mm of lamp-height error moves the wall 86 mm. Was 2.06 and 11.4, which drew the wall on -2.990 and put the drawn ceiling 0.6 m above what the rays read at the drawn depth. Floor 8.34 CORROBORATED by the 22 b1 cameras that lean through opening 5 (feet on h 7.93-8.51, tools/corridor_poses.py) */
  grilles:{north:[[8.310,9.086,2.626,2.974],[30.178,31.094,2.694,3.034],[33.854,34.782,2.718,3.034],[37.322,38.270,2.670,2.998],[41.022,41.902,2.630,2.958],[44.666,45.626,2.642,3.010]],
   south:[[4.682,5.610,2.954,3.262],[9.346,10.242,2.994,3.266],[42.714,43.670,2.822,3.114]]},
  doors:[{north:true, u0:45.970, u1:47.786, h:2.970, lit:false, depth:1.0},
@@ -2667,6 +2667,14 @@ function buildWallDetails(root){
   // into the new pan poses, because a camera aliased down a storey would sit inside a gallery slab.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=ENDW.corridorWest, ub=ENDW.topNorthDoor.east[1];   /* the east end runs to the measured north door of the east gallery (ENDW.topNorthDoor.east); the west end is the estimate 3.0 again (ENDW.corridorWest): the west doorway drawn on 2026-09-10 came from b7 frames that turned out to be the east gallery's south end, and no frame shows the west mouth */
    quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
+   // AN OPENING IN THE BACK WALL OPPOSITE THE EAST GALLERY'S NORTH DOOR (2026-09-10, tools/door_interior.py,
+   // b6_001248 and 001320, by eye). Through that door both frames show a dark-framed rectangle with a lit
+   // panel in it, and its width is 70 px from 12.9 m and 75 px from 9.5 m: a thing on the back wall would
+   // have grown by a third, so it stands far beyond the corridor, and the corridor's back wall must be open
+   // opposite the door for it to be seen at all. Its top sits under the door head by enough to put it on or
+   // above 10.6 if it were on the back wall, so the opening is drawn to 10.9. Position by eye.
+   for(const [o0,o1,h0,h1] of (C.backOpenings||[])){ const dO=dB-w.s*0.01;
+    quad([[o0,dO,h0],[o1,dO,h0],[o1,dO,h1],[o0,dO,h1]],darkBack,'corridor-back-opening'); }
    quad([[ua,dR,C.floor],[ub,dR,C.floor],[ub,dB,C.floor],[ua,dB,C.floor]],corridorMat,'corridor-floor');
    quad([[ua,dR,C.ceil],[ub,dR,C.ceil],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorMat,'corridor-ceiling');
    // the corridor's downlights (C.lamps, u measured): a lit 0.15 disc under the ceiling, mid-corridor
@@ -5274,7 +5282,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 265 bounds, all satisfied.
+  // 266 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5764,6 +5772,21 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10,
+  // tools/door_interior.py). No frame faces the corridor, but b6_001248 and 001320 face the measured north
+  // door square from 12.9 and 9.5 m (distances from the door's own width) and the door is open. Its head
+  // (11.487) stands 0.54 above the drawn corridor ceiling (10.947), so the ceiling's underside should show
+  // through the door down to a horizontal edge where it meets the back wall on d -2.350: predicted 79 px
+  // under the head from 12.9 m and 114 px from 9.5 m. The rule, fixed first: the head must be the strongest
+  // edge near its seed in both frames (it is, 9 and 13 px off the seeds); the drawn ceiling stands if an
+  // edge twice the interior's median gradient sits within 15 px of its row in both frames, is refuted if
+  // in neither. Result: an edge in one frame (1.4 against a median of 0.6) and none in the other (1.4
+  // against 1.1). UNDECIDED, so the ceiling stays where the lamps put it; if it is above the sightline
+  // over the head it is above 11.77 and 11.87, written down as what a refutation would have meant. What
+  // the frames do show: a lit soffit under the head whose far edge reads 0.87 m deep from 12.9 m and 1.19
+  // from 9.5 m, against the 0.90 openDepth drawn, a hint and not a reading since 5 px moves it 0.3 m; and
+  // a far dark-framed rectangle that hardly changes size between the two distances, which is why the back
+  // wall now carries an opening opposite the door (F.corridor.backOpenings, by eye).
   // THE SAME FRAMES A THIRD TIME, AND THEY ARE THE WEST GALLERY'S SOUTH END (2026-09-10, an hour after
   // the block below, tools/gallery_north_end.py, third note). Two readings of b7 376 to 408 had been
   // built and withdrawn: the west gallery's north end, then the east gallery's south end. What was

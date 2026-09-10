@@ -1409,6 +1409,26 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
+DI = {'frames': {1248: {'dcam': 12.90, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.87, 'bound': 11.77},
+                 1320: {'dcam': 9.48, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.19, 'bound': 11.87}},
+      'tol': 15, 'strong': 2.0, 'ceil': 10.947, 'depth_agree': 0.25, 'drawn_depth': 0.90}
+_di = DI['frames']
+_stands = [v['peak'] >= DI['strong'] * v['med'] for v in _di.values()]
+check('the corridor ceiling seen through the east north door is undecided, so it stays where the lamps put it',
+      all(v['ctrl'] <= DI['tol'] for v in _di.values()) and sum(_stands) == 1
+      and abs(grab(r'corridor:\{width:[0-9.]+, floor:[0-9.]+, ceil:([0-9.]+)') - DI['ceil']) < 1e-9
+      and abs(_di[1248]['depth'] - _di[1320]['depth']) >= DI['depth_agree']
+      and abs(grab(r'openDepth:\s*([0-9.]+)') - DI['drawn_depth']) < 1e-9,
+      'b6_001248 and 001320 face the open north door from %.1f and %.1f m; the head is the strongest edge near its seed '
+      'in both (%d and %d px off), the control. The drawn ceiling %.3f meeting the back wall would put an edge under '
+      'the head; an edge twice the interior median stands there in one frame (%.1f against %.1f) and not the other '
+      '(%.1f against %.1f): undecided by the rule, so the ceiling is unchanged. The lit soffit under the head reads '
+      '%.2f and %.2f m deep against openDepth %.2f drawn, a hint, the two disagreeing by more than %.2f.'
+      % (_di[1248]['dcam'], _di[1320]['dcam'], _di[1248]['ctrl'], _di[1320]['ctrl'], DI['ceil'], _di[1320]['peak'],
+         _di[1320]['med'], _di[1248]['peak'], _di[1248]['med'], _di[1248]['depth'], _di[1320]['depth'],
+         DI['drawn_depth'], DI['depth_agree']),
+      'tools/door_interior.py')
 # THE EAST GALLERY'S NORTH END, SEEN AND MEASURED, AND A DOOR I HAD PUT AT THE WRONG END (2026-09-10,
 # tools/gallery_north_end.py).
 NE = {'frames': {1248: {'ctrl': 6, 'u0': 49.227, 'u1': 48.079, 'head': 11.516},
