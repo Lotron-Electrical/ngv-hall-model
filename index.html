@@ -5286,7 +5286,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 272 bounds, all satisfied.
+  // 273 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5792,6 +5792,22 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE CORRIDOR'S TONE THROUGH THE OPENINGS, TRIED AND VOIDED BY ITS OWN CONTROLS (2026-09-10, later,
+  // tools/opening_tone.py). The hall-floor cameras see the corridor only as a patch of tone inside each
+  // opening, so the sim's patch was to be compared with the photo's through the same two poses: the ratio of
+  // the median inside the aperture to the median of a ring of wall around it, in both, and the corridor's
+  // materials to change only if the sim differed from the photo the same way in both frames by more than 1.5x.
+  // First finding, before any tone was read: the widest night view tools/find_openseers.py had ranked
+  // (w6_000085, opening 9) was a lens-model fold, the radial polynomial pulling points 65 degrees off axis
+  // back into the frame; the plain pinhole puts them a frame's height above the top edge, (-418,-1878).
+  // That tool now rejects folds (it found one more, in night on opening 11) and the night frame became
+  // w6_000146 on opening 7. Then the run: the night ring read 36 grey and the walk frame's polygon sat inside
+  // the stained glass's flare reading 220, both outside the 40 to 200 the rule requires of a wall, so both
+  // frames are void and nothing changes. What the void numbers say, unmeasured: night photo inside 17
+  // against wall 36 (0.47), sim 1 against 19 (0.05); walk sim 0 against 116, the photo unreadable. The sim's
+  // openings are black holes by night and by day; the one night photo that nearly qualified shows the
+  // corridor near half the wall's tone. A re-run that fixes a night wall range before looking would be the
+  // next honest step; this one does not move.
   // THE WEST GALLERY'S BACK WALL, BUILT BY EYE FROM THE ONLY FRAMES THAT LOOK AT IT (2026-09-10, b7 298 to
   // 328). The wall is light ashlar in courses, and it carries, north of the SW corner column: a grille vent
   // two courses under the top, about three courses wide; below it and a little south, a dark recess at

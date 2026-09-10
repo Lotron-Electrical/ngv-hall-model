@@ -1557,6 +1557,19 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       '%.3f is the lowest, and the %.2f spread is that number\'s honest width.'
       % (min(_wx.values()), max(_wx.values()), _wx_below, min(_ex), max(_ex), LE['ceiling'] - LE['deck'], max(_ex) - min(_ex)),
       'tools/ledge_edge_west.py')
+import os as _os_ot
+TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE OPENING TONE RUN, VOIDED BY ITS CONTROLS (2026-09-10, tools/opening_tone.py; the fold guard in tools/find_openseers.py).
+_fo = open(TOOLS_DIR_OT + 'find_openseers.py', encoding='utf-8').read()
+_ot = open(TOOLS_DIR_OT + 'opening_tone.py', encoding='utf-8').read()
+check('the opening-tone run changed nothing: both frames failed the wall control, the file says so, and the seer search now rejects lens folds',
+      'TRIED AND VOIDED BY ITS OWN CONTROLS' in src and 'frames are void and nothing changes' in src
+      and 'px < m).any() or (px > cam.w - m).any()' in _fo and 'folds rejected' in _fo
+      and "FRAMES = (('night', 'w6_000146', 7), ('walk', 'w1_000104', 5))" in _ot and 'WALL_OK = (40, 200)' in _ot and 'FACTOR = 1.5' in _ot,
+      'the rule (fixed before the run) needs a wall ring of 40 to 200 grey in the photo; night w6_000146 read 36 and walk w1_000104 sat '
+      'in the stained glass flare reading 220, so both are void and the corridor materials stay as they were; w6_000085 on opening 9, the '
+      'first pick, was a radial-polynomial fold and find_openseers.py now requires the pinhole corners in frame too.',
+      'index.html, tools/opening_tone.py, tools/find_openseers.py')
 # THE WEST GALLERY'S BACK WALL BY EYE (2026-09-10, b7 frames 298 to 328, no pose faces it).
 check('the west back wall carries the vent, the niche and the two cases the b7 frames show, by eye and labelled so, and the east gets none of them',
       re.search(r"wallVents:\{west:\[\[11\.8,12\.9,12\.35,12\.7\]\]\}", src) is not None
