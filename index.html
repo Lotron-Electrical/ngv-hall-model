@@ -2544,6 +2544,12 @@ function buildWallDetails(root){
  const corridorMat=cnm(0x1b1917,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
  const corridorBackMat=cnm(0x1b1917,0x423a2c,'corridor-back');   /* night was 0x0c0b0a; now the ceiling's 27, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
  const headMat=cnm(0x1b1917,0x433e39,'opening-head');   /* the reveal head's underside, unlit, the corridor's own tones (2026-09-10, see the correction above; its first value, 0x8f8378 from the voided soffit pairs, was live for minutes); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
+ // THE JAMBS AND SILL, UNLIT TOO (2026-09-10, the same sweep): by day the day4k pairs on the far openings, seen from
+ // the east deck along the wall, read the jamb's face as the wall (r 0.96 to 1.16, five openings, 30 to 44 m off),
+ // so its day colour is set to render the wall's 78 of that view; by night the Lambert stone lit by the hemisphere
+ // rendered 21 through w6_000143 where the photo shows the jamb dark like the rest of the slot, so its night colour
+ // is the corridor's 0.447 of the wall (29 grey by the same line). The door reveals keep the lit stone.
+ const revealMat=cnm(0x1f1d1b,0x6c635b,'opening-reveal');
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
@@ -2562,9 +2568,9 @@ function buildWallDetails(root){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
   // reveal depth, the corridor's near face as it read in every frame, unlit
   if(w.north)for(const [u0,u1] of F.openings){ const y0=F.openY[0], y1=F.openY[1], d0=w.d, d1=w.d+w.s*F.openDepth;
-   quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],stoneMat,'opening-reveal');
-   quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],stoneMat,'opening-reveal');
-   quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],stoneMat,'opening-sill');
+   quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],revealMat,'opening-reveal');
+   quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],revealMat,'opening-reveal');
+   quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],revealMat,'opening-sill');
    quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],headMat,'opening-head'); }
   // THE HEAD'S UNDERSIDE READS AS THE WALL DOES (2026-09-10, tools/opening_tone_sweep.py): from the floor the steep
   // rays through an opening end on the reveal's head, and in 109 walk pairs that patch reads r 0.978 of the wall
@@ -5315,7 +5321,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 274 bounds, all satisfied.
+  // 275 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5821,6 +5827,11 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // AND THE JAMBS BY NIGHT (2026-09-10, after the render of the push below): with the corridor colour 27 the aperture
+  // through w6_000146 rendered 8 against the wall's 19 (r 0.42, inside the claim), but through w6_000143 it rendered
+  // 21 against 22, the west jamb's reveal face filling the slot from that angle: Lambert stone lit by the hemisphere,
+  // grey by night where the photo's jamb is as dark as the slot. The jambs and sill are now unlit, the wall's tone
+  // by day (the day4k far openings read them as wall) and the corridor's 0.447 by night. Rendered check to follow.
   // THE CORRIDOR'S TONE FROM EVERY WHOLE-OPENING VIEW, AND WHAT MOVED (2026-09-10, latest, tools/opening_tone_sweep.py,
   // rule fixed before the run, the night wall range set from the one number then known). 140 night, 571 walk and 729
   // day4k pairs survived their controls. Night pairs whose centre ray ends on the corridor ceiling: r 0.447, spread

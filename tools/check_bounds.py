@@ -1559,6 +1559,14 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE JAMBS AND SILL UNLIT (2026-09-10, after the night render through w6_000143).
+check('the opening jambs and sill are unlit, the day tone of the wall and the night tone of the corridor, declared after cnm, and the door reveals keep the lit stone',
+      "revealMat=cnm(0x1f1d1b,0x6c635b,'opening-reveal')" in src and src.index('const cnm=') < src.index('const revealMat=cnm(')
+      and src.count("revealMat,'opening-reveal')") == 2 and "revealMat,'opening-sill')" in src
+      and "stoneMat,'opening-reveal')" not in src and "stoneMat,'door-reveal')" in src and 'AND THE JAMBS BY NIGHT' in src,
+      'the west jamb filled opening 8 through w6_000143 and rendered 21 against a wall of 22 while the photo shows it as dark as the slot; '
+      'by day the day4k far openings read the jamb as the wall (r 0.96 to 1.16), so the jambs take 0x6c635b by day and 0x1f1d1b by night.',
+      'index.html')
 # THE CORRIDOR'S TONE FROM THE SWEEP (2026-09-10, tools/opening_tone_sweep.py): the colours it set, the corrections it records.
 _sw = open(TOOLS_DIR_OT + 'opening_tone_sweep.py', encoding='utf-8').read()
 check('the corridor carries the sweep\'s tones (night 27 grey on ceiling, back wall and head; day ceiling 67, back wall d4_000120, head unlit at the corridor\'s tones) and the file records both corrections',
