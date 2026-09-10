@@ -49,6 +49,9 @@ exists. index.html places the west wall by the phone's own chroma at the measure
 THE RENDERS (compare3, after the push): the west wall as 0x877a59 rendered RGB (99, 83, 76), R/G 1.193, B/G 0.916
 against the phone's 1.108, 0.734, so the material became 0x827f4b by the two ratios; the east wall through
 b7s_000908 rendered (7, 7, 7), a black band in the sim where its top should be, noted and not pursued here.
+THE SECOND RENDER, the square forced to 1440 px (the first was 270 px, sqside 0.39, and its box lay on blur; the
+picks now carry sqside >= 2.0): the west wall as 0x827f4b reads (109, 100, 76), R/G 1.090, B/G 0.760, within 0.03
+of the phone's chroma. The east wall reads (5, 5, 5) from the west deck: an open defect of the sim's east gallery.
 
 Run:
   python tools/back_wall_hue.py photo        # the claim, and the two render picks into render-shots/
@@ -205,7 +208,7 @@ def photo3():
         ang = [math.degrees(math.acos(float((d / np.linalg.norm(d)) @ cam.R[2]))) for d in D]
         sqv = min(120.0, 2 * max(ang) + 6)
         picks.append(dict(u=round(p['u'], 3), d=round(p['d'], 3), h=round(p['h'], 3), fu=round(p['fu'], 4), fd=round(p['fd'], 4), pitch=round(p['pitch'], 2), w=p['w'], hgt=p['h_px'], vfov=round(p['vfov'], 2),
-                          sqvfov=round(sqv, 1), sqside=round(math.tan(math.radians(sqv / 2)) / math.tan(math.radians(p['vfov'] / 2)), 3), roll=round(p['roll'], 2), cls=cls, frame=int(stem.split('_')[1]), stem=stem, region='west' if cls in CLASSES else 'east'))
+                          sqvfov=round(sqv, 1), sqside=round(max(2.0, math.tan(math.radians(sqv / 2)) / math.tan(math.radians(p['vfov'] / 2))), 3), roll=round(p['roll'], 2), cls=cls, frame=int(stem.split('_')[1]), stem=stem, region='west' if cls in CLASSES else 'east'))
         print('   render pick %s %s (%s wall, %d px), square vfov %.1f' % (cls, stem, picks[-1]['region'], n, sqv))
     os.makedirs('render-shots/render-match', exist_ok=True)
     json.dump(picks, open('render-shots/render-match.json', 'w'))

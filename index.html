@@ -5861,6 +5861,9 @@ function buildEndWalls(root){
   // tone map desaturates), so the material is 0x827f4b, chosen to render the phone's chroma; a second render
   // follows this push. The east back wall through b7s_000908 rendered black (7, 7, 7): from the west deck the sim
   // shows a dark band where that wall's top should be, which is a defect of its own, seen and not looked into here.
+  // THE SECOND RENDER (same session, the square forced to 1440 px: the first was 270 px and its box lay on blur):
+  // the west wall as 0x827f4b reads RGB (109, 100, 76), R/G 1.090 and B/G 0.760, within 0.03 of the phone's 1.108
+  // and 0.734. Kept. The east wall still renders black from the west deck (5, 5, 5), the same open defect.
   // THE EAST LEDGE AND THE NORTH DOOR CANNOT BOTH REACH THE WALL (2026-09-10, latest, tools/deck_door_corner.py).
   // The setback solid and coping measured from the deck's south end (u 48.46 to 48.91) and the north door
   // measured from inside the gallery (jambs 48.158 and 49.371, half-ranges 0.05 and 0.09) overlap by 0.75 m
