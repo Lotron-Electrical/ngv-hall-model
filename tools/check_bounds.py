@@ -1409,6 +1409,44 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       % (NOTURN['px_lo'], NOTURN['px_hi'], NOTURN['levels'], NOTURN['frames'], G['cWidth'], G['cCeil']),
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
+# THE EAST DECK'S LEDGE, FROM THE CAMERAS THAT STOOD ON IT (2026-09-10, tools/ledge_edge.py). Per frame: camera u, h;
+# edge u on 9.095; peak score; next peak; the sight line's crossing on the glass line.
+LE = {'frames': {68: (49.21, 9.67, 48.45, 149.3, 14.1, 8.80), 72: (49.21, 9.67, 48.47, 279.9, 19.6, 8.77),
+                 76: (49.21, 9.67, 48.48, 180.2, 25.6, 8.76), 80: (49.21, 9.67, 48.49, 288.4, 63.9, 8.75),
+                 132: (49.13, 9.67, 48.47, 38.2, 13.5, 8.73), 136: (49.08, 9.69, 48.41, 66.7, 19.9, 8.78),
+                 140: (49.03, 9.71, 48.38, 82.5, 21.3, 8.79), 144: (48.99, 9.73, 48.36, 127.4, 15.8, 8.79),
+                 148: (48.94, 9.75, 48.29, 66.3, 23.6, 8.86), 152: (49.10, 9.59, 48.56, 61.8, 21.5, 8.63),
+                 156: (49.13, 9.50, 48.66, 50.7, 31.7, 8.57)},
+      'second': 0.60, 'spread': 0.06, 'u_med': 48.460, 'half': 0.135, 'ceiling': 8.631, 'deck': 8.34, 'glass': 48.056,
+      'htop': 9.095, 'v2': (47.950, 8.673, 0.055), 'v2_rms': 0.04, 'west_set': 0.484, 'scan_east': 48.055}
+_les = [v for v in LE['frames'].values() if v[4] < LE['second'] * v[3]]
+_leu = sorted(v[2] for v in _les)
+_lehr = (_leu[-1] - _leu[0]) / 2
+_lemed = (_leu[len(_leu) // 2 - 1] + _leu[len(_leu) // 2]) / 2
+check('the east parapet is drawn as the deck cameras see it: a low solid and a tinted band on the glass line, the ledge set back',
+      len(_les) == 10 and len(LE['frames']) == 11
+      and abs(_lemed - LE['u_med']) < 0.006 and abs(_lehr - LE['half']) < 0.006 and _lehr >= LE['spread']
+      and abs(min(v[5] for v in _les) - LE['ceiling']) < 0.006
+      and abs(grab(r'faceSolid:\{east:([0-9.]+)\}') - round(LE['ceiling'] - LE['deck'], 3)) < 1e-9
+      and re.search(r'faceBand:\{east:\[0\.291,0\.755\]\}', src) is not None and abs(0.755 - (LE['htop'] - LE['deck'])) < 1e-9
+      and abs(G['setEast'] - round(LE['u_med'] - LE['glass'], 3)) < 1e-9
+      and abs(G['upEast'] - (LE['htop'] - LE['deck'])) < 1e-9
+      and LE['v2'][2] >= LE['v2_rms'] and abs(G['setEast'] - LE['west_set']) < 0.10,
+      'eleven posed b7s frames stand on the east deck (u 48.94 to 49.21, h 9.50 to 9.75) with the hall floor seen over '
+      'the ledge edge along the bottom of the frame; %d pass the one-peak control (156 fails, second peak %.0f%% of '
+      'the first). Swept along h 9.095 the edge reads u %.2f to %.2f, median %.3f, half-range %.3f: a hint, over the '
+      '%.2f bar. The sight lines over it cross the glass line %.3f between %.2f and %.2f, so a solid there can reach '
+      'no higher than %.3f (%.3f over the deck) against the %.3f drawn: the drawn coping edge is refuted. Version 2 '
+      'fits one edge to the ten rays, (%.3f, %.3f) with rms %.3f, a hint over the %.2f bar. The file keeps the edge '
+      'end_face_scan tracked on u %.3f on 9.095 as the TOP OF A TINTED BAND on the face (the deck sees the floor '
+      'through the face beneath it, and the material is unmeasured), draws a low solid on the face to %.3f, and sets '
+      'the opaque solid and its coping back %.3f to the pooled u, a hint carrying its spread, %.2f from the west '
+      'end\'s measured %.3f. Where the ledge stops along d is unmeasured; it runs into the north door.'
+      % (len(_les), 100 * LE['frames'][156][4] / LE['frames'][156][3], _leu[0], _leu[-1], _lemed, _lehr, LE['spread'],
+         LE['glass'], min(v[5] for v in _les), max(v[5] for v in _les), LE['ceiling'], LE['ceiling'] - LE['deck'],
+         LE['htop'], LE['v2'][0], LE['v2'][1], LE['v2'][2], LE['v2_rms'], LE['scan_east'], LE['ceiling'],
+         G['setEast'], abs(G['setEast'] - LE['west_set']), LE['west_set']),
+      'tools/ledge_edge.py')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
                  1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
@@ -3201,12 +3239,20 @@ check('the west rail station is measured but NOT shipped, because it failed its 
          1000 * SCAN[('west', 'rail')][4], SCAN[('west', 'rail')][3] / SCAN[('west', 'rail')][4]),
       'tools/end_face_scan.py')
 FACEU = {'west': G['endWest'] + G['endFace'], 'east': 51.906 - G['endFace']}
+# EAST, RE-READ FROM THE DECK (2026-09-10, tools/ledge_edge.py, LE below): the edge end_face_scan tracked on 48.055
+# stands, but the deck cameras see the hall floor THROUGH the face beneath it, so it is now the top of a tinted band
+# ON the face (faceBand) and the opaque solid is set back to the ledge. The station checked for the east is the band's.
+_fb_east = re.search(r'faceBand:\{east:\[0\.291,0\.755\]\}', src) is not None
 for side, sk in (('west', 'setWest'), ('east', 'setEast')):
     drawn_solid = FACEU[side] - (1 if side == 'west' else -1) * G[sk]
+    banded = side == 'east' and _fb_east
+    drawn_edge = FACEU['east'] if banded else drawn_solid
     check('the %s solid upstand is drawn on the station that was measured' % side,
-          abs(drawn_solid - SCAN[(side, 'solid')][0]) <= 0.02,
-          'the model now stands it on u %.3f, face %.3f set back %.3f, against a measured %.3f.'
-          % (drawn_solid, FACEU[side], G[sk], SCAN[(side, 'solid')][0]),
+          abs(drawn_edge - SCAN[(side, 'solid')][0]) <= 0.02,
+          'the model now stands it on u %.3f, face %.3f set back %.3f, against a measured %.3f.%s'
+          % (drawn_edge, FACEU[side], 0.0 if banded else G[sk], SCAN[(side, 'solid')][0],
+             (' The east edge is the top of the tinted band on the face; the opaque solid behind it is set back %.3f '
+              'by tools/ledge_edge.py.' % G[sk]) if banded else ''),
           'tools/end_face_scan.py')
 check('a solid parapet is not drawn where the light got past it',
       cap_at('west', SCAN[('west', 'solid')][0]) >= SCAN[('west', 'solid')][1] - 1.5 * POSE_MISS,

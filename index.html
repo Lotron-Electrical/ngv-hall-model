@@ -2776,7 +2776,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -5284,7 +5284,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 266 bounds, all satisfied.
+  // 267 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5757,9 +5757,20 @@ function buildEndWalls(root){
   // THE SOLID IS NOT ON THE FACE AT THE WEST END, and the east is the control that says so, see the block
   // above (tools/end_face_scan.py). uS is the plane the solid stands on; the glass runs down to the deck
   // wherever it is set back, because the arrivals prove the face is open there.
+  // AND THE EAST IS SET BACK TOO, READ FROM THE DECK SIDE (2026-09-10, tools/ledge_edge.py, block below):
+  // the deck cameras see the hall floor through the face beneath the edge the hall tracked, so the opaque
+  // solid stands 0.404 back (a hint), with a low solid to 8.631 and a tinted band to 9.095 on the face.
   const setb=(W.upstandSet&&W.upstandSet[side]!==undefined)?W.upstandSet[side]:0, uS=uF+s*setb;
+  // THE FACE ITSELF (2026-09-10, tools/ledge_edge.py, block below): a low solid to faceSolid (a ceiling read
+  // from the deck cameras, not a height), a TINTED band to faceBand[1] whose top is the edge the hall tracked
+  // on the face plane, and clear glass from there to the rail top. Ends without these keys draw as before.
+  const fsol=(W.faceSolid&&W.faceSolid[side])||0, fband=W.faceBand&&W.faceBand[side];
+  if(fsol>0) quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+fsol],[uF,0,fl[1]+fsol]],upstandMat,'gallery-parapet-low');
+  if(fband){ const tintMat=new THREE.MeshBasicMaterial({color:0x1a1714, side:THREE.DoubleSide, transparent:true, opacity:0.62, depthWrite:false, name:'gallery-glass-tinted'});
+    quad([[uF,0,fl[1]+fband[0]],[uF,D,fl[1]+fband[0]],[uF,D,fl[1]+fband[1]],[uF,0,fl[1]+fband[1]]],tintMat,'gallery-glass-tinted'); }
   quad([[uS,0,fl[1]],[uS,D,fl[1]],[uS,D,fl[1]+ups],[uS,0,fl[1]+ups]],upstandMat,'gallery-parapet');
-  quad([[uF,0,fl[1]+(setb>0.02?0:ups)],[uF,D,fl[1]+(setb>0.02?0:ups)],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],railMat,'gallery-rail');
+  { const g0=setb>0.02?(fband?fband[1]:fsol):ups;
+    quad([[uF,0,fl[1]+g0],[uF,D,fl[1]+g0],[uF,D,fl[1]+rTop],[uF,0,fl[1]+rTop]],railMat,'gallery-rail'); }
   // THE 60 MM OPAQUE HANDRAIL IS DELETED AT BOTH ENDS (2026-09-10, tools/rail_band.py with
   // tools/rail_over.py). What the ray fit above measured is a top EDGE of the lit front, 660 rays inside
   // 50 mm east and 366 west. A BAR standing on that edge was never measured; it was drawn on top of the
@@ -5774,6 +5785,37 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST DECK'S LEDGE, FROM THE CAMERAS THAT STOOD ON IT, AND A SOLID THE DECK SEES THROUGH
+  // (2026-09-10, tools/ledge_edge.py). Eleven posed b7s frames (68 to 156) stand on the east deck's south
+  // end, u 48.94 to 49.21, h 9.50 to 9.75, facing west, with a broad dark flat surface along the bottom of
+  // every frame and the hall floor seen straight over its far edge. The file drew that edge as the coping's
+  // outer edge on the glass line, (48.056, 9.095), and projected there it lands well above the edge the
+  // frames show, in every frame; the crossings below say by how much. A camera 0.6 m above a line cannot
+  // split its u from its h, so the rule, fixed first, swept u along h 9.095 and read the tone step across
+  // the projected line: one dominant peak per frame (the second under 60% of the first) or the frame is
+  // dropped; the edge claimed if the survivors' half-range is under 0.06; and the meaning fixed with it:
+  // the sight line over each frame's edge runs on to the glass line, and the lowest crossing is the most a
+  // solid on the glass line can reach, because the floor is seen over the edge. Ten of eleven pass the
+  // control (156 fails, its second peak 63% of the first). The edge on 9.095: u 48.29 to 48.66, median
+  // 48.460, half-range 0.135, A HINT. The crossings run 8.63 to 8.86, so the solid on the glass line
+  // reaches no higher than 8.631, 0.291 over the deck, against 9.095 drawn: the drawn coping edge is
+  // REFUTED. A second version, declared after the first run showed the per-frame u climbing as the camera
+  // drops (the mark of an edge below 9.095), fits one edge to all ten rays: (47.950, 8.673), rms 0.055,
+  // outside the glass line, a hint too.
+  // WHAT THE HALL SAID STILL STANDS. tools/end_face_scan.py put the edge it tracked on the face plane,
+  // u 48.055 on 9.095, near and far agreeing to 1 mm, and nothing here moves it. What is withdrawn is its
+  // reading as the top of an OPAQUE solid: the deck cameras see the hall floor through the face 0.24 to
+  // 0.47 m beneath that edge. Both instruments passed their controls, so the file draws what satisfies
+  // both: a low solid on the glass line to 8.631 (faceSolid, a ceiling by this instrument, not a height),
+  // a TINTED band of glass on the face from there to 9.095 (faceBand; its top is the edge the hall tracked,
+  // and glass is the only reading that lets the deck see through it; the material itself is unmeasured),
+  // clear glass above to the rail top 9.865, and the opaque solid with its coping set BACK to the pooled
+  // u: upstandSet.east 0.404, a hint carrying its 0.135 spread, 0.08 from the west end's measured 0.484.
+  // The alternative not tested: b7s poses 0.4 m too low in h would put the drawn edge where the frames
+  // have it; nothing in this file measures those poses' heights against a known one.
+  // AND THE LEDGE NOW RUNS INTO THE NORTH DOOR. Set back 0.404 with the coping 0.45 behind that, it
+  // crosses the door's width (jambs 48.158 to 49.371) where it meets the north wall, where the coping
+  // already crossed the jamb by 0.10. Where the ledge stops along d is unmeasured; drawn full length, listed.
   // THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10,
   // tools/door_interior.py). No frame faces the corridor, but b6_001248 and 001320 face the measured north
   // door square from 12.9 and 9.5 m (distances from the door's own width) and the door is open. Its head
