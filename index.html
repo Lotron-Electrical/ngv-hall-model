@@ -2512,7 +2512,6 @@ function buildWallDetails(root){
   geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(mirror?[1,0,0,0,0,1,1,1]:[0,0,1,0,1,1,0,1]),2)); geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo,mat); m.name=name; root.add(m); return m; };
  const stoneMat=new THREE.MeshLambertMaterial({color:0x8a7f74, side:THREE.DoubleSide, name:'wall-reveal'});
- const headMat=cnm(0x8f8378,0x8f8378,'opening-head');   /* the reveal head's underside, unlit, set from 109 walk pairs (2026-09-10) */
  const voidMat=new THREE.MeshBasicMaterial({color:0x07070a, side:THREE.DoubleSide, name:'wall-opening'});
  const grilleMat=new THREE.MeshBasicMaterial({color:0x0b0b0c, side:THREE.DoubleSide, name:'wall-grille'});
  const walls=[{d:F.dNorth, s:-1, north:true},{d:F.dSouth, s:1, north:false}];   /* s: into the wall */
@@ -2532,6 +2531,7 @@ function buildWallDetails(root){
  // (7.2x), UNMEASURED: no night pair ends on it. Its day colour keeps d4_000120. Checked by renders after the push.
  const corridorMat=cnm(0x413c37,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
  const corridorBackMat=cnm(0x574f48,0x423a2c,'corridor-back');   /* night was 0x0c0b0a, carried up 7.2x with the ceiling, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
+ const headMat=cnm(0x8f8378,0x8f8378,'opening-head');   /* the reveal head's underside, unlit, set from 109 walk pairs (2026-09-10); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
