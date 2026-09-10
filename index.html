@@ -2529,9 +2529,17 @@ function buildWallDetails(root){
  // 0.714/0.45 = 1.59 to 67. At night the sim's wall rendered 19 and the old night colour (9) rendered 1, so the night
  // colour is set to 65 for 8.5 (0.447 x 19). The back wall's night colour is carried up by the ceiling's night factor
  // (7.2x), UNMEASURED: no night pair ends on it. Its day colour keeps d4_000120. Checked by renders after the push.
- const corridorMat=cnm(0x413c37,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
- const corridorBackMat=cnm(0x574f48,0x423a2c,'corridor-back');   /* night was 0x0c0b0a, carried up 7.2x with the ceiling, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
- const headMat=cnm(0x8f8378,0x8f8378,'opening-head');   /* the reveal head's underside, unlit, set from 109 walk pairs (2026-09-10); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
+ // CORRECTED BY THE RENDERS THAT FOLLOWED (same session). Night colour 65 rendered 26 through w6_000146, not 8.5:
+ // the night tone curve is a toe, not a line (9 rendered 1, 65 rendered 26, a power of 1.65 through both), so the
+ // colour for 9 grey is 34, and the back wall gets the same 34, unmeasured, rather than a factor carried across a
+ // curve. And the reveal head is NOT the wall's tone: the 109 "soffit" pairs read r 0.978 with a spread of 0.036,
+ // which is what a polygon lying on plain wall gives, and w1_000044's polygon does lie on the wall between two
+ // slots, the grazing views' pose error being the width of a slot. A control this rule lacked, added after the
+ // fact and said so: a group within 5 per cent of the wall with a spread under 0.05 is the wall. From mid-hall the
+ // photos show the whole aperture at one tone, so the head's underside takes the corridor's own colours.
+ const corridorMat=cnm(0x221f1d,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
+ const corridorBackMat=cnm(0x221f1d,0x423a2c,'corridor-back');   /* night was 0x0c0b0a; now the ceiling's 34, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
+ const headMat=cnm(0x221f1d,0x433e39,'opening-head');   /* the reveal head's underside, unlit, the corridor's own tones (2026-09-10, see the correction above; its first value, 0x8f8378 from the voided soffit pairs, was live for minutes); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
@@ -2559,6 +2567,8 @@ function buildWallDetails(root){
   // beside it, spread 0.036. The Lambert stone lit from above rendered it 0 through w1_000104 (wall 116), so the
   // head is an unlit colour (143 grey) for 113 by day; its night colour is the same number, which is what r near 1
   // means if the night exposure treats it as it treats the wall, and is an ASSUMPTION: no night pair ends on it.
+  // CORRECTED the same session: those 109 pairs were the wall itself (see the corridor materials above), and the
+  // head now carries the corridor's own tones, unlit, so the aperture reads as one patch from mid-hall as it does.
   // the gallery behind the openings (the 1968 second-floor plan gives its width; Lloyd's clip 153148
   // frames 1040-1330, shot INSIDE it, give the rest): a room W wide past the reveals, its floor the second
   // floor, ROOFED BY THE CANOPY. C.ceil is the built canopy's own underside at the north wall face, 13.55
