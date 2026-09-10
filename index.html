@@ -2837,7 +2837,11 @@ function buildEndWalls(root){
  const dnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:night, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); m.color.lerp(m.userData.day,lit.day); endLitMats.push(m); return m; };
  const floorMat=dnm(0x1a1c1e,0x85898d,'gallery-floor');   /* the deck: a cool mid grey, 0.8x the stone beside it in the 4K frame d4_000120 (chain-posed), was a warm dark Lambert */
  const ceilMat=dnm(0x070605,0x3a3632,'gallery-ceiling');   /* the lower tier's ceiling underside: dim, about half the stone */
- const upstandMat=dnm(0x0a0908,0x4a4540,'gallery-parapet');   /* the top slab's fascia and the 0.56 upstand: about the stone */
+ // MEASURED, NOT RELATED (2026-09-10, tools/ends_audit.py). 0x4a4540 was set "about the stone"; the audit reads
+ // this surface against each frame's own lit band at 0.19 west (183 frames, h 8.2 to 8.6) and 0.17 east (23
+ // frames, h 8.0 to 9.0) where the render gave 0.44 and 0.51. 0x2e2b28 lands 0.185 through the measured render
+ // response. Night is untouched, because no night frame was read here.
+ const upstandMat=dnm(0x0a0908,0x2e2b28,'gallery-parapet');   /* was 0x4a4540, "about the stone" by relation */
  const copingMat=dnm(0x0a0a09,0x272523,'gallery-coping');   /* the ledge TOP: 0.398 of the floor's tone on the east, 0.789 on the west (tools/ledge_tone.py), the midpoint 0.593 drawn as a hint, 39 against the sim floor's 52 in a range of 26 to 51; first drawn 0x0c0b0a from a strip that turned out to be the nosing */
  const nosingMat=dnm(0x040403,0x080807,'gallery-nosing');   /* the dark strip along the ledge's outer edge: 0.136 east and 0.117 west of the floor's tone, 8 against the sim floor; 0.08 wide by eye */
  const soffitMat=new THREE.MeshLambertMaterial({color:0x9a948a, side:THREE.DoubleSide, name:'gallery-soffit'});   /* the head's soffit, its foot lit */
@@ -2909,7 +2913,13 @@ function buildEndWalls(root){
  const lampMat=dnm(0x2a2620,0xfff4e0,'gallery-downlight');
  const lobbyMat=new THREE.MeshBasicMaterial({color:0xb9b3a8, side:THREE.DoubleSide, name:'lobby-ceiling'});
  const lobbyBack=new THREE.MeshBasicMaterial({color:0xcfc9be, side:THREE.DoubleSide, name:'lobby-back'});
- const railMat=new THREE.MeshBasicMaterial({color:0x0c1014, side:THREE.DoubleSide, transparent:true, opacity:0.28, name:'gallery-rail'});
+ // THE FRONT GLASS TAKES NOTHING (2026-09-10, tools/ends_audit.py). The audit's bands under the west rail top
+ // look through this glass at the gallery's own lit back wall and read 1.010, 1.016 and 1.021 of the frame's own
+ // h 10-11 reference on 183 frames, against 1.016 and 1.010 for the bands ABOVE the rail, where no glass stands.
+ // Transmission 1.00 with its control built in. At opacity 0.28 this material multiplied everything behind it by
+ // 0.72, which is exactly what the render returned. 0.02 keeps the surface without taking the light. The east
+ // asks for 1.13 where the west asks for 1.40; one material serves both and nothing says they differ in kind.
+ const railMat=new THREE.MeshBasicMaterial({color:0x0c1014, side:THREE.DoubleSide, transparent:true, opacity:0.02, name:'gallery-rail'});
  const handMat=new THREE.MeshLambertMaterial({color:0x1a1714, side:THREE.DoubleSide, name:'gallery-handrail'});
  const quad=(pts,mat,name)=>{ const pos=new Float32Array(12); pts.forEach((p,i)=>{ const v=hp(...p); pos.set([v.x,v.y,v.z],3*i); });
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
@@ -5918,7 +5928,10 @@ function buildEndWalls(root){
   // the floor's own gradient (0.712 raw against 0.841 there). Against railMat's 0.28 that is an opacity of
   // 0.39 (1 - 0.847 x 0.72), down from the 0.62 first drawn by eye. Whether it is a tint at all stays
   // undecided by the rule (0.847 against a 0.85 bar); the strength is what the frames give.
-  if(fband){ const tintMat=new THREE.MeshBasicMaterial({color:0x1a1714, side:THREE.DoubleSide, transparent:true, opacity:0.39, depthWrite:false, name:'gallery-glass-tinted'});
+  // RE-DERIVED 2026-09-10 WHEN THE CLEAR GLASS WAS MEASURED. The 0.39 came from 1 - 0.847 x 0.72, the 0.72 being
+  // railMat's transmission at the time. The audit now measures that transmission as 1.00, so the same frames give
+  // 1 - 0.847 x 1.00 = 0.153. Nothing about the photographs changed; only the number they were divided by.
+  if(fband){ const tintMat=new THREE.MeshBasicMaterial({color:0x1a1714, side:THREE.DoubleSide, transparent:true, opacity:0.153, depthWrite:false, name:'gallery-glass-tinted'});
     quad([[uF,0,fl[1]+fband[0]],[uF,D,fl[1]+fband[0]],[uF,D,fl[1]+fband[1]],[uF,0,fl[1]+fband[1]]],tintMat,'gallery-glass-tinted'); }
   // THE LEDGE STOPS SHORT OF THE NORTH DOOR (2026-09-10, tools/deck_door_corner.py, b6_001320 BY EYE). Drawn full
   // length, the setback solid and its coping (u 48.46 to 48.91) crossed the east gallery's north door (jambs
