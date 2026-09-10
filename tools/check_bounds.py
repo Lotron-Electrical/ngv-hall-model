@@ -1559,6 +1559,14 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE EAST FACE IN STRIPS, RECORD ONLY (2026-09-10, tools/face_strips.py: four strips too bright and one too dark of nine, short of seven).
+_fs = open(TOOLS_DIR_OT + 'face_strips.py', encoding='utf-8').read()
+check('the strip-wise read of the east face from the hall is recorded with its rule and moved nothing',
+      'THE EAST FACE FROM THE HALL, IN STRIPS' in src and 'MARGIN, MINPX, MINFRAMES, VOID_LUMA, FACTOR, NEEDED = 20, 200, 10, 25, 1.5, 7' in _fs
+      and 'RECORD ONLY, nothing moves' in _fs and src.count("railMat,'gallery-rail')") == 1,
+      'nine strips carry claims; the sim is too bright in four (about 2.2x over d 11 to 14 and 4 to 5) and too dark in one, short of the seven '
+      'the rule needs, so the east pane keeps its glass and the numbers stand in the file.',
+      'index.html, tools/face_strips.py')
 # THE EAST FACE FROM THE HALL, RECORD ONLY (2026-09-10, tools/face_from_hall.py: one frame passed its control).
 _ff = open(TOOLS_DIR_OT + 'face_from_hall.py', encoding='utf-8').read()
 check('the east face from the hall was measured, one frame survived its own control, and nothing moved: the rail glass keeps its one material',

@@ -5339,7 +5339,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 281 bounds, all satisfied.
+  // 282 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5853,6 +5853,14 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST FACE FROM THE HALL, IN STRIPS (2026-09-10, latest, tools/face_strips.py). Thirteen 1 m strips along d,
+  // each its own median against the wall strip above it, over 23 west-deck frames, void where a column blackens
+  // the wall strip. Nine strips carry a claim: the face reads the lit interior at d 1 to 3 (0.92, 0.56 of the
+  // wall) and one dark tone from d 5 on (0.20 to 0.30, spreads 0.005 to 0.024). The sim through b7s_000908 reads
+  // near 0.5 over d 11 to 14 and 0.67 at d 4 to 5 (too bright, about 2.2x) and black at d 1 to 2 (too dark): four
+  // and one, short of the seven the rule set, so nothing moves and the numbers stand here. They say the sim's
+  // east pane shows too much of the wall behind it from the hall and its north end shows nothing where the hall
+  // sees the lit interior, which is the end the ledge was drawn to stop at.
   // THE EAST FACE FROM THE HALL, ASKED AND RECORDED (2026-09-10, latest, tools/face_from_hall.py). Rendered through
   // b7s_000908 with the sim's levels drawn on the photo, the deck, rail top and wall top land where the photo has
   // them; what differs is the parapet face, which the photo shows mostly dark under the lit wall where the sim
