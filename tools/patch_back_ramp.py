@@ -32,6 +32,15 @@ is a fit to three points and it under-corrects at the bottom of its range. The f
 to 13.2 at 0.86, 0.80, 0.71 and 0.65 against 0.69, 0.62, 0.57 and 0.55, so each texel was multiplied by
 (photo / render)^0.5476, giving 184, 170, 165 and 168. Everything from 11.6 to 12.4 landed first time.
 
+A LOCAL DIP AT 12.7 AND 12.9 IS A CORRECTION FOR THE READER, NOT A CLAIM ABOUT THE WALL. An 80th
+percentile taken over a band that straddles a steep ramp reads the band's brighter edge, and the bias is
+largest where the ramp is steepest. Those two texels went 184 to 163 and 170 to 158 to land their bands;
+the ones either side did not move.
+
+THE TWO ENDS DIVERGE HERE AND THAT IS ITSELF A FINDING. At h 12.6 the west photographs read 0.688 and
+the east 0.856, so a correction that lands the west overshoots the east downward. One ramp cannot carry
+both. The west's 183 frames govern; the east's 23 are recorded as diverging and not fitted.
+
 ONE RAMP FOR BOTH ENDS, AND THE RECORD SAYS SO. It is measured at the west on 183 frames; the east
 region carries 23 and is read through the hall's columns at 44 m. Drawing the two ends differently on
 that difference would be worse than drawing them alike.
@@ -42,8 +51,8 @@ that difference would be worse than drawing them alike.
 import io, sys
 
 RAMP = ("[[8.34,244],[9.10,244],[9.30,255],[9.90,255],[10.50,255],[10.70,253],[10.90,251],[11.10,249],"
-        "[11.30,247],[11.50,243],[11.70,239],[11.90,236],[12.10,234],[12.30,231],[12.50,223],[12.70,184],"
-        "[12.90,170],[13.10,165],[13.30,168],[13.50,168]]")
+        "[11.30,247],[11.50,243],[11.70,239],[11.90,236],[12.10,234],[12.30,231],[12.50,223],[12.70,163],"
+        "[12.90,158],[13.10,165],[13.30,168],[13.50,168]]")
 
 PAIRS = [
     # 1. the ramp itself, in ENDW
