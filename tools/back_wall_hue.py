@@ -69,6 +69,9 @@ failed the 0.40 set blind: from the west deck the hall's columns cover most of t
 AND SAID SO: the share control guards against a region with no wall in it, and 23 frames whose bright cluster
 agrees to 0.016 is not that case; the floor is lowered to 0.30. A claim under the amended control is weaker than
 one under the blind rule, and this record says so.
+THE AMENDED RESULT: east minus west R/G +0.009, B/G +0.052, the same wall; topBackMat took 0x827f4b. THE RENDER
+AFTER (b7s_000900, 1440 px, the bright cluster past the sim's columns, share 0.29): RGB (102, 92, 66), R/G 1.109,
+B/G 0.717 against the photo's east 1.115, 0.789: within 0.01 and 0.07. Kept.
   python tools/back_wall_hue.py compare5     # after the render
 
 Run:
