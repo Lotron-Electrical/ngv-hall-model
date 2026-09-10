@@ -1559,6 +1559,14 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE EAST FACE FROM THE HALL, RECORD ONLY (2026-09-10, tools/face_from_hall.py: one frame passed its control).
+_ff = open(TOOLS_DIR_OT + 'face_from_hall.py', encoding='utf-8').read()
+check('the east face from the hall was measured, one frame survived its own control, and nothing moved: the rail glass keeps its one material',
+      'ASKED AND RECORDED' in src and 'RECORD ONLY: nothing moves' in _ff and 'SHARE, MINFRAMES, FACTOR = 0.30, 15, 1.5' in _ff
+      and src.count("railMat,'gallery-rail')") == 1 and "opacity:0.28, name:'gallery-rail'" in src,
+      'the face region is dark with one lit patch, so the bright-cluster split left under 0.30 of the region in 22 of 23 frames; the one '
+      'survivor read r 1.01 against the sim 0.53, which is not a claim, and the east face keeps the glass it had.',
+      'index.html, tools/face_from_hall.py')
 # THE EAST BACK WALL, THE SAME CREAM FROM THE HALL (2026-09-10, tools/back_wall_hue.py, the fifth run, its share control amended and said so).
 _bh = open(TOOLS_DIR_OT + 'back_wall_hue.py', encoding='utf-8').read()
 check('the east back wall carries the west wall\'s day colour because the hall sees both as one cream, and the amended share control is declared in the tool',

@@ -5339,7 +5339,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 280 bounds, all satisfied.
+  // 281 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5853,6 +5853,13 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST FACE FROM THE HALL, ASKED AND RECORDED (2026-09-10, latest, tools/face_from_hall.py). Rendered through
+  // b7s_000908 with the sim's levels drawn on the photo, the deck, rail top and wall top land where the photo has
+  // them; what differs is the parapet face, which the photo shows mostly dark under the lit wall where the sim
+  // shows the wall through the upper pane. Rule fixed first: the face's bright cluster against the wall's, over
+  // the west-deck frames. One frame of 23 passed the share control (the face is dark with one lit patch, and the
+  // split keeps the patch): r 1.01 in the photo, 0.53 in the sim. Not a claim; nothing moves. The face from the
+  // hall is not one dark band either: the lit interior shows through near d 3. A strip-wise read is the next step.
   // THE WEST BACK WALL'S COLOUR, FOUR RUNS FOR A REFERENCE AND NONE (2026-09-10, latest, tools/back_wall_hue.py).
   // Rule fixed first: the wall's median RGB against a stone surface in the same frame, chroma as R/G and B/G of the
   // ratio, over the 183 east-deck frames that hold both. Run one: the stone below h 7.5 is hidden behind the west
