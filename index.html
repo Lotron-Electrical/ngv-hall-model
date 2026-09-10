@@ -1790,7 +1790,16 @@ function buildHubNodes(root,heads,F){
 // (the tapestries' top edge is 8.26 m and the fixtures hang level with it), from about 1 m in
 // from the west wall to about 3 m short of the east wall, 300 mm triangular truss apex up,
 // hoists at the ridge lines, about one fixture every 2 m facing the room.
-const RIG={d:2.2, y:9.0, u0:1.0, u1:46.0, side:0.30, chord:0.025, seg:0.30, fixEvery:2.0};
+// u0 WAS 1.0 AND THE TRUSS STOOD INSIDE THE WEST BALCONY (Lloyd, 2026-09-10: "down one end the stage
+// lighting is intersecting with the balcony"). The note above says "about 1 m in from the west wall", and the
+// west end WALL is at u 0.344; but the gallery projects 3.85 m into the hall in front of it, so its face is at
+// u 4.194 and 3.2 m of steel ran through the balcony at h 9.0, between its deck 8.34 and its head 11.09.
+// 4.29 is a BOUND and not a measurement: one tenth of a metre clear of the measured face, because steel cannot
+// stand inside a floor. Where the truss really ends is UNMEASURED. b3_000161 is the only posed frame that looks
+// along that wall and it foreshortens u 0 to 14 into about 200 blurred pixels. RIG_PHOT (23 fixtures from
+// u 1.5) is not moved with it: the calibrated house level is derived from that count and those positions, so
+// the drawn truss and the lit array now disagree at the west end by about 3 m. That is an open defect, named.
+const RIG={d:2.2, y:9.0, u0:4.29, u1:46.0, side:0.30, chord:0.025, seg:0.30, fixEvery:2.0};
 function buildLightingRig(root,F){
  const {PU,su0,su1,planeAt,PUx,PUz,PVx,PVz,huvOf}=F;
  const O=huvOf(EVENT.N.origin.x,EVENT.N.origin.z);   // hall u=0,d=0 in huv
@@ -2811,7 +2820,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, ledgeStart:{east:1.0}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, stoneBase:{west:null, east:null}, backTop:{west:12.90, east:13.20}, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, wallVents:{west:[[11.8,12.9,12.35,12.7]]}, wallNiches:{west:[[12.2,13.3,9.9,11.5]]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:11.3, n:2, pitch:1.3, plinth:[0.8,0.8,0.9], glass:[0.7,0.7,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, ledgeStart:{east:1.0}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, stoneBase:{west:12.38, east:12.93}, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, wallVents:{west:[[11.8,12.9,12.35,12.7]]}, wallNiches:{west:[[12.2,13.3,9.9,11.5]]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:11.3, n:2, pitch:1.3, plinth:[0.8,0.8,0.9], glass:[0.7,0.7,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -2855,6 +2864,19 @@ function buildEndWalls(root){
  // 1.193 and B/G 0.916, the tone map pulling the chroma toward grey, so the material is pushed the other way by the
  // same factors (R/G x 0.929, B/G x 0.801) to land the phone's chroma in the RENDER, which is what is seen: 0x827f4b.
  const topBackWestMat=dnm(0x0f0f0f,0x827f4b,'gallery-back-lit-west');
+ // WHAT STANDS OVER THE GALLERY, MEASURED RATHER THAN GUESSED (2026-09-10, tools/back_wall_top.py `above`).
+ // Over the height at which the lit cream wall stops, the same ladder reads 0.268 of that frame's own lit band at
+ // the west (27 frames, spread 0.066, CLAIM) and 0.325 at the east (4 frames, RECORD ONLY, inside the west's
+ // spread). A lit stone face would read near 1 and the hall's brick did; an empty void renders 0.038 and that was
+ // the black bar Lloyd saw across each end. So the surface is there and it is dark, and this is the west claim
+ // carried through the render the way topBackWestMat was, and it took TWO corrections, which is one more than the
+ // recipe allows and is said so here. 0.268 of the lit wall's own colour is 0x232214 and it rendered 0.113. The
+ // first correction was computed in linear light through an ASSUMED tone map and landed 0.421, an overshoot, so
+ // the model was wrong. The second is not a model at all: two rendered points (input 35 -> output 15, input 72 ->
+ // output 56) give the response itself, out = 1.108 x in - 23.8, and the input that lands 0.268 x 133 = 36 is 54.
+ // 0x36341f. Measuring the response beats assuming it, and the third render below is what decides.
+ // Night is not touched, because no night frame faces it.
+ const endVoidMat=dnm(0x050505,0x36341f,'gallery-over');
  const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  const lowBackMat=dnm(0x0a0908,0x16120f,'gallery-back-low');   /* 0.1-0.15x the stone by day: the lower tier is unlit in d4_000049 (2026-09-09) */
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
@@ -2930,8 +2952,12 @@ function buildEndWalls(root){
   // edge is hard, while stone over cream rendered a step to only 0.82 west and 0.77 east. With this quad
   // gone and the back wall simply ending, the render steps to 0.46 and 0.51, which is the hall's own edge.
   // So the stone over the galleries is not drawn, and stoneBase stays in ENDW as the record of what it was.
+  // AND IT IS DRAWN AGAIN, DARK, AN HOUR AFTER IT CAME OUT. Taking it out was right about the brick and wrong
+  // about the emptiness: the ladder had already measured 0.268 of the lit band over the crossing at the west,
+  // and an empty void renders 0.038, which is the black bar across each end that Lloyd saw next. The face is
+  // there, it is dark, and endVoidMat carries the measured tone. stoneBase is the base it stands on.
   { const sb=(W.stoneBase&&W.stoneBase[side]); if(sb)
-    quad([[uF,0,sb],[uF,D,sb],[uF,D,top],[uF,0,top]],stone,'end-wall'); }
+    quad([[uF,0,sb],[uF,D,sb],[uF,D,top],[uF,0,top]],endVoidMat,'end-wall'); }
   if(s<0){ const [d0,d1,hd]=W.westTopDoor, du=uB-s*0.01, [p0,p1]=W.westTopPanel, [e0,e1]=W.westTopExit;
    /* the south doorway behind the top floor as d4_000049 (east deck, 45 m off) reads it: a pale panel 2.9 m wide
       from the floor to the head, 1.25x the back wall's tone, round a door opening 0.95x the stone (people in it),
@@ -6508,10 +6534,10 @@ function buildEndWalls(root){
    const vp=128/((v1-v0)/0.022); for(let yy=vp/2; yy<256; yy+=vp)for(let xx=vp/2; xx<128; xx+=vp){ vx.beginPath(); vx.arc(xx,yy,vp*0.22,0,Math.PI*2); vx.fill(); }
    const ventMat=dnm(0x1a1c1e,0x85898d,'gallery-vent'); ventMat.map=new THREE.CanvasTexture(vc); ventMat.map.colorSpace=THREE.SRGBColorSpace;
    quad([[v0,vd0,hv],[v1,vd0,hv],[v1,vd1,hv],[v0,vd1,hv]],ventMat,'gallery-vent'); }
-  // W.backTop, not W.top: the wall ends where the ladder says the lit cream ends (west 12.90, east 13.20)
-  // and over it the hall sees the dark void under the canopy, which is what the frames show (back_wall_top.py).
-  { const bt=(W.backTop&&W.backTop[side])||top;
-    quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,bt],[uB,0,bt]],side==='west'?topBackWestMat:topBackMat,'gallery-back'); }   /* the west by the phone's chroma (2026-09-10) */   /* to the top: the void behind the front soffit is open to the canopy */
+  // to the top again (2026-09-10): W.backTop capped this wall for an hour, while the face over the head was not
+  // drawn at all. With the dark face back the cut is made by the face, where it was measured, and a second cap
+  // here would only be a second answer to one question.
+  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,top],[uB,0,top]],side==='west'?topBackWestMat:topBackMat,'gallery-back');   /* the west by the phone's chroma (2026-09-10) */   /* to the top: the void behind the front soffit is open to the canopy */
   // the lower tier's back wall: white fittings and a green exit sign where d4_000049 has them (west), and
   // THE EAST LOWER TIER SEEN FOR THE FIRST TIME FROM A HEIGHT (2026-09-10): Lloyd's b7 clip walks the WEST
   // deck looking east, and four of its posed frames (b7s_000604, 000612, 000616, 000876, u 3.2 to 3.3,
