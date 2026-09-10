@@ -6580,7 +6580,12 @@ function buildEndWalls(root){
   // spotlights are already built and a second set would double them.
   // the soffit is a 2.1 m deep front canopy (w2_000252: its lit edge on 11.1, its underside for 2.1 m, then the lit
   // back wall rising past it; d4_000049: the exit light on the back wall on 11.07 with stone above it to the canopy)
-  { const uS=uF+s*W.soffitDepth; quad([[uF,0,W.head],[uS,0,W.head],[uS,D,W.head],[uF,D,W.head]],topSoffitMat,'gallery-soffit'); }
+  // THE SOFFIT BEAM IS NOT DRAWN (Lloyd, 2026-09-10, from the hall floor: "on the balconys you have put these
+  // horizontal bars that don't belong there", and pointed at this one, the dark bar between the lit wall and the
+  // ceiling glass at both ends). Four instruments produced no number for its depth and the floor frames facing
+  // each end (w1_000023, w1_000425) show the lit wall meeting the glass with no bar. ENDW.head and soffitDepth
+  // stay as the record of what was measured about the head; the underside quad is gone.
+  // { const uS=uF+s*W.soffitDepth; quad([[uF,0,W.head],[uS,0,W.head],[uS,D,W.head],[uF,D,W.head]],topSoffitMat,'gallery-soffit'); }
   // the east deck's perforated floor vent strip, 0.3 wide, 0.2-0.3 behind the glass (the chained straight-down
   // frame d4_000232 met with the deck: its south end seen on d 13.34, its north end past the frame's edge on
   // d 12.64 and its near edge past the frame's bottom, so it ends where the frame does; the same frame has the
