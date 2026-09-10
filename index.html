@@ -5940,9 +5940,9 @@ function buildEndWalls(root){
   //      nor south-east on the east deck can give the coping and a solid wall on those sides. So the dark
   //      door, its sign, the bust case and the column are the WEST gallery's south end, drawn there by eye,
   //      and the east gallery's south end has no door: the b6 frames that once put one there look north.
-  { const SD=W.topSouthDoor&&W.topSouthDoor[side]; if(SD){ const [u0,u1,doorH]=SD, dS=D-0.01;
+  { const SD=W.topSouthDoor&&W.topSouthDoor[side]; if(SD){ const [u0,u1,doorH]=SD, dS=D-0.12;   /* the baked south face stands on d 15.257 (the tapestry note above), 0.107 in front of the drawn plane D, so the leaf goes 0.12 in front of D to clear it; on 2026-09-10 it sat on D-0.01 and was buried in the stone */
     quad([[u0,dS,fl[1]],[u1,dS,fl[1]],[u1,dS,fl[1]+doorH],[u0,dS,fl[1]+doorH]],doorMat,'gallery-door-leaf'); }
-    const X=W.southExit&&W.southExit[side]; if(X){ const [xa,xb,ha,hb]=X, dS=D-0.02;
+    const X=W.southExit&&W.southExit[side]; if(X){ const [xa,xb,ha,hb]=X, dS=D-0.13;
       quad([[xa,dS,ha],[xb,dS,ha],[xb,dS,hb],[xa,dS,hb]],exitLitMat,'exit-sign'); }
     const B=W.bust&&W.bust[side]; if(B){ const [u0,u1]=B.u, [d0,d1]=B.d, hP=fl[1]+B.plinth, hG=hP+B.glass;
       const plinthMat=new THREE.MeshLambertMaterial({color:0xe6e2da, side:THREE.DoubleSide, name:'gallery-plinth'});
