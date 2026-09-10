@@ -41,6 +41,22 @@ is worse than no audit. Re-shoot with
   bash ~/scripts/headless-chrome.sh start 9334
   node tools/serve.js --port 8877 &
   cd render-shots && CDP_PORT=9334 SHOT_URL=http://127.0.0.1:8877/index.html node ../tools/render_match.mjs
+
+AMENDMENT AFTER THE TIE-BREAKER (2026-09-10, tools/east_front_edge.py). The east's frames are the west deck's
+clip (b7s, b7sp, 23 frames), and its bands h 8.8 to 9.4 sit on the east front where the dark front meets
+the lit wall over it. That clip put the dark front's top at 0.885 above the deck; every other instrument
+put it lower: end_face_scan 0.755, rail_band 0.755, and the tie-breaker, the same ladder read from the hall
+FLOOR in the walk frames facing east (forward axis over 0.7 along +u), 135 of 136 frames at 0.710 above the
+deck, spread 0.062, CLAIM. The render gives 0.710. Then the clip was looked at (east-rail-visitors.jpg,
+b7s_000900 with the face rungs drawn): a row of heads and shoulders stands along the rail for the length of
+the ladder, so those bands read visitors, not the building, and the sim is not moved to meet them. For
+bands h 8.8 to 9.4 at the east ONLY, the verdict is the EDGE: the photograph's dark top from the walk
+frames (recomputed on --refresh, cached with the profile) against the render's dark top through the east
+pick, PASS when they agree within max(spread, TOL). Every other band keeps the deck clip and the ratio rule.
+A floor-pose render was tried first and is not an instrument: from w1_000277, 43 m off, a 0.2 m band is
+5 px tall, the column lamps cross the ladder, and the reference band lies behind the rails from anywhere on
+the floor; it put the render's edge at 0.61 above the deck, 0.08 under the deck pose's geometry, inside the
+pinhole's own error there.
 """
 import os, sys, json, math, time
 import numpy as np
@@ -48,6 +64,7 @@ import cv2
 sys.path.insert(0, os.path.dirname(__file__))
 from underside_geom import load_class
 from back_wall_hue import project, CLASSES, EAST_CLASSES, W, HU, HD, UP, SCRATCH
+import east_front_edge as EDGE
 
 H0, H1, STEP = 0.0, 13.4, 0.20
 REF_BAND = (10.0, 11.0)
@@ -60,8 +77,14 @@ CACHE = SCRATCH + '/ends-audit-photo.json'
 RUNGS = [round(H0 + i * STEP, 3) for i in range(int(round((H1 - H0) / STEP)))]
 ENDS = (
     dict(name='west', u=0.356, d0=3.0, d1=11.0, classes=CLASSES, pick='west'),
-    dict(name='east', u=51.894, d0=6.5, d1=11.0, classes=EAST_CLASSES, pick='east'),
+    dict(name='east', u=51.894, d0=6.5, d1=11.0, classes=EAST_CLASSES, pick='east',
+         edge=dict(h=(8.8, 9.4), classes=('walk',), facing=0.7)),   # the tie-breaker, see the docstring
 )
+
+
+def in_edge(e, h):
+    E = e.get('edge')
+    return bool(E) and E['h'][0] - 1e-6 <= h < E['h'][1] - 1e-6
 
 
 def band(h, e):
@@ -120,6 +143,9 @@ def photo_profiles():
                                                    len(v)] for h, v in per.items()})
         print('%s: %d frames carry a profile, %d bands hold %d frames or more' % (
             e['name'], n, sum(1 for v in per.values() if len(v) >= MINFRAMES), MINFRAMES))
+        if e.get('edge'):
+            EDGE.photo(classes=e['edge']['classes'], facing=e['edge']['facing'])
+            out[e['name']]['edge'] = json.load(open(EDGE.OUT))
     return out
 
 
@@ -163,6 +189,11 @@ def main():
     if '--refresh' in sys.argv or not os.path.exists(CACHE):
         json.dump(photo_profiles(), open(CACHE, 'w'))
     P = json.load(open(CACHE))
+    for e in ENDS:
+        if e.get('edge') and 'edge' not in P[e['name']]:
+            EDGE.photo(classes=e['edge']['classes'], facing=e['edge']['facing'])
+            P[e['name']]['edge'] = json.load(open(EDGE.OUT))
+            json.dump(P, open(CACHE, 'w'))
     bad = 0
     for e in ENDS:
         ph = P[e['name']]['bands']
@@ -172,8 +203,20 @@ def main():
             bad += 1
             continue
         fails, measured, unmeasured = [], 0, []
+        if e.get('edge'):
+            pe = P[e['name']]['edge']
+            rt = EDGE.sim()
+            bar = max(pe['spread'], TOL)
+            ok = pe['claim'] and rt is not None and abs(rt - pe['top']) <= bar
+            print('   h %5.2f to %5.2f  the dark front ends: photo %.3f (%d frames, spread %.3f)  render %s  (bar %.3f)  %s' % (
+                e['edge']['h'][0], e['edge']['h'][1], pe['top'], pe['n'], pe['spread'], ('%.3f' % rt) if rt is not None else 'no edge', bar, 'pass' if ok else 'FAIL'))
         for h in RUNGS:
             k = str(h)
+            if in_edge(e, h):
+                measured += 1
+                if not ok:
+                    fails.append((h, pe['top'], rt, bar))
+                continue
             if k not in ph or ph[k][2] < MINFRAMES:
                 unmeasured.append(h)
                 continue

@@ -43,6 +43,14 @@ const hidden = await P.ev(`(()=>{document.body.classList.add("immersive");
   document.querySelectorAll('body > *, main > *, #stage > *').forEach(e=>{ if(e===keep||e.contains(keep))return; e.style.visibility='hidden'; n++; });
   return n;})()`).catch(e => String(e.message).slice(0, 120));
 console.log('overlays hidden', hidden);
+// THE CANVAS MUST FILL THE SQUARE, AND FOR A WHOLE EVENING IT DID NOT (found 2026-09-10 by the ends audit). The
+// control bar hidden above keeps its 44 px of layout under visibility:hidden, so the canvas was 1440 x 1396 in a
+// 1440 x 1440 shot: its centre sat 22 px above the square's centre and its focal length ran 3 per cent short of the
+// pinhole the readers assume. The parapet edge in the render landed on row 480 where the pinhole put the drawn
+// mesh on 494, and with a 1396-row canvas the same pinhole puts it on 479. Every render-side band read that night
+// was about 0.3 m off on the far plane. So the canvas is pinned to the viewport and the shot refuses to run if the
+// renderer's aspect is not 1 to within a part in a thousand.
+await P.ev(`(()=>{const c=document.getElementById('cv'); c.style.cssText+=';position:fixed;left:0;top:0;width:100vw;height:100vh;margin:0'; window.dispatchEvent(new Event('resize'));})()`).catch(() => {});
 await P.ev(`(()=>{let n=0; ngv.scene.traverse(o=>{ if(o.isSprite){o.visible=false;n++;} }); ngv.dirty(); return n;})()`).then(n => console.log('sprites hidden', n)).catch(() => {});
 
 const shots = [];
@@ -55,6 +63,11 @@ for (let i = 0; i < picks.length; i++) {
   await P.send('Emulation.setDeviceMetricsOverride', { width: side, height: side, deviceScaleFactor: 1, mobile: false });
   await P.ev(`window.dispatchEvent(new Event('resize'))`).catch(() => {});
   await P.sleep(700);
+  const sq = await P.ev(`(()=>{const c=document.getElementById('cv'); return [c.width,c.height,ngv.cam.aspect];})()`).catch(() => null);
+  // the page caps its drawing buffer (1152 px inside a 1440 CSS square, seen on the first run of this guard), which
+  // upscales the shot but leaves the geometry alone; only the aspect is what the readers assume, so only it is held.
+  if (!sq || Math.abs(sq[2] - 1) > 0.001 || sq[0] !== sq[1]) { console.log(`THE CANVAS IS NOT SQUARE: ${JSON.stringify(sq)} in a ${side} viewport. No render is written.`); await P.close(); process.exit(1); }
+  console.log(`canvas ${sq[0]} x ${sq[1]} in a ${side} square, aspect ${sq[2].toFixed(4)}`);
   // NIGHT IS SHOT AT NIGHT. The walk captures are daylight with the house lights down, the night captures
   // were made in the evening, and the balcony clips are daylight; getting this wrong would compare a lit
   // render with a dark photograph and the score would measure the lighting, not the geometry.
