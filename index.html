@@ -5321,7 +5321,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 276 bounds, all satisfied.
+  // 277 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5837,6 +5837,15 @@ function buildEndWalls(root){
   // cent of the pairs and a lampless opening read bright in 13, so the positive control failed and the instrument
   // is unproven. Nothing changes: the lamps stay lit in the sim, which the night frames do not support and the
   // instrument cannot yet refute. The next instrument is a region tight to each lamp's triangulated position.
+  // THAT INSTRUMENT, BUILT AND RUN (2026-09-10, latest, tools/lamp_point.py): a disc about each lamp's own projected
+  // pixel, only in frames whose ray reaches the lamp through the aperture and past the reveal by the sim's geometry,
+  // three lamps that do not exist behind openings 9 to 11 as the null. First run, rule fixed blind: by day the
+  // lamps read LIT in 29 of 29 pairs (peaks 189 to 200 over a ground of 42) but the null failed on a sample of two,
+  // and by night no frame passed the visibility test, lamp7 hidden by the jamb by 1 to 3 cm in 17 frames. Second
+  // run, amended after seeing that and said so (a peak floor of 150; 0.10 m of jamb tolerance): the day control
+  // holds, 29 of 29 with the null 0 of 6; by night two frames see lamp7, both dark (peak 56 over 42), no null is
+  // visible, so the night is undecided by the rule and nothing moves. The archive is now exhausted on this: no night
+  // camera stands where it sees a corridor lamp with a null beside it. The lamps stay lit at every hour in the sim.
   // AND THE JAMBS BY NIGHT (2026-09-10, after the render of the push below): with the corridor colour 27 the aperture
   // through w6_000146 rendered 8 against the wall's 19 (r 0.42, inside the claim), but through w6_000143 it rendered
   // 21 against 22, the west jamb's reveal face filling the slot from that angle: Lambert stone lit by the hemisphere,

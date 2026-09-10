@@ -1559,6 +1559,15 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE LAMPS AT THEIR OWN POSITIONS, UNDECIDED BY NIGHT (2026-09-10, tools/lamp_point.py, two runs, the second amended and said so).
+_lp = open(TOOLS_DIR_OT + 'lamp_point.py', encoding='utf-8').read()
+check('the lamp-position instrument proves itself by day (29 of 29, null 0 of 6) and leaves the night undecided, its amendment declared, and the lamps unchanged',
+      'THE SECOND RUN, RULE AMENDED AFTER SEEING THE FIRST, AND SAID SO' in _lp and 'PEAK_MIN = 150 if SECOND else 0' in _lp and 'TOL = 0.10 if SECOND else 0.0' in _lp
+      and 'the night is UNDECIDED' in _lp and 'THAT INSTRUMENT, BUILT AND RUN' in src and 'no night' in src
+      and "lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6" in src,
+      'by day the lamps read LIT in every visible pair with the null dark, so the instrument sees a lamp when there is one; by night two frames see '
+      'lamp7, both dark, with no null visible, which the rule calls undecided; the lamp material therefore stays as it was and the file says why.',
+      'index.html, tools/lamp_point.py')
 # THE LAMPS BY NIGHT, RECORD ONLY (2026-09-10, tools/lamp_night.py: the positive control failed, so nothing moved).
 _ln = open(TOOLS_DIR_OT + 'lamp_night.py', encoding='utf-8').read()
 check('the corridor lamps are unchanged by the night count because its day positive control failed, and both the tool and the file say so',
