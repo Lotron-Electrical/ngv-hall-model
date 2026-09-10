@@ -66,6 +66,7 @@ Run:
   python tools/back_wall_top.py sim       # the render only, against the claim on record
   python tools/back_wall_top.py two       # the second run: strongest-step crossing, west and east, photo and sim
   python tools/back_wall_top.py sim2      # after the push: the renders only, against the claims on record
+  python tools/back_wall_top.py above     # what stands over the crossing, as a fraction of the lit wall
 """
 import os, sys, json, math
 import numpy as np
@@ -248,6 +249,41 @@ def two():
     return out
 
 
+def above():
+    """WHAT STANDS OVER THE CROSSING (2026-09-10, asked after Lloyd looked at the sandbox and said the brick
+    coming down from the ceiling should not be there). The ladder already carries the answer: for every frame
+    that saw a step, the 80th percentile over the crossing divided by that frame's own 10.0-11.0 reference.
+    A lit stone face would read near 1; a void or a shadow reads low. Two rungs are skipped over the crossing
+    so a strip straddling the edge does not count, and three rungs are read, or as many as the ladder holds.
+    At least 20 frames a side or record only; the spread is half the interquartile range."""
+    SKIP, TAKE = 2, 3
+    for name, side, classes in (('west', WEST, CLASSES), ('east', EAST, EAST_CLASSES)):
+        rs = []
+        for cls in classes:
+            for stem, (cam, imgpath) in sorted(load_class(cls).items()):
+                ok0, _ = project(cam, strip(REF_BAND[0], side))
+                if not ok0:
+                    continue
+                img = cv2.imread(imgpath)
+                if img is None:
+                    continue
+                v = ladder(cam, img, side)
+                top, reached, r = step_crossing(v)
+                if top is None:
+                    continue
+                ref = float(np.median([v[h] for h in v if REF_BAND[0] <= h < REF_BAND[1]]))
+                hs = [h for h in RUNGS if h >= round(top + SKIP * STEP, 3) and h in v][:TAKE]
+                if len(hs) < TAKE:
+                    continue
+                rs.append(float(np.median([v[h] for h in hs])) / max(ref, 1))
+        if not rs:
+            print('%s: no frame carries three rungs over its crossing' % name)
+            continue
+        m, sp = q(np.array(rs))
+        print('%s: over the crossing the wall reads %.3f of the lit band, spread %.3f, %d frames  %s' % (
+            name, m, sp, len(rs), 'CLAIM' if len(rs) >= MINFRAMES else 'RECORD ONLY'))
+
+
 def sim2():
     """THE CHECK after the push: the two renders read by the second run's rule against the claims on record.
     No photograph is opened, so this is cheap enough to run after every change to the end walls."""
@@ -372,4 +408,4 @@ def main(simonly=False):
 
 if __name__ == '__main__':
     a = sys.argv[1] if len(sys.argv) > 1 else ''
-    (two() if a == 'two' else sim2() if a == 'sim2' else main(a == 'sim'))
+    (two() if a == 'two' else sim2() if a == 'sim2' else above() if a == 'above' else main(a == 'sim'))
