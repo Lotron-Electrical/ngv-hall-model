@@ -5284,7 +5284,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 267 bounds, all satisfied.
+  // 268 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5785,6 +5785,23 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE LEDGE INSTRUMENT CONTROLLED ON THE WEST DECK, WHERE THE HALL HAD ALREADY MEASURED THE STATION
+  // (2026-09-10, tools/ledge_edge_west.py, an hour after the block below). The east run had one internal
+  // control and no external one. The west deck offers the external one: end_face_scan put the west solid's
+  // top on u 3.710 at h 9.097 from the hall side, near and far agreeing to 5 mm, and sixteen posed b7s
+  // frames (604 to 920) stand on that deck's south end, u 3.19 to 3.33, h 9.56 to 9.74, facing east with
+  // the ledge along the bottom of the frame: the east's situation mirrored. Rule fixed first: the same
+  // sweep on 9.097; the control passes if 3.710 lies inside the survivors' range and the median is within
+  // 0.10 of it; pass and nothing moves; fail and the east set-back, faceSolid and faceBand are withdrawn,
+  // because they rest on the same poses and method. Eleven of sixteen pass the one-peak test (604 to 616
+  // and 880 fail, their second peaks 80 to 95% of the first). Edge on 9.097: u 3.44 to 3.74, median 3.640,
+  // half-range 0.150. The station 3.710 lies inside the range and the median is 0.070 from it: THE
+  // CONTROL PASSES, the instrument finds a ledge the hall measured to within 7 cm, and the east reading
+  // stands as the hint it is. The bias is recorded: the sweep reads the edge 0.07 nearer its cameras than
+  // the hall's station, and the same bias on the east would put its edge on 48.39 (set back 0.33), inside
+  // the east's own 0.135 spread, so the drawn 0.404 is not moved. Both decks show the per-frame u walking
+  // with the camera height in the same sense, which is what one edge below the sweep height does to a
+  // sweep pinned on it; the hall's station on the west says that walk is worth about 7 cm, not 40.
   // THE EAST DECK'S LEDGE, FROM THE CAMERAS THAT STOOD ON IT, AND A SOLID THE DECK SEES THROUGH
   // (2026-09-10, tools/ledge_edge.py). Eleven posed b7s frames (68 to 156) stand on the east deck's south
   // end, u 48.94 to 49.21, h 9.50 to 9.75, facing west, with a broad dark flat surface along the bottom of

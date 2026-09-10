@@ -1447,6 +1447,36 @@ check('the east parapet is drawn as the deck cameras see it: a low solid and a t
          LE['htop'], LE['v2'][0], LE['v2'][1], LE['v2'][2], LE['v2_rms'], LE['scan_east'], LE['ceiling'],
          G['setEast'], abs(G['setEast'] - LE['west_set']), LE['west_set']),
       'tools/ledge_edge.py')
+# THE LEDGE INSTRUMENT CONTROLLED ON THE WEST DECK (2026-09-10, tools/ledge_edge_west.py). Per frame: camera u, h; edge u
+# on 9.097; peak score; next peak. The station the hall measured: tools/end_face_scan.py, u 3.710.
+LW = {'frames': {604: (3.26, 9.71, 3.35, 22.7, 21.5), 608: (3.29, 9.71, 4.15, 16.3, 13.6), 612: (3.33, 9.71, 3.99, 28.4, 19.3),
+                 616: (3.29, 9.74, 4.15, 17.0, 15.2), 876: (3.19, 9.56, 3.44, 52.7, 19.3), 880: (3.22, 9.62, 3.52, 20.2, 18.7),
+                 884: (3.25, 9.67, 3.63, 73.4, 9.4), 888: (3.20, 9.70, 3.68, 91.2, 19.9), 892: (3.23, 9.69, 3.74, 118.7, 15.2),
+                 896: (3.25, 9.68, 3.74, 143.2, 36.5), 900: (3.28, 9.68, 3.69, 54.7, 21.3), 904: (3.31, 9.67, 3.64, 50.0, 15.5),
+                 908: (3.33, 9.66, 3.64, 60.8, 13.9), 912: (3.33, 9.66, 3.63, 74.4, 20.3), 916: (3.33, 9.66, 3.65, 56.2, 17.9),
+                 920: (3.33, 9.66, 3.64, 33.6, 13.2)},
+      'second': 0.60, 'station': 3.710, 'pass': 0.10, 'u_med': 3.640, 'half': 0.150, 'bias': -0.070, 'htop': 9.097}
+_lws = [v for v in LW['frames'].values() if v[4] < LW['second'] * v[3]]
+_lwu = sorted(v[2] for v in _lws)
+_lwmed = _lwu[len(_lwu) // 2] if len(_lwu) % 2 else (_lwu[len(_lwu) // 2 - 1] + _lwu[len(_lwu) // 2]) / 2
+_lwbias = _lwmed - LW['station']
+_lwpass = (_lwu[0] - 1e-9 <= LW['station'] <= _lwu[-1] + 1e-9) and abs(_lwbias) <= LW['pass']
+check('the ledge instrument finds the west solid where the hall measured it, so the east reading stands, unmoved',
+      len(_lws) == 11 and len(LW['frames']) == 16 and abs(_lwmed - LW['u_med']) < 0.006
+      and abs((_lwu[-1] - _lwu[0]) / 2 - LW['half']) < 0.006 and abs(_lwbias - LW['bias']) < 0.006 and _lwpass
+      and abs(LW['bias']) < LE['half']
+      and abs(G['setEast'] - round(LE['u_med'] - LE['glass'], 3)) < 1e-9
+      and abs(grab(r'faceSolid:\{east:([0-9.]+)\}') - round(LE['ceiling'] - LE['deck'], 3)) < 1e-9
+      and abs(G['upWest'] - (LW['htop'] - LE['deck'])) < 1e-9 and abs(G['setWest'] - 0.484) < 1e-9,
+      'sixteen posed b7s frames stand on the west deck south end (u 3.19 to 3.33, h 9.56 to 9.74) facing east over the west '
+      'ledge; %d pass the one-peak control. Swept on h %.3f the edge reads u %.2f to %.2f, median %.3f, half-range %.3f, '
+      'against the station end_face_scan measured from the hall, %.3f: the station lies inside the range and the median is '
+      '%.3f from it, under the %.2f bar fixed before the run, so THE CONTROL PASSES and the east run is validated. The bias '
+      '%+.3f is smaller than the east spread %.3f, so upstandSet.east stays %.3f (the same bias would put the east edge on '
+      '%.2f); faceSolid.east %.3f and the west constants (set back %.3f, top %.3f) are unchanged.'
+      % (len(_lws), LW['htop'], _lwu[0], _lwu[-1], _lwmed, (_lwu[-1] - _lwu[0]) / 2, LW['station'], abs(_lwbias), LW['pass'],
+         _lwbias, LE['half'], G['setEast'], LE['u_med'] + LW['bias'], LE['ceiling'] - LE['deck'], G['setWest'], LW['htop']),
+      'tools/ledge_edge_west.py')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
                  1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
