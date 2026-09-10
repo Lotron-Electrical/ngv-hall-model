@@ -46,6 +46,9 @@ ITS RESULT, REFUSED ON ITS FACE: east 23 frames, RGB (26, 21, 24), R/G 1.273 B/G
 control passes by the numbers), and the colour it derives for the west, 0x738555, is GREEN. A shadow's chroma is not
 a stone's; the east region from 44 m is dark in every west-deck frame whatever d it spans. So no referenced claim
 exists. index.html places the west wall by the phone's own chroma at the measured luma, labelled unreferenced.
+THE RENDERS (compare3, after the push): the west wall as 0x877a59 rendered RGB (99, 83, 76), R/G 1.193, B/G 0.916
+against the phone's 1.108, 0.734, so the material became 0x827f4b by the two ratios; the east wall through
+b7s_000908 rendered (7, 7, 7), a black band in the sim where its top should be, noted and not pursued here.
 
 Run:
   python tools/back_wall_hue.py photo        # the claim, and the two render picks into render-shots/

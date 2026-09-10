@@ -2844,7 +2844,10 @@ function buildEndWalls(root){
  // shadow, and the east back wall seen from the west deck sits behind a hall column, so no surface in the frames
  // shares the wall's light. The colour below is the phone's chroma at the luma measured earlier (0x7a), white
  // balance NOT separated, UNREFERENCED, west only: the east keeps topBackMat, grey ashlar in every b6 frame.
- const topBackWestMat=dnm(0x0f0f0f,0x877a59,'gallery-back-lit-west');
+ // AND CORRECTED BY THE RENDER (same session): through b3_000161 the sim showed 0x877a59 as RGB (99, 83, 76), R/G
+ // 1.193 and B/G 0.916, the tone map pulling the chroma toward grey, so the material is pushed the other way by the
+ // same factors (R/G x 0.929, B/G x 0.801) to land the phone's chroma in the RENDER, which is what is seen: 0x827f4b.
+ const topBackWestMat=dnm(0x0f0f0f,0x827f4b,'gallery-back-lit-west');
  const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  const lowBackMat=dnm(0x0a0908,0x16120f,'gallery-back-low');   /* 0.1-0.15x the stone by day: the lower tier is unlit in d4_000049 (2026-09-09) */
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
@@ -5854,6 +5857,10 @@ function buildEndWalls(root){
   // two cameras agreeing; cream in every frame, grey in the sim since the hue was taken out on the strength of
   // the b6 frames, which walk the EAST gallery. Placed: topBackWestMat, the phone's chroma at the measured luma,
   // unreferenced and labelled; the east keeps its grey. A render through b3_000161 checks what the sim now shows.
+  // THE RENDER (same session): the first value rendered R/G 1.193, B/G 0.916 against the phone's 1.108, 0.734 (the
+  // tone map desaturates), so the material is 0x827f4b, chosen to render the phone's chroma; a second render
+  // follows this push. The east back wall through b7s_000908 rendered black (7, 7, 7): from the west deck the sim
+  // shows a dark band where that wall's top should be, which is a defect of its own, seen and not looked into here.
   // THE EAST LEDGE AND THE NORTH DOOR CANNOT BOTH REACH THE WALL (2026-09-10, latest, tools/deck_door_corner.py).
   // The setback solid and coping measured from the deck's south end (u 48.46 to 48.91) and the north door
   // measured from inside the gallery (jambs 48.158 and 49.371, half-ranges 0.05 and 0.09) overlap by 0.75 m
