@@ -1531,9 +1531,9 @@ check('the ledge top and its nosing are drawn from the photo ratios to the floor
       and abs(_ltmw - LT['top_w']) < 0.01 and abs(_ltme - _ltmw) > _lthr and abs(_ltmid - LT['mid']) < 0.01
       and _ltlo <= _ltday <= _lthi and abs(_ltday - _ltmid * LT['floor_sim'] / LT['factor']) < 3
       and _ltnlo <= _ltnose <= _ltnhi
-      and re.search(r"quad\(\[\[uS,0,hT\],\[uI,0,hT\],\[uI,D,hT\],\[uS,D,hT\]\],copingMat,'gallery-coping'\)", src) is not None
+      and re.search(r"quad\(\[\[uS,dL,hT\],\[uI,dL,hT\],\[uI,D,hT\],\[uS,D,hT\]\],copingMat,'gallery-coping'\)", src) is not None   # d-start dL since the ledge stops short of the north door (2026-09-10)
       and re.search(r"nosing:\{west:0\.08, east:0\.08\}", src) is not None
-      and "quad([[uS,0,hN],[uN,0,hN],[uN,D,hN],[uS,D,hN]],nosingMat,'gallery-nosing')" in src,
+      and "quad([[uS,dL,hN],[uN,dL,hN],[uN,D,hN],[uS,D,hN]],nosingMat,'gallery-nosing')" in src,
       'along the edge each sweep found, a strip 30 to 120 px under it reads %.3f of the floor on the east and %.3f on the '
       'west (the nosing, drawn %.2f m wide by eye in nosingMat, day %d against the sim floor\'s %.0f), and the ledge top '
       'beyond it reads %.3f on the east (%d frames) and %.3f on the west (%d frames), apart by more than the larger spread '
@@ -1559,6 +1559,18 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE EAST LEDGE STOPS SHORT OF THE NORTH DOOR (2026-09-10, tools/deck_door_corner.py, b6_001320 by eye).
+check('the east ledge (setback solid, coping, nosing, inner face) starts a metre from the north wall with its end closed, by eye and labelled, and the face still runs to the wall',
+      'ledgeStart:{east:1.0}' in src and 'const dL=(W.ledgeStart&&W.ledgeStart[side])||0;' in src
+      and "quad([[uS,dL,fl[1]],[uS,D,fl[1]],[uS,D,fl[1]+ups],[uS,dL,fl[1]+ups]],upstandMat,'gallery-parapet')" in src
+      and "quad([[uS,dL,hT],[uI,dL,hT],[uI,D,hT],[uS,D,hT]],copingMat,'gallery-coping')" in src
+      and "quad([[uS,dL,hN],[uN,dL,hN],[uN,D,hN],[uS,D,hN]],nosingMat,'gallery-nosing')" in src
+      and "'gallery-parapet-return'" in src and "quad([[uF,0,fl[1]+g0],[uF,D,fl[1]+g0]" in src
+      and 'b6_001320 BY EYE' in src and 'CANNOT BOTH REACH THE WALL' in src and 'ledgeStart:{west' not in src,
+      'the measured ledge (u 48.46 to 48.91) and the measured door (48.158 to 49.371) overlap by 0.75 m where both meet the north wall, and '
+      'b6_001320 shows the door walked through two abreast, so the ledge ends short of the wall; no posed frame sees the corner, so the end '
+      'is placed a metre from the wall by eye, carrying half a metre, and the face, band and glass run on to the wall unchanged.',
+      'index.html, tools/deck_door_corner.py, b6_001320')
 # THE LAMPS AT THEIR OWN POSITIONS, UNDECIDED BY NIGHT (2026-09-10, tools/lamp_point.py, two runs, the second amended and said so).
 _lp = open(TOOLS_DIR_OT + 'lamp_point.py', encoding='utf-8').read()
 check('the lamp-position instrument proves itself by day (29 of 29, null 0 of 6) and leaves the night undecided, its amendment declared, and the lamps unchanged',
