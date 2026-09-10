@@ -2512,6 +2512,7 @@ function buildWallDetails(root){
   geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(mirror?[1,0,0,0,0,1,1,1]:[0,0,1,0,1,1,0,1]),2)); geo.setIndex([0,1,2,0,2,3]); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo,mat); m.name=name; root.add(m); return m; };
  const stoneMat=new THREE.MeshLambertMaterial({color:0x8a7f74, side:THREE.DoubleSide, name:'wall-reveal'});
+ const headMat=cnm(0x8f8378,0x8f8378,'opening-head');   /* the reveal head's underside, unlit, set from 109 walk pairs (2026-09-10) */
  const voidMat=new THREE.MeshBasicMaterial({color:0x07070a, side:THREE.DoubleSide, name:'wall-opening'});
  const grilleMat=new THREE.MeshBasicMaterial({color:0x0b0b0c, side:THREE.DoubleSide, name:'wall-grille'});
  const walls=[{d:F.dNorth, s:-1, north:true},{d:F.dSouth, s:1, north:false}];   /* s: into the wall */
@@ -2520,8 +2521,17 @@ function buildWallDetails(root){
  // the opening (33 and 26 against 60 and 65) with a lamp on its ceiling by the nearest one; from the floor
  // only its dark ceiling shows. Night captures: unlit.
  const cnm=(night,day,name)=>{ const m=new THREE.MeshBasicMaterial({color:day, side:THREE.DoubleSide, name}); m.userData.night=new THREE.Color(night); m.userData.day=new THREE.Color(day); endLitMats.push(m); return m; };   /* applyDay lerps it each frame */
- const corridorMat=cnm(0x0a0908,0x2a2724,'corridor');   /* its ceiling, floor and near faces */
- const corridorBackMat=cnm(0x0c0b0a,0x423a2c,'corridor-back');   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
+ // THE CORRIDOR'S TONE, MEASURED THROUGH EVERY OPENING THE FLOOR CAMERAS SEE WHOLE (2026-09-10, tools/opening_tone_sweep.py,
+ // rule fixed before the run). r = the aperture's median grey over a ring of wall around it, in the photo; pairs sorted by
+ // the surface the sim shows there. Night, rays ending on the corridor CEILING: 138 pairs, r 0.447, spread 0.065 (the sim
+ // rendered 0.05 through w6_000146, so its night corridor was nine times too dark against its wall). Day, the same
+ // ending: 449 pairs, r 0.714, spread 0.069; three baseline renders of such pairs (w1_000379/3, w2_000243/7,
+ // w1_000526/11) gave the sim r 0.45, 0.44, 0.50 with the old day colour (42 grey), so that colour is scaled by
+ // 0.714/0.45 = 1.59 to 67. At night the sim's wall rendered 19 and the old night colour (9) rendered 1, so the night
+ // colour is set to 65 for 8.5 (0.447 x 19). The back wall's night colour is carried up by the ceiling's night factor
+ // (7.2x), UNMEASURED: no night pair ends on it. Its day colour keeps d4_000120. Checked by renders after the push.
+ const corridorMat=cnm(0x413c37,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
+ const corridorBackMat=cnm(0x574f48,0x423a2c,'corridor-back');   /* night was 0x0c0b0a, carried up 7.2x with the ceiling, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
@@ -2543,7 +2553,12 @@ function buildWallDetails(root){
    quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],stoneMat,'opening-reveal');
    quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],stoneMat,'opening-reveal');
    quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],stoneMat,'opening-sill');
-   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],stoneMat,'opening-head'); }
+   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],headMat,'opening-head'); }
+  // THE HEAD'S UNDERSIDE READS AS THE WALL DOES (2026-09-10, tools/opening_tone_sweep.py): from the floor the steep
+  // rays through an opening end on the reveal's head, and in 109 walk pairs that patch reads r 0.978 of the wall
+  // beside it, spread 0.036. The Lambert stone lit from above rendered it 0 through w1_000104 (wall 116), so the
+  // head is an unlit colour (143 grey) for 113 by day; its night colour is the same number, which is what r near 1
+  // means if the night exposure treats it as it treats the wall, and is an ASSUMPTION: no night pair ends on it.
   // the gallery behind the openings (the 1968 second-floor plan gives its width; Lloyd's clip 153148
   // frames 1040-1330, shot INSIDE it, give the rest): a room W wide past the reveals, its floor the second
   // floor, ROOFED BY THE CANOPY. C.ceil is the built canopy's own underside at the north wall face, 13.55

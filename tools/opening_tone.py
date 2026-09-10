@@ -136,4 +136,11 @@ def compare():
 
 
 if __name__ == '__main__':
+    # optional frames on the command line, cls:stem:opening, e.g. walk:w1_000437:5 (2026-09-10, for the sweep's renders)
+    if len(sys.argv) > 2:
+        FRAMES = tuple((a.split(':')[0], a.split(':')[1], int(a.split(':')[2])) for a in sys.argv[2:])
+        for _, _, k in FRAMES:
+            if k not in OPEN:
+                from opening_tone_sweep import OPEN as _ALL
+                OPEN[k] = tuple(_ALL[k])
     {'picks': picks, 'compare': compare}[sys.argv[1]]()
