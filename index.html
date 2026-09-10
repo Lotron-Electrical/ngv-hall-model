@@ -5792,6 +5792,20 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE b7 TAIL WAS ALREADY TRIED, AND WHAT ITS REFUSED POSES ARE GOOD FOR (2026-09-10, later,
+  // tools/b7_tail_census.py). The 2026-09-09 b7s register took every 4th frame to 1220, solved 237 of 306
+  // and accepted 12; the refused solves sit in work/reg-b7s. Of the 74 tail frames that solved, six stand
+  // on the WEST deck's north end facing east at a person's height (1136 to 1184: u 2.40 to 3.41, d 1.29 to
+  // 3.92, h 8.92 to 9.59), and 68 land where no one stood: 932 to 1120 mostly on u 19 facing west, mid-air
+  // over the hall, the solver having matched the far east gallery to the near west one (the ends are
+  // alike), others on the east deck, on h 13 to 24, or off the building; the gate refused all of them on
+  // inliers or continuity and was right to. The frames that see the first openings from a metre or two
+  // (1188 to 1224) did not solve. The six were checked: the north-1 tapestry and openings 1 to 3 projected
+  // through 1184 and 1144 land on the real ones to within a few per cent of the frame, offset by about a
+  // tenth of the tapestry's width, so those poses are right to a quarter of a metre and a few degrees and
+  // wrong by more than a reveal measurement can bear. Nothing is measured from them. They are the prior
+  // for the next step: relocalise 1188 to 1224 seeded from 1184, openings 1 to 3 the control, and read the
+  // lit reveal face beside each dark slot for the reveal depth, the first close measurement of it possible.
   // EVERY UNEXAMINED STRETCH OF THE BALCONY CLIPS, LOOKED THROUGH FOR THE CORRIDOR (2026-09-10,
   // tools/log_clip_sweep.py). No posed frame faces the corridor, so the parts of the six clips no tool had
   // used were read by contact sheet and then at full resolution where a sheet suggested something. b1 0 to
