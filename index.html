@@ -1296,7 +1296,7 @@ function photoMaterial(src){
   // the bake's glTF carries alpha on the material factor (declared glass ships BLEND at 0.35);
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
-  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},stoneMap:{value:STONE_TEX},canopyMap:{value:CANOPY_MAP},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
+  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},stoneMap:{value:STONE_TEX},canopyMap:{value:CANOPY_MAP},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},wallGain:{value:1.0},flatSky:{value:0.0},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()},
    // the render terms added 2026-09-07 (see "the lighting render" in AGENTS.md): the carpet's own
    // colour for the first bounce, the floor plane it bounces off, the shaft radius the columns
@@ -1307,7 +1307,7 @@ function photoMaterial(src){
     ${(src.name||'')==='walls'&&src.isMaterial?`// the scan's long-wall faces sit behind the certified cloud (WALL_SHIFT): each side moves as one
     { vec3 hn=vec3(0.219186,0.0,-0.975639); float sdv=dot(wp.xyz-vec3(-54.907447,-1.43545,3.040286),hn); wp.xyz+=hn*(sdv<7.0?${WALL_SHIFT.north.toFixed(3)}:${(-WALL_SHIFT.south).toFixed(3)}); }`:''}
     vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
-  fragmentShader:`uniform sampler2D map, stoneMap, canopyMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain; uniform int nLights;
+  fragmentShader:`uniform sampler2D map, stoneMap, canopyMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain, wallGain, flatSky; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
@@ -1382,13 +1382,14 @@ function photoMaterial(src){
       vec3 mortar=vec3(dot(stoneCol,vec3(0.3333)))*0.78*(0.92+0.16*hg);
       albedo=mix(stoneCol,mortar,joint)*mix(0.12,1.0,dark)*(sy<${(WALLF.skirt).toFixed(3)}?0.35:1.0);
      } else albedo=texture2D(stoneMap,vec2(su,sd)).rgb*0.9*mix(0.12,1.0,dark);
+     albedo*=wallGain;   /* the galleries' back walls: the same ashlar, lit by their own lights (Lloyd, 2026-09-10) */
     }`:''}
     // flat normal from the position derivatives; it always faces the viewer, which is the
     // side being lit as far as the eye is concerned on a two-sided surface
     // the house light: the rig's 23 fixtures and the room's bounce (RIG_PHOT), not a flat number;
     // the daylight on the stone walls grows with height, the foot of the wall seeing the hall
     float hy=clamp((vPos.y+1.43545)/12.2,0.0,1.0);
-    float skyF=${(src.name||'')==='walls'?'0.4+0.6*hy*hy':'1.0'};
+    float skyF=mix(${(src.name||'')==='walls'?'0.4+0.6*hy*hy':'1.0'},1.0,flatSky);   /* flatSky: a gallery back wall lit by its own lights carries its measured profile in the ramp overlay, not the hall's sky gradient */
     // the daylight's colour here: the panes over this part of the hall (CANOPY_MAP), relative
     vec3 cq=vPos-vec3(-54.907447,-1.43545,3.040286);
     vec3 dayCol=texture2D(canopyMap,vec2(dot(cq,vec3(0.975681,0.0,0.219196))/52.0,dot(cq,vec3(0.219186,0.0,-0.975639))/16.0),1.0).rgb*2.0;
@@ -2820,7 +2821,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, ledgeStart:{east:1.0}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, stoneBase:{west:null, east:null}, groundLit:{east:{top:3.2, day:0x777467}, west:{top:1.5, day:0x4c4940}}, groundShade:{west:[[1.40,255],[2.63,235],[3.19,206],[3.74,175],[4.11,172],[4.48,168],[4.85,163],[5.30,200]], east:[[0.90,255],[1.25,242],[2.05,242],[2.63,255],[3.19,200],[3.30,196],[3.45,146],[3.75,146],[3.92,165],[4.00,180],[4.15,180],[4.30,163],[4.48,158],[4.85,155],[5.30,110]]}, lowRamp:[[5.30,161],[5.50,163],[5.70,174],[5.90,178],[6.10,187],[6.30,195],[6.50,208],[6.70,208],[6.90,235],[7.10,244],[7.30,255],[7.50,253],[7.70,247],[7.90,242],[8.08,242]], backRamp:{west:[[8.34,244],[9.10,244],[9.30,255],[9.90,255],[10.50,255],[10.70,253],[10.90,251],[11.10,249],[11.30,247],[11.50,243],[11.70,239],[11.90,236],[12.10,234],[12.30,231],[12.50,223],[12.70,184],[12.90,170],[13.10,165],[13.30,168],[13.50,168]], east:[[8.34,244],[9.10,244],[9.30,255],[9.90,255],[10.50,255],[10.70,253],[10.90,251],[11.10,251],[11.30,251],[11.50,247],[11.70,243],[11.90,240],[12.10,238],[12.30,236],[12.50,235],[12.70,215],[12.90,200],[13.10,190],[13.30,120],[13.50,120]]}, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, wallVents:{west:[[11.8,12.9,12.35,12.7]]}, wallNiches:{west:[[12.2,13.3,9.9,11.5]]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:11.3, n:2, pitch:1.3, plinth:[0.8,0.8,0.9], glass:[0.7,0.7,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, ledgeStart:{east:1.0}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, stoneBase:{west:null, east:null}, groundLit:{east:{top:3.2, day:0x777467}, west:{top:1.5, day:0x4c4940}}, groundShade:{west:[[1.40,255],[2.63,235],[3.19,206],[3.74,175],[4.11,172],[4.48,168],[4.85,163],[5.30,200]], east:[[0.90,255],[1.10,210],[2.05,210],[2.63,255],[3.19,200],[3.30,196],[3.45,125],[3.75,125],[3.92,165],[4.00,180],[4.15,180],[4.30,163],[4.48,158],[4.85,155],[5.30,110]]}, lowRamp:[[5.30,161],[5.50,163],[5.70,174],[5.90,178],[6.10,187],[6.30,195],[6.50,208],[6.70,208],[6.90,235],[7.10,244],[7.30,255],[7.50,253],[7.70,247],[7.90,242],[8.08,242]], backRamp:{west:[[8.34,244],[9.10,244],[9.30,255],[9.90,255],[10.50,255],[10.70,253],[10.90,251],[11.10,249],[11.30,247],[11.50,225],[11.70,215],[11.90,209],[12.10,200],[12.30,196],[12.50,184],[12.70,152],[12.90,136],[13.10,129],[13.30,128],[13.50,128]], east:[[8.34,244],[9.10,244],[9.30,255],[9.90,255],[10.50,255],[10.70,253],[10.90,251],[11.10,251],[11.30,251],[11.50,247],[11.70,228],[11.90,219],[12.10,209],[12.30,203],[12.50,200],[12.70,187],[12.90,172],[13.10,159],[13.30,88],[13.50,88]]}, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, wallVents:{west:[[11.8,12.9,12.35,12.7]]}, wallNiches:{west:[[12.2,13.3,9.9,11.5]]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:11.3, n:2, pitch:1.3, plinth:[0.8,0.8,0.9], glass:[0.7,0.7,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -2900,8 +2901,22 @@ function buildEndWalls(root){
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; };
  // per end since the audit measured the two falloffs apart (2026-09-10, tools/patch_ends_tune.py): the west's on
  // topBackWestMat, the east's on topBackMat, each from its own deck's frames.
- { const R=W.backRamp||{}; const tw=rampTex(R.west||R,W.floors[1],W.top), te=rampTex(R.east||R.west||R,W.floors[1],W.top);
-   if(tw) topBackWestMat.map=tw; if(te) topBackMat.map=te; }
+ const tw=(()=>{ const R=W.backRamp||{}; return rampTex(R.west||R,W.floors[1],W.top); })(), te=(()=>{ const R=W.backRamp||{}; return rampTex(R.east||R.west||R,W.floors[1],W.top); })();
+ if(tw) topBackWestMat.map=tw; if(te) topBackMat.map=te;   /* the flat materials keep their ramps, unreferenced now */
+ // THE BACK WALLS ARE THE SAME BRICK AS THE SIDE WALLS (Lloyd, 2026-09-10: "the back walls should be the same
+ // brick as the side wall"). Every gallery back wall was a flat tone (topBackMat, topBackWestMat, lowBackMat,
+ // backMat), each measured against its frames; the photographs show coursed ashlar on all of them (b6_001312,
+ // b7_000320, the b7 frames of the west back). So they take the side walls' own ashlar shader (photoMaterial
+ // 'walls': the measured courses, the stone tile, the rig and the daylight), with one number each, wallGain,
+ // set so the rendered wall keeps the tone the audit measured: the upper back at the reference band (h 10 to
+ // 11) rendered 133 west and 130 east (p80 luma, r00/r01 before this change), the recess 0.1 to 0.15 of the
+ // stone. The height falloff (ENDW.backRamp) that was the flat material's map becomes a MULTIPLY overlay a few
+ // millimetres in front of the wall, as the ground shade already is, so the ramp still cuts the same profile.
+ const galleryStone=(gain,name)=>{ const m=photoMaterial({map:white, name:'walls'}); m.side=THREE.DoubleSide; m.uniforms.wallGain.value=gain; m.uniforms.flatSky.value=1.0; m.name=name; return m; };
+ const topBackStone={west:galleryStone(2.36,'walls'), east:galleryStone(2.50,'walls')};   /* the ashlar at gain 1 rendered the reference band (h 10 to 11, p80 luma) at 67 west, 65 east against the 133 and 130 the flat tones gave; 2.0 gave 119 and 112, 2.24/2.32 gave 126 and 121, so 2.36 and 2.50 (tools/ref_luma.py) */
+ const lowBackStone={west:galleryStone(0.255,'walls'), east:galleryStone(0.13,'walls')};   /* the recess top (h 7.6): west reads 0.21 of the lit band, rendered 0.47 at gain 0.57 before its ramp came back; east 0.126 against 0.139 at 0.13 */
+ const rampOverlay=(t,name)=>new THREE.MeshBasicMaterial({map:t, side:THREE.DoubleSide, blending:THREE.MultiplyBlending, transparent:true, depthWrite:false, name});
+ const topBackRamp={west:tw&&rampOverlay(tw,'gallery-back-ramp'), east:te&&rampOverlay(te,'gallery-back-ramp')};
  const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  // THE RECESS BRIGHTENS UPWARD AND IT IS NOT NEAR BLACK (2026-09-10, tools/ends_audit.py). Against each
  // frame's own lit band the west recess reads 0.09 at h 5.4, 0.13 at 6.4, 0.18 at 7.0, 0.21 at 7.4 and 0.19
@@ -2910,7 +2925,8 @@ function buildEndWalls(root){
  // one frame against lamp-lit cream in this one. The day colour lands the profile's maximum at texel 255 and
  // ENDW.lowRamp carries the shape; night is untouched, because no night frame was read here.
  const lowBackMat=dnm(0x0a0908,0x312822,'gallery-back-low');   /* was 0x16120f, 0.1-0.15x the stone by day (d4_000049, 2026-09-09) */
- { const t=rampTex(W.lowRamp,W.groundTop,W.floors[1]-W.slab); if(t) lowBackMat.map=t; }
+ const lowRampTex=rampTex(W.lowRamp,W.groundTop,W.floors[1]-W.slab); if(lowRampTex) lowBackMat.map=lowRampTex;
+ const lowBackRamp=lowRampTex&&new THREE.MeshBasicMaterial({map:lowRampTex, side:THREE.DoubleSide, blending:THREE.MultiplyBlending, transparent:true, depthWrite:false, name:'gallery-back-ramp'});   /* the recess profile, an overlay over the ashlar now */
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
  const lampMat=dnm(0x2a2620,0xfff4e0,'gallery-downlight');
  const lobbyMat=new THREE.MeshBasicMaterial({color:0xb9b3a8, side:THREE.DoubleSide, name:'lobby-ceiling'});
@@ -2975,7 +2991,7 @@ function buildEndWalls(root){
    const uS=uF-s*0.006; quad([[uS,0,0],[uS,D,0],[uS,D,W.groundTop],[uS,0,W.groundTop]],m,'end-ground-shade'); } }
   // the ground's soffit (the lobby ceiling) and back wall
   quad([[uF,0,W.groundTop],[uB,0,W.groundTop],[uB,D,W.groundTop],[uF,D,W.groundTop]],darkMat,'ground-soffit');
-  quad([[uB,0,0],[uB,D,0],[uB,D,W.groundTop],[uB,0,W.groundTop]],backMat,'gallery-back');
+  quad([[uB,0,0],[uB,D,0],[uB,D,W.groundTop],[uB,0,W.groundTop]],stone,'gallery-back');   /* the side walls' ashlar (Lloyd, 2026-09-10) */
   // THE STONE OVER THE GALLERIES STOOD ON THE HEAD AND THAT IS WHAT STOPPED THE LIT BACK WALL
   // (2026-09-10, tools/back_wall_top.py, after the column-tone check named the defect). This quad was
   // drawn from W.head 11.090 up, so from anywhere in the hall the west gallery's lit cream back wall was
@@ -3039,7 +3055,8 @@ function buildEndWalls(root){
   // difference in what is proved is recorded rather than hidden.
   // W.apron, W.lowUpstand and W.rails[0] stay in ENDW as the record of what was refuted; nothing reads
   // them for geometry any more.
-  quad([[uB,0,W.groundTop],[uB,D,W.groundTop],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackMat,'gallery-back');
+  quad([[uB,0,W.groundTop],[uB,D,W.groundTop],[uB,D,fl[1]-W.slab],[uB,0,fl[1]-W.slab]],lowBackStone[side],'gallery-back');
+  if(lowBackRamp){ const uR=uB-s*0.004; quad([[uR,0,W.groundTop],[uR,D,W.groundTop],[uR,D,fl[1]-W.slab],[uR,0,fl[1]-W.slab]],lowBackRamp,'gallery-back-ramp'); }   /* the side walls' ashlar at the recess's measured darkness (Lloyd, 2026-09-10) */
   quad([[uF,0,fl[1]-W.slab],[uB,0,fl[1]-W.slab],[uB,D,fl[1]-W.slab],[uF,D,fl[1]-W.slab]],ceilMat,'gallery-ceiling');
   // the top floor: the fascia, a solid dark parapet, the floor, the lit soffit on the head, the back wall
   quad([[uF,0,fl[1]-W.slab],[uF,D,fl[1]-W.slab],[uF,D,fl[1]],[uF,0,fl[1]]],upstandMat,'gallery-fascia');
@@ -6600,7 +6617,8 @@ function buildEndWalls(root){
   // to the top again (2026-09-10): W.backTop capped this wall for an hour, while the face over the head was not
   // drawn at all. With the dark face back the cut is made by the face, where it was measured, and a second cap
   // here would only be a second answer to one question.
-  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,top],[uB,0,top]],side==='west'?topBackWestMat:topBackMat,'gallery-back');   /* the west by the phone's chroma (2026-09-10) */   /* to the top: the void behind the front soffit is open to the canopy */
+  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,top],[uB,0,top]],topBackStone[side],'gallery-back');   /* the side walls' ashlar (Lloyd, 2026-09-10) */
+  if(topBackRamp[side]){ const uR=uB-s*0.004; quad([[uR,0,fl[1]],[uR,D,fl[1]],[uR,D,top],[uR,0,top]],topBackRamp[side],'gallery-back-ramp'); }   /* the west by the phone's chroma (2026-09-10) */   /* to the top: the void behind the front soffit is open to the canopy */
   // the lower tier's back wall: white fittings and a green exit sign where d4_000049 has them (west), and
   // THE EAST LOWER TIER SEEN FOR THE FIRST TIME FROM A HEIGHT (2026-09-10): Lloyd's b7 clip walks the WEST
   // deck looking east, and four of its posed frames (b7s_000604, 000612, 000616, 000876, u 3.2 to 3.3,
