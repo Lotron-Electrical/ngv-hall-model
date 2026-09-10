@@ -2829,7 +2829,8 @@ function buildEndWalls(root){
  const topDoorMat=dnm(0x3a342c,0x836f5b,'gallery-door');      /* 0.95x the stone by day, a hair darker than the panel */
  const exitLitMat=new THREE.MeshBasicMaterial({color:0x2ee88a, side:THREE.DoubleSide, name:'exit-sign'});
  const doorMat=new THREE.MeshBasicMaterial({color:0x14120f, side:THREE.DoubleSide, name:'gallery-door-leaf'});
- const passageMat=new THREE.MeshBasicMaterial({color:0x4a4640, side:THREE.DoubleSide, name:'gallery-door-open'});   /* the inside of an open doorway, lit from within: the north door of the east gallery in b6_001248 */
+ const passageMat=new THREE.MeshBasicMaterial({color:0x4a4640, side:THREE.DoubleSide, name:'gallery-door-open'});
+ const doorLightMat=new THREE.MeshBasicMaterial({color:0xe9e2d2, side:THREE.DoubleSide, name:'gallery-door-light'});   /* the fitting across the head of that door */   /* the inside of an open doorway, lit from within: the north door of the east gallery in b6_001248 */
  const portMat=new THREE.MeshBasicMaterial({color:0xd8d2c6, side:THREE.DoubleSide, name:'gallery-porthole'});
  for(const [uB,s,side] of [[W.west,-1,'west'],[W.east,1,'east']]){   /* s: from the hall into the end */
   const uF=uB-s*W.face, fl=W.floors, top=W.top, uD=uF+s*0.01;   /* uD: a hair in front of the face, for the doors */
@@ -6015,7 +6016,7 @@ function buildEndWalls(root){
   // both by eye. The west door on this wall was withdrawn the same day (no frame shows that end).
   { const ND=W.topNorthDoor&&W.topNorthDoor[side]; if(ND){ const [u0,u1,doorH]=ND, dN=F.dNorth+0.01;
     quad([[u0,dN,fl[1]],[u1,dN,fl[1]],[u1,dN,fl[1]+doorH],[u0,dN,fl[1]+doorH]],passageMat,'gallery-door-open');
-    quad([[u0+0.05,dN-0.005,fl[1]+doorH-0.18],[u1-0.05,dN-0.005,fl[1]+doorH-0.18],[u1-0.05,dN-0.005,fl[1]+doorH-0.06],[u0+0.05,dN-0.005,fl[1]+doorH-0.06]],exitLitMat===undefined?doorMat:new THREE.MeshBasicMaterial({color:0xe9e2d2, side:THREE.DoubleSide, name:'gallery-door-light'}),'gallery-door-light');
+    quad([[u0+0.05,dN-0.005,fl[1]+doorH-0.18],[u1-0.05,dN-0.005,fl[1]+doorH-0.18],[u1-0.05,dN-0.005,fl[1]+doorH-0.06],[u0+0.05,dN-0.005,fl[1]+doorH-0.06]],doorLightMat,'gallery-door-light');
     { const X=W.topNorthExit&&W.topNorthExit[side], [xa,xb,ha,hb]=X||[(u0+u1)/2-0.25,(u0+u1)/2+0.25,10.97,11.17];   /* the west sign is over its door by eye; the east sign is in the door head on the +u side, b6_001248 */
       quad([[xa,dN+0.01,ha],[xb,dN+0.01,ha],[xb,dN+0.01,hb],[xa,dN+0.01,hb]],exitLitMat,'exit-sign'); } } }
   // THREE WAYS TO MEASURE THIS CEILING, ALL THREE REFUSED (2026-09-09, tools/soffit_edge.py,
