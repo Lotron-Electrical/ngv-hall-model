@@ -5339,7 +5339,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 282 bounds, all satisfied.
+  // 283 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5853,6 +5853,12 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE COLUMNS, THREE TIMES TOO DARK BY DAY (2026-09-10, latest, tools/column_tone.py). The strips' black north end
+  // was the sim's column crossing that strip, and every balcony view has the columns across it as pure black where
+  // the photos show dark grey. Measured as the dark cluster of the back-wall split: 0.147 of the wall from the east
+  // deck (104 frames) and 0.100 from the west deck (20 frames), claim 0.124; the render through b3_000161 gave
+  // 0.041. COLUMN_DAY 3.0 on the columns' daylight share, the amendment (one valid render, the other void for the
+  // sim's own columns filling its region) declared; a render after the push checks it.
   // THE EAST FACE FROM THE HALL, IN STRIPS (2026-09-10, latest, tools/face_strips.py). Thirteen 1 m strips along d,
   // each its own median against the wall strip above it, over 23 west-deck frames, void where a column blackens
   // the wall strip. Nine strips carry a claim: the face reads the lit interior at d 1 to 3 (0.92, 0.56 of the
@@ -6644,6 +6650,16 @@ const PCB_W=0.010, PCB_T=0.001, LED_SZ=0.005, LED_H=0.0015, TILE_T=0.001;
 // the columns are gloss black steel; the bake carries roughness 0.35 and Lloyd wants it a bit
 // rougher (2026-08-28), so the viewer sets this on every column material as it loads
 const COLUMN_ROUGHNESS=0.5;
+// THE COLUMNS BY DAY, AGAINST THE LIT BACK WALLS (2026-09-10, tools/column_tone.py). In the frames that measured the
+// back walls the hall's columns cross the wall region, and the dark cluster of the same split is the column: from
+// the east deck 104 frames read it as 0.147 of the wall (spread 0.108), from the west deck 20 frames read 0.100
+// (spread 0.004), the two within 0.05, claim 0.124. The render through b3_000161 put the sim's column on 0.041 (6
+// against 133): three times too dark. The lever is the daylight share of the columns' environment light, below;
+// 1.0 was the share, 3.0 is the claim over the render, checked by a render after the push and corrected once if
+// it lands outside the claim's spread. The rule asked for both renders; the east one's split was void because the
+// sim's own columns fill more than 0.70 of that region, and acting on the one valid render is an amendment made
+// after seeing that, and said so here and in the tool.
+const COLUMN_DAY=3.0;
 const GAPS=8;
 const BLOOM_LAYER=2;   // the HDR emitters and their halos; the bloom pass draws this layer alone
 // THE EMITTER FACE IS NOT A FLAT PANEL (Lloyd, 2026-09-07). Two things were missing from the lit
@@ -7037,7 +7053,7 @@ ${f(room)} lm into the hall (${passTxt})`;
  // holds the hemisphere at the game's own working level while the photographs stay at whatever
  // the house dimmer says -- which at night is nothing
  // the hemisphere carries only the house's bounce share on the columns; their pools come from the rig loop in columnLit
- hemi.intensity=IG?0.9*(1+AMBIENT):0.9*(lit.house*RIG_PHOT.bounce+AMBIENT+lit.day); for(const m of columnMats){m.envMapIntensity=lit.house*RIG_PHOT.bounce+AMBIENT+lit.day; if(m.userData.ledUniforms&&m.userData.ledUniforms.house)m.userData.ledUniforms.house.value=lit.house;}
+ hemi.intensity=IG?0.9*(1+AMBIENT):0.9*(lit.house*RIG_PHOT.bounce+AMBIENT+lit.day); for(const m of columnMats){m.envMapIntensity=lit.house*RIG_PHOT.bounce+AMBIENT+lit.day*COLUMN_DAY; if(m.userData.ledUniforms&&m.userData.ledUniforms.house)m.userData.ledUniforms.house.value=lit.house;}   /* COLUMN_DAY: the columns' daylight share, measured against the walls (2026-09-10) */
  // the crowd stands in the same light as the room: house + daylight, plus the strips' own colour
  if(eventLitMats.length){ let r=0,g=0,b=0; const n2=nl||0;
   for(let q=0;q<n2;q++){ r+=lightCol[q*4]; g+=lightCol[q*4+1]; b+=lightCol[q*4+2]; }
