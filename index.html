@@ -2776,7 +2776,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -2794,7 +2794,8 @@ function buildEndWalls(root){
  const floorMat=dnm(0x1a1c1e,0x85898d,'gallery-floor');   /* the deck: a cool mid grey, 0.8x the stone beside it in the 4K frame d4_000120 (chain-posed), was a warm dark Lambert */
  const ceilMat=dnm(0x070605,0x3a3632,'gallery-ceiling');   /* the lower tier's ceiling underside: dim, about half the stone */
  const upstandMat=dnm(0x0a0908,0x4a4540,'gallery-parapet');   /* the top slab's fascia and the 0.56 upstand: about the stone */
- const copingMat=dnm(0x050504,0x0c0b0a,'gallery-coping');   /* the ledge TOP the deck cameras see: 0.136 of the floor's tone in 21 posed deck frames (tools/ledge_tone.py), so 12 against the sim floor's 52, in a range of 4 to 13 */
+ const copingMat=dnm(0x0a0a09,0x272523,'gallery-coping');   /* the ledge TOP: 0.398 of the floor's tone on the east, 0.789 on the west (tools/ledge_tone.py), the midpoint 0.593 drawn as a hint, 39 against the sim floor's 52 in a range of 26 to 51; first drawn 0x0c0b0a from a strip that turned out to be the nosing */
+ const nosingMat=dnm(0x040403,0x080807,'gallery-nosing');   /* the dark strip along the ledge's outer edge: 0.136 east and 0.117 west of the floor's tone, 8 against the sim floor; 0.08 wide by eye */
  const soffitMat=new THREE.MeshLambertMaterial({color:0x9a948a, side:THREE.DoubleSide, name:'gallery-soffit'});   /* the head's soffit, its foot lit */
  const backMat=new THREE.MeshLambertMaterial({color:0x7d776e, side:THREE.DoubleSide, name:'gallery-back'});
  // the tiers' tones (end_profile.py, real against sim on the same pose, 2026-09-08): the top gallery is lit by
@@ -5813,6 +5814,18 @@ function buildEndWalls(root){
   // for these unlit materials, in a range of 4 to 13: copingMat day 0x0c0b0a (12) on the coping top only,
   // by photo ratio; the parapet faces the hall sees keep upstandMat, unlooked at here. The ratio follows the
   // sim's floor wherever that goes; whether the floor's own tone is right is not asked here.
+  // CORRECTED IN THE SAME SESSION (tools/ledge_tone.py, second run): THE STRIP THAT READ NEAR BLACK IS NOT
+  // THE LEDGE TOP. A profile across the edge in three frames (rows -480 to +480) has the floor above the
+  // edge, a dark strip 60 to 150 px wide right under it, and only then the ledge top: 98 to 135 grey on the
+  // west against a 141 to 164 floor, 50 to 62 on the east against 114 to 154. The strip is a NOSING along
+  // the ledge's outer edge, about 0.08 m wide by eye, and it keeps the first run's numbers (0.136 east,
+  // 0.117 west of the floor) under its own material, nosingMat, 3 mm above the coping. The top proper reads
+  // 0.398 of the floor on the east (six frames, 0.344 to 0.544; four have it out of frame) and 0.789 on the
+  // west (eight frames, 0.647 to 0.877): the decks DISAGREE by more than either spread, and the rule as
+  // amended after the profile (and saying so) draws the midpoint 0.593 as a hint, copingMat day 0x272523
+  // (39, in a range of 26 to 51 from the two medians), with both medians written down. Why they differ is
+  // not known: the east frames see the top from a grazing 41 to 48 degrees below level and the west from
+  // between 50 and 66, and the same stone reads darker the flatter it is seen: a guess, labelled one.
   // THE LEDGE INSTRUMENT CONTROLLED ON THE WEST DECK, WHERE THE HALL HAD ALREADY MEASURED THE STATION
   // (2026-09-10, tools/ledge_edge_west.py, an hour after the block below). The east run had one internal
   // control and no external one. The west deck offers the external one: end_face_scan put the west solid's
@@ -6022,6 +6035,8 @@ function buildEndWalls(root){
   //      under topNorthDoor, and topSouthDoor.east is gone: no frame shows a door in the south end.
   { const cop=(W.coping&&W.coping[side])||0; if(cop>0){ const uI=uS+s*cop, hT=fl[1]+ups;
     quad([[uS,0,hT],[uI,0,hT],[uI,D,hT],[uS,D,hT]],copingMat,'gallery-coping');
+    { const nw=(W.nosing&&W.nosing[side])||0; if(nw>0){ const hN=hT+0.003, uN=uS+s*nw;   /* the nosing sits 3 mm above the coping top so the two planes do not z-fight */
+      quad([[uS,0,hN],[uN,0,hN],[uN,D,hN],[uS,D,hN]],nosingMat,'gallery-nosing'); } }
     quad([[uI,0,fl[1]],[uI,D,fl[1]],[uI,D,hT],[uI,0,hT]],upstandMat,'gallery-parapet'); } }
   { const V=W.vitrines&&W.vitrines[side]; if(V){
     const plinthMat=new THREE.MeshLambertMaterial({color:0xe6e2da, side:THREE.DoubleSide, name:'gallery-plinth'});

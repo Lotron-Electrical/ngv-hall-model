@@ -1505,24 +1505,41 @@ check('the east face band is drawn at the strength the deck frames measure, unde
       % (_fbraw, _fbe[0], _fbe[-1], _fbbase, _fbt, FB['clear'], FB['tint'], _fbop, FB['rail_opacity'], FB['bar_dip'], _fbbars, FB['bar_frames']),
       'tools/face_band.py')
 
-# THE LEDGE TOP'S TONE AGAINST THE FLOOR (2026-09-10, tools/ledge_tone.py). Per frame: ledge grey, floor grey.
-LT = {'east': {68: (31, 154), 72: (26, 115), 76: (13, 149), 80: (18, 149), 132: (26, 119), 136: (15, 114), 140: (15, 107),
-               144: (17, 150), 148: (16, 147), 152: (17, 108)},
-      'west': {884: (15, 127), 888: (17, 142), 892: (17, 156), 896: (15, 154), 900: (15, 143), 904: (18, 138), 908: (17, 154),
-               912: (18, 154), 916: (25, 154)},
-      'unused': {876: (84, 142), 920: (120, 157)}, 'floor_sim': 52.0, 'factor': 0.80, 'day': 0x0c0b0a, 'night': 0x050504}
-_lte = sorted(a / b for a, b in LT['east'].values()); _ltw = sorted(a / b for a, b in LT['west'].values())
-_ltme = _lte[len(_lte) // 2 - 1] / 2 + _lte[len(_lte) // 2] / 2; _ltmw = _ltw[len(_ltw) // 2]; _lthr = (_lte[-1] - _lte[0]) / 2
+# THE LEDGE'S TONE AGAINST THE FLOOR (2026-09-10, tools/ledge_tone.py, second run). Per frame: the floor over the edge, the
+# nosing strip 30 to 120 px under it, the ledge top 180 to 420 px under it (None where the top is out of frame). The first
+# run read the nosing strip alone and drew the coping top near black from it; the profile across the edge showed the top
+# proper beyond that strip, and the rule was amended after the profile, which the tool says.
+LT = {'east': {68: (154, 31, 53), 72: (115, 26, 54), 76: (149, 13, 56), 80: (149, 18, 53), 132: (119, 26, 50), 136: (114, 15, 62),
+               140: (107, 15, None), 144: (150, 17, None), 148: (147, 16, None), 152: (108, 17, None)},
+      'west': {884: (127, 15, 111), 888: (142, 17, 101), 892: (156, 17, 101), 896: (154, 15, 114), 900: (143, 15, 110),
+               904: (138, 18, 120), 908: (154, 17, 125), 912: (154, 18, None), 916: (154, 25, 135)},
+      'unused': {876: (142, 84, 83), 920: (157, 120, 121)},
+      'floor_sim': 52.0, 'factor': 0.80, 'nose_e': 0.136, 'nose_w': 0.117, 'top_e': 0.398, 'top_w': 0.789, 'mid': 0.593,
+      'nosing_w': 0.08}
+def _med(v): v = sorted(v); n = len(v); return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+_ltne = _med([n / f for f, n, _t in LT['east'].values()]); _ltnw = _med([n / f for f, n, _t in LT['west'].values()])
+_ltte = [t / f for f, _n, t in LT['east'].values() if t is not None]; _lttw = [t / f for f, _n, t in LT['west'].values() if t is not None]
+_ltme, _ltmw = _med(_ltte), _med(_lttw)
+_lthr = max((max(_ltte) - min(_ltte)) / 2, (max(_lttw) - min(_lttw)) / 2)
+_ltmid = (_ltme + _ltmw) / 2
 _ltday = int(re.search(r"const copingMat=dnm\(0x[0-9a-f]+,0x([0-9a-f]{2})[0-9a-f]{4},'gallery-coping'\)", src).group(1), 16)
-_ltlo, _lthi = (_ltme - _lthr) * LT['floor_sim'] / LT['factor'], (_ltme + _lthr) * LT['floor_sim'] / LT['factor']
-check('the ledge top is drawn near black, its tone the photo ratio to the floor, on both decks',
-      abs(_ltme - 0.136) < 0.002 and abs(_ltmw - 0.118) < 0.002 and abs(_ltme - _ltmw) <= _lthr
-      and _ltlo <= _ltday <= _lthi
-      and re.search(r"quad\(\[\[uS,0,hT\],\[uI,0,hT\],\[uI,D,hT\],\[uS,D,hT\]\],copingMat,'gallery-coping'\)", src) is not None,
-      'along the edge each sweep found, the ledge top reads %.3f of the hall floor over it in ten east frames (%.3f to %.3f) '
-      'and %.3f in nine west frames; the two agree inside the east spread %.3f. The sim floor renders %.0f in the same pose and '
-      'these unlit materials render %.2f of their colour, so the coping top day colour must lie in %.0f to %.0f: drawn %d, '
-      'on the coping top only.' % (_ltme, _lte[0], _lte[-1], _ltmw, _lthr, LT['floor_sim'], LT['factor'], _ltlo, _lthi, _ltday),
+_ltnose = int(re.search(r"const nosingMat=dnm\(0x[0-9a-f]+,0x([0-9a-f]{2})[0-9a-f]{4},'gallery-nosing'\)", src).group(1), 16)
+_ltlo, _lthi = min(_ltme, _ltmw) * LT['floor_sim'] / LT['factor'], max(_ltme, _ltmw) * LT['floor_sim'] / LT['factor']
+_ltnlo, _ltnhi = min(_ltne, _ltnw) * LT['floor_sim'] / LT['factor'] - 2, max(_ltne, _ltnw) * LT['floor_sim'] / LT['factor'] + 2
+check('the ledge top and its nosing are drawn from the photo ratios to the floor, the top a hint where the decks disagree',
+      abs(_ltne - LT['nose_e']) < 0.01 and abs(_ltnw - LT['nose_w']) < 0.01 and abs(_ltme - LT['top_e']) < 0.01
+      and abs(_ltmw - LT['top_w']) < 0.01 and abs(_ltme - _ltmw) > _lthr and abs(_ltmid - LT['mid']) < 0.01
+      and _ltlo <= _ltday <= _lthi and abs(_ltday - _ltmid * LT['floor_sim'] / LT['factor']) < 3
+      and _ltnlo <= _ltnose <= _ltnhi
+      and re.search(r"quad\(\[\[uS,0,hT\],\[uI,0,hT\],\[uI,D,hT\],\[uS,D,hT\]\],copingMat,'gallery-coping'\)", src) is not None
+      and re.search(r"nosing:\{west:0\.08, east:0\.08\}", src) is not None
+      and "quad([[uS,0,hN],[uN,0,hN],[uN,D,hN],[uS,D,hN]],nosingMat,'gallery-nosing')" in src,
+      'along the edge each sweep found, a strip 30 to 120 px under it reads %.3f of the floor on the east and %.3f on the '
+      'west (the nosing, drawn %.2f m wide by eye in nosingMat, day %d against the sim floor\'s %.0f), and the ledge top '
+      'beyond it reads %.3f on the east (%d frames) and %.3f on the west (%d frames), apart by more than the larger spread '
+      '%.3f, so the midpoint %.3f is drawn as a hint: copingMat day %d, inside %.0f to %.0f. The first run drew the top from '
+      'the nosing strip and was corrected in the same session.'
+      % (_ltne, _ltnw, LT['nosing_w'], _ltnose, LT['floor_sim'], _ltme, len(_ltte), _ltmw, len(_lttw), _lthr, _ltmid, _ltday, _ltlo, _lthi),
       'tools/ledge_tone.py')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
