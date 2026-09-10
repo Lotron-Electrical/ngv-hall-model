@@ -32,6 +32,15 @@ their second peaks 80 to 95% of the first). Edge on 9.097 (camera u, h -> edge u
   (-0.070, the sweep reading the edge nearer its cameras than the hall's station) is recorded: on the east it would
   put the edge on 48.39, inside the east's 0.135 spread.
 
+A NOTE, LATER THE SAME DAY: THE CROSSINGS ON THE WEST FACE, NOT IN THE RULE AND NOT USED. Run each survivor's
+sight line over its edge on to the west face (4.194): 7.70, 8.25, 8.45, 8.57, 8.56, 8.38, 8.14, 8.09, 8.04, 8.14,
+8.09 for 876 to 920. Seven of eleven are below the deck, which no real edge with the floor seen over it can give,
+because such a ray meets the deck strip before the face. The cameras stand 0.30 to 0.55 m from the edge and their u,
+the depth of a camera looking along u, is the least constrained pose coordinate; 0.1 m of it moves a crossing here by
+0.2 to 0.3 m. So these say nothing about the west face and nothing is drawn from them. They do say the instrument's
+per-frame u carries about 0.15 m, which is the spread both sweeps showed, and that the east's ceiling 8.631 is the
+lowest of crossings that run 8.63 to 8.86: that spread is the number's honest width.
+
 Run:
   python tools/ledge_edge_west.py
 """

@@ -5286,7 +5286,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 270 bounds, all satisfied.
+  // 271 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5860,6 +5860,17 @@ function buildEndWalls(root){
   // the east's own 0.135 spread, so the drawn 0.404 is not moved. Both decks show the per-frame u walking
   // with the camera height in the same sense, which is what one edge below the sweep height does to a
   // sweep pinned on it; the hall's station on the west says that walk is worth about 7 cm, not 40.
+  // THE WEST CROSSINGS, COMPUTED AFTERWARDS AND NOT USED (2026-09-10, later, tools/ledge_edge_west.py
+  // note). The east rule ran each frame's sight line over its edge on to the glass line and read the
+  // crossing as a ceiling on a solid there. Done on the west for the eleven survivors, the crossings on
+  // the west face (4.194) run 7.70 to 8.57, and seven of eleven fall BELOW the deck (8.34), which a real
+  // edge with the hall floor seen straight over it cannot do: such a ray would meet the deck strip before
+  // the face. The west cameras stand 0.30 to 0.55 m from the edge, against 0.5 to 0.9 on the east, and a
+  // camera looking along u has its own u, its depth, as the least constrained coordinate of its pose;
+  // 0.1 m of it moves a west crossing by 0.2 to 0.3 m. So the crossings there are not a measurement and
+  // nothing is drawn from them; the west face keeps its glass to the deck. AND THE SAME UNCERTAINTY SITS
+  // UNDER THE EAST'S CEILING: its crossings run 8.63 to 8.86 across frames, the drawn faceSolid.east 0.291
+  // is the lowest of them, and the spread of the crossings (0.23 m) is the honest width of that number.
   // THE EAST DECK'S LEDGE, FROM THE CAMERAS THAT STOOD ON IT, AND A SOLID THE DECK SEES THROUGH
   // (2026-09-10, tools/ledge_edge.py). Eleven posed b7s frames (68 to 156) stand on the east deck's south
   // end, u 48.94 to 49.21, h 9.50 to 9.75, facing west, with a broad dark flat surface along the bottom of

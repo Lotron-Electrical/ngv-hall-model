@@ -1541,6 +1541,22 @@ check('the ledge top and its nosing are drawn from the photo ratios to the floor
       'the nosing strip and was corrected in the same session.'
       % (_ltne, _ltnw, LT['nosing_w'], _ltnose, LT['floor_sim'], _ltme, len(_ltte), _ltmw, len(_lttw), _lthr, _ltmid, _ltday, _ltlo, _lthi),
       'tools/ledge_tone.py')
+# THE WEST CROSSINGS, COMPUTED AFTERWARDS AND NOT USED (2026-09-10, tools/ledge_edge_west.py note). From the LW survivors:
+# the sight line over each frame's edge on 9.097, continued to the west face 4.194.
+_wx = {k: LW['htop'] - (v[1] - LW['htop']) * (4.194 - v[2]) / (v[2] - v[0]) for k, v in LW['frames'].items() if v[4] < LW['second'] * v[3]}
+_wx_below = sum(1 for h in _wx.values() if h < 8.34)
+_ex = [v[5] for v in LE['frames'].values() if v[4] < LE['second'] * v[3]]
+check('the west face keeps its glass to the deck: the west sight-line crossings are not a measurement, and the east ceiling carries its spread',
+      len(_wx) == 11 and _wx_below >= 7 and min(_wx.values()) < 7.8 and max(_wx.values()) < 8.6
+      and 'faceSolid:{west' not in src and re.search(r'faceSolid:\{east:0\.291\}', src) is not None
+      and abs(min(_ex) - LE['ceiling']) < 0.006 and max(_ex) - min(_ex) > 0.2,
+      'the eleven west survivors\' sight lines over their edges reach the west face between %.2f and %.2f, %d of them below '
+      'the deck (8.34), which a real edge with the floor seen over it cannot do; the west cameras stand 0.30 to 0.55 m from '
+      'the edge and a camera looking along u has its u as its least constrained coordinate, so nothing is drawn from those '
+      'crossings and the west face stays glazed to the deck. The east crossings run %.2f to %.2f across frames; faceSolid.east '
+      '%.3f is the lowest, and the %.2f spread is that number\'s honest width.'
+      % (min(_wx.values()), max(_wx.values()), _wx_below, min(_ex), max(_ex), LE['ceiling'] - LE['deck'], max(_ex) - min(_ex)),
+      'tools/ledge_edge_west.py')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
                  1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
