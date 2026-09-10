@@ -43,6 +43,10 @@ THE RESULT (2026-09-10, first run).
   9.5 m (a thing on the back wall would have grown by a third), so it stands far beyond the corridor and
   the corridor's back wall must be open opposite the door; index.html draws that opening by eye.
 
+THE SECOND RUN, WITH THE RE-MEASURED DOOR (1.213 m wide, head 11.509): camera d 13.34 and 9.81; controls
+9 and 13 px; the same edge in one frame and none in the other, UNDECIDED; soffit 0.92 and 1.26 (a hint);
+bounds if refuted 11.79 and 11.89. Nothing in index.html changes from this run.
+
 Run:
   python tools/door_interior.py
 """
@@ -52,7 +56,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 import underside_geom as U
 
 RAW = 'E:/sitecapture-captures/ngv-video/balcony2/b6/images/b6_%06d.png'
-DOOR_W = 49.291 - 48.118; HEAD = 11.487; HCAM = 9.9; CEIL = 10.947; DB = -2.350; DFACE = -0.030; REVEAL = 0.90
+# the door as re-measured with opening 11's jambs from WALLF (the first run used 49.291 - 48.118 and 11.487)
+DOOR_W = 49.371 - 48.158; HEAD = 11.509; HCAM = 9.9; CEIL = 10.947; DB = -2.350; DFACE = -0.030; REVEAL = 0.90
 TOL = 15; STRONG = 2.0
 # seeds (undistorted px): the door's jambs (row band) and the head row
 SEEDS = {1248: dict(jambs=(676, 793), band=(880, 950), head=823),

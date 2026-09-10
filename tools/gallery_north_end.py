@@ -77,6 +77,13 @@ would then hold openings 12 and 11 beside the door as b6 shows, and there are no
 face east there. The dark door, the sign, the bust case and the column are the west gallery's south end,
 drawn there by eye. The east gallery keeps its measured north door and has no door at its south end.
 
+THE SECOND RUN, WITH OPENING 11'S JAMBS FROM THE FILE (2026-09-10, later). The first run took them from a
+uniform pitch (40.851, 42.064); WALLF.openings has 40.906 and 42.118, and U11 above now carries those.
+  b6_001248: corner predicted 407, read 398, control 9 px. Door u 49.279 to 48.105, head 11.531.
+  b6_001320: corner predicted 237, read 226, control 11 px. Door u 49.464 to 48.211, head 11.488.
+  Jambs u0 49.371 (half-range 0.093), u1 48.158 (0.053); head 11.509 (0.022); doorH 3.17. Both LIVE.
+  index.html carries these. The first run's numbers moved by 4 to 8 cm, inside their own spreads.
+
 Run:
   python tools/gallery_north_end.py
 """
@@ -87,7 +94,7 @@ import underside_geom as U
 
 RAW = 'E:/sitecapture-captures/ngv-video/balcony2/b6/images/b6_%06d.png'
 OUT = os.path.join(os.path.dirname(__file__), '..', 'render-shots-north-end')
-U12 = (45.739, 44.526); U11 = (42.064, 40.851); UCORNER = 51.906
+U12 = (45.739, 44.526); U11 = (42.118, 40.906); UCORNER = 51.906   # opening 11 from WALLF.openings; the first run used a uniform pitch (42.064, 40.851)
 HEAD = 11.165; SILL = 8.740; WIDTH = 1.212; HCAM = 9.9; FLOOR = 8.34
 CTRL_PX = 40; SPREAD = 0.15
 

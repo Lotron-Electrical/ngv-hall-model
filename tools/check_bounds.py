@@ -1410,8 +1410,8 @@ check('so the corridor numbers cannot improve on this archive and should stop be
       'tools/find_corridor.py')
 # THE END WALL COUNTED IN ITS OWN COURSES, NO CAMERA IN THE ARGUMENT (2026-09-10, tools/wall_courses.py).
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
-DI = {'frames': {1248: {'dcam': 12.90, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.87, 'bound': 11.77},
-                 1320: {'dcam': 9.48, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.19, 'bound': 11.87}},
+DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
+                 1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
       'tol': 15, 'strong': 2.0, 'ceil': 10.947, 'depth_agree': 0.25, 'drawn_depth': 0.90}
 _di = DI['frames']
 _stands = [v['peak'] >= DI['strong'] * v['med'] for v in _di.values()]
@@ -1431,9 +1431,11 @@ check('the corridor ceiling seen through the east north door is undecided, so it
       'tools/door_interior.py')
 # THE EAST GALLERY'S NORTH END, SEEN AND MEASURED, AND A DOOR I HAD PUT AT THE WRONG END (2026-09-10,
 # tools/gallery_north_end.py).
-NE = {'frames': {1248: {'ctrl': 6, 'u0': 49.227, 'u1': 48.079, 'head': 11.516},
-                 1320: {'ctrl': 29, 'u0': 49.355, 'u1': 48.157, 'head': 11.458}},
-      'ctrl_px': 40, 'spread': 0.15, 'u0': 49.291, 'u1': 48.118, 'head': 11.487, 'floor': 8.34, 'glass': 48.056}
+# (second run, opening 11's jambs from WALLF rather than a uniform pitch; the first run gave controls 6 and 29 px,
+# jambs 48.118 and 49.291, head 11.487)
+NE = {'frames': {1248: {'ctrl': 9, 'u0': 49.279, 'u1': 48.105, 'head': 11.531},
+                 1320: {'ctrl': 11, 'u0': 49.464, 'u1': 48.211, 'head': 11.488}},
+      'ctrl_px': 40, 'spread': 0.15, 'u0': 49.371, 'u1': 48.158, 'head': 11.509, 'floor': 8.34, 'glass': 48.056}
 _ne = NE['frames']
 _hr = lambda k: (max(v[k] for v in _ne.values()) - min(v[k] for v in _ne.values())) / 2
 _door = re.search(r'topNorthDoor:\{(?:west:\[[0-9.,]+\], )?east:\[([0-9.]+),([0-9.]+),([0-9.]+)\]\}', src)
@@ -1449,7 +1451,7 @@ check('the east gallery north door is drawn where two b6 frames measure it off o
          _hr('head'), NE['head'] - NE['floor']),
       'tools/gallery_north_end.py')
 check('the dark door, sign, bust case and corner column from b7 376 to 408 are drawn at the WEST gallery south end and nowhere else',
-      re.search(r'topSouthDoor:\{west:\[1\.7,2\.9,3\.15\]\}', src) is not None
+      re.search(r'topSouthDoor:\{west:\[1\.7,2\.9,3\.17\]\}', src) is not None
       and re.search(r'southExit:\{west:\[[0-9.,]+\]\}', src) is not None
       and re.search(r'cornerColumn:\{west:\{u:0\.7, d:15\.0, r:0\.28\}\}', src) is not None
       and re.search(r'bust:\{west:', src) is not None and 'topSouthDoor:{east' not in src and 'cornerColumn:{east' not in src,
