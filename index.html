@@ -2794,6 +2794,7 @@ function buildEndWalls(root){
  const floorMat=dnm(0x1a1c1e,0x85898d,'gallery-floor');   /* the deck: a cool mid grey, 0.8x the stone beside it in the 4K frame d4_000120 (chain-posed), was a warm dark Lambert */
  const ceilMat=dnm(0x070605,0x3a3632,'gallery-ceiling');   /* the lower tier's ceiling underside: dim, about half the stone */
  const upstandMat=dnm(0x0a0908,0x4a4540,'gallery-parapet');   /* the top slab's fascia and the 0.56 upstand: about the stone */
+ const copingMat=dnm(0x050504,0x0c0b0a,'gallery-coping');   /* the ledge TOP the deck cameras see: 0.136 of the floor's tone in 21 posed deck frames (tools/ledge_tone.py), so 12 against the sim floor's 52, in a range of 4 to 13 */
  const soffitMat=new THREE.MeshLambertMaterial({color:0x9a948a, side:THREE.DoubleSide, name:'gallery-soffit'});   /* the head's soffit, its foot lit */
  const backMat=new THREE.MeshLambertMaterial({color:0x7d776e, side:THREE.DoubleSide, name:'gallery-back'});
  // the tiers' tones (end_profile.py, real against sim on the same pose, 2026-09-08): the top gallery is lit by
@@ -5284,7 +5285,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 268 bounds, all satisfied.
+  // 270 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5766,7 +5767,12 @@ function buildEndWalls(root){
   // on the face plane, and clear glass from there to the rail top. Ends without these keys draw as before.
   const fsol=(W.faceSolid&&W.faceSolid[side])||0, fband=W.faceBand&&W.faceBand[side];
   if(fsol>0) quad([[uF,0,fl[1]],[uF,D,fl[1]],[uF,D,fl[1]+fsol],[uF,0,fl[1]+fsol]],upstandMat,'gallery-parapet-low');
-  if(fband){ const tintMat=new THREE.MeshBasicMaterial({color:0x1a1714, side:THREE.DoubleSide, transparent:true, opacity:0.62, depthWrite:false, name:'gallery-glass-tinted'});
+  // THE BAND'S STRENGTH IS MEASURED, NOT GUESSED (2026-09-10, tools/face_band.py): the floor seen through it
+  // reads 0.847 of the floor seen through the clear glass above it, once the west deck's clear face has given
+  // the floor's own gradient (0.712 raw against 0.841 there). Against railMat's 0.28 that is an opacity of
+  // 0.39 (1 - 0.847 x 0.72), down from the 0.62 first drawn by eye. Whether it is a tint at all stays
+  // undecided by the rule (0.847 against a 0.85 bar); the strength is what the frames give.
+  if(fband){ const tintMat=new THREE.MeshBasicMaterial({color:0x1a1714, side:THREE.DoubleSide, transparent:true, opacity:0.39, depthWrite:false, name:'gallery-glass-tinted'});
     quad([[uF,0,fl[1]+fband[0]],[uF,D,fl[1]+fband[0]],[uF,D,fl[1]+fband[1]],[uF,0,fl[1]+fband[1]]],tintMat,'gallery-glass-tinted'); }
   quad([[uS,0,fl[1]],[uS,D,fl[1]],[uS,D,fl[1]+ups],[uS,0,fl[1]+ups]],upstandMat,'gallery-parapet');
   { const g0=setb>0.02?(fband?fband[1]:fsol):ups;
@@ -5785,6 +5791,28 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE EAST FACE READ FOR WHAT IT TRANSMITS, AND THE LEDGE FOR ITS TONE (2026-09-10, tools/face_band.py and
+  // tools/ledge_tone.py, after the control below). The tinted band on the east face was drawn by eye to
+  // reconcile the hall's edge on 9.095 with the deck seeing the floor beneath it. The deck frames can say
+  // how much it transmits: the floor seen through the band, just over the ledge edge, against the floor
+  // seen through the face above 9.095. Rule fixed first: 0.85 or more and the tint is refuted (drawn clear),
+  // under 0.60 it stands, between it is undecided and kept; a bar on the face on 9.095 is drawn only if a
+  // dark edge sits within 40 px of that line in eight of ten frames. Raw: 0.572 to 0.807, median 0.712,
+  // undecided. Declared after that run: the two strips see different floor, and the floor is not evenly
+  // lit, so the west deck's clear face (arrivals) gives the floor's own gradient as the baseline, 0.841
+  // there (0.749 to 0.873); the east's transmission is 0.712 / 0.841 = 0.847, UNDECIDED by the same bars
+  // (three thousandths under the clear bar) and the tint is kept, at the measured strength: opacity 0.39
+  // against railMat's 0.28, not the 0.62 first drawn. The bar: a dip of 20 to 66 grey levels near the line
+  // in six frames and 3 to 11 in four, NOT a bar (a bar a metre away would be in all ten), so nothing is
+  // drawn on 9.095 and the edge end_face_scan tracked there is recorded as having no counterpart seen from
+  // the deck; what the hall tracked on that plane is unresolved.
+  // THE LEDGE TOP IS NEAR BLACK AGAINST THE FLOOR, on both decks: 0.136 of the floor's tone in the ten east
+  // frames (0.087 to 0.226) and 0.118 in nine west frames (two more hold the phone case and a hand in the
+  // strip and are printed, not used). The decks agree inside the east spread. The sim's floor renders 52 in
+  // the b7s_000080 pose, so the ledge top should render 7, a day colour of 9 through the sim's 0.80 factor
+  // for these unlit materials, in a range of 4 to 13: copingMat day 0x0c0b0a (12) on the coping top only,
+  // by photo ratio; the parapet faces the hall sees keep upstandMat, unlooked at here. The ratio follows the
+  // sim's floor wherever that goes; whether the floor's own tone is right is not asked here.
   // THE LEDGE INSTRUMENT CONTROLLED ON THE WEST DECK, WHERE THE HALL HAD ALREADY MEASURED THE STATION
   // (2026-09-10, tools/ledge_edge_west.py, an hour after the block below). The east run had one internal
   // control and no external one. The west deck offers the external one: end_face_scan put the west solid's
@@ -5993,7 +6021,7 @@ function buildEndWalls(root){
   //      cameras fix the handedness, tools/gallery_north_end.py), so this is the north door, measured
   //      under topNorthDoor, and topSouthDoor.east is gone: no frame shows a door in the south end.
   { const cop=(W.coping&&W.coping[side])||0; if(cop>0){ const uI=uS+s*cop, hT=fl[1]+ups;
-    quad([[uS,0,hT],[uI,0,hT],[uI,D,hT],[uS,D,hT]],upstandMat,'gallery-coping');
+    quad([[uS,0,hT],[uI,0,hT],[uI,D,hT],[uS,D,hT]],copingMat,'gallery-coping');
     quad([[uI,0,fl[1]],[uI,D,fl[1]],[uI,D,hT],[uI,0,hT]],upstandMat,'gallery-parapet'); } }
   { const V=W.vitrines&&W.vitrines[side]; if(V){
     const plinthMat=new THREE.MeshLambertMaterial({color:0xe6e2da, side:THREE.DoubleSide, name:'gallery-plinth'});

@@ -1477,6 +1477,53 @@ check('the ledge instrument finds the west solid where the hall measured it, so 
       % (len(_lws), LW['htop'], _lwu[0], _lwu[-1], _lwmed, (_lwu[-1] - _lwu[0]) / 2, LW['station'], abs(_lwbias), LW['pass'],
          _lwbias, LE['half'], G['setEast'], LE['u_med'] + LW['bias'], LE['ceiling'] - LE['deck'], G['setWest'], LW['htop']),
       'tools/ledge_edge_west.py')
+# THE EAST FACE READ FOR WHAT IT TRANSMITS (2026-09-10, tools/face_band.py). Per east frame: the floor over the ledge edge
+# (through the band), the floor over the face line (through the clear glass), the dip near the face line. West: the same
+# ratio over a face glazed clear, the floor's own gradient.
+FB = {'east': {68: (130, 193, 38), 72: (109, 190, 31), 76: (154, 192, 39), 80: (148, 191, 44), 132: (122, 167, 66),
+               136: (120, 173, 8), 140: (107, 177, 3), 144: (142, 182, 6), 148: (142, 176, 11), 152: (109, 187, 20)},
+      'west': {876: (147, 193), 884: (130, 166), 888: (141, 174), 892: (153, 181), 896: (154, 180), 900: (140, 183),
+               904: (138, 184), 908: (155, 184), 912: (153, 182), 916: (154, 179), 920: (155, 178)},
+      'clear': 0.85, 'tint': 0.60, 'bar_dip': 12, 'bar_frames': 8, 'raw': 0.712, 'base': 0.841, 'trans': 0.847,
+      'rail_opacity': 0.28, 'opacity': 0.39}
+_fbe = sorted(a / b for a, b, _ in FB['east'].values()); _fbw = sorted(a / b for a, b in FB['west'].values())
+_fbraw = _fbe[len(_fbe) // 2 - 1] / 2 + _fbe[len(_fbe) // 2] / 2; _fbbase = _fbw[len(_fbw) // 2]
+_fbt = _fbraw / _fbbase
+_fbbars = sum(1 for _a, _b, dip in FB['east'].values() if dip >= FB['bar_dip'])
+_fbop = round(1 - _fbt * (1 - FB['rail_opacity']), 2)
+check('the east face band is drawn at the strength the deck frames measure, undecided as a tint, with no bar on 9.095',
+      abs(_fbraw - FB['raw']) < 0.002 and abs(_fbbase - FB['base']) < 0.002 and abs(_fbt - FB['trans']) < 0.002
+      and FB['tint'] <= _fbt < FB['clear'] and abs(_fbop - FB['opacity']) < 0.006
+      and re.search(r"opacity:0\.39, depthWrite:false, name:'gallery-glass-tinted'", src) is not None
+      and re.search(r"opacity:0\.28, name:'gallery-rail'", src) is not None
+      and _fbbars < FB['bar_frames'] and 'gallery-face-bar' not in src,
+      'the floor seen through the band over the ledge edge reads %.3f of the floor seen through the glass above the hall\'s '
+      'edge (ten east frames, %.3f to %.3f); the west deck\'s clear face gives the floor\'s own gradient, %.3f, so the band '
+      'transmits %.3f of the clear glass: under the %.2f clear bar and over the %.2f tint bar, UNDECIDED, the tint kept at '
+      'the measured strength, opacity %.2f against the rail glass\'s %.2f. A dip of %d grey levels or more near the face '
+      'line in %d of ten frames, under the %d needed: no bar on 9.095, and the hall\'s edge there has no deck-side counterpart.'
+      % (_fbraw, _fbe[0], _fbe[-1], _fbbase, _fbt, FB['clear'], FB['tint'], _fbop, FB['rail_opacity'], FB['bar_dip'], _fbbars, FB['bar_frames']),
+      'tools/face_band.py')
+
+# THE LEDGE TOP'S TONE AGAINST THE FLOOR (2026-09-10, tools/ledge_tone.py). Per frame: ledge grey, floor grey.
+LT = {'east': {68: (31, 154), 72: (26, 115), 76: (13, 149), 80: (18, 149), 132: (26, 119), 136: (15, 114), 140: (15, 107),
+               144: (17, 150), 148: (16, 147), 152: (17, 108)},
+      'west': {884: (15, 127), 888: (17, 142), 892: (17, 156), 896: (15, 154), 900: (15, 143), 904: (18, 138), 908: (17, 154),
+               912: (18, 154), 916: (25, 154)},
+      'unused': {876: (84, 142), 920: (120, 157)}, 'floor_sim': 52.0, 'factor': 0.80, 'day': 0x0c0b0a, 'night': 0x050504}
+_lte = sorted(a / b for a, b in LT['east'].values()); _ltw = sorted(a / b for a, b in LT['west'].values())
+_ltme = _lte[len(_lte) // 2 - 1] / 2 + _lte[len(_lte) // 2] / 2; _ltmw = _ltw[len(_ltw) // 2]; _lthr = (_lte[-1] - _lte[0]) / 2
+_ltday = int(re.search(r"const copingMat=dnm\(0x[0-9a-f]+,0x([0-9a-f]{2})[0-9a-f]{4},'gallery-coping'\)", src).group(1), 16)
+_ltlo, _lthi = (_ltme - _lthr) * LT['floor_sim'] / LT['factor'], (_ltme + _lthr) * LT['floor_sim'] / LT['factor']
+check('the ledge top is drawn near black, its tone the photo ratio to the floor, on both decks',
+      abs(_ltme - 0.136) < 0.002 and abs(_ltmw - 0.118) < 0.002 and abs(_ltme - _ltmw) <= _lthr
+      and _ltlo <= _ltday <= _lthi
+      and re.search(r"quad\(\[\[uS,0,hT\],\[uI,0,hT\],\[uI,D,hT\],\[uS,D,hT\]\],copingMat,'gallery-coping'\)", src) is not None,
+      'along the edge each sweep found, the ledge top reads %.3f of the hall floor over it in ten east frames (%.3f to %.3f) '
+      'and %.3f in nine west frames; the two agree inside the east spread %.3f. The sim floor renders %.0f in the same pose and '
+      'these unlit materials render %.2f of their colour, so the coping top day colour must lie in %.0f to %.0f: drawn %d, '
+      'on the coping top only.' % (_ltme, _lte[0], _lte[-1], _ltmw, _lthr, LT['floor_sim'], LT['factor'], _ltlo, _lthi, _ltday),
+      'tools/ledge_tone.py')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
                  1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
