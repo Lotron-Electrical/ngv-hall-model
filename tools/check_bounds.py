@@ -1559,6 +1559,16 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE WEST BACK WALL BY THE PHONE'S CHROMA (2026-09-10, tools/back_wall_hue.py: four referenced runs failed, the placement is labelled).
+_bh = open(TOOLS_DIR_OT + 'back_wall_hue.py', encoding='utf-8').read()
+check('the west back wall carries the phone chroma at the measured luma, unreferenced and labelled, the east keeps the grey, and the four failed runs are written down',
+      "topBackWestMat=dnm(0x0f0f0f,0x877a59,'gallery-back-lit-west')" in src and "side==='west'?topBackWestMat:topBackMat,'gallery-back'" in src
+      and "topBackMat=dnm(0x0f0f0f,0x7a7a7a,'gallery-back-lit')" in src and 'UNREFERENCED, west only' in src and 'FOUR RUNS FOR A REFERENCE AND NONE' in src
+      and 'THE FOURTH RUN, THE EAST REGION MOVED CLEAR OF THE COLUMN' in _bh and 'BACK = [(0.356, 3.0, 10.0)' in _bh,
+      '183 east-deck frames put the west back wall at R/G 1.108 and B/G 0.734 (spreads 0.005, 0.009), cream; every stone reference in those '
+      'frames was in shadow or behind a column, so the colour is the phone chroma at luma 0x7a, 0x877a59, labelled unreferenced; the east '
+      'back wall, grey ashlar in the b6 frames that walk it, keeps 0x7a7a7a.',
+      'index.html, tools/back_wall_hue.py')
 # THE EAST LEDGE STOPS SHORT OF THE NORTH DOOR (2026-09-10, tools/deck_door_corner.py, b6_001320 by eye).
 check('the east ledge (setback solid, coping, nosing, inner face) starts a metre from the north wall with its end closed, by eye and labelled, and the face still runs to the wall',
       'ledgeStart:{east:1.0}' in src and 'const dL=(W.ledgeStart&&W.ledgeStart[side])||0;' in src

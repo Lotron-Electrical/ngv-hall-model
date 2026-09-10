@@ -2837,6 +2837,14 @@ function buildEndWalls(root){
  // day, three times the stone, with downlights; the recess under the lower floor is near black; the lower
  // tier's interior about the stone. Unlit materials, so the day frames' ratios hold whatever the house does.
  const topBackMat=dnm(0x0f0f0f,0x7a7a7a,'gallery-back-lit');   /* the measured brightness kept (0x8a7660 by day, read against the stone in d4_000049) with its hue taken out: the wall is grey ashlar in every b6 frame from the deck (001242, 001250, 001300) and lit grey through the west glass in b5_000072 from across the hall; the warm tint read as brick, and the hall walls material tried in its place read too bright from the hall */
+ // THE WEST BACK WALL BY THE PHONE'S OWN CHROMA (2026-09-10, tools/back_wall_hue.py). 183 posed frames from the east
+ // deck (b3, b3p, b6g, b6gp, two cameras) put the west gallery's back wall at median RGB (192, 173, 127), R/G 1.108
+ // and B/G 0.734 with spreads of 0.005 and 0.009: cream, lit by the gallery's own lamps, in every frame that sees it.
+ // A referenced measurement was tried four times and failed each time: the hall's stone in those frames stands in
+ // shadow, and the east back wall seen from the west deck sits behind a hall column, so no surface in the frames
+ // shares the wall's light. The colour below is the phone's chroma at the luma measured earlier (0x7a), white
+ // balance NOT separated, UNREFERENCED, west only: the east keeps topBackMat, grey ashlar in every b6 frame.
+ const topBackWestMat=dnm(0x0f0f0f,0x877a59,'gallery-back-lit-west');
  const topSoffitMat=dnm(0x13100d,0x332c26,'gallery-soffit');   /* underside 0.37x the lit back wall by day (w2_000252, 2026-09-09) */
  const lowBackMat=dnm(0x0a0908,0x16120f,'gallery-back-low');   /* 0.1-0.15x the stone by day: the lower tier is unlit in d4_000049 (2026-09-09) */
  const apronMat=dnm(0x050505,0x221f1c,'gallery-apron');
@@ -5321,7 +5329,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 278 bounds, all satisfied.
+  // 279 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5835,6 +5843,17 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE WEST BACK WALL'S COLOUR, FOUR RUNS FOR A REFERENCE AND NONE (2026-09-10, latest, tools/back_wall_hue.py).
+  // Rule fixed first: the wall's median RGB against a stone surface in the same frame, chroma as R/G and B/G of the
+  // ratio, over the 183 east-deck frames that hold both. Run one: the stone below h 7.5 is hidden behind the west
+  // lower gallery (RGB 16, 14, 15), control failed. Run two, the reference moved above the openings: in shadow
+  // (33, 28, 25), spread 0.118, failed. Run three, the reference changed in kind to the east back wall seen from
+  // the west deck: a hall column crosses it (28, 22, 24), failed. Run four, clear of the column: still a shadow
+  // (26, 21, 24), and the colour it would give is green (0x738555), so that run is refused on its face and
+  // written down. What stands: the west wall's own camera chroma, R/G 1.108 B/G 0.734, spreads 0.005 and 0.009,
+  // two cameras agreeing; cream in every frame, grey in the sim since the hue was taken out on the strength of
+  // the b6 frames, which walk the EAST gallery. Placed: topBackWestMat, the phone's chroma at the measured luma,
+  // unreferenced and labelled; the east keeps its grey. A render through b3_000161 checks what the sim now shows.
   // THE EAST LEDGE AND THE NORTH DOOR CANNOT BOTH REACH THE WALL (2026-09-10, latest, tools/deck_door_corner.py).
   // The setback solid and coping measured from the deck's south end (u 48.46 to 48.91) and the north door
   // measured from inside the gallery (jambs 48.158 and 49.371, half-ranges 0.05 and 0.09) overlap by 0.75 m
@@ -5917,6 +5936,7 @@ function buildEndWalls(root){
   // carry about a metre along d: wallVents.west, wallNiches.west, vitrines.west, all labelled. The east
   // back wall gets nothing from this: b6 shows it grey and plain but for its seven cases. The wall's hue in
   // these frames is warm; topBackMat keeps the grey measured against the stone, the hue question open.
+  // CLOSED THE SAME DAY, AS FAR AS THE ARCHIVE ALLOWS: topBackWestMat carries the phone's chroma, unreferenced (see it).
   // THE b7 TAIL WAS ALREADY TRIED, AND WHAT ITS REFUSED POSES ARE GOOD FOR (2026-09-10, later,
   // tools/b7_tail_census.py). The 2026-09-09 b7s register took every 4th frame to 1220, solved 237 of 306
   // and accepted 12; the refused solves sit in work/reg-b7s. Of the 74 tail frames that solved, six stand
@@ -6406,7 +6426,7 @@ function buildEndWalls(root){
    const vp=128/((v1-v0)/0.022); for(let yy=vp/2; yy<256; yy+=vp)for(let xx=vp/2; xx<128; xx+=vp){ vx.beginPath(); vx.arc(xx,yy,vp*0.22,0,Math.PI*2); vx.fill(); }
    const ventMat=dnm(0x1a1c1e,0x85898d,'gallery-vent'); ventMat.map=new THREE.CanvasTexture(vc); ventMat.map.colorSpace=THREE.SRGBColorSpace;
    quad([[v0,vd0,hv],[v1,vd0,hv],[v1,vd1,hv],[v0,vd1,hv]],ventMat,'gallery-vent'); }
-  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,top],[uB,0,top]],topBackMat,'gallery-back');   /* to the top: the void behind the front soffit is open to the canopy */
+  quad([[uB,0,fl[1]],[uB,D,fl[1]],[uB,D,top],[uB,0,top]],side==='west'?topBackWestMat:topBackMat,'gallery-back');   /* the west by the phone's chroma (2026-09-10) */   /* to the top: the void behind the front soffit is open to the canopy */
   // the lower tier's back wall: white fittings and a green exit sign where d4_000049 has them (west), and
   // THE EAST LOWER TIER SEEN FOR THE FIRST TIME FROM A HEIGHT (2026-09-10): Lloyd's b7 clip walks the WEST
   // deck looking east, and four of its posed frames (b7s_000604, 000612, 000616, 000876, u 3.2 to 3.3,
