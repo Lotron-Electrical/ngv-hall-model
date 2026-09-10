@@ -1559,6 +1559,18 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE CORRIDOR'S TONE FROM THE SWEEP (2026-09-10, tools/opening_tone_sweep.py): the colours it set, the corrections it records.
+_sw = open(TOOLS_DIR_OT + 'opening_tone_sweep.py', encoding='utf-8').read()
+check('the corridor carries the sweep\'s tones (night 27 grey on ceiling, back wall and head; day ceiling 67, back wall d4_000120, head unlit at the corridor\'s tones) and the file records both corrections',
+      "corridorMat=cnm(0x1b1917,0x433e39,'corridor')" in src and "corridorBackMat=cnm(0x1b1917,0x423a2c,'corridor-back')" in src
+      and "headMat=cnm(0x1b1917,0x433e39,'opening-head')" in src and "headMat,'opening-head')" in src and "stoneMat,'opening-head')" not in src
+      and src.index('const cnm=') < src.index('const headMat=cnm(')
+      and 'CORRECTED BY THE RENDERS THAT FOLLOWED' in src and 'added after the fact' in src and 'AND ONCE MORE: 34 rendered 13' in src
+      and "WALL = {'night': (12, 120), 'walk': (40, 200), 'day4k': (40, 200)}" in _sw and 'MARGIN, MINPX, RING, IQR_MAX = 40, 1500, 1.6, 60' in _sw,
+      'night whole-opening pairs read the aperture 0.447 of the wall (138 pairs, spread 0.065) where the sim rendered 0.05; walk pairs 0.714 '
+      '(449, spread 0.069) where the sim rendered 0.45; the head underside\'s 0.978 was the wall itself and is voided; the night colour '
+      'went 9 to 65 to 34 to 27 as the renders showed the night tone curve, and each step is written down, none deleted.',
+      'index.html, tools/opening_tone_sweep.py')
 # THE OPENING TONE RUN, VOIDED BY ITS CONTROLS (2026-09-10, tools/opening_tone.py; the fold guard in tools/find_openseers.py).
 _fo = open(TOOLS_DIR_OT + 'find_openseers.py', encoding='utf-8').read()
 _ot = open(TOOLS_DIR_OT + 'opening_tone.py', encoding='utf-8').read()

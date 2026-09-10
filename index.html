@@ -2537,9 +2537,13 @@ function buildWallDetails(root){
  // slots, the grazing views' pose error being the width of a slot. A control this rule lacked, added after the
  // fact and said so: a group within 5 per cent of the wall with a spread under 0.05 is the wall. From mid-hall the
  // photos show the whole aperture at one tone, so the head's underside takes the corridor's own colours.
- const corridorMat=cnm(0x221f1d,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
- const corridorBackMat=cnm(0x221f1d,0x423a2c,'corridor-back');   /* night was 0x0c0b0a; now the ceiling's 34, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
- const headMat=cnm(0x221f1d,0x433e39,'opening-head');   /* the reveal head's underside, unlit, the corridor's own tones (2026-09-10, see the correction above; its first value, 0x8f8378 from the voided soffit pairs, was live for minutes); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
+ // AND ONCE MORE: 34 rendered 13 through w6_000146 and 22 through w6_000143, so above the toe the curve is close to a
+ // line, grey near 0.45 x (colour - 7), and the colour for 9 grey is 27. That is the number below. The night claim
+ // itself leans bright: w6_000146's photo polygon lies half on the wall (its pose is off by half a slot), so the
+ // real interior is darker than 0.447 of the wall by an amount the sweep cannot state; the sim errs on the light side.
+ const corridorMat=cnm(0x1b1917,0x433e39,'corridor');   /* its ceiling, floor and near faces; was 0x0a0908 / 0x2a2724 */
+ const corridorBackMat=cnm(0x1b1917,0x423a2c,'corridor-back');   /* night was 0x0c0b0a; now the ceiling's 27, unmeasured (2026-09-10) */   /* day: the lit back wall seen through the opening in d4_000120 reads 0.68/0.60/0.45 of the stone beside it (RGB), warm; the sim's stone there renders 78/75/69, so the wall is set to render 53/45/31, and does (52/43/29, after the tone map; 2026-09-09) */
+ const headMat=cnm(0x1b1917,0x433e39,'opening-head');   /* the reveal head's underside, unlit, the corridor's own tones (2026-09-10, see the correction above; its first value, 0x8f8378 from the voided soffit pairs, was live for minutes); it must follow cnm, whose const it uses: placed before it, the module died on the live page for four minutes */
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
@@ -5311,7 +5315,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 273 bounds, all satisfied.
+  // 274 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5817,6 +5821,23 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE CORRIDOR'S TONE FROM EVERY WHOLE-OPENING VIEW, AND WHAT MOVED (2026-09-10, latest, tools/opening_tone_sweep.py,
+  // rule fixed before the run, the night wall range set from the one number then known). 140 night, 571 walk and 729
+  // day4k pairs survived their controls. Night pairs whose centre ray ends on the corridor ceiling: r 0.447, spread
+  // 0.065, where the sim rendered 0.05. Walk pairs of the same kind: 0.714, spread 0.069, where three baseline renders
+  // gave 0.45, 0.44, 0.50. Walk pairs whose steep rays end on the reveal's head: 0.978, spread 0.036, where the Lambert
+  // head rendered 0. Day4k pairs ending on the back wall: 0.959, spread 0.146, the far openings at grazing angles
+  // reading the jamb (1.0) and the near ones the wall (0.49 to 0.66, d4_000120's 0.6 again). Three pushes followed
+  // (the first killed the page for four minutes by declaring headMat before cnm, the second overshot the night). Where
+  // it stands: the corridor's night colour is 27 grey (from 9) for the ceiling, the back wall and the head underside,
+  // the ceiling's day colour 67 (from 42), the head underside unlit at the corridor's tones (from Lambert stone that
+  // rendered 0 from below), the back wall's day colour untouched. Checked through the same poses after the push: day
+  // r 0.73, 0.49, 0.88 against the claim 0.714 (median inside the spread; the scatter is the sim's wall, which
+  // renders 51 to 104 across those views where the photo's reads 48 to 55, a wall response the corridor cannot fix);
+  // night r pending the render of this push. The soffit claim was voided (a polygon at the wall's tone with a spread
+  // under 0.05 IS the wall, a control added after the fact); w1_000437's sim view is blocked by a foreground tower
+  // and is void for the sim, a second control added after the fact. Not measured here: the back wall at night, the
+  // head at night, the corridor floor, anything about its west mouth or its ceiling height.
   // THE CORRIDOR'S TONE THROUGH THE OPENINGS, TRIED AND VOIDED BY ITS OWN CONTROLS (2026-09-10, later,
   // tools/opening_tone.py). The hall-floor cameras see the corridor only as a patch of tone inside each
   // opening, so the sim's patch was to be compared with the photo's through the same two poses: the ratio of

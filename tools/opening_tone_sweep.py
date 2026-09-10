@@ -28,6 +28,27 @@ THE RULE, FIXED BEFORE THE RUN.
   if the sim's day r falls outside claim +/- spread AND the walk and day4k claims agree in direction against it.
   Each decision is per class; the two-frame agreement rule of opening_tone.py belonged to that tool's two frames.
 
+THE RESULT (the run, 123 s, peak 0.89 GB).
+  night 140 pairs (void: ring 5, iqr 21): ceiling 138, r 0.447 spread 0.065, inside 31 ring 72, CLAIM; downstand 2.
+  walk 571 pairs (void: ring 229, iqr 18, small 214): soffit 109, r 0.978 spread 0.036, CLAIM; downstand 13, r 0.674;
+    ceiling 449, r 0.714 spread 0.069, inside 35 ring 49, CLAIM.
+  day4k 729 pairs (void: ring 307, iqr 47): back 729, r 0.959 spread 0.146, CLAIM; per opening 0 to 4 near 1.0 (the jamb
+    face at grazing angles, 30 to 44 m off), 6 to 10 0.49 to 0.66 (the back wall, as d4_000120 read it).
+  Renders through the same poses, before: walk ceiling pairs w1_000379/3 0.45, w2_000243/7 0.44, w1_000526/11 0.50.
+
+TWO CONTROLS THIS RULE LACKED, ADDED AFTER SEEING THE DATA, AND SAID SO.
+  A group whose r sits within 5 per cent of 1 with a spread under 0.05 is the wall: w1_000044's polygon lies on plain
+  wall between two slots, the grazing views' pose error being the width of a slot. The soffit claim is VOID by it.
+  A sim render whose ring is not wall (w1_000437: a foreground tower, ring 6) is void for the sim side.
+
+WHAT MOVED IN THE SIM, AND THE RENDERS AFTER (index.html carries the same record).
+  Night colour 9 -> 65: rendered 26 and 54 (r 1.30, 2.45), the toe of the night curve is not a line. -> 34: rendered
+  13 and 22 (r 0.68, 1.00). -> 27, for 9 grey by the line grey = 0.45 (colour - 7) that the last two points make.
+  Day ceiling 42 -> 67, the head underside unlit at the same tones: w1_000379 0.73, w2_000243 0.49, w1_000526 0.88
+  against 0.714 +/- 0.069; the median sits inside, the scatter is the sim's wall (51 to 104 across those views, the
+  photo's 48 to 55). The back wall's day colour keeps d4_000120.
+  The night claim leans bright: w6_000146's photo polygon lies half on the wall. The sim errs light by that much.
+
 Run (whole dataset, through the broker):
   hwq run --gb 6 --label "opening tone sweep" -- python -u tools/opening_tone_sweep.py
 """
