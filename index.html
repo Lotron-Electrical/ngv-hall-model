@@ -5832,6 +5832,11 @@ function buildEndWalls(root){
   // 21 against 22, the west jamb's reveal face filling the slot from that angle: Lambert stone lit by the hemisphere,
   // grey by night where the photo's jamb is as dark as the slot. The jambs and sill are now unlit, the wall's tone
   // by day (the day4k far openings read them as wall) and the corridor's 0.447 by night. Rendered check to follow.
+  // THE CHECK (same session, after that push): night w6_000146 r 0.42, w6_000143 r 0.48, both inside 0.447 +/- 0.065;
+  // walk w1_000379 r 0.54 where the render before the jamb change gave 0.73 with the same inside (44) and a ring of
+  // 60 then 82, so the sim's exposure adapts between renders and a single day ratio carries about a third either
+  // way; d4_000106's polygon in the render is 165 px and says nothing. The night claim is met; the day sits inside
+  // the claim's spread on the median of its renders and no finer than the sim's own exposure allows.
   // THE CORRIDOR'S TONE FROM EVERY WHOLE-OPENING VIEW, AND WHAT MOVED (2026-09-10, latest, tools/opening_tone_sweep.py,
   // rule fixed before the run, the night wall range set from the one number then known). 140 night, 571 walk and 729
   // day4k pairs survived their controls. Night pairs whose centre ray ends on the corridor ceiling: r 0.447, spread
