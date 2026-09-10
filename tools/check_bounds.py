@@ -1559,6 +1559,14 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       'tools/ledge_edge_west.py')
 import os as _os_ot
 TOOLS_DIR_OT = _os_ot.path.dirname(_os_ot.path.abspath(__file__)) + '/'
+# THE LAMPS BY NIGHT, RECORD ONLY (2026-09-10, tools/lamp_night.py: the positive control failed, so nothing moved).
+_ln = open(TOOLS_DIR_OT + 'lamp_night.py', encoding='utf-8').read()
+check('the corridor lamps are unchanged by the night count because its day positive control failed, and both the tool and the file say so',
+      "lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6" in src and 'ASKED AND NOT ANSWERED' in src and 'the positive control failed' in src
+      and 'LIT_PEAK = 200' in _ln and 'WIDEN = 0.6' in _ln and 'the positive control FAILED' in _ln and 'control that fails vetoes the run' in _ln,
+      'thirty-four night pairs show nothing brighter than 182 behind openings 7 and 8, but by day the same measure found the lamps in only 15 '
+      'and 5 per cent of the pairs and read a lampless opening bright in 13, so the instrument is unproven and the lamp material stays as it was.',
+      'index.html, tools/lamp_night.py')
 # THE JAMBS AND SILL UNLIT (2026-09-10, after the night render through w6_000143).
 check('the opening jambs and sill are unlit, the day tone of the wall and the night tone of the corridor, declared after cnm, and the door reveals keep the lit stone',
       "revealMat=cnm(0x1f1d1b,0x6c635b,'opening-reveal')" in src and src.index('const cnm=') < src.index('const revealMat=cnm(')
