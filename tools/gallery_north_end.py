@@ -64,6 +64,19 @@ been built from these same frames read as the west end, are withdrawn, with the 
 estimate once more. A separate check refuted the other reading: through the posed b1p frames 212 to
 214 the west back wall above the west deck is plain lit ashlar with no dark doorway in it.
 
+THIRD NOTE, AN HOUR LATER: THE SECOND NOTE PUT THOSE FRAMES ON THE WRONG DECK. b7 596 to 616 are one
+continuous shot and 616 is posed on the WEST deck's south end (u 3.2, d 13.5, facing east, the south
+tapestry near on the left, and the projection of tools/tapestries.json lands on it). The deck change is
+somewhere in the canopy frames 248 to 300. In 404 to 432 the door wall slides out to the left while the
+hall comes in from the right: a RIGHT turn of half a turn that ends facing east. So 384 to 404 face
+SOUTH on the west deck, and the rule from the posed cameras (facing +d, +u is on the right) puts the
+west back wall on the LEFT, the coping on the RIGHT, the SW corner column on the left and the south
+wall ahead with the door east of the corner: all of it is in the frames. Facing north on the east deck
+(the second note's reading, and b6's true one) would put the coping on the right too, but the far wall
+would then hold openings 12 and 11 beside the door as b6 shows, and there are none; and 432 could not
+face east there. The dark door, the sign, the bust case and the column are the west gallery's south end,
+drawn there by eye. The east gallery keeps its measured north door and has no door at its south end.
+
 Run:
   python tools/gallery_north_end.py
 """

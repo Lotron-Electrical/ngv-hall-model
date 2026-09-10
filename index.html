@@ -2768,7 +2768,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{east:{u:[51.2,51.75], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{east:[50.2,51.2,3.15]}, southExit:{east:[51.35,51.8,11.55,11.75]}, cornerColumn:{east:{u:51.55, d:15.0, r:0.28}}, topNorthDoor:{east:[48.118,49.291,3.15]}, corridorWest:3.0, topNorthExit:{east:[48.74,49.19,11.14,11.34]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.000}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.15]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.118,49.291,3.15]}, corridorWest:3.0, topNorthExit:{east:[48.74,49.19,11.14,11.34]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -5764,6 +5764,20 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE SAME FRAMES A THIRD TIME, AND THEY ARE THE WEST GALLERY'S SOUTH END (2026-09-10, an hour after
+  // the block below, tools/gallery_north_end.py, third note). Two readings of b7 376 to 408 had been
+  // built and withdrawn: the west gallery's north end, then the east gallery's south end. What was
+  // missing both times was the pan. From 404 to 432 the door wall slides out to the left and the hall
+  // comes in from the right, a RIGHT turn of half a turn that ends facing east with the south tapestry
+  // near on the left, exactly the posed view of 616 from the west deck's south end; and 596 to 616 are
+  // one continuous shot. So the camera stood on the west deck's south end facing SOUTH, where the rule
+  // (through posed cameras, +u lands on the right when facing +d) puts the west back wall on the left,
+  // the hall's coping on the right, the SW corner column on the left and the south wall ahead: all four
+  // are in the frames, and no heading on the east deck gives the coping and a solid wall on those sides.
+  // The east gallery keeps its measured north door and nothing at its south end; the west gallery gets
+  // the dark door in its south wall, the sign beside the corner, the bust case and the column, by eye.
+  // The lit doorway d4_000049 saw from 48 m off "in the west back wall" near d 13.4 to 14.2 is the same
+  // corner seen at a grazing angle and stays as drawn until a frame separates the two.
   // THE EAST GALLERY'S SOUTH END, AND THE WEST NORTH DOOR THAT WAS NEVER THERE (2026-09-10, later the
   // same day, tools/gallery_north_end.py, second note). The b7 frames 376 to 408 had been read as the west
   // gallery's north end, with a door, a sign and a bust case built there and the corridor run to that
@@ -5915,6 +5929,17 @@ function buildEndWalls(root){
   //      right from there ends facing west (424), which no other heading allows. So the south door is
   //      drawn again, dark this time, with the sign, the bust and the column, all by eye; its height is
   //      the measured north door's and says so. tools/gallery_north_end.py carries the reasoning.
+  //      MOVED TO THE WEST GALLERY AN HOUR LATER, AND THIS TIME THE PAN WAS READ. The paragraph above put
+  //      these frames on the east deck because the posed b7 frames 68 to 156 stand there; but 596 to 616
+  //      are continuous with the posed 616 on the WEST deck's south end, the clip changes deck somewhere in
+  //      the canopy frames 248 to 300, and 300 to 604 are all on the west deck. In 404 to 432 the camera
+  //      turns RIGHT through half a turn, from the door wall to facing east along the hall with the south
+  //      tapestry near on its left (as 616 has it). Facing south on the west deck puts the west back wall on
+  //      the left, the SW corner (the stone column) on the left, the south wall ahead with the door east of
+  //      the corner, and the coping on the right: every one of those is in the frames, and neither north
+  //      nor south-east on the east deck can give the coping and a solid wall on those sides. So the dark
+  //      door, its sign, the bust case and the column are the WEST gallery's south end, drawn there by eye,
+  //      and the east gallery's south end has no door: the b6 frames that once put one there look north.
   { const SD=W.topSouthDoor&&W.topSouthDoor[side]; if(SD){ const [u0,u1,doorH]=SD, dS=D-0.01;
     quad([[u0,dS,fl[1]],[u1,dS,fl[1]],[u1,dS,fl[1]+doorH],[u0,dS,fl[1]+doorH]],doorMat,'gallery-door-leaf'); }
     const X=W.southExit&&W.southExit[side]; if(X){ const [xa,xb,ha,hb]=X, dS=D-0.02;

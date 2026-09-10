@@ -1428,16 +1428,20 @@ check('the east gallery north door is drawn where two b6 frames measure it off o
       % (_ne[1248]['ctrl'], _ne[1320]['ctrl'], NE['ctrl_px'], NE['u1'], NE['u0'], NE['head'], _hr('u1'), _hr('u0'),
          _hr('head'), NE['head'] - NE['floor']),
       'tools/gallery_north_end.py')
-check('the south door of the east gallery is drawn again, dark, from the b7 frames that show it',
-      re.search(r'topSouthDoor:\{east:\[50\.2,51\.2,3\.15\]\}', src) is not None
-      and re.search(r'southExit:\{east:\[[0-9.,]+\]\}', src) is not None
-      and re.search(r'cornerColumn:\{east:\{u:51\.55, d:15\.0, r:0\.28\}\}', src) is not None,
+check('the dark door, sign, bust case and corner column from b7 376 to 408 are drawn at the WEST gallery south end and nowhere else',
+      re.search(r'topSouthDoor:\{west:\[1\.7,2\.9,3\.15\]\}', src) is not None
+      and re.search(r'southExit:\{west:\[[0-9.,]+\]\}', src) is not None
+      and re.search(r'cornerColumn:\{west:\{u:0\.7, d:15\.0, r:0\.28\}\}', src) is not None
+      and re.search(r'bust:\{west:', src) is not None and 'topSouthDoor:{east' not in src and 'cornerColumn:{east' not in src,
       'b6 looks north and its lit door is the measured north door, so the south door was withdrawn this morning; '
       'but b7 frames 376 to 408, bracketed on the east deck by the posed frames 68 to 156 and by 424 repeating '
       'the hall view of 160 to 238, face south-east at that deck\'s south end and show a dark unlit doorway in '
       'the south wall about a metre west of a stone column in the corner, with the exit light beside the column '
-      'and a bust case in front of the wall. Drawn again by eye, dark, with the sign, the bust and the column; '
-      'the height is the measured north door\'s.',
+      'and a bust case in front of the wall. That reading put them on the east deck; the pan from 404 to 432 is a right '
+      'turn of half a turn ending facing east with the south tapestry near on the left, the posed view of 616 from the '
+      'WEST deck south end, so the camera faced SOUTH there: west back wall left, coping right, SW corner left. The door, '
+      'sign, bust and column are drawn at the west gallery south end by eye, the height the measured north door\'s, and '
+      'the east gallery south end carries no door.',
       'tools/gallery_north_end.py')
 check('the west gallery north door built from those same b7 frames is withdrawn and the corridor west end is an estimate again',
       re.search(r'topNorthDoor:\{east:', src) is not None and 'topNorthDoor:{west' not in src
