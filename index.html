@@ -1296,7 +1296,7 @@ function photoMaterial(src){
   // the bake's glTF carries alpha on the material factor (declared glass ships BLEND at 0.35);
   // GLTFLoader lands it as opacity+transparent, and this shader has to write it out again or
   // every pane is an opaque panel, which is what v26 shipped
-  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},stoneMap:{value:STONE_TEX},canopyMap:{value:CANOPY_MAP},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},wallGain:{value:1.0},flatSky:{value:0.0},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
+  uniforms:{map:{value:src.map||null},tint:{value:(src.name||'')==='walls'?new THREE.Color().setRGB(...WALL_TINT):new THREE.Color(src.map?0xffffff:src.color)},stoneMap:{value:STONE_TEX},canopyMap:{value:CANOPY_MAP},alpha:{value:src.transparent?src.opacity:1.0},house:{value:1},ambient:{value:AMBIENT},day:{value:0},dayGain:{value:dayGainOf(src.name||'')},wallGain:{value:1.0},flatSky:{value:0.0},noCut:{value:0.0},ledGain:{value:/ceiling-glass/i.test(src.name||'')?LED_GAIN_GLASS:1.0},
    nLights:{value:0},lightPos:{value:lightPos},lightCol:{value:lightCol},blades:{value:bladeTex},hole:{value:new THREE.Vector4(0,0,0,0)},door:{value:new THREE.Vector4(0,0,0,0)},frost:{value:0},doorC:{value:new THREE.Vector3()},doorU:{value:new THREE.Vector3()},doorN:{value:new THREE.Vector3()},
    // the render terms added 2026-09-07 (see "the lighting render" in AGENTS.md): the carpet's own
    // colour for the first bounce, the floor plane it bounces off, the shaft radius the columns
@@ -1307,7 +1307,7 @@ function photoMaterial(src){
     ${(src.name||'')==='walls'&&src.isMaterial?`// the scan's long-wall faces sit behind the certified cloud (WALL_SHIFT): each side moves as one
     { vec3 hn=vec3(0.219186,0.0,-0.975639); float sdv=dot(wp.xyz-vec3(-54.907447,-1.43545,3.040286),hn); wp.xyz+=hn*(sdv<7.0?${WALL_SHIFT.north.toFixed(3)}:${(-WALL_SHIFT.south).toFixed(3)}); }`:''}
     vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp;}`,
-  fragmentShader:`uniform sampler2D map, stoneMap, canopyMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain, wallGain, flatSky; uniform int nLights;
+  fragmentShader:`uniform sampler2D map, stoneMap, canopyMap; uniform vec3 tint; uniform float house, ambient, ledGain, alpha, day, dayGain, wallGain, flatSky, noCut; uniform int nLights;
    // two vec4 arrays, not three arrays: lightPos.w is the blade row and lightCol.w the segment
    // height, so the fragment stage stays inside WebGL2's guaranteed 224 uniform vectors
    uniform vec4 lightPos[${MAX_LIGHTS}]; uniform vec4 lightCol[${MAX_LIGHTS}]; uniform sampler2D blades; uniform vec4 hole;
@@ -1340,7 +1340,7 @@ function photoMaterial(src){
     { // the scan's caps behind the north wall's openings (about 1.2 m in, black): the openings are open into
       // the built corridor, seen lit through them from the east top gallery (d4_000120, 2026-09-09)
       vec3 oq=vPos-vec3(-54.907447,-1.43545,3.040286); float ou=dot(oq,vec3(0.975681,0.0,0.219196)), od=dot(oq,vec3(0.219186,0.0,-0.975639)), oy=oq.y;
-      if(od<-0.3&&od>-3.5&&oy>${(WALLF.openY[0]).toFixed(3)}&&oy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(ou>${a.toFixed(3)}&&ou<${b.toFixed(3)})`).join('||')}))discard; }
+      if(noCut<0.5&&od<-0.3&&od>-3.5&&oy>${(WALLF.openY[0]).toFixed(3)}&&oy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(ou>${a.toFixed(3)}&&ou<${b.toFixed(3)})`).join('||')}))discard; }
     vec3 albedo=texture2D(map,vUv).rgb*tint;
     ${(src.name||'')==='walls'?`{
      // the ashlar, drawn in the hall frame (see STONE): courses up from the carpet, blocks along
@@ -1356,7 +1356,7 @@ function photoMaterial(src){
      // the scan's two closures stand in the wrong places (ENDW): cut them out, the real end walls are built
      if(!longWall&&sy>${ENDW.cut.toFixed(3)}&&((su>-5.3&&su<-4.0)||(su>48.5&&su<49.6)))discard;
      // the openings and the foyer door are holes in the bake mesh (WALLF); the reveals sit behind
-     if(longWall&&sd<7.0&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`).join('||')}))discard;
+     if(noCut<0.5&&longWall&&sd<7.0&&sy>${(WALLF.openY[0]).toFixed(3)}&&sy<${(WALLF.openY[1]).toFixed(3)}&&(${WALLF.openings.map(([a,b])=>`(su>${a.toFixed(3)}&&su<${b.toFixed(3)})`).join('||')}))discard;   /* noCut: a surface that stands INSIDE an opening (its reveals, the corridor behind) is not a hole */
      ${WALLF.doors.map(D=>`if(longWall&&${D.north?'sd<7.0':'sd>7.0'}&&sy<${D.h.toFixed(3)}&&su>${D.u0.toFixed(3)}&&su<${D.u1.toFixed(3)})discard;`).join('\n     ')}
      // the scan's own reveal faces inside the north openings (dark in the bake, so the recess gate crushed them to a brown slab: b1_000105, 2026-09-09) go too: the built stone reveals stand there
      if(!longWall&&sd<0.05&&sd>-1.2&&sy>${(WALLF.openY[0]-0.1).toFixed(3)}&&sy<${(WALLF.openY[1]+0.1).toFixed(3)})discard;
@@ -2560,6 +2560,15 @@ function buildWallDetails(root){
  // rendered 21 through w6_000143 where the photo shows the jamb dark like the rest of the slot, so its night colour
  // is the corridor's 0.447 of the wall (29 grey by the same line). The door reveals keep the lit stone.
  const revealMat=cnm(0x1f1d1b,0x6c635b,'opening-reveal');
+ // THE WINDOWS ARE BRICK TOO (Lloyd, 2026-09-10: "the windows above the hall on the wall opposite of the glass should
+ // have the brick texture as well"). The reveals, the sill, the head and the corridor's walls seen through the
+ // openings were flat measured tones; they take the side walls' ashlar shader (photoMaterial 'walls', see the
+ // galleries' back walls) with the tone each flat colour carried as wallGain: the reveal 0x6c635b is about the
+ // wall's own brick (1.0), the corridor's near and back faces and the head's underside 0x42..0x43 about 0.55 of it.
+ // noCut keeps the shader from cutting these surfaces out as the openings they stand inside.
+ const openingWhite=new THREE.DataTexture(new Uint8Array([13,13,13,255]),1,1); openingWhite.needsUpdate=true; openingWhite.colorSpace=THREE.SRGBColorSpace;   /* the same 1x1 the walls carry, declared later */
+ const openingStone=(gain)=>{ const m=photoMaterial({map:openingWhite, name:'walls'}); m.side=THREE.DoubleSide; m.uniforms.wallGain.value=gain; m.uniforms.flatSky.value=1.0; m.uniforms.noCut.value=1.0; m.name='walls'; return m; };
+ const revealStone=openingStone(1.0), headStone=openingStone(0.55), corridorStone=openingStone(0.55);
  const lampMat=new THREE.MeshBasicMaterial({color:0xfff2d6, side:THREE.DoubleSide, name:'corridor-lamp'});   /* the back wall, 0.45x the stone by day */
  const lit=new THREE.MeshBasicMaterial({color:0xf3eee6, side:THREE.DoubleSide, name:'vestibule'});
  const litFloor=new THREE.MeshBasicMaterial({color:0x8d8880, side:THREE.DoubleSide, name:'vestibule-floor'});
@@ -2578,10 +2587,10 @@ function buildWallDetails(root){
   // the windows into the gallery corridor (north wall only): four stone reveals and, at the
   // reveal depth, the corridor's near face as it read in every frame, unlit
   if(w.north)for(const [u0,u1] of F.openings){ const y0=F.openY[0], y1=F.openY[1], d0=w.d, d1=w.d+w.s*F.openDepth;
-   quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],revealMat,'opening-reveal');
-   quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],revealMat,'opening-reveal');
-   quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],revealMat,'opening-sill');
-   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],headMat,'opening-head'); }
+   quad([[u0,d0,y0],[u0,d1,y0],[u0,d1,y1],[u0,d0,y1]],revealStone,'opening-reveal');
+   quad([[u1,d0,y0],[u1,d1,y0],[u1,d1,y1],[u1,d0,y1]],revealStone,'opening-reveal');
+   quad([[u0,d0,y0],[u1,d0,y0],[u1,d1,y0],[u0,d1,y0]],revealStone,'opening-sill');
+   quad([[u0,d0,y1],[u1,d0,y1],[u1,d1,y1],[u0,d1,y1]],headStone,'opening-head'); }   /* brick, Lloyd 2026-09-10 */
   // THE HEAD'S UNDERSIDE READS AS THE WALL DOES (2026-09-10, tools/opening_tone_sweep.py): from the floor the steep
   // rays through an opening end on the reveal's head, and in 109 walk pairs that patch reads r 0.978 of the wall
   // beside it, spread 0.036. The Lambert stone lit from above rendered it 0 through w1_000104 (wall 116), so the
@@ -2711,7 +2720,7 @@ function buildWallDetails(root){
   // along every route the six captures took, and it rules out the one-storey-down pose alias having crept
   // into the new pan poses, because a camera aliased down a storey would sit inside a gallery slab.
   if(w.north){ const C=F.corridor, dR=w.d+w.s*F.openDepth, dB=dR+w.s*C.width, ua=ENDW.corridorWest, ub=ENDW.topNorthDoor.east[1];   /* the east end runs to the measured north door of the east gallery (ENDW.topNorthDoor.east); the west end is the estimate 3.0 again (ENDW.corridorWest): the west doorway drawn on 2026-09-10 came from b7 frames that turned out to be the east gallery's south end, and no frame shows the west mouth */
-   quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorBackMat,'corridor-back');
+   quad([[ua,dB,C.floor],[ub,dB,C.floor],[ub,dB,C.ceil],[ua,dB,C.ceil]],corridorStone,'corridor-back');   /* brick, Lloyd 2026-09-10 */
    // AN OPENING IN THE BACK WALL OPPOSITE THE EAST GALLERY'S NORTH DOOR (2026-09-10, tools/door_interior.py,
    // b6_001248 and 001320, by eye). Through that door both frames show a dark-framed rectangle with a lit
    // panel in it, and its width is 70 px from 12.9 m and 75 px from 9.5 m: a thing on the back wall would
@@ -2728,8 +2737,8 @@ function buildWallDetails(root){
    // from cameras metres apart fix it in three dimensions with no edge finder and no search window.
    for(const L of (C.lamps||[])){ const [lu,ld,y]=L, r=0.075; quad([[lu-r,ld-r,y],[lu+r,ld-r,y],[lu+r,ld+r,y],[lu-r,ld+r,y]],lampMat,'corridor-lamp'); }
    // the wall's own back face BETWEEN the openings (each opening stays open into the corridor)
-   let up=ua; for(const [u0,u1] of F.openings){ if(u0>up)quad([[up,dR,C.floor],[u0,dR,C.floor],[u0,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near'); up=u1; }
-   if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorMat,'corridor-near');
+   let up=ua; for(const [u0,u1] of F.openings){ if(u0>up)quad([[up,dR,C.floor],[u0,dR,C.floor],[u0,dR,C.ceil],[up,dR,C.ceil]],corridorStone,'corridor-near'); up=u1; }
+   if(ub>up)quad([[up,dR,C.floor],[ub,dR,C.floor],[ub,dR,C.ceil],[up,dR,C.ceil]],corridorStone,'corridor-near');   /* brick, Lloyd 2026-09-10 */
    // AND THE WALL'S BACK FACE AT AN OPENING IS NOT ALL AIR (2026-09-10, tools/model_consistency.py).
    // The corridor ceiling stands 0.218 m BELOW the reveal head and its floor 0.400 m BELOW the sill,
    // so in the building there is a downstand over each opening and an upstand under it. Until today
@@ -2912,7 +2921,7 @@ function buildEndWalls(root){
  // 11) rendered 133 west and 130 east (p80 luma, r00/r01 before this change), the recess 0.1 to 0.15 of the
  // stone. The height falloff (ENDW.backRamp) that was the flat material's map becomes a MULTIPLY overlay a few
  // millimetres in front of the wall, as the ground shade already is, so the ramp still cuts the same profile.
- const galleryStone=(gain,name)=>{ const m=photoMaterial({map:white, name:'walls'}); m.side=THREE.DoubleSide; m.uniforms.wallGain.value=gain; m.uniforms.flatSky.value=1.0; m.name=name; return m; };
+ const galleryStone=(gain,name,noCut)=>{ const m=photoMaterial({map:white, name:'walls'}); m.side=THREE.DoubleSide; m.uniforms.wallGain.value=gain; m.uniforms.flatSky.value=1.0; m.uniforms.noCut.value=noCut?1.0:0.0; m.name=name; return m; };
  const topBackStone={west:galleryStone(2.36,'walls'), east:galleryStone(2.50,'walls')};   /* the ashlar at gain 1 rendered the reference band (h 10 to 11, p80 luma) at 67 west, 65 east against the 133 and 130 the flat tones gave; 2.0 gave 119 and 112, 2.24/2.32 gave 126 and 121, so 2.36 and 2.50 (tools/ref_luma.py) */
  const lowBackStone={west:galleryStone(0.255,'walls'), east:galleryStone(0.13,'walls')};   /* the recess top (h 7.6): west reads 0.21 of the lit band, rendered 0.47 at gain 0.57 before its ramp came back; east 0.126 against 0.139 at 0.13 */
  const rampOverlay=(t,name)=>new THREE.MeshBasicMaterial({map:t, side:THREE.DoubleSide, blending:THREE.MultiplyBlending, transparent:true, depthWrite:false, name});
