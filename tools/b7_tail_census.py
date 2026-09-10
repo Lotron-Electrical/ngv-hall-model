@@ -26,6 +26,14 @@ is measured from them; they are the PRIOR for the next step, a relocalisation of
 1184 with openings 1 to 3 as the control, which is the first thing in the archive that could measure the
 reveal depth from close by.
 
+CORRECTED BY THE FIRST RUN OF THIS FILE. The census above was written from a listing cut off after frame 1200. The
+print says: 74 of the 75 tail frames solved (1128 did not); TEN stand on the west deck at a person's height (924,
+928, 948, 1136, 1140, 1144, 1148, 1168, 1184, 1212); 39 sit on u 17 to 21 facing west in mid-air; 25 elsewhere
+impossible, among them 1188 to 1220 bar 1212 on u 17 to 19 near the floor looking up (the floor taken for the
+deck). 1212 stands on u 2.96, d 0.61, h 9.05 facing east and a little south, 0.6 m from the north wall plane, and
+openings 1 and 2 with their reveal faces project through it onto the frame's right side, close to the real slots
+and offset by about their own width: it, not 1184, is the seed.
+
 Run:
   python tools/b7_tail_census.py
 """
