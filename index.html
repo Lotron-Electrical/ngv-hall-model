@@ -2776,7 +2776,7 @@ function buildWallDetails(root){
 // own capture-to-capture spread, so it is NOT acted on: a per-end upstand would be fitting one capture.
 // The lower tier stays as drawn. It is resolved by exactly two readings in the whole archive and they
 // contradict: b3 puts the west lower parapet +0.024 and the night capture puts the east one -0.139.
-const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
+const ENDW={west:0.344, east:51.906, top:13.5, face:3.85, floors:[6.33,8.34], slab:0.26, rails:[0.83,1.06], railTops:{west:1.459, east:1.525}, upstand:0.68, upstands:{west:0.757, east:0.755}, upstandSet:{west:0.484, east:0.404}, lowUpstand:0.52, apron:5.4, groundTop:5.3, head:11.090, soffitDepth:0.45, coping:{west:0.45, east:0.45}, faceSolid:{east:0.291}, faceBand:{east:[0.291,0.755]}, nosing:{west:0.08, east:0.08}, wallVents:{west:[[11.8,12.9,12.35,12.7]]}, wallNiches:{west:[[12.2,13.3,9.9,11.5]]}, vitrines:{east:{d0:4.5, n:7, pitch:1.6, plinth:[0.9,0.9,0.95], glass:[0.8,0.8,1.1], gap:0.15}, west:{d0:11.3, n:2, pitch:1.3, plinth:[0.8,0.8,0.9], glass:[0.7,0.7,1.1], gap:0.15}}, bust:{west:{u:[0.6,1.15], d:[14.55,15.1], plinth:1.0, glass:0.75}}, topSouthDoor:{west:[1.7,2.9,3.17]}, southExit:{west:[0.75,1.2,11.55,11.75]}, cornerColumn:{west:{u:0.7, d:15.0, r:0.28}}, topNorthDoor:{east:[48.158,49.371,3.17]}, corridorWest:3.0, topNorthExit:{east:[48.82,49.27,11.16,11.36]}, cut:4.0, scanEast:49.06, scanWest:-4.65, dSouth:15.364, westTopDoor:[13.35,14.15,10.0], westTopPanel:[12.4,15.3], westTopExit:[13.3,13.85], eastVent:[48.21,48.55,12.64,13.34], wallLamps:{east:[[7.9,10.5],[12.28,10.6],[13.25,10.5]], west:[[7.0,11.4]]}, topExit:{east:[13.5,10.69]}, lowLamps:{west:[[1.64,7.81],[11.97,8.0],[13.17,8.0],[13.29,7.87]], east:[[1.79,7.52],[5.02,7.60],[12.26,7.74],[13.16,7.45]]}, lowExit:{west:[13.52,7.32]},
  doors:{west:[[12.9,14.6,'port2',[13.25,13.95]]], east:[[5.7,8.0,'port2',[7.4]],[9.8,11.1,'port']]}};   /* port2: a double door with round windows at the listed d. West: two, measured by day. East: the night frame w5_000240 reads one lit window at d 7.4, h 1.2-2.2, and dark at d 6.3-6.8; the 9.8-11.1 porthole lit at d 10.4 */
 function buildEndWalls(root){
  const W=ENDW, F=WALLF, O=EVENT.N.origin, HU=EVENT.N.u, HN=EVENT.N.inRoom;
@@ -5286,7 +5286,7 @@ function buildEndWalls(root){
   // ONE NUMBER IS WITHHELD. The WEST RAIL station fails its own null: the near-far spread reaches 21 mm
   // and the null reaches 14, a ratio of 1.5 against a bar of 3. Its minimum agrees with the drawn face,
   // but agreement that a null could have produced is not a measurement, so nothing is drawn on it.
-  // 271 bounds, all satisfied.
+  // 272 bounds, all satisfied.
   // THE CORRIDOR SPEAKS FOR THE FIRST TIME, BECAUSE ANCHORING NEEDS NO BASELINE (2026-09-09,
   // tools/corridor_locus.py). Every attempt on that room today died the same way: a line at constant
   // (d, h) is separated from its rays only by cameras at different distances from it, and the slot forces
@@ -5792,6 +5792,15 @@ function buildEndWalls(root){
   // front stays exactly where the rays put it. Only the unmeasured bar goes, at both ends and not just
   // the refuted one, because at neither end did anything measure a bar.
   quad([[uF,0,fl[1]],[uB,0,fl[1]],[uB,D,fl[1]],[uF,D,fl[1]]],floorMat,'gallery-floor');
+  // THE WEST GALLERY'S BACK WALL, BUILT BY EYE FROM THE ONLY FRAMES THAT LOOK AT IT (2026-09-10, b7 298 to
+  // 328). The wall is light ashlar in courses, and it carries, north of the SW corner column: a grille vent
+  // two courses under the top, about three courses wide; below it and a little south, a dark recess at
+  // mid height, a course and a half wide and four tall, its sill hidden behind the cases; and two glass
+  // vitrines on plinths in front of it. No pose faces that wall (b7 298 to 328 are unposed and the deck
+  // cameras face east), so the positions are read off the coursing and the column's width, by eye, and
+  // carry about a metre along d: wallVents.west, wallNiches.west, vitrines.west, all labelled. The east
+  // back wall gets nothing from this: b6 shows it grey and plain but for its seven cases. The wall's hue in
+  // these frames is warm; topBackMat keeps the grey measured against the stone, the hue question open.
   // THE b7 TAIL WAS ALREADY TRIED, AND WHAT ITS REFUSED POSES ARE GOOD FOR (2026-09-10, later,
   // tools/b7_tail_census.py). The 2026-09-09 b7s register took every 4th frame to 1220, solved 237 of 306
   // and accepted 12; the refused solves sit in work/reg-b7s. Of the 74 tail frames that solved, six stand
@@ -6110,6 +6119,15 @@ function buildEndWalls(root){
     for(let k=0;k<V.n;k++){ const dc=V.d0+k*V.pitch, uc=uWall-s*pd/2;
       box(uc-pd/2,uc+pd/2,dc-pw/2,dc+pw/2,fl[1],fl[1]+ph,plinthMat,'gallery-plinth');
       box(uc-gd/2,uc+gd/2,dc-gw/2,dc+gw/2,fl[1]+ph,fl[1]+ph+gh,caseMat,'gallery-vitrine'); } } }
+  // THE WEST BACK WALL'S VENT, NICHE AND TWO VITRINES (2026-09-10, b7 frames 298 to 328, BY EYE, no pose
+  // faces that wall): a grille two courses under the wall's top, a dark recess at mid height below it, two
+  // glass cases on plinths in front, all a course or three north of the SW corner column. Widths, heights
+  // and their d are read off the ashlar coursing and the column's own width and carry about a metre.
+  { const NV=W.wallNiches&&W.wallNiches[side], VV=W.wallVents&&W.wallVents[side]; if(NV||VV){ const uW=uB-s*0.012;
+    const nicheMat=new THREE.MeshBasicMaterial({color:0x100e0c, side:THREE.DoubleSide, name:'gallery-niche'});
+    const grilleMat=new THREE.MeshBasicMaterial({color:0x2c2b28, side:THREE.DoubleSide, name:'gallery-wall-vent'});
+    for(const [d0,d1,h0,h1] of (NV||[])) quad([[uW,d0,h0],[uW,d1,h0],[uW,d1,h1],[uW,d0,h1]],nicheMat,'gallery-niche');
+    for(const [d0,d1,h0,h1] of (VV||[])) quad([[uW,d0,h0],[uW,d1,h0],[uW,d1,h1],[uW,d0,h1]],grilleMat,'gallery-wall-vent'); } }
   //      THE SOUTH DOOR, WITHDRAWN AND THEN PUT BACK THE SAME DAY. The withdrawal below was right about
   //      b6: those frames look north and their lit door is the measured north door. But the b7 clip has a
   //      SECOND door, and it is this one. b7 frames 300 to 424 never leave the east deck's south end

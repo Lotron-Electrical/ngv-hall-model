@@ -1557,6 +1557,17 @@ check('the west face keeps its glass to the deck: the west sight-line crossings 
       '%.3f is the lowest, and the %.2f spread is that number\'s honest width.'
       % (min(_wx.values()), max(_wx.values()), _wx_below, min(_ex), max(_ex), LE['ceiling'] - LE['deck'], max(_ex) - min(_ex)),
       'tools/ledge_edge_west.py')
+# THE WEST GALLERY'S BACK WALL BY EYE (2026-09-10, b7 frames 298 to 328, no pose faces it).
+check('the west back wall carries the vent, the niche and the two cases the b7 frames show, by eye and labelled so, and the east gets none of them',
+      re.search(r"wallVents:\{west:\[\[11\.8,12\.9,12\.35,12\.7\]\]\}", src) is not None
+      and re.search(r"wallNiches:\{west:\[\[12\.2,13\.3,9\.9,11\.5\]\]\}", src) is not None
+      and re.search(r"vitrines:\{east:\{[^}]*\}, west:\{d0:11\.3, n:2, pitch:1\.3,", src) is not None
+      and 'wallVents:{east' not in src and 'wallNiches:{east' not in src
+      and 'BY EYE, no pose' in src and "'gallery-niche'" in src and "'gallery-wall-vent'" in src,
+      'b7 298 to 328 are the only frames that look at the west back wall and none is posed; the grille (d 11.8 to 12.9, h 12.35 '
+      'to 12.7), the recess (d 12.2 to 13.3, h 9.9 to 11.5) and two cases (d0 11.3, pitch 1.3) are placed off the coursing and '
+      'the column width, by eye, carrying about a metre along d, and say so in the file; the east back wall gets none of them.',
+      'index.html, b7 298 to 328')
 # THE CORRIDOR SEEN THROUGH THE EAST GALLERY'S NORTH DOOR, AND WHAT IT WOULD NOT SAY (2026-09-10, tools/door_interior.py).
 DI = {'frames': {1248: {'dcam': 13.34, 'ctrl': 9, 'peak': 1.4, 'med': 1.1, 'depth': 0.92, 'bound': 11.79},
                  1320: {'dcam': 9.81, 'ctrl': 13, 'peak': 1.4, 'med': 0.6, 'depth': 1.26, 'bound': 11.89}},
@@ -1616,7 +1627,7 @@ check('the dark door, sign, bust case and corner column from b7 376 to 408 are d
 check('the west gallery north door built from those same b7 frames is withdrawn and the corridor west end is an estimate again',
       re.search(r'topNorthDoor:\{east:', src) is not None and 'topNorthDoor:{west' not in src
       and abs(grab(r'corridorWest:([0-9.]+)') - 3.0) < 1e-9 and 'ua=ENDW.corridorWest' in src
-      and re.search(r'vitrines:\{east:\{[^}]*\}\}', src) is not None,
+      and re.search(r'vitrines:\{east:\{[^}]*\}(?:, west:\{[^}]*\})?\}', src) is not None,   # the west's own cases were added 2026-09-10
       'the b7 frames 384 to 408 were read as the west gallery north end and a door, a sign and a bust case were '
       'built there with the corridor run to the door. The clip\'s posed frames put the camera on the east deck\'s '
       'south end before and after those frames, so they are that end and not the west gallery. The west door, '
