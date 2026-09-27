@@ -45,7 +45,7 @@ const freePort=()=>new Promise((res,rej)=>{ const s=require('net').createServer(
  };
  const engPick=R=>R.ok===true&&(!R.fails||R.fails.length===0); engPick.summary=R=>({peak:R.peak,rms:R.rms,live:R.live,fails:R.fails});
  const ltN=R=>Object.keys(R).filter(k=>/^assert\d+$/.test(k)).map(k=>+k.slice(6)).sort((a,b)=>a-b);
- const ltPick=R=>R.ok===true&&ltN(R).length>=9&&ltN(R).every(i=>R['assert'+i]===true); ltPick.summary=R=>Object.assign({engine:R.engine,asserts:ltN(R).map(i=>R['assert'+i]),frameT:R.steps&&R.steps.frameT,tries:R.steps&&R.steps.tries,exportParity:R.steps&&R.steps.syncParity&&{compared:R.steps.syncParity.compared,mismatches:R.steps.syncParity.mismatches},solo:R.steps&&R.steps.solo},ltPick(R)?{}:{steps:R.steps,error:R.error});
+ const ltPick=R=>R.ok===true&&ltN(R).length>=9&&ltN(R).every(i=>R['assert'+i]===true); ltPick.summary=R=>Object.assign({engine:R.engine,asserts:ltN(R).map(i=>R['assert'+i]),frameT:R.steps&&R.steps.frameT,tries:R.steps&&R.steps.tries,exportParity:R.steps&&R.steps.syncParity&&{compared:R.steps.syncParity.compared,mismatches:R.steps.syncParity.mismatches},solo:R.steps&&R.steps.solo,oneLayer:R.steps&&R.steps.oneLayer},ltPick(R)?{}:{steps:R.steps,error:R.error});
  const tlPick=R=>R.ok===true&&[1,2,3,4,5,6,7].every(i=>R['assert'+i]===true); tlPick.summary=R=>({asserts:[1,2,3,4,5,6,7].map(i=>R['assert'+i]),live:R.live,rebuild:R.rebuild,fails:R.fails});
  const prPick=R=>R.ok===true&&(!R.fails||R.fails.length===0); prPick.summary=R=>({counts:R.counts,song:R.numbers&&R.numbers.song,stacks:R.numbers&&R.numbers.stacks,fails:R.fails});
  const lyPick=R=>R.ok===true&&R.fails.length===0; lyPick.summary=R=>({numbers:R.numbers,fails:R.fails});

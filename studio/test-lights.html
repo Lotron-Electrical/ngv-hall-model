@@ -94,8 +94,9 @@ const R={ok:false, engine:'', steps:{}};
  L.tick(); L.tick(); L.tick(); L.tick();
  const look0=L.state.look;
 
- // up to three tries: a stall can still land mid-song, and a try that never saw a frame inside
- // bar 1 (on the studio's side or the hall's) has measured nothing, so it goes again
+ // up to three tries: a stall can still land mid-song, and a try that never saw the hall catch up
+ // with bar 1 inside bar 1 (on the studio's side or the hall's) has measured nothing, so it goes
+ // again. Three misses in a row is a real fault and fails assert 3.
  let bar1Look='', crossed=false, hallBar1='', hallLayersBar1=null, crossStep=0, tries=0;
  for(;tries<3;tries++){
  eng.stop(); eng.play({mode:'song',fromStep:0});
@@ -120,7 +121,7 @@ const R={ok:false, engine:'', steps:{}};
    requestAnimationFrame(loop);
   })();
  });
- if(crossed&&crossStep<32&&hallBar1)break;
+ if(crossed&&crossStep<32&&hallBar1===bar1Look)break;
  }
  R.steps.tries=tries+1; R.steps.crossStep=Math.round(crossStep*10)/10;
  const frameT=(sim.contentWindow&&sim.contentWindow.ngvShow&&sim.contentWindow.ngvShow.frame.t)||0;
@@ -326,7 +327,32 @@ const R={ok:false, engine:'', steps:{}};
   say('solo: live gains '+liveG.join()+'  exported gains '+expG.join());
  }catch(e){ R.steps.soloError=String(e&&e.stack||e); R.assert11=false; }
 
- R.ok=!!(R.assert1&&R.assert2&&R.assert3&&R.assert4&&R.assert5&&R.assert6&&R.assert7&&R.assert8&&R.assert9&&R.assert10&&R.assert11);
+ // ONE LAYER (Codex review of 53a9c43): a show with a single Lights machine, muted and then at a
+ // level of 0.4. Live, the studio always hands the hall a layer stack, so the gain is honoured; the
+ // exported show must paint through the same stack, or a muted machine plays at full in the hall.
+ try{
+  const one=(mute,level)=>{ const pr=Studio.newProject('onex'); const m=Studio.newMachine('lights','Only'); m.layer=0; m.params.level=level; m.mute=mute;
+   delete m.mix; delete m.map;   // a machine from before the MADRIX mix/map fields, as older projects hold
+   Studio.addNote(m.patterns.A1,{s:0,n:Studio.lightKeyIndex('look','pulse'),v:1,l:1}); pr.machines.push(m); Studio.placeBlock(pr,m.id,0,'A1',1); return pr; };
+  const P=makeP(240), a=new Float32Array(720), got=[];
+  for(const [mute,level] of [[true,1],[false,0.4],[false,1]]){
+   const pr=one(mute,level), eng7={mode:'song',playing:false,pos:()=>({step:1,t:0})};
+   const LO=Studio.createLights({project:()=>pr, engine:()=>eng7, iframe:()=>null}); LO.resolve({step:1});
+   const PL=window.NGVShow.createShow(), cf=cueFile(pr);
+   // paint exactly as index.html does: through the stack when there is one, the flat look if not
+   let lit=0; PL.sm.lastT=0;
+   for(let k=0;k<30;k++){ const t=0.05+k/60; PL.frameFromCues(cf,t); Object.assign(PL.frame,{bass:1,rms:1}); PL.applyCues(cf.cues,t);
+    const LY=PL.state.layers; if(LY&&LY.length)PL.paintLayers(a,P,LY); else PL.paint(a,P); }
+   for(let i=0;i<a.length;i++)lit+=a[i];
+   got.push({mute,level,liveGain:r3(LO.state.layers[0].gain), exportGain:PL.state.layers?r3(PL.state.layers[0].gain):'no stack', lit:Math.round(lit)});
+  }
+  R.steps.oneLayer=got;
+  R.assert12=got[0].liveGain===0&&got[0].exportGain===0&&got[0].lit===0
+   &&got[1].exportGain===0.4&&got[2].exportGain===1&&got[1].lit>0&&got[1].lit<got[2].lit;
+  say('one layer: '+JSON.stringify(got));
+ }catch(e){ R.steps.oneLayerError=String(e&&e.stack||e); R.assert12=false; }
+
+ R.ok=!!(R.assert1&&R.assert2&&R.assert3&&R.assert4&&R.assert5&&R.assert6&&R.assert7&&R.assert8&&R.assert9&&R.assert10&&R.assert11&&R.assert12);
  say('');
  say(JSON.stringify(R));
  window.LIGHTS_TEST=R;

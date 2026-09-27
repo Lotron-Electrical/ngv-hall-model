@@ -269,15 +269,14 @@ function createShow(){
   applyCues(cues,t){ const st=S.state;
    for(let i=0;i<cues.length;i++){ const q=cues[i]; if(q.t>t)break;
     const li=q.layer|0;
-    if(li>0||st.layers||q.mix||q.map||q.trig){ const L=S.layerAt(li);
+    // any v2 layer field builds the stack, layer 0's included: the studio always hands the hall a
+    // stack, so an exported one-layer show paints through the compositor with its gain (a muted
+    // machine dark) exactly as it did live. A v1 file carries none of these and paints as it did.
+    if(li>0||st.layers||q.mix||q.map||q.trig||q.gain!=null||q.sync||q.family){ const L=S.layerAt(li);
      if(q.look)L.look=q.look; if(q.palette)L.palette=q.palette;
      if(q.gain!=null)L.gain=clamp(q.gain,0,1); if(q.sync)L.sync=q.sync; if(q.family)L.family=q.family;
      if(q.mix)L.mix=q.mix; if(q.map)L.map=q.map; if(q.speed>0)L.speed=q.speed; if(q.trig)L.trig=q.trig;
     }
-    // layer 0's own settings can arrive before anything has built the stack (its stamp sorts
-    // first at t = 0): kept aside so the stack, once a later layer makes it, starts with them
-    else if(li===0&&(q.gain!=null||q.sync||q.family)){ const k=S.l0||(S.l0={});
-     if(q.gain!=null)k.gain=clamp(q.gain,0,1); if(q.sync)k.sync=q.sync; if(q.family)k.family=q.family; }
     if(li===0){ if(q.look)st.look=q.look; if(q.palette)st.palette=q.palette; if(q.level!=null)st.level=clamp(q.level,0,1); }
     else if(q.level!=null){ const L=S.layerAt(li); L.gain=clamp(q.level,0,1); }
     if(q.hit)st.hitAt=q.t;
@@ -291,7 +290,7 @@ function createShow(){
   // the layer stack a cue file asked for, made on demand. Layer 0 mirrors the flat state so a v1
   // player and the compositor never disagree about what is on top of the hall.
   layerAt(i){ const st=S.state;
-   if(!st.layers)st.layers=[Object.assign({look:st.look,palette:st.palette,gain:1,family:lookFamily(st.look)},S.l0)];
+   if(!st.layers)st.layers=[{look:st.look,palette:st.palette,gain:1,family:lookFamily(st.look)}];
    while(st.layers.length<=i)st.layers.push({look:'blackout',palette:st.palette,gain:1,family:'base'});
    return st.layers[i];
   },
