@@ -18,6 +18,7 @@
 <script src="studio/machines.js"></script>
 <script src="studio/engine.js"></script>
 <script src="studio/lights.js"></script>
+<script src="studio/pixmap.js"></script>
 <script src="studio/export.js"></script>
 <script src="studio/presets.drums.js"></script>
 <script src="studio/presets.pitch.js"></script>
@@ -91,6 +92,10 @@
   <iframe id="sim" src="index.html?embed=1&amp;show=live&amp;bare=1" title="The hall"></iframe>
  </div>
 </div>
+
+<!-- the pixel map: every strip in the hall laid flat, live under every view and over the foot of the
+     hall (2026-09-27). On a phone a tap on it flips to the hall and back. -->
+<div id="pixband" title="Every strip in the hall, live"><canvas id="pixcv"></canvas></div>
 
 <div id="drawer">
  <div id="chips"><div id="machtabs"></div><button id="drawertog" aria-expanded="false" aria-controls="drawerbody" title="Show the keys"></button></div>

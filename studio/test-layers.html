@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio light layers check</title>
+<style>
+ body{margin:0;background:#111;color:#eee;font:13px/1.5 ui-monospace,Consolas,monospace}
+ #out{padding:12px;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<!-- THE LAYER CHECK (2026-09-27): the MADRIX half of the Lights machine measured on the compositor
+     itself. Every assert paints a real pixel array through show/lightshow.js and reads the numbers
+     back: a mapped layer leaves the rest of the hall dark, Over covers, Mask gates, Subtract takes
+     away, Max never exceeds Add, a stack with no mixes still paints, and a pad press lands on the
+     layer it was aimed at. -->
+<div id="out">running...</div>
+<script src="../show/lightshow.js"></script>
+<script src="../show/looks2.js"></script>
+<script src="model.js"></script>
+<script src="lights.js"></script>
+<script src="pixmap.js"></script>
+<script>
+(function(){
+ const R={ok:false, fails:[], numbers:{}};
+ const out=document.getElementById('out');
+ try{
+  const NS=window.NGVShow, pm=Studio.createPixmap({rows:24}), P=pm.P, n=P.n;
+  // paint a stack for 20 frames of loud bass so the smoothed bands settle, then read the array
+  function paint(layers){ const S=NS.createShow(); S.state.level=1; S.state.hitAt=-99;
+   const a=new Float32Array(n*3);
+   for(let k=0;k<20;k++){ Object.assign(S.frame,{t:k/60,bpm:124,beatN:0,beatPhase:0.1,barPhase:0.1,bass:1,mid:0.5,high:0.5,rms:1,onset:0}); S.paintLayers(a,P,layers); }
+   return a; }
+  const sum=(a,pred)=>{ let s=0; for(let i=0;i<n;i++)if(!pred||pred(i))s+=a[i*3]+a[i*3+1]+a[i*3+2]; return s; };
+  const north=i=>P.col[i]<6, south=i=>P.col[i]>=6;
+  const bed={look:'pulse',palette:'ice',gain:1};
+
+  const nomix=paint([bed]);
+  R.numbers.bedLit=+(sum(nomix)/n).toFixed(3);
+  if(!(sum(nomix)>n*0.3))R.fails.push('a plain bed with no mix set paints nothing');
+
+  const mapped=paint([Object.assign({},bed,{mix:'add',map:'north'})]);
+  R.numbers.northLit=+sum(mapped,north).toFixed(1); R.numbers.southLit=+sum(mapped,south).toFixed(1);
+  if(!(sum(mapped,north)>0&&sum(mapped,south)===0))R.fails.push('map north still lit the south row');
+
+  const add=paint([Object.assign({},bed,{mix:'add'}),{look:'pulse',palette:'ember',gain:1,mix:'add'}]);
+  const mx=paint([Object.assign({},bed,{mix:'add'}),{look:'pulse',palette:'ember',gain:1,mix:'max'}]);
+  R.numbers.add=+sum(add).toFixed(1); R.numbers.max=+sum(mx).toFixed(1);
+  if(!(sum(mx)<sum(add)))R.fails.push('max came out as bright as add');
+
+  const top=paint([{look:'pulse',palette:'ember',gain:1,mix:'add'}]);
+  const over=paint([Object.assign({},bed,{mix:'add'}),{look:'pulse',palette:'ember',gain:1,mix:'over'}]);
+  let d=0; for(let i=0;i<n*3;i++)d=Math.max(d,Math.abs(over[i]-top[i]));
+  R.numbers.overVsTop=+d.toFixed(4);
+  if(d>1e-4)R.fails.push('over at full opacity did not cover the layer under it');
+
+  const masked=paint([Object.assign({},bed,{mix:'add'}),{look:'blackout',palette:'white',gain:1,mix:'mask',map:'south'}]);
+  R.numbers.maskSouth=+sum(masked,south).toFixed(2); R.numbers.maskNorth=+sum(masked,north).toFixed(1);
+  if(!(sum(masked,south)===0&&sum(masked,north)>0))R.fails.push('a blackout mask on the south row did not black out only the south row');
+
+  const sub=paint([Object.assign({},bed,{mix:'add'}),Object.assign({},bed,{mix:'sub'})]);
+  R.numbers.sub=+sum(sub).toFixed(3);
+  if(!(sum(sub)<sum(nomix)*0.05))R.fails.push('subtracting the same bed left light behind');
+
+  // the pixel map paints and reports light
+  const S=NS.createShow(); Object.assign(S.frame,{t:1,bass:1,rms:1,mid:1,high:1}); S.state.level=1;
+  const cv=document.createElement('canvas'); cv.style.width='390px'; cv.style.height='76px'; document.body.appendChild(cv);
+  for(let k=0;k<10;k++){ S.frame.t=1+k/60; pm.draw(S,cv,[Object.assign({},bed,{mix:'add'})],true); }
+  R.numbers.pixmapLit=+pm.litShare().toFixed(3);
+  if(!(pm.litShare()>0.5))R.fails.push('the pixel map painted less than half its pixels lit on a full bed');
+
+  // a press aimed at layer 2 lands on layer 2 and leaves the bed alone
+  const proj=Studio.demoProject();
+  const L=Studio.createLights({project:()=>proj, engine:()=>null, iframe:()=>null});
+  L.resolve(); const bed0=L.state.layers[0].look;
+  L.press('look','rainbow',2); L.resolve();
+  R.numbers.layers=L.state.layers.map(l=>l.look+(l.mix?'/'+l.mix:'')+(l.map?'@'+l.map:''));
+  if(L.state.layers.length!==4)R.fails.push('the demo does not carry four light layers');
+  if(L.state.layers[2].look!=='rainbow'||L.state.layers[0].look!==bed0)R.fails.push('a press on layer 2 did not land on layer 2 only');
+  // mute and solo on a Lights card
+  const glit=proj.machines.find(m=>m.name==='Glitter'); glit.solo=true; L.invalidate(); L.resolve();
+  R.numbers.soloGains=L.state.layers.map(l=>+(l.gain||0).toFixed(2));
+  if(!(L.state.layers[2].gain>0&&L.state.layers[0].gain===0))R.fails.push('solo on one light layer did not silence the others');
+
+  R.ok=R.fails.length===0;
+ }catch(e){ R.fails.push('threw: '+(e&&e.stack||e)); }
+ out.textContent=JSON.stringify(R,null,1);
+ window.LAYERS_TEST=R;
+})();
+</script>
+</body>
+</html>

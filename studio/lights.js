@@ -57,6 +57,7 @@ Studio.createLights=function(opts){
   return out.slice(0,MAX_LAYERS);
  }
  function lightsMachine(){ return lightsMachines()[0]||null; }
+ function silenced(m){ if(m.mute)return true; const all=lightsMachines(); return all.some(x=>x.solo)&&!m.solo; }
 
  function timeline(){ const p=project(); if(!p)return null;
   if(!tl&&Studio.timeline)tl=Studio.timeline(p); return tl; }
@@ -124,9 +125,16 @@ Studio.createLights=function(opts){
   // gain is the layer's own Level knob (the builder writes energy into it); the level LANE is the
   // hall master and lives on state.level, so a riser ramps every layer at once
   const g=(m.params&&m.params.level!=null?m.params.level:1)*(m.gain!=null?m.gain:1);
-  L.gain=clamp(g,0,1);
+  // M and S on a Lights card behave as they do on a sound card: a muted layer is dark, and once any
+  // layer is soloed only the soloed ones paint (MADRIX's S button, the same idea)
+  L.gain=silenced(m)?0:clamp(g,0,1);
   L.family=m.family||famOf(L.look);
   L.sync=sync;
+  // the MADRIX half: how the layer lands on the ones under it, where it paints, how fast it runs.
+  // Absent on an older project, and then the compositor keeps the old family-ordered stack.
+  if(m.mix)L.mix=m.mix; else delete L.mix;
+  if(m.map&&m.map!=='all')L.map=m.map; else delete L.map;
+  const sp=m.params&&m.params.speed; if(sp>0&&sp!==1)L.speed=sp; else delete L.speed;
 
   // where the layer is in its own cycle: triggers if it is synced, the beat grid if it is not
   if(T&&T.steps.length){
@@ -246,6 +254,7 @@ Studio.createLights=function(opts){
  }
 
  const L={ show, state, frame, resolve, press, setRecord, tick, invalidate, lightsMachines,
+  layerOf:(mid)=>lightsMachines().findIndex(m=>m.id===mid),
   get record(){ return record; }, get quantise(){ return quant; },
   // the UI lights its pads from these
   looks:LOOKS(), palettes:PALS(), maxLayers:MAX_LAYERS };

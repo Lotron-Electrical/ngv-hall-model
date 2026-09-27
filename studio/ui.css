@@ -302,3 +302,17 @@ body.lightsdesk #stripplay{height:270px}
  .vhead h2{font-size:17px}
 }
 @media (min-width:900px) and (max-height:800px){ #stripplay{height:128px} .fader{height:120px} }
+
+/* THE PIXEL MAP AND THE LAYER CARDS (2026-09-27). The band sits between the views and the play
+   drawer on every view; on the Hall tab it rides up over the foot of the hall, so the flat map and
+   the hall read as one picture. */
+#pixband{flex:none;height:76px;background:#08090b;border-top:1px solid var(--rule);position:relative;z-index:4;cursor:pointer}
+#pixcv{display:block;width:100%;height:100%}
+body.hallview #pixband{margin-top:-120px;height:120px;background:linear-gradient(rgba(8,9,11,0),rgba(8,9,11,.35));border-top:0}
+@media (min-width:900px){ #pixband{height:88px} }
+.layerhead{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.laythumb{display:block;width:100%;height:64px;border-radius:6px;background:#08090b;border:1px solid var(--rule)}
+.layersel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lsel{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lsel span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.lsel select{width:100%;min-width:0;min-height:40px}

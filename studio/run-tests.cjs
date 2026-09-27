@@ -32,7 +32,8 @@ const {chromium}=require(require.resolve('playwright',{paths:[PW,ROOT]}));
  const ltPick=R=>R.ok===true&&[1,2,3,4,5,6].every(i=>R['assert'+i]===true); ltPick.summary=R=>({engine:R.engine,asserts:[1,2,3,4,5,6].map(i=>R['assert'+i]),frameT:R.steps&&R.steps.frameT});
  const tlPick=R=>R.ok===true&&[1,2,3,4,5,6,7].every(i=>R['assert'+i]===true); tlPick.summary=R=>({asserts:[1,2,3,4,5,6,7].map(i=>R['assert'+i]),live:R.live,rebuild:R.rebuild,fails:R.fails});
  const prPick=R=>R.ok===true&&(!R.fails||R.fails.length===0); prPick.summary=R=>({counts:R.counts,song:R.numbers&&R.numbers.song,stacks:R.numbers&&R.numbers.stacks,fails:R.fails});
- try{ await run('test-engine.html','RESULT',engPick); await run('test-lights.html','LIGHTS_TEST',ltPick); await run('test-timeline.html','TIMELINE_TEST',tlPick); await run('test-presets.html','PRESETS_TEST',prPick); }
+ const lyPick=R=>R.ok===true&&R.fails.length===0; lyPick.summary=R=>({numbers:R.numbers,fails:R.fails});
+ try{ await run('test-engine.html','RESULT',engPick); await run('test-lights.html','LIGHTS_TEST',ltPick); await run('test-timeline.html','TIMELINE_TEST',tlPick); await run('test-presets.html','PRESETS_TEST',prPick); await run('test-layers.html','LAYERS_TEST',lyPick); }
  finally{ await browser.close(); server.kill(); }
  // the lights test exports a `verify` show: leave the folder as it was
  const fs=require('fs'); for(const f of ['verify.wav','verify.cues.json','verify.project.json']){ try{ fs.unlinkSync(path.join(ROOT,'show',f)); }catch(e){} }

@@ -202,6 +202,7 @@ function renderRack(){
   hd.appendChild(mb); hd.appendChild(sb); hd.appendChild(dots);
   card.appendChild(hd);
   const body=el('div','rackbody');
+  if(m.type==='lights')body.appendChild(layerHead(m));
   body.appendChild(paramKnobs(T.params,m.params,(key,v)=>{ eng.setParam&&eng.setParam(m.id,key,v); commit(); },'knobrow'));
   card.appendChild(body);
   // selecting a card must NOT rebuild the rack: the rebuild detached the "..." button between its
@@ -212,6 +213,41 @@ function renderRack(){
   box.appendChild(card);
  });
  if(!proj.machines.length)box.appendChild(el('p','muted','The rack is empty. Add a machine.'));
+}
+// A LIGHTS CARD IS A MADRIX LAYER (2026-09-27): its own live preview of what this layer alone paints,
+// then how it lands on the layers under it (Mix) and where on the hall it may paint (Map). The rack
+// order is the stack: the top card is the bottom layer, the way it reads down a MADRIX layer list.
+const thumbs=new Map();   // machine id -> {cv, show}
+function layerHead(m){
+ const box=el('div','layerhead');
+ const cv=el('canvas','laythumb'); cv.setAttribute('aria-label',m.name+' layer preview');
+ box.appendChild(cv);
+ const t=thumbs.get(m.id)||{show:window.NGVShow&&window.NGVShow.createShow?window.NGVShow.createShow():null};
+ t.cv=cv; thumbs.set(m.id,t);
+ const row=el('div','layersel');
+ const pick=(label,list,get,set)=>{ const w=el('label','lsel'); w.appendChild(el('span',null,label));
+  const s=el('select'); for(const [v,t2] of list){ const o=el('option',null,t2); o.value=v; s.appendChild(o); }
+  s.value=get(); s.addEventListener('change',()=>{ set(s.value); commit(); });
+  s.addEventListener('pointerdown',(e)=>e.stopPropagation());
+  w.appendChild(s); row.appendChild(w); };
+ pick('Mix',Studio.LIGHT_MIXES,()=>m.mix||'add',(v)=>{ m.mix=v; });
+ pick('Map',Studio.LIGHT_MAPS,()=>m.map||'all',(v)=>{ m.map=v; });
+ // what drives the layer's cycle: the beat grid, or another machine's notes
+ const syncs=[['grid','Beat grid']].concat(proj.machines.filter(x=>x.type!=='lights').map(x=>[x.id,x.name+' notes']));
+ pick('Trigger',syncs,()=>m.sync||'grid',(v)=>{ m.sync=v==='grid'?undefined:v; });
+ box.appendChild(row);
+ return box;
+}
+// every Lights card's preview, painted from that layer alone. A mask or subtract layer shows the
+// light it gates with, since on its own it would paint nothing.
+function paintThumbs(){
+ if(!pixThumb||view!=='rack')return;
+ const idx=L.lightsMachines?L.lightsMachines():[];
+ idx.forEach((m,i)=>{ const t=thumbs.get(m.id), ly=L.state.layers&&L.state.layers[i];
+  if(!t||!t.show||!ly||!t.cv||!t.cv.isConnected)return;
+  Object.assign(t.show.frame,L.frame); t.show.state.level=1; t.show.state.hitAt=L.state.hitAt;
+  const one=Object.assign({},ly,{mix:'add',gain:m.mute?0:Math.max(0.35,ly.gain||0)});
+  pixThumb.draw(t.show,t.cv,[one],false); });
 }
 function machineMenu(m,i){
  openSheet(m.name,(box)=>{
@@ -236,6 +272,8 @@ function renameMachine(m){
 function addMachineSheet(){
  openSheet('Add machine',(box)=>{
   for(const type of Studio.MACHINE_ORDER)sAct(box,MT[type].name,()=>{
+   // six light layers is the compositor's cap; a seventh would sit in the rack and paint nothing
+   if(type==='lights'&&proj.machines.filter(x=>x.type==='lights').length>=((L&&L.maxLayers)||6)){ say('Six light layers is the most the hall takes'); return; }
    const m=Studio.newMachine(type); proj.machines.push(m); selId=m.id;
    eng.rebuild&&eng.rebuild(); commit(); renderAll(); say(MT[type].name+' added'); });
  });
@@ -671,19 +709,23 @@ function buildLightsPhone(host){
  stack.appendChild(pg);
  host.appendChild(stack);
 }
+// the pads play the light layer that is selected in the chips, so a press on "Glitter" changes the
+// glitter and leaves the bed alone. Before 2026-09-27 every press landed on the first layer.
+function selLayer(){ const m=sel(); const i=(m&&m.type==='lights'&&L.layerOf)?L.layerOf(m.id):0; return i<0?0:i; }
+function selLayerState(){ const ly=L.state.layers&&L.state.layers[selLayer()]; return ly||L.state; }
 function refreshLightPads(){
- const host=$('stripplay');
- host.querySelectorAll('[data-look]').forEach(b=>b.setAttribute('aria-pressed',L.state.look===b.dataset.look?'true':'false'));
- host.querySelectorAll('[data-pal]').forEach(b=>b.setAttribute('aria-pressed',L.state.palette===b.dataset.pal?'true':'false'));
+ const host=$('stripplay'), ls=selLayerState();
+ host.querySelectorAll('[data-look]').forEach(b=>b.setAttribute('aria-pressed',ls.look===b.dataset.look?'true':'false'));
+ host.querySelectorAll('[data-pal]').forEach(b=>b.setAttribute('aria-pressed',ls.palette===b.dataset.pal?'true':'false'));
  const lv=$('lvlval'), r=$('lvl'); if(lv)lv.textContent=fix(L.state.level); if(r&&document.activeElement!==r)r.value=L.state.level;
 }
 function lightPress(kind,val){
  let wrote=null;
- try{ wrote=L.press(kind,val); }catch(e){}
+ try{ wrote=L.press(kind,val,selLayer()); }catch(e){}
  if(L.stub||!wrote){ if(record&&eng.playing){ if(kind==='level')recordLightLevel(val); else recordLightCue(kind,val); } }
  refreshLightPads(); const m=sel(); if(view==='pattern'&&m&&m.type==='lights')renderPattern();
 }
-function lightsMachine(){ return proj.machines.find(m=>m.type==='lights')||null; }
+function lightsMachine(){ const m=sel(); return m&&m.type==='lights'?m:(proj.machines.find(x=>x.type==='lights')||null); }
 function recordLightCue(kind,val){ const m=lightsMachine(); if(!m)return; const p=patternForWrite(m); if(!p)return;
  const n=Studio.lightKeyIndex(kind,val); if(n<0)return; Studio.addNote(p.pat,{s:p.step,n,v:1,l:1}); commit(); }
 function recordLightLevel(v){ const m=lightsMachine(); if(!m)return; const p=patternForWrite(m); if(!p||!p.pat.level)return;
@@ -787,6 +829,9 @@ function moreSheet(){
   sAct(box,'Save project',doSave);
   sAct(box,'Load project',doLoad);
   sAct(box,'Export show',doExport);
+  sAct(box,'Open the demo',()=>{ if(!confirm('Replace this project with the demo?'))return;
+   try{ eng.stop(); }catch(e){} proj=Studio.demoProject(); selId=(proj.machines[0]||{}).id||null;
+   eng.rebuild&&eng.rebuild(); commit(); renderAll(); setView('rack'); say('Demo loaded'); });
  });
 }
 function bpmSheet(){
@@ -889,7 +934,12 @@ function loop(){
   $('simstate').textContent=(st.look||'-')+' / '+(st.palette||'-')+' / '+fix(st.level==null?1:st.level,2);
   const m=sel(); if(m&&kindOf(m)==='lights'&&drawerOpen())refreshLightPads(); }
  if(frames%2===0&&drawerOpen())paintFlashes();
+ if(pixMain&&(eng.playing||frames%4===0)){ const cv=$('pixcv');
+  if(cv&&cv.offsetParent!==null){ try{ pixMain.draw(L.show,cv,L.state.layers,true,view==='hall'); }catch(e){} } }
+ if(frames%3===0){ try{ paintThumbs(); }catch(e){} }
 }
+const pixMain=Studio.createPixmap?Studio.createPixmap({rows:40}):null;
+const pixThumb=Studio.createPixmap?Studio.createPixmap({rows:20}):null;
 function paintFlashes(){
  const m=sel(); if(!m)return; const now=performance.now(), host=$('stripplay'), kind=kindOf(m);
  if(kind==='drum')host.querySelectorAll('.pad[data-n]').forEach(b=>{
@@ -951,6 +1001,8 @@ function boot(){
  $('octdn').addEventListener('click',()=>setOctave(octave-1));
  $('octup').addEventListener('click',()=>setOctave(octave+1));
  $('drawertog').addEventListener('click',()=>setDrawer(!drawerOpen()));
+ // the pixel band is a shortcut to the hall on a phone, and back again
+ $('pixband').addEventListener('click',()=>{ if(!isPhone())return; setView(view==='hall'?'rack':'hall'); });
  $('simhandle').addEventListener('pointerdown',(e)=>{ e.preventDefault(); $('simhandle').setPointerCapture(e.pointerId);
   const mv=(ev)=>{ $('simpanel').style.width=clamp(window.innerWidth-ev.clientX,220,window.innerWidth-420)+'px'; };
   const up=()=>{ $('simhandle').removeEventListener('pointermove',mv); $('simhandle').removeEventListener('pointerup',up); };

@@ -35,6 +35,26 @@ const PALETTE_NAMES=Object.keys(PALETTES);
 // which takes a max, so a strobe layer never doubles the hall into a white wash.
 const FAMILIES=['base','movement','accent','texture','colour','strobe'];
 const FAMILY_ORDER={base:0,movement:1,accent:2,texture:3,colour:4,strobe:5};
+// MIX AND MAP (Lloyd, 2026-09-27: "an app like caustic 3 that also had pixel strip visuals as a
+// layer"): a layer is a MADRIX layer as well as a Caustic machine. Its MIX says how it lands on the
+// layers under it, and its MAP says which pixels it may touch. A layer with neither set keeps the
+// old family-ordered additive stack, so a v1 or v2 cue file and the Jam paint exactly as before.
+//   add   sums with what is under it (the old behaviour)
+//   max   the brighter of the two, per channel, so a layer can never wash the bed out
+//   over  covers what is under it by its opacity, the way a normal layer does in MADRIX
+//   mask  lights nothing itself: the layer's brightness gates the layers under it
+//   sub   takes its light away from the layers under it
+const MIXES=[['add','Add'],['max','Max'],['over','Over'],['mask','Mask'],['sub','Subtract']];
+// the zones the hall's pixels can be mapped to. col 0..5 is the north row (N1..N6), 6..11 the
+// south; s is 0 at the foot of a strip and 1 at the top.
+const MAPS=[['all','Whole hall'],['north','North row'],['south','South row'],['odd','Odd columns'],
+ ['even','Even columns'],['ends','End columns'],['centre','Centre columns'],['lower','Lower half'],['upper','Upper half']];
+const MAP_CODE={}; MAPS.forEach((m,i)=>MAP_CODE[m[0]]=i);
+function inMap(code,s,col){ const k=col%6;
+ switch(code){ case 1:return col<6; case 2:return col>=6; case 3:return (k&1)===0; case 4:return (k&1)===1;
+  case 5:return k===0||k===5; case 6:return k===2||k===3; case 7:return s<0.5; case 8:return s>=0.5; default:return true; } }
+const MIX_CODE={add:0,max:1,over:2,mask:3,sub:4};
+
 const LOOKS=[
  ['pulse',   'The whole hall breathes with the bass',                    'base'],
  ['rise',    'A level meter up every column, bright tip',                'base'],
@@ -171,7 +191,9 @@ function createShow(){
     const ly=layers[q]; if(!ly)continue;
     const gain=ly.gain==null?1:clamp(ly.gain,0,1), look=ly.look||'pulse';
     // a dark layer and a blackout layer paint nothing, so they are dropped before the pixel loop
-    if(gain<=0.002||look==='blackout')continue;
+    const mix=ly.mix!=null&&MIX_CODE[ly.mix]!=null?MIX_CODE[ly.mix]:-1;
+    // except a blackout that covers or masks: that one is how a zone is faded to black
+    if(gain<=0.002||(look==='blackout'&&mix!==2&&mix!==3))continue;
     const m=S.lsm[q]||(S.lsm[q]={bass:0,mid:0,high:0,rms:0});
     for(const k of BANDS){ const v=clamp(f[k],0,1); m[k]+=(v>m[k]?rise:fall)*(v-m[k]); }
     const pool=S.lpool[q]||(S.lpool[q]={A:[0,0,0],B:[0,0,0],M:[0,0,0]});
@@ -184,9 +206,11 @@ function createShow(){
      beatN:ly.trigN==null?beatN:(ly.trigN|0), beatPhase:tp,
      barPhase:ly.cyclePhase==null?barPhase:clamp(ly.cyclePhase,0,1),
      // the trigger envelope: full at the trigger, zero by the next one, whatever the gap is
-     trig:(1-tp)*(1-tp) });
+     trig:(1-tp)*(1-tp), mix, map:MAP_CODE[ly.map]|0, sp:ly.speed>0?ly.speed:1 });
    }
-   prep.sort((x,y)=>(FAMILY_ORDER[x.fam]==null?0:FAMILY_ORDER[x.fam])-(FAMILY_ORDER[y.fam]==null?0:FAMILY_ORDER[y.fam]));
+   // a stack that names its mixes is a MADRIX stack: rack order, bottom first, and the order is the
+   // meaning. One that does not keeps the family order the Jam was tuned against.
+   if(!prep.some(x=>x.mix>=0))prep.sort((x,y)=>(FAMILY_ORDER[x.fam]==null?0:FAMILY_ORDER[x.fam])-(FAMILY_ORDER[y.fam]==null?0:FAMILY_ORDER[y.fam]));
    const lv=clamp(st.level,0,1), hit=lin(clamp(Math.exp(-(f.t-st.hitAt)/0.12),0,1));
    const nl=prep.length;
    c.t=f.t; c.strobeN=S.sm.strobeN; c.strobeK=S.sm.strobeK;
@@ -197,12 +221,20 @@ function createShow(){
      const L=prep[q];
      c.A=L.A; c.B=L.B; c.M=L.M;
      c.bassS=L.bassS; c.midS=L.midS; c.highS=L.highS; c.rmsS=L.rmsS;
+     if(L.map&&!inMap(L.map,c.s,c.col))continue;
      c.beatN=L.beatN; c.beatPhase=L.beatPhase; c.barPhase=L.barPhase; c.trig=L.trig;
+     c.t=L.sp===1?f.t:f.t*L.sp;
      c.r=c.g=c.b=0;
      L.painter(i,c);
-     const k=L.gain, vr=lin(clamp(c.r,0,1))*k, vg=lin(clamp(c.g,0,1))*k, vb=lin(clamp(c.b,0,1))*k;
-     if(L.fam==='strobe'){ if(vr>xr)xr=vr; if(vg>xg)xg=vg; if(vb>xb)xb=vb; }   // max, so the flash never doubles the bed
-     else { r+=vr; g+=vg; b+=vb; }
+     const k=L.gain, lr=lin(clamp(c.r,0,1)), lg=lin(clamp(c.g,0,1)), lb=lin(clamp(c.b,0,1)), vr=lr*k, vg=lg*k, vb=lb*k;
+     if(L.mix<=0){
+      if(L.fam==='strobe'&&L.mix<0){ if(vr>xr)xr=vr; if(vg>xg)xg=vg; if(vb>xb)xb=vb; }   // max, so the flash never doubles the bed
+      else { r+=vr; g+=vg; b+=vb; }
+     }
+     else if(L.mix===1){ if(vr>r)r=vr; if(vg>g)g=vg; if(vb>b)b=vb; }
+     else if(L.mix===2){ const u=1-k; r=r*u+vr; g=g*u+vg; b=b*u+vb; xr*=u; xg*=u; xb*=u; }
+     else if(L.mix===3){ const mk=1-k+k*(lr>lg?(lr>lb?lr:lb):(lg>lb?lg:lb)); r*=mk; g*=mk; b*=mk; xr*=mk; xg*=mk; xb*=mk; }
+     else { r=r>vr?r-vr:0; g=g>vg?g-vg:0; b=b>vb?b-vb:0; }
     }
     const o=i*3;
     a[o]=clamp(soft((r>xr?r:xr)*lv)+hit,0,1); a[o+1]=clamp(soft((g>xg?g:xg)*lv)+hit,0,1); a[o+2]=clamp(soft((b>xb?b:xb)*lv)+hit,0,1);
@@ -215,9 +247,10 @@ function createShow(){
   applyCues(cues,t){ const st=S.state;
    for(let i=0;i<cues.length;i++){ const q=cues[i]; if(q.t>t)break;
     const li=q.layer|0;
-    if(li>0||st.layers){ const L=S.layerAt(li);
+    if(li>0||st.layers||q.mix||q.map){ const L=S.layerAt(li);
      if(q.look)L.look=q.look; if(q.palette)L.palette=q.palette;
      if(q.gain!=null)L.gain=clamp(q.gain,0,1); if(q.sync)L.sync=q.sync; if(q.family)L.family=q.family;
+     if(q.mix)L.mix=q.mix; if(q.map)L.map=q.map; if(q.speed>0)L.speed=q.speed;
     }
     if(li===0){ if(q.look)st.look=q.look; if(q.palette)st.palette=q.palette; if(q.level!=null)st.level=clamp(q.level,0,1); }
     else if(q.level!=null){ const L=S.layerAt(li); L.gain=clamp(q.level,0,1); }
@@ -262,4 +295,5 @@ NS.createShow=createShow; NS.createAnalyser=createAnalyser;
 NS.LOOKS=LOOKS; NS.LOOK_NAMES=LOOK_NAMES; NS.PALETTES=PALETTES; NS.PALETTE_NAMES=PALETTE_NAMES;
 NS.PAINT=PAINT; NS.registerLook=registerLook; NS.lookFamily=lookFamily; NS.FAMILIES=FAMILIES;
 NS.LOOK_FAMILY=LOOK_FAMILY;
+NS.MIXES=MIXES; NS.MAPS=MAPS; NS.inMap=(map,s,col)=>inMap(MAP_CODE[map]|0,s,col);
 })();

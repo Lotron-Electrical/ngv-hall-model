@@ -134,7 +134,11 @@ function cueList(proj){
  machs.forEach((m,i)=>{ const e=at(i,0);
   e.gain=r4(clamp((m.params&&m.params.level!=null?m.params.level:1)*(m.gain!=null?m.gain:1),0,1));
   e.sync=m.sync||'grid';
-  if(m.family)e.family=m.family; });
+  if(m.family)e.family=m.family;
+  // the MADRIX half travels with the show, so the proposal page stacks the layers the same way
+  if(m.mute)e.gain=0;
+  if(m.mix)e.mix=m.mix; if(m.map&&m.map!=='all')e.map=m.map;
+  if(m.params&&m.params.speed>0&&m.params.speed!==1)e.speed=r4(m.params.speed); });
  for(const x of Studio.flatten(proj,'song')){
   const li=idx.get(x.mid); if(li==null)continue;
   const k=Studio.LIGHT_KEYS[x.n]; if(!k)continue;

@@ -109,7 +109,7 @@ const R={ok:false, engine:'', steps:{}};
  R.steps.frameT=Math.round(frameT*100)/100; R.steps.endStep=Math.round(eng.pos().step*10)/10;
  R.assert1=(look0==='pulse');
  R.assert2=(frameT>2);
- R.assert3=(bar1Look==='beatwave'&&hallLook==='beatwave'&&!!hallLayers&&hallLayers.length===1&&hallLayers[0].look==='beatwave');
+ R.assert3=(bar1Look==='beatwave'&&hallLook==='beatwave'&&!!hallLayers&&hallLayers.length===4&&hallLayers[0].look==='beatwave');
  say('look at step 0: '+look0+'   look after bar 1: '+bar1Look+'   hall look: '+hallLook);
  say('iframe ngvShow.frame.t = '+R.steps.frameT+'  (needs > 2), hall on = '+hallOn);
 

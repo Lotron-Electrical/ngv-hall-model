@@ -37,7 +37,9 @@ Studio.MACHINE_TYPES={
    kickTune:P('Kick tune',0,1,0.5), kickDecay:P('Kick decay',0.05,1,0.35,'s'), snareTone:P('Snare tone',0,1,0.5), snareDecay:P('Snare decay',0.05,0.6,0.18,'s'),
    hatDecay:P('Hat decay',0.01,0.3,0.05,'s'), ohatDecay:P('Open hat decay',0.05,1,0.3,'s'), tomTune:P('Tom tune',0,1,0.5), crashDecay:P('Crash decay',0.2,3,1.2,'s'),
    drive:P('Drive',0,1,0.1), vol:P('Volume',0,1,0.8) } },
- lights:{ name:'Lights', kind:'lights', color:'#ff5db1', params:{ level:P('Level',0,1,1) } },   // a master for the light level, over the pattern's level lane
+ // a Lights machine is one MADRIX layer: Opacity is its fader over the pattern's level lane, Speed
+ // runs its free-running looks (sparkle, helix) faster or slower; beat-locked looks keep the beat
+ lights:{ name:'Lights', kind:'lights', color:'#ff5db1', params:{ level:P('Opacity',0,1,1), speed:P('Speed',0.25,4,1,'x') } },
 };
 Studio.MACHINE_ORDER=['subsynth','bassline','padsynth','fmsynth','beatbox','lights'];
 
@@ -66,7 +68,14 @@ Studio.newPattern=(type,bars)=>{ const p={bars:bars||1, notes:[]}; if(type==='li
 Studio.newMachine=(type,name)=>{ const T=Studio.MACHINE_TYPES[type]; if(!T)throw new Error('no machine type '+type);
  const m={ id:Studio.uid('m'), type, name:name||T.name, params:Studio.defaultParams(T.params), patterns:{A1:Studio.newPattern(type,1)}, curPat:'A1',
   vol:0.8, pan:0, mute:false, solo:false, fx:[null,null], send:{delay:0,reverb:0} };
+ // a new Lights layer names its mix and map, which puts the stack in rack order (MADRIX: the
+ // lowest card is the bottom layer). An older project's layers have neither and keep the Jam's
+ // family order, so nothing it plays changes.
+ if(type==='lights'){ m.mix='add'; m.map='all'; }
  return m; };
+// what a Lights layer can do to the ones under it, and where on the hall it may paint
+Studio.LIGHT_MIXES=(window.NGVShow&&window.NGVShow.MIXES)||[['add','Add']];
+Studio.LIGHT_MAPS=(window.NGVShow&&window.NGVShow.MAPS)||[['all','Whole hall']];
 Studio.newFx=(type)=>({ type, params:Studio.defaultParams(Studio.FX_TYPES[type].params), on:true });
 Studio.newProject=(name)=>({ name:name||'untitled', bpm:124, swing:0, machines:[], song:{bars:16, tracks:{}}, master:{vol:0.9, delay:Studio.newFx('delay'), reverb:Studio.newFx('reverb')}, version:1 });
 
@@ -158,11 +167,21 @@ Studio.demoProject=()=>{ const pr=Studio.newProject('demo'); const S=Studio.STEP
  [[0,[57,60,64]],[16,[53,57,60]],[32,[60,64,67]],[48,[55,59,62]]].forEach(([s,ns])=>ns.forEach(n=>Studio.addNote(pp,{s,n,v:0.8,l:16})));
  const arp=Studio.newMachine('subsynth','Pluck'); arp.params.decay=0.12; arp.params.sustain=0; arp.params.cutoff=0.6; arp.params.fenv=0.5; const ap=Studio.resizePattern(arp.patterns.A1,1);
  [69,72,76,81,76,72,69,64,69,72,76,81,76,72,69,64].forEach((n,i)=>{ if(i%2===0)Studio.addNote(ap,{s:i,n,v:0.6,l:1}); });
- const lights=Studio.newMachine('lights','Lights'); const lp=Studio.resizePattern(lights.patterns.A1,4);
- const LK=Studio.lightKeyIndex; Studio.addNote(lp,{s:0,n:LK('look','pulse'),v:1,l:1}); Studio.addNote(lp,{s:0,n:LK('palette','helix'),v:1,l:1});
+ // the light rack is four layers, bottom first, the way a MADRIX operator stacks a look: a bed on
+ // the whole hall, a chase stepping on the kicks, glitter on the upper half, and a sweep masking the
+ // lot so the hall reads as a wave travelling down it
+ const LK=Studio.lightKeyIndex;
+ const lights=Studio.newMachine('lights','Bed'); const lp=Studio.resizePattern(lights.patterns.A1,4);
+ Studio.addNote(lp,{s:0,n:LK('look','pulse'),v:1,l:1}); Studio.addNote(lp,{s:0,n:LK('palette','helix'),v:1,l:1});
  Studio.addNote(lp,{s:16,n:LK('look','beatwave'),v:1,l:1}); Studio.addNote(lp,{s:32,n:LK('look','helix'),v:1,l:1}); Studio.addNote(lp,{s:32,n:LK('palette','ice'),v:1,l:1});
- Studio.addNote(lp,{s:48,n:LK('look','sweep'),v:1,l:1}); Studio.addNote(lp,{s:48,n:LK('hit',true),v:1,l:1});
- pr.machines.push(drums,bass,pad,arp,lights);
+ Studio.addNote(lp,{s:48,n:LK('look','pulse'),v:1,l:1}); Studio.addNote(lp,{s:48,n:LK('hit',true),v:1,l:1});
+ const chase=Studio.newMachine('lights','Chase'); chase.mix='max'; chase.sync=drums.id; chase.params.level=0.9;
+ const cp=chase.patterns.A1; Studio.addNote(cp,{s:0,n:LK('look','hallchase'),v:1,l:1}); Studio.addNote(cp,{s:0,n:LK('palette','ember'),v:1,l:1});
+ const glit=Studio.newMachine('lights','Glitter'); glit.map='upper'; glit.params.level=0.7; glit.params.speed=1.5;
+ const gp=glit.patterns.A1; Studio.addNote(gp,{s:0,n:LK('look','sparkle'),v:1,l:1}); Studio.addNote(gp,{s:0,n:LK('palette','white'),v:1,l:1});
+ const wipe=Studio.newMachine('lights','Wipe'); wipe.mix='mask'; wipe.params.level=0.45;
+ const wp=wipe.patterns.A1; Studio.addNote(wp,{s:0,n:LK('look','sweep'),v:1,l:1}); Studio.addNote(wp,{s:0,n:LK('palette','white'),v:1,l:1});
+ pr.machines.push(drums,bass,pad,arp,lights,chase,glit,wipe);
  for(const m of pr.machines)Studio.placeBlock(pr,m.id,0,'A1',8);
  pr.song.bars=8; return pr; };
 
