@@ -127,6 +127,28 @@ if(window.NGVShow&&window.NGVShow._pendingLooks){
 }
 const lookFamily=n=>LOOK_FAMILY[n]||'base';
 
+// TRIGGER TIMING, SHARED (2026-09-27, Codex review of e0b4736): a layer SYNCED to another machine
+// steps on that machine's notes instead of the beat grid. T = {steps, len, base}: the synced
+// machine's note steps (sorted, deduped), the length of the pattern they repeat on and the step
+// its first block starts at. The studio runs these live and the hall runs them on an exported
+// show, so one copy of the maths is what keeps the two in time.
+// foldStep: the step the layer reads its cues and triggers at, wrapped onto the synced cycle so an
+// 8-step drum loop repeats the layer every 8 steps instead of letting it run off down the song.
+function foldStep(T,step){ return T&&T.len>0&&step>=T.base?T.base+((step-T.base)%T.len):step; }
+// trigAt: which trigger the folded step is past (trigN, -1 before the first), how far it is towards
+// the next one (trigPhase 0..1) and where it is in the cycle (cyclePhase, null with no cycle).
+function trigAt(T,look,out){
+ const s=T.steps; let lo=0,hi=s.length; while(lo<hi){ const md=(lo+hi)>>1; if(s[md]<=look)lo=md+1; else hi=md; }
+ const i=lo-1;
+ if(i<0){ out.trigN=-1; out.trigPhase=1; }
+ else { out.trigN=i;
+  const next=i+1<s.length?s[i+1]:(T.len>0?T.base+T.len+(s[0]-T.base):s[i]+4);
+  out.trigPhase=clamp((look-s[i])/Math.max(1e-6,next-s[i]),0,1);
+ }
+ out.cyclePhase=T.len>0?clamp(((look-T.base)%T.len+T.len)%T.len/T.len,0,1):null;
+ return out;
+}
+
 function createShow(){
  const S={
   on:false,
@@ -247,20 +269,29 @@ function createShow(){
   applyCues(cues,t){ const st=S.state;
    for(let i=0;i<cues.length;i++){ const q=cues[i]; if(q.t>t)break;
     const li=q.layer|0;
-    if(li>0||st.layers||q.mix||q.map){ const L=S.layerAt(li);
+    if(li>0||st.layers||q.mix||q.map||q.trig){ const L=S.layerAt(li);
      if(q.look)L.look=q.look; if(q.palette)L.palette=q.palette;
      if(q.gain!=null)L.gain=clamp(q.gain,0,1); if(q.sync)L.sync=q.sync; if(q.family)L.family=q.family;
-     if(q.mix)L.mix=q.mix; if(q.map)L.map=q.map; if(q.speed>0)L.speed=q.speed;
+     if(q.mix)L.mix=q.mix; if(q.map)L.map=q.map; if(q.speed>0)L.speed=q.speed; if(q.trig)L.trig=q.trig;
     }
+    // layer 0's own settings can arrive before anything has built the stack (its stamp sorts
+    // first at t = 0): kept aside so the stack, once a later layer makes it, starts with them
+    else if(li===0&&(q.gain!=null||q.sync||q.family)){ const k=S.l0||(S.l0={});
+     if(q.gain!=null)k.gain=clamp(q.gain,0,1); if(q.sync)k.sync=q.sync; if(q.family)k.family=q.family; }
     if(li===0){ if(q.look)st.look=q.look; if(q.palette)st.palette=q.palette; if(q.level!=null)st.level=clamp(q.level,0,1); }
     else if(q.level!=null){ const L=S.layerAt(li); L.gain=clamp(q.level,0,1); }
     if(q.hit)st.hitAt=q.t;
    }
+   // a synced layer's trigger timing, off the song step frameFromCues read from the file's step
+   // table. A file without one (an older export) keeps the beat grid, as it always did.
+   const step=S.frame.step;
+   if(st.layers&&step!=null)for(const L of st.layers){ if(!L||!L.trig)continue;
+    trigAt(L.trig,foldStep(L.trig,step),L); if(L.cyclePhase==null)delete L.cyclePhase; }
   },
   // the layer stack a cue file asked for, made on demand. Layer 0 mirrors the flat state so a v1
   // player and the compositor never disagree about what is on top of the hall.
   layerAt(i){ const st=S.state;
-   if(!st.layers)st.layers=[{look:st.look,palette:st.palette,gain:1,family:lookFamily(st.look)}];
+   if(!st.layers)st.layers=[Object.assign({look:st.look,palette:st.palette,gain:1,family:lookFamily(st.look)},S.l0)];
    while(st.layers.length<=i)st.layers.push({look:'blackout',palette:st.palette,gain:1,family:'base'});
    return st.layers[i];
   },
@@ -269,7 +300,14 @@ function createShow(){
    f.t=t; f.bass=k.bass[j]; f.mid=k.mid[j]; f.high=k.high[j]; f.rms=k.rms[j]; f.onset=k.onset[j]; f.bpm=cf.bpm||120;
    const b=cf.beats||[]; let lo=0,hi=b.length; while(lo<hi){ const md=(lo+hi)>>1; if(b[md]<=t)lo=md+1; else hi=md; }
    const bi=lo-1; if(bi>=0&&bi<b.length-1){ f.beatN=bi; f.beatPhase=(t-b[bi])/(b[bi+1]-b[bi]); } else if(bi>=0){ f.beatN=bi; f.beatPhase=clamp((t-b[bi])*f.bpm/60,0,1); } else { f.beatN=0; f.beatPhase=0; }
-   f.barPhase=((f.beatN%4)+f.beatPhase)/4; },
+   f.barPhase=((f.beatN%4)+f.beatPhase)/4;
+   // the song step at t, off the export's step table (the time of every step, so a tempo or
+   // meter change lands where it sounds). Synced layers read their triggers at this step.
+   const T=cf.stepT;
+   if(T&&T.length>1){ let a=0,z=T.length-1;
+    if(t<=T[0])f.step=0; else if(t>=T[z])f.step=z;
+    else { while(z-a>1){ const md=(a+z)>>1; if(T[md]<=t)a=md; else z=md; } f.step=a+(t-T[a])/Math.max(1e-9,T[a+1]-T[a]); }
+   } else f.step=null; },
  };
  return S;
 }
@@ -294,6 +332,6 @@ const NS=window.NGVShow=window.NGVShow||{};
 NS.createShow=createShow; NS.createAnalyser=createAnalyser;
 NS.LOOKS=LOOKS; NS.LOOK_NAMES=LOOK_NAMES; NS.PALETTES=PALETTES; NS.PALETTE_NAMES=PALETTE_NAMES;
 NS.PAINT=PAINT; NS.registerLook=registerLook; NS.lookFamily=lookFamily; NS.FAMILIES=FAMILIES;
-NS.LOOK_FAMILY=LOOK_FAMILY;
+NS.LOOK_FAMILY=LOOK_FAMILY; NS.trigAt=trigAt; NS.foldStep=foldStep;
 NS.MIXES=MIXES; NS.MAPS=MAPS; NS.inMap=(map,s,col)=>inMap(MAP_CODE[map]|0,s,col);
 })();

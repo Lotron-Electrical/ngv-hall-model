@@ -63,7 +63,11 @@ Studio.createPixmap=function(opts){
   if(overlay)ctx.clearRect(0,0,w,h); else { ctx.fillStyle='#08090b'; ctx.fillRect(0,0,w,h); }
   ctx.imageSmoothingEnabled=false; ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
   ctx.drawImage(off,0,0,W,rows,0,0,w,mh);
-  if('filter' in ctx){ ctx.save(); ctx.filter='blur('+Math.max(2,Math.round(w/W*0.9))+'px)'; ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.55;
+  // 'lighten' (the brighter of the two), not 'lighter' (the sum): the glow spills into the gutters
+  // and the dark cells as a strip's bloom does, but a lit cell stays at its own colour. The sum made
+  // every lit cell half again as bright as the LED it stands for, so the map read far brighter than
+  // the same show on the hall's columns (Codex review of e0b4736, finding 4).
+  if('filter' in ctx){ ctx.save(); ctx.filter='blur('+Math.max(2,Math.round(w/W*0.9))+'px)'; ctx.globalCompositeOperation='lighten'; ctx.globalAlpha=0.55;
    ctx.imageSmoothingEnabled=true; ctx.drawImage(off,0,0,W,rows,0,0,w,mh); ctx.restore(); }
   if(labels){ ctx.fillStyle=overlay?'#e9e6df':'#9a978f'; ctx.font=(10*dpr)+'px "IBM Plex Sans",system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
    for(let c=0;c<COLS;c++){ const x=(cellX(c,0)+GAPS/2)/W*w; ctx.fillText((c<6?'N':'S')+(c%6+1),x,h-dpr); } }

@@ -57,7 +57,7 @@ Studio.createLights=function(opts){
   return out.slice(0,MAX_LAYERS);
  }
  function lightsMachine(){ return lightsMachines()[0]||null; }
- function silenced(m){ if(m.mute)return true; const all=lightsMachines(); return all.some(x=>x.solo)&&!m.solo; }
+ function silenced(m){ return Studio.silenced(m,lightsMachines()); }
 
  function timeline(){ const p=project(); if(!p)return null;
   if(!tl&&Studio.timeline)tl=Studio.timeline(p); return tl; }
@@ -79,19 +79,8 @@ Studio.createLights=function(opts){
  // plus the length of the pattern they repeat on so the layer's cue cycle can wrap with it.
  function triggers(mid){
   const f=flat(); if(f.trig.has(mid))return f.trig.get(mid);
-  const p=project(), eng=engine(), mode=(eng&&eng.mode)||'song';
-  const m=p&&p.machines.find(x=>x.id===mid);
-  let steps=[], len=0, base=0;
-  if(m){
-   const seen=new Set();
-   for(const x of f.notes){ if(x.mid!==mid)continue; if(seen.has(x.s))continue; seen.add(x.s); steps.push(x.s); }
-   steps.sort((a,b)=>a-b);
-   if(mode==='pattern'){ const pat=m.patterns[m.curPat]; len=pat?Studio.patternSteps(pat):0; base=0; }
-   else { const tr=Studio.track(p,m.id), b=tr[0];   // the first block is where the layer's cycle starts
-    const pat=b&&m.patterns[b.pat]; const T=timeline();
-    len=pat?Studio.patternSteps(pat):0; base=b?(T?T.barStep(b.bar):b.bar*Studio.STEPS_PER_BAR):0; }
-  }
-  const out={steps, len:len>0?len:0, base};
+  const eng=engine(), mode=(eng&&eng.mode)||'song';
+  const out=Studio.triggerTable(project(),mid,mode,f.notes,timeline());
   f.trig.set(mid,out);
   return out;
  }
@@ -109,8 +98,7 @@ Studio.createLights=function(opts){
   const T=sync!=='grid'?triggers(sync):null;
   // a synced layer reads its cues on the synced pattern's cycle, so an 8-step drum loop repeats the
   // layer's cues every 8 steps instead of letting them run off down the song
-  let look=step;
-  if(T&&T.len>0&&step>=T.base)look=T.base+((step-T.base)%T.len);
+  const look=window.NGVShow.foldStep(T,step);
   const cues=flat().cues.get(m.id)||[];
   let lookAt=-1, palAt=-1;
   for(const c of cues){
@@ -127,7 +115,7 @@ Studio.createLights=function(opts){
   const g=(m.params&&m.params.level!=null?m.params.level:1)*(m.gain!=null?m.gain:1);
   // M and S on a Lights card behave as they do on a sound card: a muted layer is dark, and once any
   // layer is soloed only the soloed ones paint (MADRIX's S button, the same idea)
-  L.gain=silenced(m)?0:clamp(g,0,1);
+  L.gain=silenced(m)?0:clamp(g,0,1);   // studio/export.js applies the same rule (Studio.silenced)
   L.family=m.family||famOf(L.look);
   L.sync=sync;
   // the MADRIX half: how the layer lands on the ones under it, where it paints, how fast it runs.
@@ -137,16 +125,10 @@ Studio.createLights=function(opts){
   const sp=m.params&&m.params.speed; if(sp>0&&sp!==1)L.speed=sp; else delete L.speed;
 
   // where the layer is in its own cycle: triggers if it is synced, the beat grid if it is not
+  // (show/lightshow.js holds the maths, so an exported show runs exactly this on the hall)
   if(T&&T.steps.length){
-   const s=T.steps; let lo=0,hi=s.length; while(lo<hi){ const md=(lo+hi)>>1; if(s[md]<=look)lo=md+1; else hi=md; }
-   const i=lo-1;
-   if(i<0){ L.trigN=-1; L.trigPhase=1; }
-   else { L.trigN=i;
-    const next=i+1<s.length?s[i+1]:(T.len>0?T.base+T.len+(s[0]-T.base):s[i]+4);
-    const span=Math.max(1e-6,next-s[i]);
-    L.trigPhase=clamp((look-s[i])/span,0,1);
-   }
-   L.cyclePhase=T.len>0?clamp(((look-T.base)%T.len+T.len)%T.len/T.len,0,1):frame.barPhase;
+   window.NGVShow.trigAt(T,look,L);
+   if(L.cyclePhase==null)L.cyclePhase=frame.barPhase;
   } else {
    L.trigN=frame.beatN; L.trigPhase=frame.beatPhase; L.cyclePhase=frame.barPhase;
   }

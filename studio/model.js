@@ -97,6 +97,28 @@ Studio.placeBlock=(proj,mid,bar,pat,len)=>{ const tr=Studio.track(proj,mid); con
 Studio.removeBlock=(proj,mid,bar)=>{ const tr=Studio.track(proj,mid); proj.song.tracks[mid]=tr.filter(x=>!(bar>=x.bar&&bar<x.bar+x.len)); };
 Studio.songLengthBars=(proj)=>{ let n=0; for(const mid in proj.song.tracks)for(const b of proj.song.tracks[mid])n=Math.max(n,b.bar+b.len); return Math.max(n,1); };
 Studio.stepSeconds=(bpm)=>60/bpm/4;
+// THE TWO LIGHTS RULES THE RACK AND THE EXPORT SHARE (2026-09-27): what a synced layer triggers on,
+// and when a layer is dark. studio/lights.js runs them live and studio/export.js writes the same
+// answers into the cue file, so the hall plays back what the rack showed.
+// triggerTable: the steps machine `mid` has notes on (from `notes`, a flatten of the same mode),
+// deduped and sorted, plus the pattern length they repeat on and the step its cycle starts at: the
+// current pattern from 0 in pattern mode, the first block of its track in song mode.
+Studio.triggerTable=(proj,mid,mode,notes,T)=>{
+ const m=proj&&proj.machines.find(x=>x.id===mid);
+ let steps=[], len=0, base=0;
+ if(m){
+  const seen=new Set();
+  for(const x of notes){ if(x.mid!==mid||seen.has(x.s))continue; seen.add(x.s); steps.push(x.s); }
+  steps.sort((a,b)=>a-b);
+  if(mode==='pattern'){ const pat=m.patterns[m.curPat]; len=pat?Studio.patternSteps(pat):0; }
+  else { const b=Studio.track(proj,m.id)[0], pat=b&&m.patterns[b.pat];
+   len=pat?Studio.patternSteps(pat):0; base=b?(T?T.barStep(b.bar):b.bar*Studio.STEPS_PER_BAR):0; }
+ }
+ return {steps, len:len>0?len:0, base};
+};
+// silenced: M and S on a Lights card behave as they do on a sound card. A muted layer is dark, and
+// once any layer is soloed only the soloed ones paint (MADRIX's S button). `all` is the layer list.
+Studio.silenced=(m,all)=>!!m.mute||(all.some(x=>x.solo)&&!m.solo);
 Studio.barSeconds=(bpm)=>60/bpm*4;
 
 // every note of the song, flattened to absolute steps: [{mid, s, l, n, v, pat}], for the engine's

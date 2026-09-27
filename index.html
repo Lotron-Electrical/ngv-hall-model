@@ -6794,6 +6794,14 @@ const COVER_T={black:DIFFUSER_T, opal:OPAL_T, none:1};
 // face does on a fixed exposure; a bare LED package is brighter still, about forty times, since
 // the same light leaves a far smaller area, and it clips the same. All dim with the strip dimmer.
 const EMIT_EXPOSURE=1/DIFFUSER_T;
+// A LIT FACE IS NEVER NARROWER THAN A PIXEL WHILE A SHOW PLAYS (2026-09-27, Codex review of e0b4736:
+// "the 3D columns look dimmer than the flat pixel map"). An 18 mm face ten metres off is half a
+// pixel wide on a phone, so the rasteriser averages it into the dark column body and a strip at
+// full output reads at a third of its colour (measured: hall/map 0.32 for ice). With a show on,
+// the vertex shader widens each emitter across the strip to EMIT_MIN_PX CSS pixels whenever it
+// would come out thinner (times the pixel ratio, since the eye integrates a CSS pixel on a phone); its colour is unchanged, so a strip reads at the colour the pixel map
+// shows. Off, and in every ordinary sim view, the uniform is 0 and the faces are what they were.
+const EMIT_MIN_PX=1.5, EMIT_MIN={px:{value:0}, vp:{value:new THREE.Vector2(1,1)}};
 // The halo is one soft disc per LED, added up: at 60/m every point on the strip line sits under
 // size/pitch of them, and unclipped that sum ran to 4 for a bare strip, a hard-edged white bar
 // 100 mm wide with the pixels lost inside it. HALO_PEAK is what the sum reaches on the strip
@@ -6837,9 +6845,22 @@ function emitterFace(mat,cover){
  const [A,B,Wd,W]=FACE_S[cover]||FACE_S.black;
  mat.onBeforeCompile=sh=>{
   sh.uniforms.fA={value:A}; sh.uniforms.fB={value:B}; sh.uniforms.fWd={value:Wd}; sh.uniforms.fW={value:W};
-  sh.vertexShader='varying vec3 vFN; varying vec3 vFV; varying vec2 vFuv;\n'+sh.vertexShader.replace(
+  sh.uniforms.emitMinPx=EMIT_MIN.px; sh.uniforms.emitVp=EMIT_MIN.vp;
+  sh.vertexShader='varying vec3 vFN; varying vec3 vFV; varying vec2 vFuv; uniform float emitMinPx; uniform vec2 emitVp;\n'+sh.vertexShader.replace(
    '#include <project_vertex>',
-   `#include <project_vertex>
+   // the minimum width: the face's half width on screen, from its centre line and this vertex's
+   // edge, and the stretch across the strip that brings it up to half of emitMinPx. Capped at 64x
+   // so a face seen edge on cannot become a wall; behind the eye it is left alone.
+   `#ifdef USE_INSTANCING
+    if(emitMinPx>0.0){
+     vec4 e0=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(0.0,transformed.yz,1.0);
+     vec4 e1=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(transformed,1.0);
+     if(e0.w>1e-4&&e1.w>1e-4){
+      float hw=length((e1.xy/e1.w-e0.xy/e0.w)*0.5*emitVp);
+      transformed.x*=clamp(0.5*emitMinPx/max(hw,1e-5),1.0,64.0); }
+    }
+    #endif
+    #include <project_vertex>
     { mat3 im=mat3(1.0); vec4 lp=vec4(position,1.0);
       #ifdef USE_INSTANCING
        im=mat3(instanceMatrix); lp=instanceMatrix*lp;
@@ -7066,6 +7087,7 @@ window.ngvShow=SHOW;
 function animate(time){
  if(!pix)return;
  showStep(time);
+ EMIT_MIN.px.value=SHOW.on?EMIT_MIN_PX*R.getPixelRatio():0; if(SHOW.on)R.getDrawingBufferSize(EMIT_MIN.vp.value);
  const a=pix.instanceColor.array, n=P.n, acc=P.bandAcc;
  const lv=state.level;
  const liveActive=live.on&&live.ws&&live.ws.readyState===1;

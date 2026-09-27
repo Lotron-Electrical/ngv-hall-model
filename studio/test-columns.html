@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hall columns vs pixel map</title>
+<style>
+ body{margin:0;background:#111;color:#eee;font:13px/1.5 ui-monospace,Consolas,monospace}
+ #out{padding:12px;white-space:pre-wrap;word-break:break-word}
+ iframe{width:390px;height:560px;border:0;background:#000;display:block}
+ canvas{width:390px;height:220px;display:block}
+</style>
+</head>
+<body>
+<!-- THE COLUMNS CHECK (2026-09-27, Codex review of e0b4736, finding 4: "the 3D columns look dimmer
+     than the flat pixel map"). The hall is loaded the way the studio loads it, at a phone-sized
+     panel, and handed one steady show: a single look at full output. The pixel map paints the same
+     show. The test reads the hall's own rendered pixels at every LED it can see, one column at a
+     time, and compares how bright a column reads with how bright the map's cells read. -->
+<iframe id="sim" src="../index.html?embed=1&amp;show=live&amp;bare=1"></iframe>
+<canvas id="map"></canvas>
+<div id="out">running...</div>
+<script src="../show/lightshow.js"></script>
+<script src="../show/looks2.js"></script>
+<script src="model.js"></script>
+<script src="pixmap.js"></script>
+<script>
+'use strict';
+const out=document.getElementById('out'); const log=[]; const say=t=>{ log.push(t); out.textContent=log.join('\n'); };
+const R={ok:false, numbers:{}, fails:[]};
+const luma=(r,g,b)=>0.2126*r+0.7152*g+0.0722*b;
+const pct=(a,q)=>{ if(!a.length)return 0; const c=a.slice().sort((x,y)=>x-y); return c[Math.min(c.length-1,Math.floor(q*(c.length-1)))]; };
+const raf=w=>new Promise(r=>w.requestAnimationFrame(()=>r()));
+// one steady show: pulse on a full bass is the palette's body colour at full, on every pixel
+const FRAME={t:0,bpm:124,beatN:0,beatPhase:0,barPhase:0,bass:1,mid:0,high:0,rms:1,onset:0};
+const STATE={look:'pulse',palette:'ice',level:1,hitAt:-9};
+const PALS=['ice','ember','white'];
+
+(async function main(){
+ const sim=document.getElementById('sim');
+ for(const t0=performance.now(); !(sim.contentWindow&&sim.contentWindow.ngv&&sim.contentWindow.ngvShow&&sim.contentWindow.dbg&&sim.contentWindow.dbg.ledInfo)&&performance.now()-t0<90000;)
+  await new Promise(r=>setTimeout(r,200));
+ const w=sim.contentWindow, ngv=w.ngv;
+ if(!ngv){ R.fails.push('hall never built'); return finish(); }
+ // the hall is ready for a show once its loader has handed over: ?show=live then drops the house
+ // lights to 12 %. Measured before that, the lit room around each strip is read as the strip.
+ for(const t0=performance.now(); !(w.dbg.house()<0.5)&&performance.now()-t0<90000;)await new Promise(r=>setTimeout(r,200));
+ R.numbers.house=w.dbg.house();
+ // the hall's first frames compile shaders; wait for 30 steady frames
+ for(let run=0,last=performance.now(),t0=last; run<30&&performance.now()-t0<60000;){ await raf(w); const n=performance.now(); run=n-last<150?run+1:0; last=n; }
+
+ // the LED halo points carry every LED's world position (the same order as the pixel arrays)
+ let glow=null; ngv.scene.traverse(o=>{ if(o.isPoints&&o.material&&o.material.vertexColors&&o.geometry.attributes.position.count===ngv.P.n)glow=o; });
+ if(!glow){ R.fails.push('no LED points in the hall'); return finish(); }
+ const P=ngv.P, pos=glow.geometry.attributes.position, V=new w.dbg.THREE.Vector3();
+ const gl=ngv.R.getContext(), cv=ngv.R.domElement;
+
+ const map=Studio.createPixmap({rows:40}), mapShow=NGVShow.createShow(), mcv=document.getElementById('map');
+ const results=[];
+ for(const pal of PALS){
+  STATE.palette=pal;
+  // hand the hall the show for a second of frames so its bands settle
+  for(let k=0;k<60;k++){ FRAME.t+=1/60; w.postMessage({t:'show',frame:FRAME,state:STATE,on:true},'*'); await raf(w); }
+  // read the hall's picture in the frame after it drew, before the browser presents it
+  const px=await new Promise(res=>w.requestAnimationFrame(()=>w.requestAnimationFrame(()=>{
+   const W=gl.drawingBufferWidth, H=gl.drawingBufferHeight, buf=new Uint8Array(W*H*4);
+   gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,buf); res({W,H,buf}); })));
+  // per column: the bright end of what the eye sees at each LED it can see (a 3 x 3 max, since a
+  // strip narrower than a pixel lands between pixel centres)
+  const cam=ngv.cam; cam.updateMatrixWorld(); const per=new Map();
+  for(let i=0;i<P.n;i++){
+   V.fromBufferAttribute(pos,i).applyMatrix4(glow.matrixWorld).project(cam);
+   if(V.z<-1||V.z>1||V.x<-1||V.x>1||V.y<-1||V.y>1)continue;
+   const x=Math.round((V.x*0.5+0.5)*(px.W-1)), y=Math.round((V.y*0.5+0.5)*(px.H-1));
+   let m=0; for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const xx=x+dx, yy=y+dy; if(xx<0||yy<0||xx>=px.W||yy>=px.H)continue;
+    const o=(yy*px.W+xx)*4, l=luma(px.buf[o],px.buf[o+1],px.buf[o+2]); if(l>m)m=l; }
+   const c=P.col[i]; if(!per.has(c))per.set(c,[]); per.get(c).push(m);
+  }
+  const cols=[]; for(const [c,a] of per)if(a.length>=40)cols.push({col:c, n:a.length, p90:pct(a,0.9)});
+  const hall=pct(cols.map(c=>c.p90),0.5);
+  // the map, painted from the same show: its lit cells' brightness
+  Object.assign(mapShow.frame,FRAME); Object.assign(mapShow.state,STATE); mapShow.sm.lastT=FRAME.t-1/60;
+  for(let k=0;k<60;k++){ mapShow.frame.t+=1/60; map.draw(mapShow,null,null,false,false); }
+  map.draw(mapShow,mcv,null,false,false);
+  const md=mcv.getContext('2d').getImageData(0,0,mcv.width,mcv.height).data, ml=[];
+  for(let o=0;o<md.length;o+=4){ const l=luma(md[o],md[o+1],md[o+2]); if(l>40)ml.push(l); }
+  const mapL=pct(ml,0.5);
+  results.push({pal, hall:Math.round(hall), map:Math.round(mapL), ratio:Math.round(hall/Math.max(1,mapL)*100)/100, cols:cols.length,
+   perCol:cols.sort((a,b)=>a.col-b.col).map(c=>c.col+':'+Math.round(c.p90))});
+  say(pal+': hall '+Math.round(hall)+'  map '+Math.round(mapL)+'  ratio '+results[results.length-1].ratio+'  columns seen '+cols.length);
+ }
+ R.numbers.results=results;
+ // a column must read at least 80 % as bright as the map's cells, and no brighter than 125 %:
+ // the same colour at the same output is the same brightness to the eye, in either view
+ for(const r of results){
+  if(r.cols<6)R.fails.push(r.pal+': only '+r.cols+' columns in view');
+  if(!(r.ratio>=0.8&&r.ratio<=1.25))R.fails.push(r.pal+': hall/map brightness '+r.ratio+' (hall '+r.hall+', map '+r.map+')');
+ }
+ finish();
+})().catch(e=>{ R.fails.push('error '+String(e&&e.stack||e)); finish(); });
+function finish(){ R.ok=R.fails.length===0; say(JSON.stringify(R)); window.COLUMNS_TEST=R; }
+</script>
+</body>
+</html>

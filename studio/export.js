@@ -127,28 +127,62 @@ function cueList(proj){
  const T=Studio.timeline?Studio.timeline(proj):null;
  const sec=Studio.stepSeconds(proj.bpm||124);
  const tAt=s=>r4(T?T.time(s):s*sec);
+ const notes=Studio.flatten(proj,'song'), songEnd=stepCount(proj,T);
  const by=new Map();
  const at=(layer,s)=>{ const t=tAt(s), k=layer+'@'+t; let e=by.get(k); if(!e){ e={t,layer}; by.set(k,e); } return e; };
  const machs=lightLayers(proj), idx=new Map(); machs.forEach((m,i)=>idx.set(m.id,i));
+ // the trigger table of every machine a layer is synced to, and which layers fold onto a cycle
+ const trig=new Map(), foldOf=new Map();
+ for(const m of machs){ const sy=m.sync||'grid'; if(sy==='grid')continue;
+  const tt=Studio.triggerTable(proj,sy,'song',notes,T); trig.set(m.id,tt); if(tt.len>0)foldOf.set(m.id,tt); }
  // the layer's own settings, on the first stamp: the compositor reads them straight off the cue
  machs.forEach((m,i)=>{ const e=at(i,0);
   e.gain=r4(clamp((m.params&&m.params.level!=null?m.params.level:1)*(m.gain!=null?m.gain:1),0,1));
   e.sync=m.sync||'grid';
   if(m.family)e.family=m.family;
-  // the MADRIX half travels with the show, so the proposal page stacks the layers the same way
-  if(m.mute)e.gain=0;
+  // the MADRIX half travels with the show, so the proposal page stacks the layers the same way.
+  // Dark exactly when the rack paints it dark: muted, or another layer is soloed and this is not.
+  if(Studio.silenced(m,machs))e.gain=0;
+  // a synced layer carries the trigger table the rack stepped it on; the hall runs the same maths
+  // (NGVShow.trigAt) off the file's step table. No notes on the synced machine = the beat grid.
+  const tt=trig.get(m.id); if(tt&&tt.steps.length)e.trig=tt;
   if(m.mix)e.mix=m.mix; if(m.map&&m.map!=='all')e.map=m.map;
   if(m.params&&m.params.speed>0&&m.params.speed!==1)e.speed=r4(m.params.speed); });
- for(const x of Studio.flatten(proj,'song')){
+ for(const x of notes){
   const li=idx.get(x.mid); if(li==null)continue;
   const k=Studio.LIGHT_KEYS[x.n]; if(!k)continue;
+  // a synced layer's looks and palettes are written by cycle below; its hits stay where they are,
+  // because the rack fires hits on the real playhead, not the folded one
+  if(k.kind!=='hit'&&foldOf.has(x.mid))continue;
   const e=at(li,x.s);
   if(k.kind==='look')e.look=k.val; else if(k.kind==='palette')e.palette=k.val; else if(k.kind==='hit')e.hit=true;
+ }
+ // THE FOLDED CUES (2026-09-27): live, a synced layer reads its cues at the step folded onto the
+ // synced pattern's cycle, so the cues inside the first cycle repeat every cycle and later ones
+ // never land. Written out cycle by cycle here: each new cycle opens on the look and palette the
+ // rack resolves at the cycle's first step, then the cycle's own cues follow.
+ for(const [mid,tt] of foldOf){
+  const li=idx.get(mid), own=notes.filter(x=>x.mid===mid&&Studio.LIGHT_KEYS[x.n]&&Studio.LIGHT_KEYS[x.n].kind!=='hit');
+  const put=(s,k)=>{ const e=at(li,s); if(k.kind==='look')e.look=k.val; else e.palette=k.val; };
+  const open={};   // the last look and palette at or before the cycle's first step
+  for(const x of own){ if(x.s<=tt.base)open[Studio.LIGHT_KEYS[x.n].kind]=Studio.LIGHT_KEYS[x.n]; }
+  for(const x of own)if(x.s<tt.base)put(x.s,Studio.LIGHT_KEYS[x.n]);
+  for(let c=tt.base;c<songEnd;c+=tt.len){
+   for(const kind in open)put(c,open[kind]);
+   for(const x of own){ if(x.s<=tt.base||x.s>=tt.base+tt.len)continue; const s=c+(x.s-tt.base); if(s<songEnd)put(s,Studio.LIGHT_KEYS[x.n]); }
+  }
  }
  // the level lane is the hall master and belongs to layer 0, whichever machine wrote it
  for(const l of Studio.flattenLevel(proj,'song'))at(0,l.s).level=r4(clamp(l.v,0,1));
  return Array.from(by.values()).sort((a,b)=>a.t-b.t||a.layer-b.layer);
 }
+
+// the song's length in steps, and the time of every step on it: the hall turns its audio clock back
+// into a song step with this, which is what a synced layer's triggers are counted in
+function stepCount(proj,T){ const bars=Studio.songLengthBars(proj); return T?T.barStep(bars):bars*Studio.STEPS_PER_BAR; }
+function stepTable(proj){ const T=Studio.timeline?Studio.timeline(proj):null, n=stepCount(proj,T), sec=Studio.stepSeconds(proj.bpm||124);
+ // rounded as the cue stamps are (r4), so a cue on step s and step s itself are the same number
+ const out=new Array(n+1); for(let s=0;s<=n;s++)out[s]=r4(T?T.time(s):s*sec); return out; }
 
 // the beat grid, off the timeline so odd meters and per-section tempo are honoured: a downbeat is
 // the first beat of a bar, whatever that bar's meter says.
@@ -208,7 +242,7 @@ Studio.exportFiles=async function(proj,eng,name,progress){
   file:name+'.wav', duration:r4(dur), sr:44100, hop_s:r4(fr.hop_s), bpm, cueVersion:2,
   beats:grid.beats, downbeats:grid.downbeats, sections:sections(proj,bpm),
   frames:{rms:arr4(fr.rms),bass:arr4(fr.bass),mid:arr4(fr.mid),high:arr4(fr.high),onset:arr4(fr.onset)},
-  cues:cueList(proj),
+  cues:cueList(proj), stepT:stepTable(proj),
   project:Studio.clone(proj),
  };
  const cuesJson=JSON.stringify(cues);
@@ -235,5 +269,5 @@ Studio.exportShow=async function(proj,eng,name,progress){
 
 // exposed so the test page can measure the pieces on their own
 Studio.wav16=wav16; Studio.analyseBuffer=analyseBuffer; Studio.fft=fft; Studio.cueList=cueList;
-Studio.lightLayers=lightLayers; Studio.beatGrid=beatGrid;
+Studio.lightLayers=lightLayers; Studio.beatGrid=beatGrid; Studio.stepTable=stepTable;
 })();
